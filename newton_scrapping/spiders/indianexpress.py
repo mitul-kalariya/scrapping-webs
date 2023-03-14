@@ -79,7 +79,7 @@ class IndianexpressSpider(scrapy.Spider):
                         callback=self.parse_sitemap)
             else:
                 for url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                namespaces=self.namespace).getall()[0:2]:
+                                                                namespaces=self.namespace).getall():
                     yield scrapy.Request(url, callback=self.parse_sitemap)
         else:
             article1 = response.css('div.lead-stories a::attr(href)').getall()
