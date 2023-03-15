@@ -145,7 +145,7 @@ class TimesNow(scrapy.Spider):
                                            'url': json_data['publisher']['logo']['url'],
                                            'width': {'@type': "Distance",
                                                      "name": str(json_data['publisher']['logo']['width']) + " Px"},
-                                           'heigt': {'@type': "Distance",
+                                           'height': {'@type': "Distance",
                                                      'name': str(json_data['publisher']['logo']['height']) + " Px"}}},
                     "image": {
                         "@type": "ImageObject",
