@@ -61,11 +61,11 @@ class IndianexpressSpider(scrapy.Spider):
                     self.date_range_lst.append(single_date)
             
             elif self.type == "article":
-                self.start_urls.append("https://indianexpress.com/")
                 if not self.article_url:
                     raise ValueError("Argument url is required for type article.")
                 if self.scrape_start_date or self.scrape_end_date:
                     raise ValueError("Invalid argument. start_date and end_date argument is not required for article.")
+                self.start_urls.append(url)
             else:
                 raise ValueError("Invalid type argument. Must be 'sitemap' or 'article'.")
         except Exception as exception:
@@ -103,7 +103,7 @@ class IndianexpressSpider(scrapy.Spider):
                 except Exception as exception:
                     self.log("Error occured while iterating sitemap url. " + str(exception), level=logging.ERROR)
         else:
-            yield scrapy.Request(self.article_url, callback=self.parse_article)
+            yield self.parse_article(response)
 
     def parse_sitemap(self, response):
         """
@@ -153,7 +153,6 @@ class IndianexpressSpider(scrapy.Spider):
             if not modified_date:
                 modified_date = None
             articles_category = response.css('ol.m-breadcrumb li a::text').getall()
-            # articles_category = response.css('div.m-breadcrumb li a::text').getall()
             content_type = response.headers.get("Content-Type").decode("utf-8")
             description = response.css('h2.synopsis::text').getall()
             language = response.css('html::attr(lang)').getall()
@@ -187,7 +186,6 @@ class IndianexpressSpider(scrapy.Spider):
 
                 if json.loads(block).get('publisher'):
                     publisher_type = json.loads(block).get('publisher').get('@type')
-                # breakpoint()
                 if json.loads(block).get('address'):
                     country = json.loads(block).get('address').get('addressRegion')
                 json_ld_blocks.append(json.loads(block))
