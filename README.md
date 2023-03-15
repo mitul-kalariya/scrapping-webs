@@ -1,21 +1,37 @@
 # Newton Scrapping
-
-## About The Project
-
 This is the scrapping project to scrap news from different website.
 
-#### Python setup
 
-- `virtulenv venv` and `source venv/bin/activate`
-- `pip install -r requirements.txt`
-- command to crawl articles `scrapy crawl huff_post -a category=articles`
-- command to crawl articles with date `scrapy crawl huff_post -a category=articles -a start_date=2023-03-06 -a end_date=2023-03-06`
-- command to crawl on articles on one date `scrapy crawl huff_post -a category=articles -a start_date=2023-03-06`
-- command to crawl sitemap without date `scrapy crawl huff_post -a category=sitemap`
-- command to crawl sitemap with date `scrapy crawl huff_post -a category=sitemap -a start_date=2023-03-06 -a end_date=2023-03-06`
-- command to crawl on sitemap on one date `scrapy crawl huff_post -a category=sitemap -a start_date=2023-03-06`
+#### Setup and execution instructions: - 
 
+This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
+- Python 3.10
+- Scrapy
+
+
+#### Environment Setup 
+
+- Create Virtual Environment using Python3 and activate environment.
+- `python3 -m venv venv`
+- `source venv/bin/activate`
+- Install Requirements using requirements.txt file available in a main directory.
+- `pip install -r requirements.txt `
+
+
+#### Sitemap file available: - Yes
+
+
+#### Command to fetch sitemap: - 
+
+- command to crawl on sitemap from specific date range
+- `scrapy crawl huff_post -a type=sitemap -a start_date=2023-03-06 -a end_date=2023-03-10`
+- command to crawl sitemap for today’s date
+- `scrapy crawl huff_post -a type=sitemap`
+
+
+#### Commands to fetch Articles: - 
+
+- command to crawl wanted article
+- `scrapy crawl huff_post -a type=article -a url={{Article-URL}}`
 
 *Note:* Make sure to enter the virtual env before running.
-
-<p align="right">(<a href="#top">back to top</a>)</p>
