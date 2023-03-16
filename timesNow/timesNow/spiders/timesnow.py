@@ -106,6 +106,8 @@ class TimesNow(scrapy.Spider):
             self.articles.append(article)
 
     def parse_article(self, response):
+        img_dict = {}
+        img_list = []
         title = response.css('#readtrinity0  h1._1FcxJ::text').getall()
         sub_title = response.css('#readtrinity0 div.QA-An h2::text').get()
         img_url = response.css('#readtrinity0 div._3lDdd img::attr(src)').get()
@@ -114,6 +116,9 @@ class TimesNow(scrapy.Spider):
         category = response.css('#readtrinity0 div.Faqqe li a p::text').getall()
         tags = response.css('#readtrinity0 div.regular a div::text').getall()
         selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
+        img_dict["link"] = img_url
+        img_dict["caption"] = img_caption
+        img_list.append(img_dict)
         string = selector[2]
         json_data = json.loads(string)
         json_ld_blocks = []
@@ -138,7 +143,7 @@ class TimesNow(scrapy.Spider):
                     "dateModified": json_data['dateModified'],
                     "datePublished": json_data['datePublished'],
                     "description": json_data['description'],
-                    "author": json_data['author'],
+                    "author": json_data['author'][0],
                     "publisher": {'@type': json_data['publisher']['@type'],
                                   'name': json_data['publisher']['name'],
                                   'logo': {'@type': json_data['publisher']['logo']['@type'],
@@ -150,7 +155,7 @@ class TimesNow(scrapy.Spider):
                     "image": {
                         "@type": "ImageObject",
                         "url": img_url,
-                        "caption": img_caption
+                        # "caption": img_caption
                     }
 
                 },
@@ -161,12 +166,17 @@ class TimesNow(scrapy.Spider):
                 "description": sub_title,
                 "modified_at": json_data['dateModified'],
                 "published_at": json_data['datePublished'],
-                "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
-                "publisher": json_data['publisher'],
+                # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
+                "publisher": {'@type': json_data['publisher']['logo']['@type'],
+                                           'url': json_data['publisher']['logo']['url'],
+                                           'width': {'@type': "Distance",
+                                                     "name": str(json_data['publisher']['logo']['width']) + " Px"},
+                                           'height': {'@type': "Distance",
+                                                     'name': str(json_data['publisher']['logo']['height']) + " Px"}},
                 "text": text,
                 "thumbnail_image": [img_url],  # need to look it
                 "title": title,
-                "images": {'image_url': img_url, 'image_caption': img_caption},
+                "images": img_list,
                 # "video": {"link": video_link, "caption": None},
                 "section": "".join(category).split(","),
                 "tags": tags
