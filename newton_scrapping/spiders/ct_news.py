@@ -187,7 +187,7 @@ class CtvnewsSpider(scrapy.Spider):
         """
         try:
             content_type = response.headers.get("Content-Type").decode("utf-8")
-            language = response.css("html::attr(lang)").getall()
+            language = response.css("html::attr(lang)").get()
             imageurl = response.css(".inline-image::attr(src)").getall()
             image = None
             for img in imageurl:
@@ -198,17 +198,11 @@ class CtvnewsSpider(scrapy.Spider):
 
             caption = response.css(".c-text span::text").getall()
             text = response.css(".twitter-tweet::text, .c-text p::text").getall()
-            copyright = response.css(
-                ".c-quickArticle__footer__copyright::text"
-            ).getall()
-            if copyright:
-                copyright = copyright[1]
             articles_category = response.css(
                 ".c-breadcrumb__item__link span::text"
             ).getall()
-            logo_urls = response.css(".c-quickArticle__header_logo::attr(src)").getall()
-            for logo in logo_urls:
-                logo_url = "https://www.ctvnews.ca/" + logo
+            logo_urls = response.css(".c-quickArticle__header_logo::attr(src)").get()
+            logo_url = "https://www.ctvnews.ca/" + logo_urls
 
             author = json.loads(response.css("bio-content::attr(content)").get())
             for au in author:
@@ -222,7 +216,6 @@ class CtvnewsSpider(scrapy.Spider):
                 json_ld_blocks.append(
                     json.loads(re.sub(self.space_remover_pattern, "", block).strip())
                 )
-
             publisher_name = json_ld_blocks[0].get("publisher", None).get("name", None)
             publisher_type = json_ld_blocks[0].get("publisher", None).get("@type", None)
             published_date = json_ld_blocks[0].get("datePublished", None)
@@ -255,7 +248,7 @@ class CtvnewsSpider(scrapy.Spider):
                         "datepublished": published_date,
                         "publisher": [
                             {
-                                "@id": "",
+                                "@id": "www.ctvnews.ca",
                                 "@type": publisher_type,
                                 "name": publisher_name,
                                 "logo": {
@@ -263,8 +256,7 @@ class CtvnewsSpider(scrapy.Spider):
                                     "url": logo_url,
                                 },
                             }
-                        ],
-                        "copyright": copyright,
+                        ]
                     },
                     "misc": json_ld_blocks,
                 },
@@ -275,7 +267,7 @@ class CtvnewsSpider(scrapy.Spider):
                     "description": alternativeheadline,
                     "modified_at": updated_date,
                     "published_at": published_date,
-                    "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
+                    # "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
                     "publisher": [
                         {
                             "@id": "www.ctvnews.ca",
@@ -292,6 +284,11 @@ class CtvnewsSpider(scrapy.Spider):
                     "section": articles_category,
                 },
             }
+            if not video_link:
+                article.get('parsed_data').pop('video')
+            if not image:
+                article.get('parsed_data').pop('images')
+            self.articles.append(article)
             self.articles.append(article)
         except Exception as exception:
             self.log(
@@ -309,7 +306,7 @@ class CtvnewsSpider(scrapy.Spider):
                 self.log("No articles or sitemap url scapped.", level=logging.INFO)
             else:
                 if self.type == "sitemap":
-                    filename = f'{self.name}-sitemap-{self.scrape_start_date.strftime("%Y-%m-%d_%H-%M-%S")}{" - " + self.scrape_end_date.strftime("%Y-%m-%d_%H-%M-%S") if self.scrape_end_date != self.scrape_start_date else ""}.json'
+                    filename = f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
                 elif self.type == "article":
                     filename = f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
                 with open(f"{filename}.json", "w") as file:
