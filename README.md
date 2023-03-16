@@ -1,6 +1,6 @@
-## TimesNowNews Scraper
+## CP24 Scraper
 
-This repo contains the code to scrap all sitemaps (if available) and articles from [times now news](https://www.timesnownews.com/) website and the Tech stacks used are:-
+This repo contains the code to scrap all sitemaps (if available) and articles from [cp24 news](https://www.cp24.com) website and the Tech stacks used are:-
 -  Python 3.10
 -  Scrapy 
 
@@ -26,17 +26,17 @@ pip install -r requirements.txt
 ### Command to fetch Sitemap:-
 -  Command to crawl on sitemap from specific date range
 ```bash
-scrapy crawl times_now_news -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
+scrapy crawl cp24 -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
 ```
     
 -  Command to crawl sitemap for today’s date  
 ```bash
-scrapy crawl times_now_news -a type=sitemap
+scrapy crawl cp24 -a type=sitemap
 ```
     
 ### Command to fetch Articles:-
-[timesnownews_article_url](https://www.timesnownews.com/business-economy/markets/top-stocks-to-buy-sell-today-14th-march-2023-tech-mahindra-rbl-bank-lt-finance-holdings-check-share-price-target-stop-loss-and-other-details-kunal-bothras-cracker-stocks-article-98626158)
+[cp24_article_url](https://www.cp24.com/news/investigation-underway-after-senior-killed-in-st-catharines-crash-police-1.6315571)
 ```bash
-scrapy crawl spider_name -a type=article url=timesnownews_article_url
+scrapy crawl cp24 -a type=article url=timesnownews_article_url
 ```
 

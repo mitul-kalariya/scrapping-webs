@@ -2,6 +2,7 @@ import scrapy
 import json
 from datetime import datetime
 from scrapy.selector import Selector
+from json.decoder import JSONDecodeError
 from scrapy.utils.project import get_project_settings
 
 
@@ -71,8 +72,6 @@ class CP24News(scrapy.Spider):
         selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
         string = selector[0].split('"datePublished":')
         published_date = string[1].split('"')[1].strip()
-        # json_data = json.loads(string)
-        # published_date = json_data['datePublished']
         published_date = datetime.strptime(published_date[:10], '%Y-%m-%d')
         if self.start_date == None and self.end_date == None:
 
@@ -86,6 +85,8 @@ class CP24News(scrapy.Spider):
                     }
                     self.logger.info("---------- Fetching today's sitemap data ------------")
                     self.articles.append(article)
+            else:
+                self.logger.info(">>>>> There's no article url and link for Today's Date")
 
         elif self.start_date <= published_date <= self.end_date:
             title = response.css('h1.articleHeadline::text').get()
@@ -96,6 +97,8 @@ class CP24News(scrapy.Spider):
                 }
                 self.logger.info('---------- Fetching sitemap data for given range  ------------')
                 self.articles.append(article)
+        else:
+            self.logger.info(">>>>>>> There's no article url and link for given date of range")
 
     def parse_article(self, response):
         self.logger.info('---------- Fetching article data for given url ------------')
@@ -111,12 +114,21 @@ class CP24News(scrapy.Spider):
 
         json_ld_blocks = []
         for sec in selector:
-            json_ld_blocks.append(json.loads(sec))
-
+            try:
+                json_ld_blocks.append(json.loads(sec))
+            except JSONDecodeError as e:
+                self.logger.error(f'>>>>>  {e}')
+                new_str = sec.replace("],", "")
+                json_ld_blocks.append(json.loads(new_str))
         article_img = [{"link": article, "caption": None} for article in article_body_img]
 
         string = selector[0]
-        json_data = json.loads(string)
+        try:
+            json_data = json.loads(string)
+        except JSONDecodeError as e:
+            self.logger.error(f'>>>>>>  {e}')
+            new_str = string.replace("],", "")
+            json_data = json.loads(new_str)
 
         try:
             modified_date = json_data['dateModified']
@@ -140,7 +152,8 @@ class CP24News(scrapy.Spider):
                     "dateModified": modified_date,
                     "datePublished": json_data['datePublished'],
                     "description": json_data['description'],
-                    "author": {'@type': json_data['author'][0]["@type"], 'name': json_data['author'][0]['name'],
+                    "author": {'@type': json_data['author'][0]["@type"] if json_data.get("author") else None,
+                               'name': json_data['author'][0]['name'] if json_data.get("author") else None,
                                'url': author_url},
                     "publisher": {
                         '@id': json_ld_blocks[1]['url'],
@@ -152,7 +165,7 @@ class CP24News(scrapy.Spider):
                             'width': {
                                 '@type': "Distance",
                                 "name": str(json_data['publisher']['logo']['width']) + " Px"},
-                            'heigt': {
+                            'height': {
                                 '@type': "Distance",
                                 'name': str(json_data['publisher']['logo']['height']) + " Px"}}},
                     "image": {
@@ -164,20 +177,21 @@ class CP24News(scrapy.Spider):
                 "misc": json_ld_blocks
             },
             "parsed_data": {
-                "author": {'@type': json_data['author'][0]["@type"], 'name': json_data['author'][0]['name'],
+                "author": {'@type': json_data['author'][0]["@type"] if json_data.get("author") else None,
+                           'name': json_data['author'][0]['name'] if json_data.get("author") else None,
                            'url': author_url},
                 "description": [json_data['description']],
                 "published_at": [json_data['datePublished']],
                 "publisher": [{'@id': json_ld_blocks[1]['url'], '@type': json_data['publisher']['@type'],
-                              'name': json_data['publisher']['name'],
-                              'logo': {'@type': json_data['publisher']['logo']['@type'],
-                                       'url': json_data['publisher']['logo']['url'], 'width': {'@type': "Distance",
-                                                                                               "name": str(json_data[
-                                                                                                               'publisher'][
-                                                                                                               'logo'][
-                                                                                                               'width']) + " Px"},
-                                       'heigt': {'@type': "Distance",
-                                                 'name': str(json_data['publisher']['logo']['height']) + " Px"}}}],
+                               'name': json_data['publisher']['name'],
+                               'logo': {'@type': json_data['publisher']['logo']['@type'],
+                                        'url': json_data['publisher']['logo']['url'], 'width': {'@type': "Distance",
+                                                                                                "name": str(json_data[
+                                                                                                                'publisher'][
+                                                                                                                'logo'][
+                                                                                                                'width']) + " Px"},
+                                        'height': {'@type': "Distance",
+                                                  'name': str(json_data['publisher']['logo']['height']) + " Px"}}}],
                 "text": [text],
                 "thumbnail_image": [img_url],  # need to look it
                 "title": [title],
@@ -195,5 +209,3 @@ class CP24News(scrapy.Spider):
             filename = f'cp24news-article-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)
-        self.logger.info(f'---------- stored the following data {filename}------------')
-
