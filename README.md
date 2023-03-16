@@ -1,12 +1,11 @@
 # Newton Scrapping
-This is the scrapping project to scrap news from different website. 
-
+This is the scrapping project to scrap news from different website.
 
 #### Setup and execution instructions: - 
 
 This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
 - Python 3.10
-- Scrapy 
+- Scrapy
 
 
 #### Environment Setup 
@@ -16,7 +15,10 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 - `source venv/bin/activate`
 - Install Requirements using requirements.txt file available in a main directory.
 - `pip install -r requirements.txt ` 
+*Note:* Make sure to enter the virtual env before running.
 
+
+## Indian Express
 
 #### Sitemap file available: - Yes 
 
@@ -33,6 +35,3 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 
 - command to crawl wanted article
 - `scrapy crawl indian_express -a type=article -a url={{Article-URL}}` 
-
-*Note:* Make sure to enter the virtual env before running.
-
