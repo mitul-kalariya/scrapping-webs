@@ -201,21 +201,17 @@ class IndianexpressSpider(scrapy.Spider):
                 modified_date = None
             articles_category = response.css("ol.m-breadcrumb li a::text").getall()
             content_type = response.headers.get("Content-Type").decode("utf-8")
-            description = response.css("h2.synopsis::text").getall()
-            language = response.css("html::attr(lang)").getall()
-            city = response.css("div.editor-date-logo div::text").getall()
+            description = response.css("h2.synopsis::text").get()
             text = response.css("div#pcl-full-content p::text").getall()
             images = response.css("span.custom-caption > img::attr(src)").getall()
             caption1 = response.css("span.ie-custom-caption::text").getall()
             caption2 = response.css("span.custom-caption::text").getall()
             caption = caption1 + caption2
             tags = response.css("div.storytags ul li a::text").getall()
-            headline = response.css("div.heading-part  h1::text").getall()
-            alternativeheadline = response.css("h2.synopsis::text").getall()
-            author_name = response.css("div.editor div a::text").getall()
-            author_url = response.css("div.editor div a::attr(href)").getall()
-            social_url = response.css("ul.g-follow a::attr(href)").getall()
-            social_name = response.css("ul.g-follow a::attr(title)").getall()
+            headline = response.css("div.heading-part  h1::text").get()
+            alternativeheadline = response.css("h2.synopsis::text").get()
+            author_name = response.css("div.editor div a::text").get()
+            author_url = response.css("div.editor div a::attr(href)").get()
             logo_url = response.css(
                 "#wrapper div.main-header__logo img::attr(src)"
             ).get()
@@ -225,23 +221,25 @@ class IndianexpressSpider(scrapy.Spider):
             logo_width = response.css(
                 "#wrapper div.main-header__logo img::attr(width)"
             ).get()
-            copyright = response.css("div.g-footer-aux div.privacy::text").getall()
             publisher_name = response.css(
                 "#wrapper div.main-header__logo img::attr(title)"
-            ).getall()
+            ).get()
             video_url = response.css("span.embed-youtube iframe::attr(src)").getall()
 
             json_ld_blocks = []
             blocks = response.css('script[type="application/ld+json"]::text').getall()
 
             for block in blocks:
-                if json.loads(block).get("author"):
-                    author_type = json.loads(block).get("author")[0].get("@type")
-
-                if json.loads(block).get("publisher"):
-                    publisher_type = json.loads(block).get("publisher").get("@type")
-                if json.loads(block).get("address"):
-                    country = json.loads(block).get("address").get("addressRegion")
+                contents = json.loads(block).get('@context', None)
+                if json.loads(block).get("author", None):
+                    author_type = json.loads(block).get("author", None)[0].get("@type", None)
+                if json.loads(block).get("publisher", None):
+                    publisher_type = json.loads(block).get("publisher", None).get("@type", None)
+                    publisher_id = json.loads(block).get('publisher', None).get('url', None)
+                if json.loads(block).get("address", None):
+                    country = json.loads(block).get("address", None).get("addressRegion", None)
+                if json.loads(block).get('contactPoint', None):
+                    language = json.loads(block).get('contactPoint', None).get('availableLanguage', None)
                 json_ld_blocks.append(json.loads(block))
 
             article = {
@@ -250,10 +248,10 @@ class IndianexpressSpider(scrapy.Spider):
                     "content": response.text,
                     "language": language,
                     "country": country,
-                    "city": city,
                 },
                 "parsed_json": {
                     "main": {
+                        "@content": contents,
                         "@type": "NewsArticle",
                         "mainEntityOfPage": {"@type": "WebPage", "@id": response.url},
                         "headlines": headline,
@@ -262,7 +260,7 @@ class IndianexpressSpider(scrapy.Spider):
                         "datepublished": published_date,
                         "publisher": [
                             {
-                                "@id": "",
+                                "@id": publisher_id,
                                 "@type": "NewsMediaOrganization",
                                 "name": publisher_name,
                                 "logo": {
@@ -279,15 +277,6 @@ class IndianexpressSpider(scrapy.Spider):
                                 },
                             }
                         ],
-                        "socialLinks": [
-                            {
-                                "deprecated": True,
-                                "deprecation_msg": "Please use social_links.",
-                                "site": social_name,
-                                "url": social_url,
-                            },
-                        ],
-                        "copyright": copyright,
                     },
                     "misc": json_ld_blocks,
                 },
@@ -298,10 +287,10 @@ class IndianexpressSpider(scrapy.Spider):
                     "description": description,
                     "modified_at": modified_date,
                     "published_at": published_date,
-                    "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
+                    # "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
                     "publisher": [
                         {
-                            "@id": "www.indianexpress.com",
+                            "@id": publisher_id,
                             "@type": publisher_type,
                             "name": publisher_name,
                             "logo": {
@@ -331,6 +320,10 @@ class IndianexpressSpider(scrapy.Spider):
                     "tags": tags,
                 },
             }
+            if not video_url:
+                article.get('parsed_data').pop('video')
+            if not images:
+                article.get('parsed_data').pop('images')
             self.articles.append(article)
         except Exception as exception:
             self.log(
