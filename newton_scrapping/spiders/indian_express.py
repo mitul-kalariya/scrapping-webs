@@ -348,7 +348,7 @@ class IndianexpressSpider(scrapy.Spider):
                 self.log("No articles or sitemap url scapped.", level=logging.INFO)
             else:
                 if self.type == "sitemap":
-                    filename = f'{self.name}-sitemap-{self.scrape_start_date.strftime("%Y-%m-%d_%H-%M-%S")}{" - " + self.scrape_end_date.strftime("%Y-%m-%d_%H-%M-%S") if self.scrape_end_date != self.scrape_start_date else ""}.json'
+                    filename = f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
                 elif self.type == "article":
                     filename = f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
                 with open(f"{filename}.json", "w") as file:
