@@ -234,6 +234,8 @@ class CtvnewsSpider(scrapy.Spider):
             thumbnail_url = json_ld_blocks[0].get("thumbnailUrl", None)
             parsed_json_type = json_ld_blocks[0].get("@type", None)
             parsed_json_content = json_ld_blocks[0].get("@context", None)
+            video_url = response.css("inline-video::attr('axis-ids')").get().split('axisId":')[-1].split('"}')[0].replace('"', "")
+            video_link = "https://www.ctvnews.ca/video?clipId=" + video_url
 
             article = {
                 "raw_response": {
@@ -286,7 +288,7 @@ class CtvnewsSpider(scrapy.Spider):
                     "thumbnail_image": [thumbnail_url],
                     "title": headline,
                     "images": [{"link": image, "caption": caption}],
-                    "video": {"link": None, "caption": None},
+                    "video": {"link": video_link},
                     "section": articles_category,
                 },
             }
