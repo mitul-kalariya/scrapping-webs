@@ -1,3 +1,5 @@
+import os
+
 import scrapy
 import json
 import re
@@ -198,8 +200,12 @@ class Economist(scrapy.Spider):
 
     def closed(self, reason):
         if self.type == "sitemap":
-            filename = f'economistnews-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if not os.path.isdir('Links'):
+                os.makedirs('Links')
+            filename = os.path.join('Links', f'economistnews-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
         elif self.type == "article":
-            filename = f'economistnews-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if not os.path.isdir('Article'):
+                os.makedirs('Article')
+            filename = os.path.join('Links', f'economistnews-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)
