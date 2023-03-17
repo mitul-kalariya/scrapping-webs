@@ -23,6 +23,8 @@ class LeParisien(scrapy.Spider):
         initial_url = "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap-index/?from=0&outputType=xml&_website" \
                       "=leparisien"
         if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
+            self.logger.info('---------- Entering to fetch data for sitemap when start_date and end_date is given '
+                             '------------')
             self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
             self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
             if (self.end_date - self.start_date).days > 30:
@@ -31,6 +33,8 @@ class LeParisien(scrapy.Spider):
                 self.start_urls.append(initial_url)
 
         elif self.type == "sitemap" and self.start_date is None and self.end_date is None:
+            self.logger.info('---------- Entering to fetch data for sitemap when start_date and end_date is not given '
+                             '------------')
             today_time = datetime.today().strftime("%Y-%m-%d")
             self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
             self.start_urls.append(initial_url)
@@ -39,13 +43,14 @@ class LeParisien(scrapy.Spider):
             raise ValueError("to use type sitemap give only type sitemap or with start date and end date")
 
         elif self.type == "article" and self.url is not None:
+            self.logger.info('---------- Entering to fetch article data for given url ------------')
             self.start_urls.append(self.url)
 
         elif self.type == "article" and self.url is None:
             raise ValueError("type article must be used with url")
 
         else:
-            raise ValueError("type should be articles or sitemap")
+            raise ValueError("type should be article or sitemap")
 
     def parse(self, response):
         if self.type == "sitemap":
@@ -65,16 +70,19 @@ class LeParisien(scrapy.Spider):
         if self.start_date is not None and self.end_date is not None:
             for article, date, title in zip(article_urls, published_date, title):
                 if self.start_date <= datetime.strptime(date.split('T')[0], '%Y-%m-%d') <= self.end_date:
+                    self.logger.info('---------- Fetching sitemap data for given date range  ------------')
                     article = {
                         "link": article,
                         "title": title,
                     }
                     self.articles.append(article)
 
+
         elif self.start_date is None and self.end_date is None:
             for article, date, title in zip(article_urls, published_date, title):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if _date == self.today_date:
+                    self.logger.info("---------- Fetching today's sitemap data ------------")
                     article = {
                         "link": article,
                         "title": title,
@@ -96,6 +104,7 @@ class LeParisien(scrapy.Spider):
             self.articles.append(article)
 
     def parse_article(self, response):
+        self.logger.info('---------- Fetching article data for given url ------------')
         title = response.css('header.article_header > h1::text').getall()
         img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
         img_caption = response.css('div.width_full >figure > figcaption > span::text').getall()
