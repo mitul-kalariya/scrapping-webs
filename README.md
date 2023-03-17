@@ -1,6 +1,6 @@
-## Leparisien Scraper
+## Economist Scraper
 
-This repo contains the code to scrap all sitemaps (if available) and articles from [Leparisien](https://www.leparisien.fr/) website and the Tech stacks used are:-
+This repo contains the code to scrap all sitemaps (if available) and articles from [Economist](https://www.economist.com) website and the Tech stacks used are:-
 -  Python 3.10
 -  Scrapy 
 
@@ -26,16 +26,16 @@ pip install -r requirements.txt
 ### Command to fetch Sitemap:-
 -  Command to crawl on sitemap from specific date range
 ```bash
-scrapy crawl le_parisien -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
+scrapy crawl economist_canada -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
 ```
     
 -  Command to crawl sitemap for today’s date  
 ```bash
-scrapy crawl le_parisien -a type=sitemap
+scrapy crawl economist_canada -a type=sitemap
 ```
     
 ### Command to fetch Articles:-
-[Laprisien_article_url](https://www.leparisien.fr/sports/football/pas-appele-en-equipe-de-france-depuis-2020-houssem-aouar-va-representer-lalgerie-15-03-2023-BLJ2OJSGFVADTNP4DHYWESB3HQ.php)
+[Economist_article_url](https://www.economist.com/podcasts/2023/01/02/the-world-is-entering-a-new-nuclear-age-an-old-fear-returns)
 ```bash
-scrapy crawl le_parisien -a type=article url=timesnownews_article_url
+scrapy crawl economist_canada -a type=article url=timesnownews_article_url
 ```
