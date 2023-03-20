@@ -96,14 +96,14 @@ class ArdNewsSpider(scrapy.Spider):
         if self.type == 'article':
             response_json = self.response_json(response)
             response_data = self.response_data(response)
-            data = {
-                'raw_response': {
+            data = {'raw_response': {
                     "content_type": "text/html; charset=utf-8",
                     "content": response.css('html').get(),
-                },
-                'parsed_json': response_json,
-                "parsed_data": response_data
-            }
+                },}
+            if response_data:
+                data["parsed_json"] = response_json
+            if response_data:
+                data["parsed_data"] = response_data
 
             self.article_json_data.append(data)
 
@@ -216,7 +216,7 @@ class ArdNewsSpider(scrapy.Spider):
         # extract the thumbnail image
         thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
         if thumbnail_image:
-            thumbnail_image = ["https://www.tagesschau.de/" + thumbnail_image]
+            main_dict["thumbnail_image"] = ["https://www.tagesschau.de/" + thumbnail_image]
 
         # extract video files if any
         video = self.extract_all_videos(response.css("div.copytext__video"))
@@ -230,64 +230,57 @@ class ArdNewsSpider(scrapy.Spider):
 
         return main_dict
 
+
     def response_json(self, response) -> dict:
 
-        pattern = r"[\r\n\t\"]+"
-        current_url = response.request.url
         parsed_json = {}
-        parsed_json["main"] = {
-            "@context": "https://globalnews.ca/",
-            "@type": "NewsArticle",
-            "mainEntityOfPage": {"@type": "WebPage", "@id": current_url},
-        }
-        main_parsed_dict = parsed_json['main']
-        # extract author info
-        authors = self.extract_author_info(response.css("div.copytext-element-wrapper"))
-        if authors:
-            main_parsed_dict["author"] = authors
-
-        # extract main headline of article
-        title = response.css("span.seitenkopf__headline--text::text").get()
-        if title:
-            main_parsed_dict["headline"] = title
-
-        publisher = response.css("div.header__items")
-        if publisher:
-            main_parsed_dict["publisher"] = {
-                "@id": "tagesschau.de",
-                "@type": "NewsMediaOrganization",
-                "name": "tagesschau",
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": "https://www.tagesschau.de/res/assets/image/favicon/favicon-96x96.png",
-                    "width": {"@type": "Distance", "name": "96 px"},
-                    "height": {"@type": "Distance", "name": "96 px"},
-                },
-            }
-
-        # extract the date published at
-        published_at = response.css("div.metatextline::text").get()
-        if published_at:
-            clean_time = re.sub(pattern, "", published_at).strip()
-            main_parsed_dict["datePublished"] = clean_time
-
-        # extract the description or read text of the article
-        descryption = response.css("p strong::text").get()
-        if descryption:
-            main_parsed_dict["description"] = re.sub(pattern, "", descryption).strip()
-
-        # extract tags associated with article
-        tags = response.css("ul.taglist li a::text").getall()
-        if tags:
-            main_parsed_dict["tags"] = tags
+        main = self.get_main(response)
+        if main:
+            parsed_json["main"] = main
 
         misc = self.get_misc(response)
         if misc:
             parsed_json["misc"] = misc
 
         return parsed_json
+    
+
+    def get_main(self, response):
+        """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/ld+json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting main: {e}")
 
     def get_misc(self, response):
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
+
         """
         returns a list of misc data available in the article
         Parameters:
@@ -355,6 +348,11 @@ class ArdNewsSpider(scrapy.Spider):
                     info.append(video_link)
         return info
 
+
+    def extract_thumbnail_images(self, response)->list:
+        info = []
+
+        
     def closed(self, response):
         """
         Saves the sitemap data or article JSON data to a file with a timestamped filename.
