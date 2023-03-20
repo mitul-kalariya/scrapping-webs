@@ -130,18 +130,19 @@ class RepublicTvSpider(scrapy.Spider):
         elif self.type == 'article':
             try:
                 self.logger.debug("Parse function called on %s", response.url)
-                current_url = response.request.url
+                response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                response_json = self.response_json(response, current_url)
-                final_data = {
-                    "raw_response": {
+                data = {'raw_response': {
                         "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },
-                    "parsed_json": response_json,
-                    "parsed_data": response_data,
-                }
-                self.article_json_data.append(final_data)
+                        "content": response.css('html').get(),
+                    },}
+                if response_data:
+                    data["parsed_json"] = response_json
+                if response_data:
+                    data["parsed_data"] = response_data
+
+                self.article_json_data.append(data)
+
             except BaseException as e:
                 print(f"Error: {e}")
                 self.logger.error(f"{e}")
@@ -211,7 +212,7 @@ class RepublicTvSpider(scrapy.Spider):
 
         self.sitemap_data.append(data)
 
-    def response_json(self, response, current_url) -> dict:
+    def response_json(self, response) -> dict:
         """
         Extracts relevant information from a news article web page using the given
         Scrapy response object and the URL of the page.
@@ -225,51 +226,51 @@ class RepublicTvSpider(scrapy.Spider):
         - A dictionary representing the extracted information from the web page.
         """
         parsing_dict = {}
-        parsing_dict["main"] = {
-            "@context": "https://bharat.republicworld.com/",
-            "@type": "NewsArticle",
-            "mainEntityOfPage": {"@type": "WebPage", "@id": current_url},
-        }
-        main_dict = parsing_dict["main"]
-
-        headline = response.css("h1.story-title::text").get()
-        if headline:
-            main_dict["headline"] = headline
-
-        published_on = self.extract_publishd_on(response)
-        if published_on:
-            main_dict["datePublished"] = published_on
-
-        last_updated = self.extract_lastupdated(response)
-        if last_updated:
-            main_dict["dateModified"] = last_updated
-
-        publisher = self.extract_publisher(response)
-        if publisher:
-            main_dict["publisher"] = publisher
-
-        description = response.css("h2.story-description::text").get()
-        if description:
-            main_dict["description"] = description
-
-        authors = self.extract_author(response)
-        if authors:
-            main_dict["author"] = authors
-
-        article_images = self.extract_all_images(response)
-        if article_images:
-            main_dict["image"] = article_images
-
-        parsing_dict["misc"] = self.get_misc(response)
+        main_data = self.get_main(response)
+        if main_data:
+            parsing_dict["main"] = main_data
+        
+        misc_data = self.get_misc(response)
+        if misc_data:
+            parsing_dict["misc"] = misc_data
 
         return parsing_dict
 
+    def get_main(self, response):
+        """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/ld+json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting main: {e}")
+
     def get_misc(self, response):
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
 
     def response_data(self, response) -> dict:
         """
@@ -303,7 +304,7 @@ class RepublicTvSpider(scrapy.Spider):
         if last_updated:
             main_dict["modified_at"] = [last_updated]
 
-        published_on = self.extract_publishd_on(response)
+        published_on = self.extract_publishd_on(response.css("div.story-wrapper"))
         if published_on:
             main_dict["published_at"] = [published_on]
         
@@ -379,13 +380,15 @@ class RepublicTvSpider(scrapy.Spider):
             return info.css("time::attr(datetime)").get()
 
     def extract_publishd_on(self, response) -> str:
-        info = response.css("div.padbtm10")
+    
+        info = response.xpath('//div[@class ="padtop10 padbtm10"]')
         info_eng = response.css("div.padtop20")
-        # when in some pages containing english text published date is reflected by this variable info_eng
-        if info_eng:
-            return info_eng.css("time::attr(datetime)").get()
-        elif info_eng:
+
+        if info:
             return info.css("time::attr(datetime)").get()
+        elif info_eng:
+            return info_eng.css("time::attr(datetime)").get()
+            
 
     def extract_author(self, response) -> list:
         """
