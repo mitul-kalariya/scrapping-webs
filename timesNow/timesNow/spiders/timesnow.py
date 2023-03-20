@@ -2,6 +2,7 @@ import scrapy
 import json
 from datetime import datetime
 from scrapy.selector import Selector
+
 from scrapy.utils.project import get_project_settings
 
 
@@ -20,58 +21,43 @@ class TimesNow(scrapy.Spider):
         self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
         self.today_date = None
-
-        initial_url = "https://www.timesnownews.com/staticsitemap/timesnow/sitemap-index.xml"
-        if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
-            self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
-            if (self.end_date - self.start_date).days > 30:
-                raise ValueError("Enter start_date and end_date for maximum 30 days.")
-            else:
-                self.start_urls.append(initial_url)
-
-        elif self.type == "sitemap" and self.start_date is None and self.end_date is None:
-            today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            self.start_urls.append(initial_url)
-
-        elif self.type == "sitemap" and self.end_date is not None or self.start_date is not None:
-            raise ValueError("to use type sitemap give only type sitemap or with start date and end date")
-
-        elif self.type == "articles" and self.url is not None:
-            self.start_urls.append(self.url)
-
-        elif self.type == "articles" and self.url is None:
-            raise ValueError("type articles must be used with url")
-
-        else:
-            raise ValueError("type should be articles or sitemap")
+        from .utility import check_cmd_args
+        check_cmd_args(self, self.start_date, self.end_date)
 
     def parse(self, response):
+        """
+        Parses the given `response` object and extracts sitemap URLs or sends a request for articles based on the `type` attribute of the class instance.
+        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback function `parse_article`.
+        This function is intended to be used as a Scrapy spider callback function.
+        :param response: A Scrapy HTTP response object containing sitemap or article content.
+        :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
+        """
         if self.type == "sitemap":
-            mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
-                                                            namespaces=self.namespace).getall()
+            # mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
+            #                                                 namespaces=self.namespace).getall()
             site_map_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                 namespaces=self.namespace).getall()
-
-            # if not today's date the start date and end date will be available
-            if not self.today_date:
-                for url, date in zip(site_map_url, mod_date):
-                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                    if _date.month == self.start_date.month or _date.month == self.end_date.month:
-                        yield response.follow(url, callback=self.parse_sitemap)
-
-            # else it will fetch only today's date as start date and date is none
-            else:
-                try:
-                    for url, date in zip(site_map_url, mod_date):
-                        _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                        if _date.month == self.today_date.month:
-                            yield response.follow(url, callback=self.parse_sitemap)
-                except Exception as e:
-                    self.logger.exception(f"Error in parse():- {e}")
-
-        if self.type == "articles":
+            for url in site_map_url:
+                yield response.follow(url, callback=self.parse_sitemap)
+            # # if not today's date the start date and end date will be available
+            # if not self.today_date:
+            #     for url, date in zip(site_map_url, mod_date):
+            #         _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+            #         if _date.month == self.start_date.month or _date.month == self.end_date.month:
+            #             yield response.follow(url, callback=self.parse_sitemap)
+            #
+            # # else it will fetch only today's date as start date and date is none
+            # else:
+            #
+            #     try:
+            #         for url, date in zip(site_map_url, mod_date):
+            #             _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+            #             if _date.month == self.today_date.month:
+            #                 yield response.follow(url, callback=self.parse_sitemap)
+            #     except Exception as e:
+            #         self.logger.exception(f"Error in parse():- {e}")
+        elif self.type == "articles":
             yield scrapy.Request(self.url, callback=self.parse_article)
 
     def parse_sitemap(self, response):
@@ -151,7 +137,7 @@ class TimesNow(scrapy.Spider):
                                            'width': {'@type': "Distance",
                                                      "name": str(json_data['publisher']['logo']['width']) + " Px"},
                                            'height': {'@type': "Distance",
-                                                     'name': str(json_data['publisher']['logo']['height']) + " Px"}}},
+                                                      'name': str(json_data['publisher']['logo']['height']) + " Px"}}},
                     "image": {
                         "@type": "ImageObject",
                         "url": img_url,
@@ -159,7 +145,7 @@ class TimesNow(scrapy.Spider):
                     }
 
                 },
-                "misc":   json_ld_blocks
+                "misc": json_ld_blocks
             },
             "parsed_data": {
                 "author": json_data['author'],
@@ -168,11 +154,11 @@ class TimesNow(scrapy.Spider):
                 "published_at": json_data['datePublished'],
                 # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
                 "publisher": {'@type': json_data['publisher']['logo']['@type'],
-                                           'url': json_data['publisher']['logo']['url'],
-                                           'width': {'@type': "Distance",
-                                                     "name": str(json_data['publisher']['logo']['width']) + " Px"},
-                                           'height': {'@type': "Distance",
-                                                     'name': str(json_data['publisher']['logo']['height']) + " Px"}},
+                              'url': json_data['publisher']['logo']['url'],
+                              'width': {'@type': "Distance",
+                                        "name": str(json_data['publisher']['logo']['width']) + " Px"},
+                              'height': {'@type': "Distance",
+                                         'name': str(json_data['publisher']['logo']['height']) + " Px"}},
                 "text": text,
                 "thumbnail_image": [img_url],  # need to look it
                 "title": title,
