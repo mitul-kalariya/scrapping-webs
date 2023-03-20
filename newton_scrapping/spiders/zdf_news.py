@@ -9,7 +9,7 @@ from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-
+import os
 
 class InvalidDateRange(Exception):
     pass
@@ -25,6 +25,14 @@ class ZdfNewsSpider(scrapy.Spider):
         self.article_json_data = []
         self.type = type.lower()
         self.today_date = datetime.today().strftime("%Y-%m-%d")
+        self.links_path = "Links"
+        self.article_path = "Articles"
+
+        if not os.path.exists(self.links_path):
+            os.makedirs(self.links_path)
+        if not os.path.exists(self.article_path):
+            os.makedirs(self.article_path)
+
         if self.type == "sitemap":
             self.start_urls.append("https://www.zdf.de/sitemap.xml")
             try:
@@ -280,12 +288,12 @@ class ZdfNewsSpider(scrapy.Spider):
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
         if self.type == "sitemap":
-            file_name = f"{self.name}-{'sitemap'}-{timestamp}.json"
+            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
         if self.type == 'article':
-            file_name = f"{self.name}-{'article'}-{timestamp}.json"
+            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4)
 
