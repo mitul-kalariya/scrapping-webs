@@ -12,9 +12,9 @@ class TimesNow(scrapy.Spider):
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
-        self, type=None, start_date=None,
-        end_date=None, url=None, *args, **kwargs
-                ):
+            self, type=None, start_date=None,
+            end_date=None, url=None, *args, **kwargs
+    ):
         super(TimesNow, self).__init__(*args, **kwargs)
         self.start_urls = []
         self.articles = []
@@ -39,9 +39,9 @@ class TimesNow(scrapy.Spider):
         if self.type == "sitemap":
             # mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
             #                                                 namespaces=self.namespace).getall()
-            site_map_url = Selector(response, type='xml')\
-                            .xpath('//sitemap:loc/text()',
-                                    namespaces=self.namespace).getall()
+            site_map_url = Selector(response, type='xml') \
+                .xpath('//sitemap:loc/text()',
+                       namespaces=self.namespace).getall()
             for url in site_map_url:
                 yield response.follow(url, callback=self.parse_sitemap)
         elif self.type == "article":
@@ -54,11 +54,11 @@ class TimesNow(scrapy.Spider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
            """
-        article_urls = Selector(response, type='xml').\
+        article_urls = Selector(response, type='xml'). \
             xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-        mod_date = Selector(response, type='xml')\
+        mod_date = Selector(response, type='xml') \
             .xpath('//sitemap:lastmod/text()',
-                    namespaces=self.namespace).getall()
+                   namespaces=self.namespace).getall()
         try:
             for url, date in zip(article_urls, mod_date):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
@@ -68,8 +68,9 @@ class TimesNow(scrapy.Spider):
                             url, callback=self.parse_sitemap_article)
                 else:
                     if self.start_date <= _date <= self.end_date:
-                        yield from scrapy.Request(
+                        yield scrapy.Request(
                             url, callback=self.parse_sitemap_article)
+
         except Exception as e:
             self.logger.exception(f"Error in parse_sitemap:- {e}")
 
@@ -89,6 +90,7 @@ class TimesNow(scrapy.Spider):
                 "title": title,
             }
             self.articles.append(article)
+            self.logger.info(">>>>> added article link and title")
 
     def parse_article(self, response):
         """
@@ -103,6 +105,7 @@ class TimesNow(scrapy.Spider):
         from .utility import set_article_dict
         article = set_article_dict(response, article_data)
         self.articles.append(article)
+        self.logger.info(">>>>> added article data")
 
     def closed(self, reason):
         """
@@ -117,13 +120,13 @@ class TimesNow(scrapy.Spider):
             filename = os.path.join(
                 'Links', f'economistnews-sitemap-\
                     {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-                )
+            )
         elif self.type == "article":
             if not os.path.isdir('Article'):
                 os.makedirs('Article')
             filename = os.path.join(
                 'Article', f'economistnews-articles-\
                     {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-                )
+            )
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)
