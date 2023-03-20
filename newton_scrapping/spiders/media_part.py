@@ -341,7 +341,41 @@ class MediaPartSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
+    def get_main(self, response):
+        """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/ld+json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting main: {e}")
+
     def get_misc(self, response):
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
         """
         returns a list of misc data available in the article
         Parameters:
