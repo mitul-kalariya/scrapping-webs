@@ -110,18 +110,19 @@ class GlobalNewsSpider(scrapy.Spider):
         elif self.type == "article":
             try:
                 self.logger.debug("Parse function called on %s", response.url)
-                current_url = response.request.url
+                response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                response_json = self.response_json(response, current_url)
-                final_data = {
-                    "raw_response": {
+                data = {'raw_response': {
                         "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },
-                    "parsed_json": response_json,
-                    "parsed_data": response_data,
-                }
-                self.article_json_data.append(final_data)
+                        "content": response.css('html').get(),
+                    },}
+                if response_data:
+                    data["parsed_json"] = response_json
+                if response_data:
+                    data["parsed_data"] = response_data
+
+                self.article_json_data.append(data)
+
             except BaseException as e:
                 print(f"Error: {e}")
                 self.logger.error(f"{e}")
@@ -165,7 +166,7 @@ class GlobalNewsSpider(scrapy.Spider):
                 }
                 self.sitemap_data.append(data)
 
-    def response_json(self, response, current_url):
+    def response_json(self, response):
         """
         Extracts relevant information from a news article web page using the given
         Scrapy response object and the URL of the page.
@@ -179,48 +180,17 @@ class GlobalNewsSpider(scrapy.Spider):
         - A dictionary representing the extracted information from the web page.
         """
         try:
-            parsed_data = {}
-            parsed_data["main"] = {
-                "@context": "https://globalnews.ca/",
-                "@type": "NewsArticle",
-                "mainEntityOfPage": {"@type": "WebPage", "@id": current_url},
-            }
-            main_dict = parsed_data["main"]
-            headline = response.css("h1.l-article__title::text").get()
-            if headline:
-                main_dict["headline"] = headline
-
-            published_on = response.css(
-                "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
-            ).get()
-            if published_on:
-                published_on = published_on.strip("Posted ")
-                main_dict["datePublished"] = published_on
-
-            updated_on = response.css(
-                "div.c-byline__datesWrapper > div > div.c-byline__date--modDate > span::text"
-            ).get()
-            if updated_on:
-                updated_on = updated_on.strip("Updated ")
-                main_dict["dateModified"] = updated_on
-
-            publisher = self.extract_publisher(response)
-            if publisher:
-                main_dict["publisher"] = publisher
-
-            authors = self.extract_author(response)
-            if authors:
-                main_dict["author"] = authors
-
-            images = self.extract_images_sc(response)
-            if images:
-                main_dict["image"] = images
+            parsed_json = {}
+            main = self.get_main(response)
+            if main:
+                parsed_json["main"] = main
 
             misc = self.get_misc(response)
             if misc:
-                parsed_data["misc"] = misc
+                parsed_json["misc"] = misc
 
-            return parsed_data
+            return parsed_json
+        
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
@@ -296,20 +266,23 @@ class GlobalNewsSpider(scrapy.Spider):
 
             videos = self.extract_all_videos(response)
             if videos:
-                main_dict["videos"] = videos
+                main_dict["embed_video_link"] = videos
 
             return main_dict
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-    def get_misc(self, response):
+
+
+
+    def get_main(self, response):
         """
-        returns a list of misc data available in the article
+        returns a list of main data available in the article from application/ld+json
         Parameters:
             response:
         Returns:
-            misc data
+            main data
         """
         try:
             data = []
@@ -319,7 +292,26 @@ class GlobalNewsSpider(scrapy.Spider):
             return data
         except BaseException as e:
             self.logger.error(f"{e}")
-            print(f"Error: {e}")
+            print(f"Error while getting main: {e}")
+
+    def get_misc(self, response):
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
+
 
     def extract_publisher(self, response) -> list:
         """
@@ -436,27 +428,29 @@ class GlobalNewsSpider(scrapy.Spider):
             for video in thumbnail_video:
                 temp_dict = {}
                 link = video.css(".c-video::attr(data-displayinline)").get()
-                caption = video.css("figcaption.c-video__caption span::text").get()
-                if link and caption:
-                    temp_dict["url"] = link
-                    temp_dict["caption"] = caption
-                    data.append(temp_dict)
+                if link:
+                    data.append(link)
 
             videos = response.css("div.c-video.c-videoPlay")
             for video in videos:
                 temp_dict = {}
                 link = video.css("div::attr(data-displayinline)").get()
-                caption = video.css("div.c-video__data span::text").get()
-                if link and caption:
-                    temp_dict["url"] = link
-                    temp_dict["caption"] = caption
-                    data.append(temp_dict)
+                if link:
+                    data.append(link)
             return data
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
     def extract_images_sc(self, response) -> list:
+        """extracting image links from provided response
+
+        Args:
+            response (_type_): html page object
+
+        Returns:
+            list: list of images inside the article
+        """
         try:
             images = response.css("figure.c-figure--alignnone")
             pattern = r"[\r\n\t]+"
@@ -479,9 +473,18 @@ class GlobalNewsSpider(scrapy.Spider):
             print(f"Error: {e}")
 
     def extract_thumbnail_image(self, response) -> list:
-        image = self.get_misc(response)
-        thumbmail_image = image[0].get("thumbnailUrl")
-        return thumbmail_image
+        """extracting thumbnail image from application+ld/json data in main function
+
+        Args:
+            response (obj): page_object
+
+        Returns:
+            list: list of thumbnail images
+        """
+        image = self.get_main(response)
+        thumbnail_image = []
+        thumbnail_image.append(image[0].get("thumbnailUrl"))
+        return thumbnail_image
 
     def closed(self, response):
         """
