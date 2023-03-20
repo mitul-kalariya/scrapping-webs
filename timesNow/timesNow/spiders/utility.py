@@ -70,10 +70,6 @@ def get_article_data(response: Response) -> dict:
     selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
     string = selector[2]
     article_data["json_data"] = json.loads(string)
-    # json_ld_blocks = []
-    # for block in selector:
-    #     json_ld_blocks.append(json.loads(block))
-    # article_data["json_ld_blocks"] = json_ld_blocks
     return article_data
 
 
