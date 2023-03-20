@@ -6,7 +6,6 @@ from io import BytesIO
 from dateutil import parser
 from datetime import date
 from datetime import datetime
-from .. import LINKS_STORE
 
 
 class InvalidDateRange(Exception):
@@ -368,7 +367,7 @@ class ArdNewsSpider(scrapy.Spider):
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
         if self.type == "article":
-            file_name = "{self.name}-{'article'}-{timestamp}.json"
+            file_name = f"{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4, default=str)
 
