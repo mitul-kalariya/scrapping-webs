@@ -203,8 +203,15 @@ class TheGlobeAndMailSpider(scrapy.Spider):
             text = response.css("p.c-article-body__text::text").getall()
             image_url = json_ld_blocks[0].get("image").get("url")
             image_caption = json_ld_blocks[0].get("image").get("description")
+            content_type = response.headers.get("Content-Type").decode("utf-8")
 
             article = {
+                "raw_response": {
+                    "content_type": content_type,
+                    "content": response.text,
+                },
+                "parsed_json": {
+                    "main": json_ld_blocks,
                 "parsed_data": {
                     "author": [{"@type": author_type, "name": author_name}],
                     "description": [description],
@@ -233,7 +240,8 @@ class TheGlobeAndMailSpider(scrapy.Spider):
                     "text": text,
                     "title": [title],
                     "images": [{"link": image_url, "caption": image_caption}],
-                },
+                    },
+                }
             }
             self.articles.append(article)
 
