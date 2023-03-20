@@ -1,5 +1,6 @@
 """Scrapy spider for CTV News site"""
 
+import os
 import re
 import json
 import logging
@@ -308,11 +309,16 @@ class CtvnewsSpider(scrapy.Spider):
             if not self.articles:
                 self.log("No articles or sitemap url scapped.", level=logging.INFO)
             else:
+                folder_structure = ""
                 if self.type == "sitemap":
+                    folder_structure = "Links"
                     filename = f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
                 elif self.type == "article":
+                    folder_structure = "Article"
                     filename = f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-                with open(f"{filename}.json", "w") as file:
+                if not os.path.exists(folder_structure):
+                    os.makedirs(folder_structure)
+                with open(f"{folder_structure}/{filename}.json", "w") as file:
                     json.dump(self.articles, file, indent=4)
         except Exception as exception:
             self.log(
