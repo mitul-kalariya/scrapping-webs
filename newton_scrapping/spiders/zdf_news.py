@@ -82,16 +82,17 @@ class ZdfNewsSpider(scrapy.Spider):
             elif self.type == 'article':
 
                 response_json, response_data = self.scrap_site(response)
-                final_data = {
-                    "raw_response": {
+                final_data = {"raw_response": {
                         "content_type": "text/html; charset=utf-8",
                         "content": response.css("html").get(),
-                    },
-                    "parsed_json": response_json,
-                    "parsed_data": response_data,
-                }
-                print("--------------------------------------------------------", final_data)
+                    },}
+                if response_json:
+                    final_data['parsed_json']=response_json
+                if response_data:
+                    final_data['parsed_data'] = response_data
+
                 self.article_json_data.append(final_data)
+
         except BaseException as e:
             print(f"Error: {e}")
             self.logger.error(f"{e}")
@@ -107,6 +108,7 @@ class ZdfNewsSpider(scrapy.Spider):
         ):
             for link in sitemap.getall():
                 yield scrapy.Request(link, callback=self.parse_sitemap)
+
 
     def parse_sitemap(self, response):
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -153,42 +155,48 @@ class ZdfNewsSpider(scrapy.Spider):
             self.sitemap_data.append(data)
 
     def scrap_site(self, response):
+        """generate required data as response json and response data
+
+        Args:
+            response (obj): site response object
+
+        Returns:
+            dict: returns 2 dictionary parsed_json and parsed_data
+        """
+
+
         response_json, response_data = {}, {}
-        current_url = response.request.url
+
+        main_data = self.get_main(response)
+        if main_data:
+            response_json["main"] = main_data
+        misc_data = self.get_misc(response)
+        if misc_data:
+            response_json["misc"] = misc_data
 
         pattern = r"[\r\n\t\</h2>\<h2>]+"
-        response_json["main"] = {
-            "@context": "https://globalnews.ca/",
-            "@type": "NewsArticle",
-            "mainEntityOfPage": {"@type": "WebPage", "@id": current_url},
-        }
-        response_json_main = response_json["main"]
+
         topline = response.css("span.news-overline::text").get()
         if topline:
             response_data["description"] = [topline]
-            response_json_main["description"] = topline
 
         title = response.css("h2#main-content").get()
         if title:
             title = re.sub(pattern, "", title.split("</span>")[2]).strip()
             response_data["title"] = [title]
-            response_json_main["headline"] = title
 
         published_on = response.css("dd.postdate time::text").get()
         if published_on:
             response_data["published_on"] = [published_on]
-            response_json_main["datePublished"] = published_on
 
         author = response.css("div.author-wrap div span::text").get()
         if author:
             author = re.sub(pattern, "", author).strip()
             response_data["author"] = [{"@type": "Person", "name": author}]
-            response_json_main["author"] = {"@type": "Person", "name": author}
 
         publisher = self.extract_publisher(response)
         if publisher:
             response_data["publisher"] = [publisher]
-            response_json_main["publisher"] = publisher
 
         display_text = response.css("p::text").getall()
         if display_text:
@@ -196,25 +204,54 @@ class ZdfNewsSpider(scrapy.Spider):
 
         images = self.extract_images(response)
         if images:
-                response_data["images"] = images[1:]
+            try:
+                response_images = images[1:]
+                if response_images:
+                    response_data["images"] = response_images
 
-        json_images = self.extract_images(response,parsed_json=True)
-        if json_images:
-            response_json_main["image"] = json_images
+            except BaseException as e:
+                self.logger.error(f"{e}")
+                print(f"Error: {e}")
 
-        thumbnail_image = images[0].get("link")
-        if thumbnail_image:
-            response_data["thumbnail_image"] = [thumbnail_image]
+            response_data["thumbnail_image"] = [images[0].get("link")]
 
-        response_json["misc"] = self.get_misc(response)
         return response_json, response_data
 
+    def get_main(self, response):
+        """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/ld+json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting main: {e}")
+
     def get_misc(self, response):
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
 
     def extract_images(self, response ,parsed_json = False) -> list:
         images = response.css("figure.content-image")
