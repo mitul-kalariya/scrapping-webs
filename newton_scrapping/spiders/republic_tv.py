@@ -7,6 +7,8 @@ from PIL import Image
 from io import BytesIO
 from dateutil import parser
 from datetime import datetime
+import os
+
 
 # Setting the threshold of logger to DEBUG
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
@@ -57,6 +59,14 @@ class RepublicTvSpider(scrapy.Spider):
         self.article_json_data = []
         self.type = type.lower()
         self.today_date = datetime.today().strftime('%Y-%m-%d')
+        self.links_path = "Links"
+        self.article_path = "Articles"
+
+        if not os.path.exists(self.links_path):
+            os.makedirs(self.links_path)
+        if not os.path.exists(self.article_path):
+            os.makedirs(self.article_path)
+
 
         if self.type == "sitemap":
             self.start_urls.append("https://www.republicworld.com/sitemap.xml")
@@ -496,11 +506,11 @@ class RepublicTvSpider(scrapy.Spider):
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
         if self.type == "sitemap":
-            file_name = f"{self.name}-{'sitemap'}-{timestamp}.json"
+            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
         if self.type == 'article':
-            file_name = f"{self.name}-{'article'}-{timestamp}.json"
+            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4)
