@@ -281,22 +281,6 @@ class ArdNewsSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
 
-        """
-        returns a list of misc data available in the article
-        Parameters:
-            response:
-        Returns:
-            misc data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/ld+json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
 
     def extract_audio_info(self, response) -> list:
         info = []
