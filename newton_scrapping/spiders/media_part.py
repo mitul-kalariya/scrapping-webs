@@ -117,18 +117,18 @@ class MediaPartSpider(scrapy.Spider):
 
             if self.type == "article":
                 self.logger.debug("Parse function called on %s", response.url)
-                current_url = response.request.url
+                response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                response_json = self.response_json(response, current_url)
-                final_data = {
-                    "raw_response": {
+                data = {'raw_response': {
                         "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },
-                    "parsed_json": response_json,
-                    "parsed_data": response_data,
-                }
-                self.article_json_data.append(final_data)
+                        "content": response.css('html').get(),
+                    },}
+                if response_data:
+                    data["parsed_json"] = response_json
+                if response_data:
+                    data["parsed_data"] = response_data
+
+                self.article_json_data.append(data)
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
@@ -241,7 +241,7 @@ class MediaPartSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-    def response_json(self, response, current_url):
+    def response_json(self, response):
         """
         Extracts relevant information from a news article web page using the given
         Scrapy response object and the URL of the page.
@@ -255,44 +255,18 @@ class MediaPartSpider(scrapy.Spider):
         - A dictionary representing the extracted information from the web page.
         """
         try:
-            parsed_data = {}
-            parsed_data["main"] = {
-                "@context": "https://www.mediapart.fr/",
-                "@type": "NewsArticle",
-                "mainEntityOfPage": {"@type": "WebPage", "@id": current_url},
-            }
-            main_dict = parsed_data["main"]
-            headline = response.css("h1#page-title::text").get()
-            if headline:
-                main_dict["headline"] = headline
-
-            published_on = response.css(
-                "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
-            ).get()
-            if published_on:
-                published_on = published_on.strip("Posted ")
-                main_dict["datePublished"] = published_on
-
-            updated_on = response.css(
-                "div.c-byline__datesWrapper > div > div.c-byline__date--modDate > span::text"
-            ).get()
-            if updated_on:
-                updated_on = updated_on.strip("Updated ")
-                main_dict["dateModified"] = updated_on
-
-            publisher = self.extract_publisher(response)
-            if publisher:
-                main_dict["publisher"] = publisher
-
-            authors = self.extract_author(response)
-            if authors:
-                main_dict["author"] = authors
+        
+            parsed_json = {}
+            main = self.get_main(response)
+            if main:
+                parsed_json["main"] = main
 
             misc = self.get_misc(response)
             if misc:
-                parsed_data["misc"] = misc
+                parsed_json["misc"] = misc
 
-            return parsed_data
+            return parsed_json
+
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
@@ -345,17 +319,19 @@ class MediaPartSpider(scrapy.Spider):
                 main_dict["text"] = [" ".join(article_text).replace("\n", "")]
 
             return main_dict
+        
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-    def get_misc(self, response):
+
+    def get_main(self, response):
         """
-        returns a list of misc data available in the article
+        returns a list of main data available in the article from application/ld+json
         Parameters:
             response:
         Returns:
-            misc data
+            main data
         """
         try:
             data = []
@@ -365,7 +341,26 @@ class MediaPartSpider(scrapy.Spider):
             return data
         except BaseException as e:
             self.logger.error(f"{e}")
-            print(f"Error: {e}")
+            print(f"Error while getting main: {e}")
+
+    def get_misc(self, response):
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
+
 
     def extract_publisher(self, response) -> list:
         """
@@ -412,20 +407,21 @@ class MediaPartSpider(scrapy.Spider):
 
         """
         try:
-            info = response.css("div.splitter__first")
+            info = response.css("div.splitter__first p a")
             pattern = r"[\r\n\t\"]+"
             data = []
             if info:
                 for i in info:
                     temp_dict = {}
                     temp_dict["@type"] = "Person"
-                    name = i.css("p span::text").get()
+                    name = i.css("a::text").get()
                     if name:
                         name = re.sub(pattern, "", name).strip()
                         temp_dict["name"] = "".join((name.split("("))[0::-2])
-                    """while reviewing if you feel that this data can be useful please uncomment it
-                        it states from which organization the author is"""
-                    data.append(temp_dict)
+                        url = i.css("a::attr(href)").get()
+                        if url:
+                            temp_dict["url"] = "https://www.mediapart.fr"+url
+                        data.append(temp_dict)
                 return data
         except BaseException as e:
             self.logger.error(f"{e}")
