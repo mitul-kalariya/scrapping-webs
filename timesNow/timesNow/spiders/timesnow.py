@@ -1,3 +1,5 @@
+import os
+
 import scrapy
 import json
 from datetime import datetime
@@ -40,10 +42,16 @@ class TimesNow(scrapy.Spider):
                                                                 namespaces=self.namespace).getall()
             for url in site_map_url:
                 yield response.follow(url, callback=self.parse_sitemap)
-        elif self.type == "articles":
+        elif self.type == "article":
             yield scrapy.Request(self.url, callback=self.parse_article)
 
     def parse_sitemap(self, response):
+        """
+           Parses the sitemap and extracts the article URLs and their last modified date.
+           If the last modified date is within the specified date range, sends a request to the article URL
+           :param response: the response from the sitemap request
+           :return: scrapy.Request object
+           """
         article_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
         mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()', namespaces=self.namespace).getall()
         try:
@@ -59,7 +67,15 @@ class TimesNow(scrapy.Spider):
             self.logger.exception(f"Error in parse_sitemap:- {e}")
 
     def parse_sitemap_article(self, response):
+        """
+           Parse article information from a given sitemap URL.
+
+           :param response: HTTP response from the sitemap URL.
+           :return: None
+           """
+        # Extract the article title from the response
         title = response.css('._1FcxJ::text').get()
+        # If the title exists, add the article information to the list of articles
         if title:
             article = {
                 "link": response.url,
@@ -68,6 +84,12 @@ class TimesNow(scrapy.Spider):
             self.articles.append(article)
 
     def parse_article(self, response):
+        """
+            This function takes the response object of the news article page and extracts the necessary information
+            using get_article_data() function and constructs a dictionary using set_article_dict() function
+            :param response: scrapy.http.Response object
+            :return: None
+            """
         from .utility import get_article_data
         article_data = get_article_data(response)
 
@@ -76,9 +98,19 @@ class TimesNow(scrapy.Spider):
         self.articles.append(article)
 
     def closed(self, reason):
+        """
+            This function is executed when the spider is closed. It saves the data scraped
+            by the spider into a JSON file with a filename based on the spider type and
+            the current date and time.
+            :param reason: the reason for the spider's closure
+            """
         if self.type == "sitemap":
-            filename = f'timesnow-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        elif self.type == "articles":
-            filename = f'timesnow-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if not os.path.isdir('Links'):
+                os.makedirs('Links')
+            filename = os.path.join('Links', f'economistnews-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+        elif self.type == "article":
+            if not os.path.isdir('Article'):
+                os.makedirs('Article')
+            filename = os.path.join('Article', f'economistnews-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)

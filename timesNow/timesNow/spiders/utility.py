@@ -26,8 +26,6 @@ def check_cmd_args(self: TimesNow, start_date: str, end_date: str) -> None:
        Note:
            This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
        """
-    self.logger.info(
-        f'======================== {check_cmd_args.__name__} will start working ===============================')
     initial_url = "https://www.timesnownews.com/staticsitemap/timesnow/sitemap-index.xml"
     if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
         self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
@@ -45,10 +43,10 @@ def check_cmd_args(self: TimesNow, start_date: str, end_date: str) -> None:
     elif self.type == "sitemap" and self.end_date is not None or self.start_date is not None:
         raise ValueError("to use type sitemap give only type sitemap or with start date and end date")
 
-    elif self.type == "articles" and self.url is not None:
+    elif self.type == "article" and self.url is not None:
         self.start_urls.append(self.url)
 
-    elif self.type == "articles" and self.url is None:
+    elif self.type == "article" and self.url is None:
         raise ValueError("type articles must be used with url")
 
     else:
