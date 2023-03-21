@@ -100,9 +100,11 @@ class ArdNewsSpider(scrapy.Spider):
                     "content": response.css("html").get(),
                 },
             }
-            if response_data:
+            if response_json:
                 data["parsed_json"] = response_json
             if response_data:
+                response_data["country"] = ["Germany"]
+                response_data["time_scraped"] = [str(datetime.now())]
                 data["parsed_data"] = response_data
 
             self.article_json_data.append(data)
@@ -233,6 +235,10 @@ class ArdNewsSpider(scrapy.Spider):
         tags = response.css("ul.taglist li a::text").getall()
         if tags:
             main_dict["tags"] = tags
+
+        article_lang = response.css("html::attr(lang)").get()
+        if article_lang:
+            main_dict["language"] = [article_lang]
 
         return main_dict
 
