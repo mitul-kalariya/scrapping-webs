@@ -56,17 +56,17 @@ class ZdfNewsSpider(scrapy.Spider):
                     )
 
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date == self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
 
@@ -88,18 +88,21 @@ class ZdfNewsSpider(scrapy.Spider):
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
-            elif self.type == 'article':
+            elif self.type == "article":
 
                 response_json, response_data = self.scrap_site(response)
-                final_data = {"raw_response": {
-                    "content_type": "text/html; charset=utf-8",
-                    "content": response.css("html").get(),
-                }, }
+                final_data = {
+                    "raw_response": {
+                        "content_type": "text/html; charset=utf-8",
+                        "content": response.css("html").get(),
+                    },
+                }
                 if response_json:
-                    final_data['parsed_json'] = response_json
+                    final_data["parsed_json"] = response_json
                 if response_data:
-                    final_data['parsed_data'] = response_data
-
+                    final_data["parsed_data"] = response_data
+                    response_data["country"] = ["Germany"]
+                    response_data["time_scraped"] = [str(datetime.now())]
                 self.article_json_data.append(final_data)
 
         except BaseException as e:
@@ -113,7 +116,7 @@ class ZdfNewsSpider(scrapy.Spider):
         xml_selector = Selector(xmlresponse)
         xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
+            "//xmlns:loc/text()", namespaces=xml_namespaces
         ):
             for link in sitemap.getall():
                 yield scrapy.Request(link, callback=self.parse_sitemap)
@@ -127,9 +130,9 @@ class ZdfNewsSpider(scrapy.Spider):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
             today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
             if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date <= published_at <= self.end_date
+                self.start_date
+                and self.end_date
+                and self.start_date <= published_at <= self.end_date
             ):
                 yield scrapy.Request(
                     link,
@@ -207,7 +210,9 @@ class ZdfNewsSpider(scrapy.Spider):
 
         display_text = response.css("p::text").getall()
         if display_text:
-            response_data["text"] = [" ".join(display_text)]
+            response_data["text"] = [
+                " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])
+            ]
 
         images = self.extract_images(response)
         if images:
@@ -220,7 +225,13 @@ class ZdfNewsSpider(scrapy.Spider):
                 self.logger.error(f"{e}")
                 print(f"Error: {e}")
 
-            response_data["thumbnail_image"] = [images[0].get("link")]
+        thumbnail_image = images[0].get("link")
+        if thumbnail_image:
+            response_data["thumbnail_image"] = [thumbnail_image]
+
+        article_lang = response.css("html::attr(lang)").get()
+        if article_lang:
+            response_data["language"] = [article_lang]
 
         return response_json, response_data
 
@@ -316,9 +327,9 @@ class ZdfNewsSpider(scrapy.Spider):
 
     def closed(self, response):
         """
-          Method called when the spider is finished scraping.
-          Saves the scraped data to a JSON file with a timestamp
-          in the filename.
+        Method called when the spider is finished scraping.
+        Saves the scraped data to a JSON file with a timestamp
+        in the filename.
         """
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -327,7 +338,7 @@ class ZdfNewsSpider(scrapy.Spider):
             with open(file_name, "w") as f:
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
-        if self.type == 'article':
+        if self.type == "article":
             file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4)
