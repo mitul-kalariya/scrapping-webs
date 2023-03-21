@@ -113,11 +113,11 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
                               'logo': {'@type': article_data.get("json_data")['publisher']['logo']['@type'],
                                        'url': article_data.get("json_data")['publisher']['logo']['url'],
                                        'width': {'@type': "Distance",
-                                                 "name": str(article_data.get("json_data")['publisher']['logo'][
-                                                                 'width']) + " Px"},
+                                                 "name": str(article_data.get("json_data")['publisher']['logo']
+                                                             ['width']) + " Px"},
                                        'height': {'@type': "Distance",
-                                                  'name': str(article_data.get("json_data")['publisher']['logo'][
-                                                                  'height']) + " Px"}}},
+                                                  'name': str(article_data.get("json_data")['publisher']['logo']
+                                                              ['height']) + " Px"}}},
                 "image": {
                     "@type": "ImageObject",
                     "url": article_data.get("img_url"),
