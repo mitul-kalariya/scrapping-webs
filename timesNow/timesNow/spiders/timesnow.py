@@ -30,8 +30,10 @@ class TimesNow(scrapy.Spider):
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
-        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
-        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback function `parse_article`.
+        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for
+        each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        If `type` is "articles", sends a request for the given URL to Scrapy's engine
+        with the callback function `parse_article`.
         This function is intended to be used as a Scrapy spider callback function.
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
