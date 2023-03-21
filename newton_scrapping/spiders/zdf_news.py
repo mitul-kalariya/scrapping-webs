@@ -17,13 +17,14 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
+
 class InvalidDateRange(Exception):
     pass
 
 
 class ZdfNewsSpider(scrapy.Spider):
     name = "zdf_news"
-    
+
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         super().__init__(**kwargs)
         self.start_urls = []
@@ -89,22 +90,25 @@ class ZdfNewsSpider(scrapy.Spider):
     def parse(self, response):
         try:
             if self.type == "sitemap":
-                if self.start_date != None and self.end_date != None:
+                if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
-            elif self.type == 'article':
+            elif self.type == "article":
 
                 response_json, response_data = self.scrap_site(response)
-                final_data = {"raw_response": {
+                final_data = {
+                    "raw_response": {
                         "content_type": "text/html; charset=utf-8",
                         "content": response.css("html").get(),
-                    },}
+                    },
+                }
                 if response_json:
-                    final_data['parsed_json']=response_json
+                    final_data["parsed_json"] = response_json
                 if response_data:
-                    final_data['parsed_data'] = response_data
-
+                    final_data["parsed_data"] = response_data
+                    response_data["country"] = ["Germany"]
+                    response_data["time_scraped"] = [str(datetime.now())]
                 self.article_json_data.append(final_data)
 
         except BaseException as e:
@@ -122,7 +126,6 @@ class ZdfNewsSpider(scrapy.Spider):
         ):
             for link in sitemap.getall():
                 yield scrapy.Request(link, callback=self.parse_sitemap)
-
 
     def parse_sitemap(self, response):
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -178,7 +181,6 @@ class ZdfNewsSpider(scrapy.Spider):
             dict: returns 2 dictionary parsed_json and parsed_data
         """
 
-
         response_json, response_data = {}, {}
 
         main_data = self.get_main(response)
@@ -214,7 +216,9 @@ class ZdfNewsSpider(scrapy.Spider):
 
         display_text = response.css("p::text").getall()
         if display_text:
-            response_data["text"] = [" ".join(display_text)]
+            response_data["text"] = [
+                " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])
+            ]
 
         images = self.extract_images(response)
         if images:
@@ -227,7 +231,13 @@ class ZdfNewsSpider(scrapy.Spider):
                 self.logger.error(f"{e}")
                 print(f"Error: {e}")
 
-            response_data["thumbnail_image"] = [images[0].get("link")]
+        thumbnail_image = images[0].get("link")
+        if thumbnail_image:
+            response_data["thumbnail_image"] = [thumbnail_image]
+
+        article_lang = response.css("html::attr(lang)").get()
+        if article_lang:
+            response_data["language"] = [article_lang]
 
         video = self.extract_video(response)
         if video:
@@ -271,9 +281,8 @@ class ZdfNewsSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
 
-    def extract_images(self, response ,parsed_json = False) -> list:
+    def extract_images(self, response, parsed_json=False) -> list:
         images = response.css("figure.content-image")
-        pattern = r"[\r\n\t]+"
         data = []
         for image in images:
             temp_dict = {}
@@ -351,9 +360,9 @@ class ZdfNewsSpider(scrapy.Spider):
 
     def closed(self, response):
         """
-          Method called when the spider is finished scraping.
-          Saves the scraped data to a JSON file with a timestamp
-          in the filename.
+        Method called when the spider is finished scraping.
+        Saves the scraped data to a JSON file with a timestamp
+        in the filename.
         """
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -362,7 +371,7 @@ class ZdfNewsSpider(scrapy.Spider):
             with open(file_name, "w") as f:
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
-        if self.type == 'article':
+        if self.type == "article":
             file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4)
