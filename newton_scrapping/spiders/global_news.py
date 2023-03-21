@@ -1,27 +1,28 @@
 import re
 import json
-import scrapy
-import requests
-from lxml import html
-from PIL import Image
-from lxml import etree
 from io import BytesIO
 from datetime import datetime
+import os
+import scrapy
+import requests
+from PIL import Image
+from lxml import etree
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-import os
+
 
 class InvalidDateRange(Exception):
     pass
 
 
-
 class GlobalNewsSpider(scrapy.Spider):
     name = "global_news"
+
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
             A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
-            1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca and scrape articles within a specified date range.
+            1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
+            and scrape articles within a specified date range.
             2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
 
             Attributes:
@@ -101,7 +102,7 @@ class GlobalNewsSpider(scrapy.Spider):
                 generator: A generator that yields scrapy.Request objects to be further parsed by other functions.
         """
         if self.type == "sitemap":
-            if self.start_date != None and self.end_date != None:
+            if self.start_date and self.end_date:
                 self.logger.info("Parse function called on %s", response.url)
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             else:
@@ -113,9 +114,9 @@ class GlobalNewsSpider(scrapy.Spider):
                 response_json = self.response_json(response)
                 response_data = self.response_data(response)
                 data = {'raw_response': {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css('html').get(),
-                    },}
+                    "content_type": "text/html; charset=utf-8",
+                    "content": response.css('html').get(),
+                }, }
                 if response_data:
                     data["parsed_json"] = response_json
                 if response_data:
@@ -190,7 +191,7 @@ class GlobalNewsSpider(scrapy.Spider):
                 parsed_json["misc"] = misc
 
             return parsed_json
-        
+
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
@@ -223,8 +224,7 @@ class GlobalNewsSpider(scrapy.Spider):
 
             article_label = response.css("div#article-label a::text").get()
             if article_label:
-                main_dict["category"] = [re.sub(pattern,"",article_label).strip()]
-
+                main_dict["category"] = [re.sub(pattern, "", article_label).strip()]
 
             headline = response.css("h1.l-article__title::text").getall()
             if headline:
@@ -273,9 +273,6 @@ class GlobalNewsSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-
-
-
     def get_main(self, response):
         """
         returns a list of main data available in the article from application/ld+json
@@ -311,7 +308,6 @@ class GlobalNewsSpider(scrapy.Spider):
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
-
 
     def extract_publisher(self, response) -> list:
         """
@@ -426,14 +422,12 @@ class GlobalNewsSpider(scrapy.Spider):
             data = []
             thumbnail_video = response.css("figure.l-article__featured")
             for video in thumbnail_video:
-                temp_dict = {}
                 link = video.css(".c-video::attr(data-displayinline)").get()
                 if link:
                     data.append(link)
 
             videos = response.css("div.c-video.c-videoPlay")
             for video in videos:
-                temp_dict = {}
                 link = video.css("div::attr(data-displayinline)").get()
                 if link:
                     data.append(link)
@@ -509,4 +503,3 @@ if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
     process.crawl(GlobalNewsSpider)
     process.start()
-
