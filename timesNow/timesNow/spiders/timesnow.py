@@ -1,5 +1,5 @@
 import os
-
+from .utils import check_cmd_args, get_article_data, set_article_dict
 import scrapy
 import json
 from datetime import datetime
@@ -23,7 +23,6 @@ class TimesNow(scrapy.Spider):
         self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
         self.today_date = None
-        from .utility import check_cmd_args
         check_cmd_args(self, self.start_date, self.end_date)
 
     def parse(self, response):
@@ -101,10 +100,8 @@ class TimesNow(scrapy.Spider):
             :param response: scrapy.http.Response object
             :return: None
             """
-        from .utility import get_article_data
-        article_data = get_article_data(response)
 
-        from .utility import set_article_dict
+        article_data = get_article_data(response)
         article = set_article_dict(response, article_data)
         self.articles.append(article)
         self.logger.info(">>>>> added article data")
@@ -120,15 +117,13 @@ class TimesNow(scrapy.Spider):
             if not os.path.isdir('Links'):
                 os.makedirs('Links')
             filename = os.path.join(
-                'Links', f'economistnews-sitemap-\
-                    {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                'Links', f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
             )
         elif self.type == "article":
             if not os.path.isdir('Article'):
                 os.makedirs('Article')
             filename = os.path.join(
-                'Article', f'economistnews-articles-\
-                    {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                'Article', f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
             )
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)

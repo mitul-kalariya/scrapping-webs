@@ -1,11 +1,9 @@
 import json
 from datetime import datetime
-
-from .timesnow import TimesNow
 from scrapy.http import Response
 
 
-def check_cmd_args(self: TimesNow, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
        Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
 
@@ -59,6 +57,7 @@ def get_article_data(response: Response) -> dict:
        :param response: The response object obtained from a HTTP request to the URL
        :return: A dictionary containing relevant article data.
        """
+    mapper = {"IN": "India", "en": "English"}
     article_data = {}
     article_data["title"] = response.css('#readtrinity0  h1._1FcxJ::text').getall()
     article_data["sub_title"] = response.css('#readtrinity0 div.QA-An h2::text').get()
@@ -67,9 +66,20 @@ def get_article_data(response: Response) -> dict:
     article_data["text"] = response.css('#readtrinity0 div._18840::text').getall()
     article_data["category"] = response.css('#readtrinity0 div.Faqqe li a p::text').getall()
     article_data["tags"] = response.css('#readtrinity0 div.regular a div::text').getall()
-    selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
-    string = selector[2]
-    article_data["json_data"] = json.loads(string)
+    language = response.css("html::attr(lang)").get()
+    article_data["language"] = mapper.get(language)
+    country = response.css("script::text").getall()
+    for ix, article in enumerate(country):
+        if article.find("countryCode") >= 0:
+            abbr_country = article.split("countryCode\":\"")[-1].split("\"}")[0]
+            article_data["country"] = mapper.get(abbr_country)
+    json_id_block = []
+    selectors = response.xpath('//script[@type="application/ld+json"]/text()').getall()
+    json_data = json.loads(selectors[2])
+    for selector in selectors:
+        json_id_block.append(json.loads(selector))
+    article_data["json_data_all"] = json_id_block
+    article_data["json_data"] = json_data
     return article_data
 
 
@@ -95,51 +105,26 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
             "content": response.text,
         },
         "parsed_json": {
-            "main": {
-                "@context": article_data.get("json_data")['@context'],
-                "@type": article_data.get("json_data")['@type'],
-                "mainEntityOfPage": {
-                    "@type": "WebPage",
-                    "@id": article_data.get("json_data").get('mainEntityOfPage')
-                },
-                "headline": article_data.get("json_data")['headline'],
-                "alternativeHeadline": article_data.get("sub_title"),
-                "dateModified": article_data.get("json_data")['dateModified'],
-                "datePublished": article_data.get("json_data")['datePublished'],
-                "description": article_data.get("json_data")['description'],
-                "author": article_data.get("json_data")['author'][0],
-                "publisher": {'@type': article_data.get("json_data")['publisher']['@type'],
-                              'name': article_data.get("json_data")['publisher']['name'],
-                              'logo': {'@type': article_data.get("json_data")['publisher']['logo']['@type'],
-                                       'url': article_data.get("json_data")['publisher']['logo']['url'],
-                                       'width': {'@type': "Distance",
-                                                 "name": str(article_data.get("json_data")['publisher']['logo']
-                                                             ['width']) + " Px"},
-                                       'height': {'@type': "Distance",
-                                                  'name': str(article_data.get("json_data")['publisher']['logo']
-                                                              ['height']) + " Px"}}},
-                "image": {
-                    "@type": "ImageObject",
-                    "url": article_data.get("img_url"),
-                    # "caption": img_caption
-                }
+            "main":
+                article_data.get("json_data_all")
 
-            }
             # "misc": article_data.get("json_ld_blocks")
         },
         "parsed_data": {
+            "source_language": article_data["language"],
+            "source_country": article_data["country"],
             "author": article_data.get("json_data")['author'],
-            "description": article_data.get("sub_title"),
-            "modified_at": article_data.get("json_data")['dateModified'],
-            "published_at": article_data.get("json_data")['datePublished'],
+            "description": [article_data.get("sub_title")],
+            "modified_at": [article_data.get("json_data")['dateModified']],
+            "published_at": [article_data.get("json_data")['datePublished']],
             # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
-            "publisher": {'@type': article_data.get("json_data")['publisher']['logo']['@type'],
+            "publisher": [{'@type': article_data.get("json_data")['publisher']['logo']['@type'],
                           'url': article_data.get("json_data")['publisher']['logo']['url'],
                           'width': {'@type': "Distance",
                                     "name": str(article_data.get("json_data")['publisher']['logo']['width']) + " Px"},
                           'height': {'@type': "Distance",
                                      'name': str(
-                                         article_data.get("json_data")['publisher']['logo']['height']) + " Px"}},
+                                         article_data.get("json_data")['publisher']['logo']['height']) + " Px"}}],
             "text": article_data.get("text"),
             "thumbnail_image": [article_data.get("img_url")],  # need to look it
             "title": article_data.get("title"),
