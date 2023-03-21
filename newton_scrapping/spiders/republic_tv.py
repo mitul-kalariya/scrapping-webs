@@ -9,7 +9,6 @@ from dateutil import parser
 from datetime import datetime
 import os
 
-
 # Setting the threshold of logger to DEBUG
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 
@@ -120,7 +119,7 @@ class RepublicTvSpider(scrapy.Spider):
         """
         self.logger.info("Parse function called on %s", response.url)
         if self.type == "sitemap":
-            if self.start_date != None and self.end_date != None:
+            if self.start_date and self.end_date:
                 self.logger.info("Parse function called on %s", response.url)
                 yield scrapy.Request(response.url, callback=self.parse_by_date)
             else:
@@ -140,8 +139,6 @@ class RepublicTvSpider(scrapy.Spider):
                 if response_json:
                     data["parsed_json"] = response_json
                 if response_data:
-                    response_data["country"] = ["India"]
-                    response_data["time_scraped"] = [str(datetime.now())]
                     data["parsed_data"] = response_data
 
                 self.article_json_data.append(data)
@@ -165,7 +162,7 @@ class RepublicTvSpider(scrapy.Spider):
             ):
                 if sitemap.get().endswith(".xml"):
                     for link in sitemap.getall():
-                        if self.start_date == None and self.end_date == None:
+                        if self.start_date is None and self.end_date is None:
                             if self.today_date.replace("-", "") in link:
                                 yield scrapy.Request(link, callback=self.parse_sitemap)
                         else:
@@ -339,10 +336,6 @@ class RepublicTvSpider(scrapy.Spider):
         if video:
             main_dict["embed_video_link"] = video
 
-        article_lang = response.css("html::attr(lang)").get()
-        if article_lang:
-            main_dict["language"] = [article_lang]
-
         return main_dict
 
     def extract_breadcrumbs(self, response) -> list:
@@ -428,7 +421,8 @@ class RepublicTvSpider(scrapy.Spider):
         including its link, width, and height, and returns the information as a list of dictionaries.
 
         Returns:
-            A list of dictionaries, with each dictionary containing information about an image. If no images are found, an empty list is returned.
+            A list of dictionaries, with each dictionary containing information about an image.
+                If no images are found, an empty list is returned.
         """
         info = response.css("div.gallery-item")
         mod_info = response.css(".storypicture img.width100")
