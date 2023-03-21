@@ -5,7 +5,6 @@ import os
 
 from scrapy.loader import ItemLoader
 
-# from scrapy import log
 from newton_scrapping.items import (
     IndianNewsArticleRawResponse,
     IndianNewsArticleRawParsedJson,
@@ -76,22 +75,22 @@ def article_validations(
     )
 
 
-def date_range(start_date: datetime, end_date: datetime) -> iter:
+def date_range(start_date: datetime, end_date: datetime) -> None:
     """
     Return range of all date between given date
     if not end_date then take start_date as end date
 
     Args:
-        scrape_start_date (datetime): scrapping start date
-        scrape_end_date (datetime): scrapping end date
+        start_date (datetime): scrapping start date
+        end_date (datetime): scrapping end date
     Returns:
-        iter: range of all date between given date
+        Value of parameter
     """
     for date in range(int((end_date - start_date).days) + 1):
         yield start_date + timedelta(date)
 
 
-def validate_arg(param_name, param_value, custom_msg=None):
+def validate_arg(param_name, param_value, custom_msg=None) -> None:
     """
     Validate the param.
 
@@ -108,9 +107,23 @@ def validate_arg(param_name, param_value, custom_msg=None):
         raise ValueError(ERROR_MESSAGES[param_name].format(custom_msg or param_name))
 
 
-def based_on_scrape_type(scrape_type, scrape_start_date, scrape_end_date, url):
-    """check scrape type and based on scrape type pass to the vaildation function,
-    after validation return required values."""
+def based_on_scrape_type(
+    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+) -> datetime:
+    """
+    check scrape type and based on the type pass it to the validated function,
+    after validation return required values.
+
+     Args:
+         scrape_type: Name of the scrape type
+         scrape_start_date (datetime): scrapping start date
+         scrape_end_date (datetime): scrapping end date
+         url: url to be used
+
+     Returns:
+         datetime: if scrape_type is sitemap
+         list: if scrape_type is sitemap
+    """
     if scrape_type == "article":
         article_validations(url, scrape_start_date, scrape_end_date)
         return None, None
@@ -125,8 +138,17 @@ def based_on_scrape_type(scrape_type, scrape_start_date, scrape_end_date, url):
     return validate_arg("MISSING_REQUIRED_FIELD", None, "type")
 
 
-def raw_response_data(response, selector_and_key):
-    """Raw response data generated from given response and selctor"""
+def raw_response_data(response: str, selector_and_key: dict) -> dict:
+    """
+    Raw response data generated from given response and selector
+
+    Args:
+        response: provided response
+        selector_and_key: A dictionary with key and selector
+
+    Returns:
+        Dictionary with generated raw response
+    """
     indian_news_article_raw_response_loader = ItemLoader(
         item=IndianNewsArticleRawResponse(), response=response
     )
@@ -135,8 +157,17 @@ def raw_response_data(response, selector_and_key):
     return dict(indian_news_article_raw_response_loader.load_item())
 
 
-def parsed_json(response, selector_and_key):
-    """Parsed json response data generated from given response and selctor"""
+def parsed_json(response: str, selector_and_key: dict) -> dict:
+    """
+     Parsed json response from generated data using given response and selector
+
+    Args:
+        response: provided response
+        selector_and_key: A dictionary with key and selector
+
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
     indian_news_article_raw_parsed_json_loader = ItemLoader(
         item=IndianNewsArticleRawParsedJson(), response=response
     )
@@ -148,8 +179,21 @@ def parsed_json(response, selector_and_key):
     return dict(indian_news_article_raw_parsed_json_loader.load_item())
 
 
-def export_data_to_json_file(scrape_type, file_data, file_name):
-    """Export data to json file"""
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+
+    Raises:
+        ValueError if not provided
+
+    Returns:
+        Values of parameters
+    """
     folder_structure = ""
     if scrape_type == "sitemap":
         folder_structure = "Links"

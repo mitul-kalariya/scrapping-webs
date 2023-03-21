@@ -109,9 +109,15 @@ class IndianExpressSpider(scrapy.Spider):
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response):
+    def parse_sitemap(self, response: str) -> None:
         """
         parse sitemap from sitemap url and callback parser to parse title and link
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
         try:
             for article_url in (
@@ -127,9 +133,15 @@ class IndianExpressSpider(scrapy.Spider):
                 level=logging.ERROR,
             )
 
-    def parse_sitemap_article(self, response):
+    def parse_sitemap_article(self, response: str) -> None:
         """
-        parse sitemap article and  scrap title and link
+        parse sitemap article and scrap title and link
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
         try:
             if title := response.css("h1.native_story_title::text").get():
@@ -141,9 +153,15 @@ class IndianExpressSpider(scrapy.Spider):
                 level=logging.ERROR,
             )
 
-    def parse_article(self, response):
+    def parse_article(self, response: str) -> None:
         """
         parse article and append related data to class's articles variable
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
         try:
             raw_response_dict = {
@@ -171,7 +189,6 @@ class IndianExpressSpider(scrapy.Spider):
                     parsed_json_data,
                 )
             author = None
-
             (
                 author,
                 publisher_type,
@@ -259,8 +276,14 @@ class IndianExpressSpider(scrapy.Spider):
                 level=logging.ERROR,
             )
 
-    def get_author_and_publisher_details(self, blocks):
-        """get author and publisher details"""
+    def get_author_and_publisher_details(self, blocks: list) -> str:
+        """
+        get author and publisher details
+        Args:
+            blocks: json/+ld data
+        Returns:
+            str : author and publisher details
+        """
         for block in blocks:
             if json.loads(block).get("@type") == "NewsArticle":
                 author = json.loads(block).get("author", [{}])
@@ -280,9 +303,15 @@ class IndianExpressSpider(scrapy.Spider):
                 )
         return author, publisher_type, publisher_id, country, language
 
-    def closed(self, response):
+    def closed(self, response: str) -> None:
         """
         store all scrapped data into json file with given date in filename
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
         try:
             if not self.articles:
