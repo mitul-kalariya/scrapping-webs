@@ -53,7 +53,7 @@ class RepublicTvSpider(scrapy.Spider):
         self.type = type.lower()
         self.today_date = datetime.today().strftime("%Y-%m-%d")
         self.links_path = "Links"
-        self.article_path = "Articles"
+        self.article_path = "Article"
 
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
@@ -306,7 +306,7 @@ class RepublicTvSpider(scrapy.Spider):
         if last_updated:
             main_dict["modified_at"] = [last_updated]
 
-        published_on = self.extract_publishd_on(response.css("div.story-wrapper"))
+        published_on = self.extract_published_on(response.css("div.story-wrapper"))
         if published_on:
             main_dict["published_at"] = [published_on]
 
@@ -322,7 +322,7 @@ class RepublicTvSpider(scrapy.Spider):
         if article_text:
             main_dict["text"] = [" ".join(article_text)]
 
-        thumbnail = self.extract_thumnail(response)
+        thumbnail = self.extract_thumbnail(response)
         if thumbnail:
             main_dict["thumbnail_image"] = thumbnail
 
@@ -344,34 +344,6 @@ class RepublicTvSpider(scrapy.Spider):
 
         return main_dict
 
-    def extract_breadcrumbs(self, response) -> list:
-        """
-        Parameters:
-        response:
-            scrapy.http.Response object of the web page from which to extract the breadcrumb information.
-
-        Returns:
-            A list of dictionaries with the breadcrumb information. Each dictionary contains the following keys:
-            index: the index of the breadcrumb element in the list.
-            page: the text of the breadcrumb element.
-            url: the URL of the breadcrumb element (if available).
-        """
-        breadcrumb_list = response.css("nav#breadcrumb span")
-        info = []
-        index = 0
-        for i in breadcrumb_list:
-            temp_dict = {}
-            text = i.css("a::text").get()
-            if text:
-                temp_dict["index"] = index
-                temp_dict["page"] = text
-                link = i.css("a::attr(href)").get()
-                if link:
-                    temp_dict["url"] = link
-                info.append(temp_dict)
-                index += 1
-        return info
-
     def extract_lastupdated(self, response) -> str:
         """
         This function extracts the last updated date and time of an article from a given Scrapy response object.
@@ -385,7 +357,7 @@ class RepublicTvSpider(scrapy.Spider):
         if info:
             return info.css("time::attr(datetime)").get()
 
-    def extract_publishd_on(self, response) -> str:
+    def extract_published_on(self, response) -> str:
 
         info = response.xpath('//div[@class ="padtop10 padbtm10"]')
         info_eng = response.css("div.padtop20")
@@ -421,7 +393,7 @@ class RepublicTvSpider(scrapy.Spider):
                 data.append(temp_dict)
             return data
 
-    def extract_thumnail(self, response) -> list:
+    def extract_thumbnail(self, response) -> list:
         """
         The function extract_thumbnail extracts information about the thumbnail image(s) associated with a webpage,
         including its link, width, and height, and returns the information as a list of dictionaries.
