@@ -12,7 +12,7 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
 from newton_scrapping.items import (
-    AricleData,
+    ArticleData,
 )
 from newton_scrapping.utils import (
     based_on_scrape_type,
@@ -75,11 +75,11 @@ class IndianExpressSpider(scrapy.Spider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                "Error occured while taking type, url, start_date and end_date args. "
+                "Error occurred while taking type, url, start_date and end_date args. "
                 + str(exception)
             )
             self.log(
-                "Error occured while taking type, url, start_date and end_date args. "
+                "Error occurred while taking type, url, start_date and end_date args. "
                 + str(exception),
                 level=logging.ERROR,
             )
@@ -103,7 +103,7 @@ class IndianExpressSpider(scrapy.Spider):
                     )
                 except Exception as exception:
                     self.log(
-                        f"Error occured while iterating sitemap url. {str(exception)}",
+                        f"Error occurred while iterating sitemap url. {str(exception)}",
                         level=logging.ERROR,
                     )
         else:
@@ -128,7 +128,7 @@ class IndianExpressSpider(scrapy.Spider):
                 yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
         except Exception as exception:
             self.log(
-                "Error occured while scrapping urls from given sitemap url. "
+                "Error occurred while scrapping urls from given sitemap url. "
                 + str(exception),
                 level=logging.ERROR,
             )
@@ -149,7 +149,7 @@ class IndianExpressSpider(scrapy.Spider):
                 self.articles.append(data)
         except Exception as exception:
             self.log(
-                f"Error occured while scraping sitemap's article. {str(exception)}",
+                f"Error occurred while scraping sitemap's article. {str(exception)}",
                 level=logging.ERROR,
             )
 
@@ -169,7 +169,7 @@ class IndianExpressSpider(scrapy.Spider):
                 "content": response.text,
             }
             raw_response = raw_response_data(response, raw_response_dict)
-            aricle_data_loader = ItemLoader(item=AricleData(), response=response)
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
 
             parsed_json_dict = {}
 
@@ -182,9 +182,9 @@ class IndianExpressSpider(scrapy.Spider):
                 parsed_json_dict["misc"] = parsed_json_misc
 
             parsed_json_data = parsed_json(response, parsed_json_dict)
-            aricle_data_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
-                aricle_data_loader.add_value(
+                articledata_loader.add_value(
                     "parsed_json",
                     parsed_json_data,
                 )
@@ -265,13 +265,13 @@ class IndianExpressSpider(scrapy.Spider):
             if not images:
                 parsed_data_dict.pop("images")
 
-            aricle_data_loader.add_value("parsed_data", parsed_data_dict)
+            articledata_loader.add_value("parsed_data", parsed_data_dict)
 
-            self.articles.append(dict(aricle_data_loader.load_item()))
+            self.articles.append(dict(articledata_loader.load_item()))
 
         except Exception as exception:
             self.log(
-                "Error occured while scrapping an article for this link {response.url}."
+                "Error occurred while scrapping an article for this link {response.url}."
                 + str(exception),
                 level=logging.ERROR,
             )
@@ -315,11 +315,11 @@ class IndianExpressSpider(scrapy.Spider):
         """
         try:
             if not self.articles:
-                self.log("No articles or sitemap url scapped.", level=logging.INFO)
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occured while writing json file{str(exception)}",
+                f"Error occurred while writing json file{str(exception)}",
                 level=logging.ERROR,
             )
