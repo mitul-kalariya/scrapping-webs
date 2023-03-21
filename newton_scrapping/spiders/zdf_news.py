@@ -11,13 +11,14 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 import os
 
+
 class InvalidDateRange(Exception):
     pass
 
 
 class ZdfNewsSpider(scrapy.Spider):
     name = "zdf_news"
-    
+
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         super().__init__(**kwargs)
         self.start_urls = []
@@ -55,17 +56,17 @@ class ZdfNewsSpider(scrapy.Spider):
                     )
 
                 if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date > self.end_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
                 if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date == self.end_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
 
@@ -83,7 +84,7 @@ class ZdfNewsSpider(scrapy.Spider):
     def parse(self, response):
         try:
             if self.type == "sitemap":
-                if self.start_date != None and self.end_date != None:
+                if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
@@ -91,11 +92,11 @@ class ZdfNewsSpider(scrapy.Spider):
 
                 response_json, response_data = self.scrap_site(response)
                 final_data = {"raw_response": {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },}
+                    "content_type": "text/html; charset=utf-8",
+                    "content": response.css("html").get(),
+                }, }
                 if response_json:
-                    final_data['parsed_json']=response_json
+                    final_data['parsed_json'] = response_json
                 if response_data:
                     final_data['parsed_data'] = response_data
 
@@ -112,11 +113,10 @@ class ZdfNewsSpider(scrapy.Spider):
         xml_selector = Selector(xmlresponse)
         xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         for sitemap in xml_selector.xpath(
-            "//xmlns:loc/text()", namespaces=xml_namespaces
+                "//xmlns:loc/text()", namespaces=xml_namespaces
         ):
             for link in sitemap.getall():
                 yield scrapy.Request(link, callback=self.parse_sitemap)
-
 
     def parse_sitemap(self, response):
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -127,9 +127,9 @@ class ZdfNewsSpider(scrapy.Spider):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
             today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
             if (
-                self.start_date
-                and self.end_date
-                and self.start_date <= published_at <= self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date <= published_at <= self.end_date
             ):
                 yield scrapy.Request(
                     link,
@@ -171,7 +171,6 @@ class ZdfNewsSpider(scrapy.Spider):
         Returns:
             dict: returns 2 dictionary parsed_json and parsed_data
         """
-
 
         response_json, response_data = {}, {}
 
@@ -261,9 +260,8 @@ class ZdfNewsSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
 
-    def extract_images(self, response ,parsed_json = False) -> list:
+    def extract_images(self, response, parsed_json=False) -> list:
         images = response.css("figure.content-image")
-        pattern = r"[\r\n\t]+"
         data = []
         for image in images:
             temp_dict = {}
