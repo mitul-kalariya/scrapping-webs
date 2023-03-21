@@ -19,6 +19,7 @@ class InvalidDateRange(Exception):
     This exception is raised when the date range specified by the user is invalid,
     for example, when the start date is later than the end date.
     """
+
     pass
 
 
@@ -27,18 +28,18 @@ class MediaPartSpider(scrapy.Spider):
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
-            A spider to crawl mediapart.fr for news articles.
-            The spider can be initialized with two modes:
-            1. Sitemap mode: In this mode, the spider will crawl the news sitemap of mediapart.fr
-            and scrape articles within a specified date range.
-            2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
+        A spider to crawl mediapart.fr for news articles.
+        The spider can be initialized with two modes:
+        1. Sitemap mode: In this mode, the spider will crawl the news sitemap of mediapart.fr
+        and scrape articles within a specified date range.
+        2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
 
-            Attributes:
-                name (str): The name of the spider.
-                type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
-                start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-                end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-                url (str): The URL of the article to scrape in article mode.
+        Attributes:
+            name (str): The name of the spider.
+            type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
+            start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            url (str): The URL of the article to scrape in article mode.
         """
         super().__init__(**kwargs)
         self.start_urls = []
@@ -74,17 +75,17 @@ class MediaPartSpider(scrapy.Spider):
                         "start_date must be specified if end_date is provided"
                     )
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date == self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
             except ValueError as e:
@@ -122,13 +123,17 @@ class MediaPartSpider(scrapy.Spider):
                 self.logger.debug("Parse function called on %s", response.url)
                 response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                data = {'raw_response': {
-                    "content_type": "text/html; charset=utf-8",
-                    "content": response.css('html').get(),
-                }, }
-                if response_data:
+                data = {
+                    "raw_response": {
+                        "content_type": "text/html; charset=utf-8",
+                        "content": response.css("html").get(),
+                    },
+                }
+                if response_json:
                     data["parsed_json"] = response_json
                 if response_data:
+                    response_data["country"] = ["France"]
+                    response_data["time_scraped"] = [str(datetime.now())]
                     data["parsed_data"] = response_data
 
                 self.article_json_data.append(data)
@@ -160,7 +165,7 @@ class MediaPartSpider(scrapy.Spider):
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             # Loop through each sitemap URL in the XML response
             for sitemap in xml_selector.xpath(
-                    "//xmlns:loc/text()", namespaces=xml_namespaces
+                "//xmlns:loc/text()", namespaces=xml_namespaces
             ):
                 # Loop through each link in the sitemap and create a scrapy request for it
                 for link in sitemap.getall():
@@ -201,9 +206,9 @@ class MediaPartSpider(scrapy.Spider):
 
                 # If the published date falls within the specified date range, make a request to the link
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date <= published_at <= self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date <= published_at <= self.end_date
                 ):
                     yield scrapy.Request(
                         link,
@@ -309,7 +314,9 @@ class MediaPartSpider(scrapy.Spider):
 
             published_on = response.css("div.splitter__first").get()
             if published_on:
-                published_on = (re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")).strip()
+                published_on = (
+                    re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")
+                ).strip()
                 main_dict["published_at"] = [published_on]
 
             description = response.css("p.news__heading__top__intro::text").get()
@@ -319,6 +326,10 @@ class MediaPartSpider(scrapy.Spider):
             article_text = response.css("p.dropcap-wrapper::text").getall()
             if article_text:
                 main_dict["text"] = [" ".join(article_text).replace("\n", "")]
+
+            article_lang = response.css("html::attr(lang)").get()
+            if article_lang:
+                main_dict["language"] = [article_lang]
 
             return main_dict
 
