@@ -201,8 +201,8 @@ class TheGlobeAndMailSpider(scrapy.Spider):
             logo_height = json_ld_blocks[0].get("publisher").get("logo").get("height")
             title = json_ld_blocks[0].get("headline")
             text = response.css("p.c-article-body__text::text").getall()
-            image_url = json_ld_blocks[0].get("image").get("url")
-            image_caption = json_ld_blocks[0].get("image").get("description")
+            image_url = json_ld_blocks[0].get("image", {}).get("url")
+            image_caption = json_ld_blocks[0].get("image", {}).get("description")
             content_type = response.headers.get("Content-Type").decode("utf-8")
 
             article = {
@@ -212,6 +212,7 @@ class TheGlobeAndMailSpider(scrapy.Spider):
                 },
                 "parsed_json": {
                     "main": json_ld_blocks,
+                },
                 "parsed_data": {
                     "author": [{"@type": author_type, "name": author_name}],
                     "description": [description],
@@ -242,7 +243,8 @@ class TheGlobeAndMailSpider(scrapy.Spider):
                     "images": [{"link": image_url, "caption": image_caption}],
                     },
                 }
-            }
+            if not (image_url and image_caption):
+                article["parsed_data"].pop("images")
             self.articles.append(article)
 
         except Exception as exception:
