@@ -20,17 +20,17 @@ class GlobalNewsSpider(scrapy.Spider):
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
-            A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
-            1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
-            and scrape articles within a specified date range.
-            2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
+        A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
+        1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
+        and scrape articles within a specified date range.
+        2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
 
-            Attributes:
-                name (str): The name of the spider.
-                type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
-                start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-                end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-                url (str): The URL of the article to scrape in article mode.
+        Attributes:
+            name (str): The name of the spider.
+            type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
+            start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            url (str): The URL of the article to scrape in article mode.
         """
         super().__init__(**kwargs)
         self.start_urls = []
@@ -55,9 +55,7 @@ class GlobalNewsSpider(scrapy.Spider):
                     else None
                 )
                 self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date()
-                    if end_date
-                    else None
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
                 )
 
                 if start_date and not end_date:
@@ -70,18 +68,18 @@ class GlobalNewsSpider(scrapy.Spider):
                     )
 
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
 
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date == self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
             except ValueError as e:
@@ -98,8 +96,8 @@ class GlobalNewsSpider(scrapy.Spider):
 
     def parse(self, response):
         """Parses the response object and extracts data based on the type of object.
-            Returns:
-                generator: A generator that yields scrapy.Request objects to be further parsed by other functions.
+        Returns:
+            generator: A generator that yields scrapy.Request objects to be further parsed by other functions.
         """
         if self.type == "sitemap":
             if self.start_date and self.end_date:
@@ -113,13 +111,17 @@ class GlobalNewsSpider(scrapy.Spider):
                 self.logger.debug("Parse function called on %s", response.url)
                 response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                data = {'raw_response': {
-                    "content_type": "text/html; charset=utf-8",
-                    "content": response.css('html').get(),
-                }, }
-                if response_data:
+                data = {
+                    "raw_response": {
+                        "content_type": "text/html; charset=utf-8",
+                        "content": response.css("html").get(),
+                    },
+                }
+                if response_json:
                     data["parsed_json"] = response_json
                 if response_data:
+                    response_data["country"] = ["Canada"]
+                    response_data["time_scraped"] = [str(datetime.now())]
                     data["parsed_data"] = response_data
 
                 self.article_json_data.append(data)
@@ -130,7 +132,7 @@ class GlobalNewsSpider(scrapy.Spider):
 
     def parse_sitemap(self, response):
         """
-            Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
         root = etree.fromstring(response.body)
         urls = root.xpath(
@@ -267,6 +269,10 @@ class GlobalNewsSpider(scrapy.Spider):
             videos = self.extract_all_videos(response)
             if videos:
                 main_dict["embed_video_link"] = videos
+
+            article_lang = response.css("html::attr(lang)").get()
+            if article_lang:
+                main_dict["language"] = [article_lang]
 
             return main_dict
         except BaseException as e:
@@ -482,9 +488,9 @@ class GlobalNewsSpider(scrapy.Spider):
 
     def closed(self, response):
         """
-            Method called when the spider is finished scraping.
-            Saves the scraped data to a JSON file with a timestamp
-            in the filename.
+        Method called when the spider is finished scraping.
+        Saves the scraped data to a JSON file with a timestamp
+        in the filename.
         """
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d-%H-%M-%S")
