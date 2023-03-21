@@ -1,5 +1,7 @@
+import os
 import re
 import json
+import time
 import scrapy
 import requests
 from PIL import Image
@@ -9,7 +11,11 @@ from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-import os
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 class InvalidDateRange(Exception):
     pass
@@ -223,6 +229,10 @@ class ZdfNewsSpider(scrapy.Spider):
 
             response_data["thumbnail_image"] = [images[0].get("link")]
 
+        video = self.extract_video(response)
+        if video:
+            response_data["embed_video_link"] = video.get("videos")
+
         return response_json, response_data
 
     def get_main(self, response):
@@ -315,6 +325,29 @@ class ZdfNewsSpider(scrapy.Spider):
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
+
+    def extract_video(self, response) -> list:
+
+        options = Options()
+        options.headless = True
+        driver = webdriver.Chrome(options=options)
+        driver.get(response.url)
+        time.sleep(10)
+        banner_button = driver.find_element(By.XPATH, "//div[@class='banner-actions-container']//button")
+        if banner_button:
+            banner_button.click()
+            time.sleep(10)
+            video_button = driver.find_elements(By.XPATH, "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")
+            if video_button:
+                data = {}
+                for i in video_button:
+                    i.click()
+                    time.sleep(5)
+                    try:
+                        data["videos"] += [i.find_element(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']").get_attribute("src")]
+                    except:
+                        data["videos"] = [i.find_element(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']").get_attribute("src")]
+        return data
 
     def closed(self, response):
         """
