@@ -107,17 +107,14 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
         "parsed_json": {
             "main":
                 article_data.get("json_data_all")
-
-            # "misc": article_data.get("json_ld_blocks")
         },
         "parsed_data": {
-            "source_language": article_data["language"],
-            "source_country": article_data["country"],
+            "language": article_data["language"],
+            "country": article_data["country"],
             "author": article_data.get("json_data")['author'],
             "description": [article_data.get("sub_title")],
             "modified_at": [article_data.get("json_data")['dateModified']],
             "published_at": [article_data.get("json_data")['datePublished']],
-            # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
             "publisher": [{'@type': article_data.get("json_data")['publisher']['logo']['@type'],
                           'url': article_data.get("json_data")['publisher']['logo']['url'],
                           'width': {'@type': "Distance",
@@ -129,41 +126,8 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
             "thumbnail_image": [article_data.get("img_url")],  # need to look it
             "title": article_data.get("title"),
             "images": [{"link": article_data.get("img_url"), "caption": article_data.get("img_caption")}],
-            # "video": {"link": video_link, "caption": None},
             "section": "".join(article_data.get("category")).split(","),
             "tags": article_data.get("tags")
         }
     }
     return article
-
-# def request_today_or_range_date(self: TimesNow, site_map_url: list, response: Response) -> Generator:
-#     # if not today's date the start date and end date will be available
-#     # if not self.today_date:
-#     self.logger.info(
-#         '======================== start to follow url ===============================')
-#     try:
-#         for url in site_map_url:
-#             # , mod_date):
-#             # _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-#             # if not today's date the start date and end date will be available
-#             # if not self.today_date:
-#             #     if _date.month == self.start_date.month or _date.month == self.end_date.month:
-#             #         yield response.follow(url, callback=self.parse_sitemap)
-#             # else it will fetch only today's date as start date and date is none
-#             # else:
-#             #     if _date.month == self.today_date.month:
-#             self.logger.info(
-#                 '======================== start to follow url ===============================')
-#             yield response.follow(url, callback=self.parse_sitemap)
-#     except Exception as e:
-#         self.logger.exception(f"Error in {request_today_or_range_date.__name__}:- {e}")
-#
-#     # else it will fetch only today's date as start date and date is none
-#     # else:
-#     #     try:
-#     #         for url, date in zip(site_map_url, mod_date):
-#     #             _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-#     #             if _date.month == self.today_date.month:
-#     #                 yield response.follow(url, callback=self.parse_sitemap)
-#     #     except Exception as e:
-#     #         self.logger.exception(f"Error in {request_today_or_range_date.__name__}:- {e}")

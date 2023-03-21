@@ -38,8 +38,6 @@ class TimesNow(scrapy.Spider):
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
         """
         if self.type == "sitemap":
-            # mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
-            #                                                 namespaces=self.namespace).getall()
             site_map_url = Selector(response, type='xml') \
                 .xpath('//sitemap:loc/text()',
                        namespaces=self.namespace).getall()
