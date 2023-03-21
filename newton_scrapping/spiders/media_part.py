@@ -18,24 +18,27 @@ class InvalidDateRange(Exception):
     This exception is raised when the date range specified by the user is invalid,
     for example, when the start date is later than the end date.
     """
+
     pass
+
 
 class MediaPartSpider(scrapy.Spider):
     name = "media_part"
+
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
-            A spider to crawl mediapart.fr for news articles.
-            The spider can be initialized with two modes:
-            1. Sitemap mode: In this mode, the spider will crawl the news sitemap of mediapart.fr
-            and scrape articles within a specified date range.
-            2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
+        A spider to crawl mediapart.fr for news articles.
+        The spider can be initialized with two modes:
+        1. Sitemap mode: In this mode, the spider will crawl the news sitemap of mediapart.fr
+        and scrape articles within a specified date range.
+        2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
 
-            Attributes:
-                name (str): The name of the spider.
-                type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
-                start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-                end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-                url (str): The URL of the article to scrape in article mode.
+        Attributes:
+            name (str): The name of the spider.
+            type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
+            start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            url (str): The URL of the article to scrape in article mode.
         """
         super().__init__(**kwargs)
         self.start_urls = []
@@ -101,7 +104,7 @@ class MediaPartSpider(scrapy.Spider):
         """
         try:
             if self.type == "sitemap":
-                
+
                 if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
                 else:
@@ -111,10 +114,12 @@ class MediaPartSpider(scrapy.Spider):
                 self.logger.debug("Parse function called on %s", response.url)
                 response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                data = {'raw_response': {
+                data = {
+                    "raw_response": {
                         "content_type": "text/html; charset=utf-8",
-                        "content": response.css('html').get(),
-                    },}
+                        "content": response.css("html").get(),
+                    },
+                }
                 if response_data:
                     data["parsed_json"] = response_json
                 if response_data:
@@ -126,7 +131,7 @@ class MediaPartSpider(scrapy.Spider):
             print(f"Error: {e}")
 
     def parse_by_date(self, response):
-        
+
         """
         Function to parse a sitemap response by date
 
@@ -160,7 +165,7 @@ class MediaPartSpider(scrapy.Spider):
             print(f"Error: {e}")
 
     def parse_sitemap(self, response):
-        
+
         """
         This function takes in a response object and parses the sitemap.
         It extracts the links and published dates from the response object
@@ -247,7 +252,7 @@ class MediaPartSpider(scrapy.Spider):
         - A dictionary representing the extracted information from the web page.
         """
         try:
-        
+
             parsed_json = {}
             main = self.get_main(response)
             if main:
@@ -299,7 +304,9 @@ class MediaPartSpider(scrapy.Spider):
 
             published_on = response.css("div.splitter__first").get()
             if published_on:
-                published_on = (re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")).strip()
+                published_on = (
+                    re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")
+                ).strip()
                 main_dict["published_at"] = [published_on]
 
             description = response.css("p.news__heading__top__intro::text").get()
@@ -311,11 +318,10 @@ class MediaPartSpider(scrapy.Spider):
                 main_dict["text"] = [" ".join(article_text).replace("\n", "")]
 
             return main_dict
-        
+
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
-
 
     def get_main(self, response):
         """
@@ -352,7 +358,6 @@ class MediaPartSpider(scrapy.Spider):
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
-
 
     def extract_publisher(self, response) -> list:
         """
@@ -412,7 +417,7 @@ class MediaPartSpider(scrapy.Spider):
                         temp_dict["name"] = "".join((name.split("("))[0::-2])
                         url = i.css("a::attr(href)").get()
                         if url:
-                            temp_dict["url"] = "https://www.mediapart.fr"+url
+                            temp_dict["url"] = "https://www.mediapart.fr" + url
                         data.append(temp_dict)
                 return data
         except BaseException as e:
