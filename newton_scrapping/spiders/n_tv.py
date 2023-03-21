@@ -1,13 +1,25 @@
 import scrapy
 import requests
 import gzip
-from io import BytesIO
-from bs4 import BeautifulSoup
-import re
-from datetime import datetime
 import os
 import json
+import logging
+import re
+from io import BytesIO
+from bs4 import BeautifulSoup
+from datetime import datetime
 
+
+# Setting the threshold of logger to DEBUG
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Creating an object
+logger = logging.getLogger()
 
 class InvalidDateRange(Exception):
     pass
@@ -306,6 +318,7 @@ class NTvSpider(scrapy.Spider):
         """
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+        self.logger.info("Closed function called on %s")
         if self.type == "sitemap":
             file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
             with open(file_name, "w") as f:
