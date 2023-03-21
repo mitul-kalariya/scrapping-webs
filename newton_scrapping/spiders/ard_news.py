@@ -1,30 +1,19 @@
 import re
 import json
 import scrapy
-from PIL import Image
-from io import BytesIO
-from dateutil import parser
-from datetime import date
 from datetime import datetime
-import os
 
 
 class InvalidDateRange(Exception):
     pass
 
-class ArdNewsSpider(scrapy.Spider):
+
+class ARD(scrapy.Spider):
     # Assigning spider name
     name = "ard_news"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(
-            self,
-            type=None,
-            start_date=None,
-            url=None,
-            end_date=None,
-            **kwargs
-    ):
+    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         super().__init__(**kwargs)
         self.start_urls = []
         self.sitemap_data = []
@@ -33,14 +22,7 @@ class ArdNewsSpider(scrapy.Spider):
         self.sitemap_json = {}
         self.type = type.lower()
         self.domain_name = "https://www.tagesschau.de"
-        self.today_date = datetime.today().date()
-        self.links_path = "Links"
-        self.article_path = "Articles"
-
-        if not os.path.exists(self.links_path):
-            os.makedirs(self.links_path)
-        if not os.path.exists(self.article_path):
-            os.makedirs(self.article_path)
+        self.today_date = datetime.today().strftime("%Y-%m-%d")
 
         if self.type == "sitemap":
             self.start_urls.append("https://www.tagesschau.de/")
@@ -62,27 +44,15 @@ class ArdNewsSpider(scrapy.Spider):
                         "start_date must be specified if end_date is provided"
                     )
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.end_date
+                    self.start_date and self.end_date and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date == self.end_date
+                    self.start_date and self.end_date and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
-                if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.today_date
-                ):
-                    raise InvalidDateRange(
-                        "start_date should not be greater than today_date"
-                    )
             except ValueError as e:
                 self.logger.error(f"Error in __init__: {e}", exc_info=True)
                 raise InvalidDateRange(e)
@@ -91,23 +61,25 @@ class ArdNewsSpider(scrapy.Spider):
             if url:
                 self.start_urls.append(url)
             else:
-                self.logger.error(f"Error while ")
+                self.logger.error("Error while")
                 raise Exception("Must have a URL to scrap")
 
     def parse(self, response):
         if self.type == "sitemap":
-            if self.start_date != None and self.end_date != None:
+            if self.start_date and self.end_date:
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             else:
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-        if self.type == 'article':
+        if self.type == "article":
             response_json = self.response_json(response)
             response_data = self.response_data(response)
-            data = {'raw_response': {
+            data = {
+                "raw_response": {
                     "content_type": "text/html; charset=utf-8",
-                    "content": response.css('html').get(),
-                },}
+                    "content": response.css("html").get(),
+                },
+            }
             if response_data:
                 data["parsed_json"] = response_json
             if response_data:
@@ -161,6 +133,7 @@ class ArdNewsSpider(scrapy.Spider):
             match = re.search(r"\d{2}\.\d{2}\.\d{4}", published_date)
             if match:
                 date_obj = datetime.strptime(match.group(), "%d.%m.%Y").date()
+                today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
 
                 if self.start_date and date_obj < self.start_date:
                     return
@@ -171,9 +144,10 @@ class ArdNewsSpider(scrapy.Spider):
                 data = {
                     "link": link,
                     "title": title.replace("\n", "").replace('"', "").strip(),
+                    "published_at": date_obj,
                 }
                 if self.start_date is None and self.end_date is None:
-                    if date_obj == self.today_date:
+                    if date_obj == today_date:
                         self.sitemap_data.append(data)
                 else:
                     self.sitemap_data.append(data)
@@ -194,17 +168,19 @@ class ArdNewsSpider(scrapy.Spider):
 
         publisher = response.css("div.header__items")
         if publisher:
-            main_dict["publisher"] = [{
-                "@id": "tagesschau.de",
-                "@type": "NewsMediaOrganization",
-                "name": "tagesschau",
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": "https://www.tagesschau.de/res/assets/image/favicon/favicon-96x96.png",
-                    "width": {"@type": "Distance", "name": "96 px"},
-                    "height": {"@type": "Distance", "name": "96 px"},
-                },
-            }]
+            main_dict["publisher"] = [
+                {
+                    "@id": "tagesschau.de",
+                    "@type": "NewsMediaOrganization",
+                    "name": "tagesschau",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": "https://www.tagesschau.de/res/assets/image/favicon/favicon-96x96.png",
+                        "width": {"@type": "Distance", "name": "96 px"},
+                        "height": {"@type": "Distance", "name": "96 px"},
+                    },
+                }
+            ]
 
         # extract the date published at
         published_at = response.css("div.metatextline::text").get()
@@ -222,9 +198,11 @@ class ArdNewsSpider(scrapy.Spider):
         main_dict["text"] = [" ".join(list(filter(None, text)))]
 
         # extract the thumbnail image
-        thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
+        thumbnail_image = response.css(
+            "picture.ts-picture--topbanner .ts-image::attr(src)"
+        ).get()
         if thumbnail_image:
-            main_dict["thumbnail_image"] = ["https://www.tagesschau.de/" + thumbnail_image]
+            thumbnail_image = ["https://www.tagesschau.de/" + thumbnail_image]
 
         # extract video files if any
         video = self.extract_all_videos(response.css("div.copytext__video"))
@@ -238,7 +216,6 @@ class ArdNewsSpider(scrapy.Spider):
 
         return main_dict
 
-
     def response_json(self, response) -> dict:
 
         parsed_json = {}
@@ -251,7 +228,6 @@ class ArdNewsSpider(scrapy.Spider):
             parsed_json["misc"] = misc
 
         return parsed_json
-    
 
     def get_main(self, response):
         """
@@ -289,7 +265,6 @@ class ArdNewsSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
 
-
     def extract_audio_info(self, response) -> list:
         info = []
         for child in response:
@@ -298,7 +273,7 @@ class ArdNewsSpider(scrapy.Spider):
             if audio:
                 audio_link = re.findall(r"http?.*?\.mp3", audio)[0]
                 if audio_link:
-                    adict["link"] = (audio_link)
+                    adict["link"] = audio_link
                     audio_title = child.css("h3.copytext__audio__title::text").get()
                     if audio_title:
                         adict["caption"] = audio_title
@@ -340,11 +315,6 @@ class ArdNewsSpider(scrapy.Spider):
                     info.append(video_link)
         return info
 
-
-    def extract_thumbnail_images(self, response)->list:
-        info = []
-
-        
     def closed(self, response):
         """
         Saves the sitemap data or article JSON data to a file with a timestamped filename.
@@ -352,12 +322,11 @@ class ArdNewsSpider(scrapy.Spider):
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
         if self.type == "sitemap":
-            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
+            file_name = f"{self.name}-{'sitemap'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
         if self.type == "article":
-            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
+            file_name = f"{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4, default=str)
-
