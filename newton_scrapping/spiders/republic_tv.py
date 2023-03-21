@@ -9,7 +9,6 @@ from dateutil import parser
 from datetime import datetime
 import os
 
-
 # Setting the threshold of logger to DEBUG
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 
@@ -26,6 +25,7 @@ logger = logging.getLogger()
 
 class InvalidDateRange(Exception):
     pass
+
 
 class RepublicTvSpider(scrapy.Spider):
     name = "republic_tv"
@@ -52,7 +52,7 @@ class RepublicTvSpider(scrapy.Spider):
             ValueError: If the start_date and/or end_date are invalid.
             InvalidDateRange: If the start_date is later than the end_date.
             Exception: If no URL is provided when type is "article".
-        """ 
+        """
         super().__init__(**kwargs)
         self.start_urls = []
         self.sitemap_data = []
@@ -66,7 +66,6 @@ class RepublicTvSpider(scrapy.Spider):
             os.makedirs(self.links_path)
         if not os.path.exists(self.article_path):
             os.makedirs(self.article_path)
-
 
         if self.type == "sitemap":
             self.start_urls.append("https://www.republicworld.com/sitemap.xml")
@@ -121,7 +120,7 @@ class RepublicTvSpider(scrapy.Spider):
         """
         self.logger.info("Parse function called on %s", response.url)
         if self.type == 'sitemap':
-            if self.start_date != None and self.end_date != None:
+            if self.start_date and self.end_date:
                 self.logger.info("Parse function called on %s", response.url)
                 yield scrapy.Request(response.url, callback=self.parse_by_date)
             else:
@@ -133,9 +132,9 @@ class RepublicTvSpider(scrapy.Spider):
                 response_json = self.response_json(response)
                 response_data = self.response_data(response)
                 data = {'raw_response': {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css('html').get(),
-                    },}
+                    "content_type": "text/html; charset=utf-8",
+                    "content": response.css('html').get(),
+                }, }
                 if response_data:
                     data["parsed_json"] = response_json
                 if response_data:
@@ -153,7 +152,7 @@ class RepublicTvSpider(scrapy.Spider):
 
             Yields:
             scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
-        """ 
+        """
         self.logger.info("Parse by date at %s", response.url)
         if "sitemap.xml" in response.url:
             for sitemap in response.xpath(
@@ -162,7 +161,7 @@ class RepublicTvSpider(scrapy.Spider):
             ):
                 if sitemap.get().endswith(".xml"):
                     for link in sitemap.getall():
-                        if self.start_date == None and self.end_date == None:
+                        if self.start_date is None and self.end_date is None:
                             if self.today_date.replace("-", "") in link:
                                 yield scrapy.Request(link, callback=self.parse_sitemap)
                         else:
@@ -179,7 +178,7 @@ class RepublicTvSpider(scrapy.Spider):
             The sitemap must be in the XML format specified by the sitemaps.org protocol.
             The function extracts the links from the sitemap and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
             The function also extracts the publication date of the sitemap, if available, and passes it along as a meta parameter in each request.
-        """ # noqa
+        """  # noqa
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         links = response.xpath("//n:url/n:loc/text()", namespaces=namespaces).getall()
         published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
@@ -229,7 +228,7 @@ class RepublicTvSpider(scrapy.Spider):
         main_data = self.get_main(response)
         if main_data:
             parsing_dict["main"] = main_data
-        
+
         misc_data = self.get_misc(response)
         if misc_data:
             parsing_dict["misc"] = misc_data
@@ -307,7 +306,7 @@ class RepublicTvSpider(scrapy.Spider):
         published_on = self.extract_publishd_on(response.css("div.story-wrapper"))
         if published_on:
             main_dict["published_at"] = [published_on]
-        
+
         description = response.css("h2.story-description::text").get()
         if description:
             main_dict["description"] = [description]
@@ -380,7 +379,7 @@ class RepublicTvSpider(scrapy.Spider):
             return info.css("time::attr(datetime)").get()
 
     def extract_publishd_on(self, response) -> str:
-    
+
         info = response.xpath('//div[@class ="padtop10 padbtm10"]')
         info_eng = response.css("div.padtop20")
 
@@ -388,7 +387,6 @@ class RepublicTvSpider(scrapy.Spider):
             return info.css("time::attr(datetime)").get()
         elif info_eng:
             return info_eng.css("time::attr(datetime)").get()
-            
 
     def extract_author(self, response) -> list:
         """
@@ -422,7 +420,8 @@ class RepublicTvSpider(scrapy.Spider):
         including its link, width, and height, and returns the information as a list of dictionaries.
 
         Returns:
-            A list of dictionaries, with each dictionary containing information about an image. If no images are found, an empty list is returned.
+            A list of dictionaries, with each dictionary containing information about an image.
+                If no images are found, an empty list is returned.
         """
         info = response.css("div.gallery-item")
         mod_info = response.css(".storypicture img.width100")
