@@ -139,6 +139,8 @@ class RepublicTvSpider(scrapy.Spider):
                 if response_json:
                     data["parsed_json"] = response_json
                 if response_data:
+                    response_data["country"] = ["India"]
+                    response_data["time_scraped"] = [str(datetime.now())]
                     data["parsed_data"] = response_data
 
                 self.article_json_data.append(data)
@@ -335,6 +337,10 @@ class RepublicTvSpider(scrapy.Spider):
         video = self.extract_video(response)
         if video:
             main_dict["embed_video_link"] = video
+
+        article_lang = response.css("html::attr(lang)").get()
+        if article_lang:
+            main_dict["language"] = [article_lang]
 
         return main_dict
 
