@@ -93,6 +93,9 @@ def response_data(response):
 
 
 def filter_dict(raw_dict):
+    """
+        Filtering null value from the dictionary
+    """
     target_dict = dict([(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)])
     return target_dict
 
