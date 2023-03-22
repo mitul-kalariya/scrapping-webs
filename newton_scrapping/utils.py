@@ -96,6 +96,7 @@ def validate_arg(param_name, param_value, custom_msg=None) -> None:
     Args:
         param_name: Name of the parameter to be validated
         param_value: Value of the required parameter
+        custom_msg: custom error message
 
     Raises:
         ValueError if not provided
