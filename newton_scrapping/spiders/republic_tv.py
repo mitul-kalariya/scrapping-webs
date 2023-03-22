@@ -331,7 +331,7 @@ class RepublicTvSpider(scrapy.Spider):
         article_lang = response.css("html::attr(lang)").get()
         main_dict["language"] = [article_lang]
 
-        return self.filter(main_dict)
+        return self.filter_dict(main_dict)
 
     def filter_dict(self, raw_dict):
         target_dict = dict([(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)])
