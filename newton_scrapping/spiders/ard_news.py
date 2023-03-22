@@ -58,31 +58,19 @@ class ArdNewsSpider(scrapy.Spider):
                         "end_date must be specified if start_date is provided"
                     )
                 if not start_date and end_date:
-                    raise ValueError(
-                        "start_date must be specified if end_date is provided"
-                    )
-                if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.end_date
-                ):
-                    raise InvalidDateRange(
-                        "start_date should not be later than end_date"
-                    )
-                if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date == self.end_date
-                ):
+                    raise ValueError("start_date must be specified if end_date is provided")
+
+                if (self.start_date and self.end_date and self.start_date > self.end_date):
+                    raise InvalidDateRange("start_date should not be later than end_date")
+
+                if (self.start_date and self.end_date and self.start_date == self.end_date):
                     raise ValueError("start_date and end_date must not be the same")
-                if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.today_date
-                ):
+
+                if (self.start_date and self.end_date and self.start_date > self.today_date):
                     raise InvalidDateRange(
                         "start_date should not be greater than today_date"
                     )
+
             except ValueError as e:
                 self.logger.error(f"Error in __init__: {e}", exc_info=True)
                 raise InvalidDateRange(e)
@@ -196,27 +184,22 @@ class ArdNewsSpider(scrapy.Spider):
 
         # extract author info
         authors = self.extract_author_info(response.css("div.copytext-element-wrapper"))
-        if authors:
-            main_dict["author"] = authors
+        main_dict["author"] = authors
 
         # extract main headline of article
         title = response.css("span.seitenkopf__headline--text::text").get()
-        if title:
-            main_dict["title"] = [title]
+        main_dict["title"] = [title]
 
         publisher = self.get_main(response)
-        if publisher:
-            main_dict["publisher"] = [publisher[0].get("publisher")]
+        main_dict["publisher"] = [publisher[0].get("publisher")]
 
         # extract the date published at
         published_at = response.css("div.metatextline::text").get()
-        if published_at:
-            clean_time = re.sub(pattern, "", published_at).strip()
-            main_dict["published_at"] = [clean_time]
+        clean_time = re.sub(pattern, "", published_at).strip()
+        main_dict["published_at"] = [clean_time]
 
         descryption = response.css("p strong::text").get()
-        if descryption:
-            main_dict["description"] = [re.sub(pattern, "", descryption).strip()]
+        main_dict["description"] = [re.sub(pattern, "", descryption).strip()]
 
         # extract the description or read text of the article
         text = response.css("p.textabsatz::text").getall()
@@ -224,41 +207,34 @@ class ArdNewsSpider(scrapy.Spider):
         main_dict["text"] = [" ".join(list(filter(None, text)))]
 
         # extract the thumbnail image
-        thumbnail_image = response.css(
-            "picture.ts-picture--topbanner .ts-image::attr(src)"
-        ).get()
-        if thumbnail_image:
-            main_dict["thumbnail_image"] = [
-                "https://www.tagesschau.de/" + thumbnail_image
-            ]
+        thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
+        main_dict["thumbnail_image"] = ["https://www.tagesschau.de/" + thumbnail_image]
 
         # extract video files if any
         video = self.extract_all_videos(response.css("div.copytext__video"))
-        if video:
-            main_dict["embed_video_link"] = video
+        main_dict["embed_video_link"] = video
 
         # extract tags associated with article
         tags = response.css("ul.taglist li a::text").getall()
-        if tags:
-            main_dict["tags"] = tags
+        main_dict["tags"] = tags
 
         article_lang = response.css("html::attr(lang)").get()
-        if article_lang:
-            main_dict["language"] = [article_lang]
+        main_dict["language"] = [article_lang]
 
-        return main_dict
+        return self.filter_dict(main_dict)
+
+    def filter_dict(self, raw_dict):
+        target_dict = dict([(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)])
+        return target_dict
 
     def response_json(self, response) -> dict:
-
         parsed_json = {}
         main = self.get_main(response)
         if main:
             parsed_json["main"] = main
-
         misc = self.get_misc(response)
         if misc:
             parsed_json["misc"] = misc
-
         return parsed_json
 
     def get_main(self, response):
