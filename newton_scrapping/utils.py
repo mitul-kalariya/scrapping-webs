@@ -37,17 +37,17 @@ def sitemap_validations(
             "BETWEEN_DATE_RANGE",
             int((scrape_end_date - scrape_start_date).days) <= 30,
         )
-        return scrape_start_date, scrape_end_date
-    validate_arg(
-        "MISSING_REQUIRED_FIELD",
-        not (scrape_start_date or scrape_end_date),
-        "start_date and end_date",
-    )
+    else:
+        validate_arg(
+            "MISSING_REQUIRED_FIELD",
+            not (scrape_start_date or scrape_end_date),
+            "start_date and end_date",
+        )
+        scrape_start_date = scrape_end_date = datetime.now().date()
 
     validate_arg(
         "NOT_REQUIRED_FIELD", not article_url, "url is not required for sitemap."
     )
-    scrape_start_date = scrape_end_date = datetime.now().date()
 
     return scrape_start_date, scrape_end_date
 
