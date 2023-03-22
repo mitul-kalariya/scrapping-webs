@@ -1,16 +1,27 @@
 import re
-import json
-from datetime import datetime
-from io import BytesIO
 import os
-from PIL import Image
+import json
 import scrapy
 import requests
+import logging
+from datetime import datetime
+from io import BytesIO
+from PIL import Image
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
+# Setting the threshold of logger to DEBUG
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Creating an object
+logger = logging.getLogger()
 
 class InvalidDateRange(Exception):
     """
@@ -48,7 +59,7 @@ class MediaPartSpider(scrapy.Spider):
         self.type = type.lower()
         self.today_date = datetime.today().strftime("%Y-%m-%d")
         self.links_path = "Links"
-        self.article_path = "Articles"
+        self.article_path = "Article"
 
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
@@ -112,15 +123,14 @@ class MediaPartSpider(scrapy.Spider):
             BaseException: If an error occurs during parsing, an error is logged and printed to the console.
         """
         try:
+            self.logger.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
-
                 if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_by_date)
 
             if self.type == "article":
-                self.logger.debug("Parse function called on %s", response.url)
                 response_json = self.response_json(response)
                 response_data = self.response_data(response)
                 data = {
