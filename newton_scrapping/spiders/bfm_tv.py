@@ -59,6 +59,7 @@ class NTvSpider(scrapy.Spider):
         self.type = type.lower()
         self.today_date = datetime.today().strftime("%Y-%m-%d")
         self.today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
+        self.main_json = None
         self.links_path = "Links"
         self.article_path = "Articles"
 
@@ -105,9 +106,17 @@ class NTvSpider(scrapy.Spider):
                     and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
+
             except ValueError as e:
                 self.logger.error(f"Error in __init__: {e}")
                 raise InvalidDateRange("Invalid date format")
+
+        elif self.type == "article":
+            if url:
+                self.start_urls.append(url)
+            else:
+                self.logger.error("Must have a URL to scrap")
+                raise Exception("Must have a URL to scrap")
 
     def parse(self, response):
         """
@@ -158,6 +167,30 @@ class NTvSpider(scrapy.Spider):
                                 callback=self.make_sitemap,
                                 meta={"published_at": published_at},
                             )
+            elif self.type == "article":
+                try:
+                    self.logger.debug("Parse function called on %s", response.url)
+                    response_json = self.response_json(response)
+                    response_data = self.response_data(response)
+                    data = {
+                        "raw_response": {
+                            "content_type": "text/html; charset=utf-8",
+                            "content": response.css("html").get(),
+                        },
+                    }
+                    if response_json:
+                        data["parsed_json"] = response_json
+                    if response_data:
+                        response_data["country"] = ["France"]
+                        response_data["time_scraped"] = [str(datetime.now())]
+                        data["parsed_data"] = response_data
+
+                    self.article_json_data.append(data)
+
+                except BaseException as e:
+                    print(f"Error: {e}")
+                    self.logger.error(f"{e}")
+
         except ValueError as e:
             self.logger.error(f"Error in __init__: {e}")
             raise InvalidDateRange("Invalid date format")
@@ -186,11 +219,6 @@ class NTvSpider(scrapy.Spider):
 
                 if self.start_date is None and self.end_date is None:
                     if date_only == self.today_date:
-                        print(
-                            "++++++++++++++++++++++++++++++++",
-                            date_only,
-                            self.today_date,
-                        )
                         self.sitemap_data.append(data)
                 else:
                     self.sitemap_data.append(data)
@@ -201,6 +229,115 @@ class NTvSpider(scrapy.Spider):
             self.logger.error(
                 f"Error occurring while extracting link, title {e} in make_sitemap function"
             )
+
+    def response_json(self, response) -> dict:
+
+        parsed_json = {}
+        main = self.get_main(response)
+        if main:
+            parsed_json["main"] = main
+
+        misc = self.get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+
+        return parsed_json
+
+    def get_main(self, response):
+        """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/ld+json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            self.main_json = data
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting main: {e}")
+
+    def get_misc(self, response):
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
+
+    def response_data(self, response):
+        response_data = {}
+        pattern = r"[\r\n\t\"]+"
+        embedded_video_links = []
+        text = []
+
+        article_title = response.css("h1.content_title::text").get()
+        if article_title:
+            response_data["title"] = [re.sub(pattern, "", article_title).strip()]
+
+        article_published = response.css("div#content_scroll_start time::text").get()
+        if article_published:
+            response_data["published_at"] = [article_published]
+
+        article_description = response.css("div.chapo::text").get()
+        if article_description:
+            response_data["description"] = [article_description]
+
+        article_text = " ".join(response.css("p::text").getall())
+        print("\n\n\n\n ====>", article_text)
+        if article_text:
+            text.append(re.sub(pattern, "", article_text).strip())
+
+        article_blockquote_text = " ".join(response.css("span::text").getall())
+        if article_blockquote_text:
+            text.append(re.sub(pattern, "", article_blockquote_text))
+
+        if text:
+            response_data["text"] = [" ".join(text)]
+
+        article_author = response.css("span.author_name::text").get()
+        if article_author:
+            response_data["author"] = [
+                {"@type": "Person", "name": re.sub(pattern, "", article_author).strip()}
+            ]
+
+        article_publisher = (self.main_json[1]).get("publisher")
+        if article_publisher:
+            response_data["publisher"] = [article_publisher]
+
+        article_thumbnail = (self.main_json[1]).get("image").get("contentUrl")
+        if isinstance(article_thumbnail, list):
+            response_data["thumbnail_image"] = article_thumbnail
+
+        thumbnail_video = (self.main_json[1]).get("video").get("embedUrl")
+        if thumbnail_video:
+            embedded_video_links.append(thumbnail_video)
+
+        video_linkes = self.extract_videos(response.request.url)
+        if video_linkes:
+            embedded_video_links.append(video_linkes)
+
+        if embedded_video_links:
+            response_data["embed_video_link"] = embedded_video_links
+        return response_data
+
+    def extract_videos(self, current_url) -> list:
+        return 0
 
     def closed(self, response):
         """
