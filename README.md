@@ -3,6 +3,8 @@
 This repo contains the code to scrap all sitemaps (if available) and articles from [cp24 news](https://www.cp24.com) website and the Tech stacks used are:-
 -  Python 3.10
 -  Scrapy 
+-  Selenium
+- Beautiful Soup
 
 ### Environment Setup 
  
