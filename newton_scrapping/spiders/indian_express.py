@@ -195,6 +195,7 @@ class IndianExpressSpider(scrapy.Spider):
                 publisher_id,
                 country,
                 language,
+                article_body,
             ) = self.get_author_and_publisher_details(parsed_json_main.getall())
 
             logo_height = response.css(
@@ -244,8 +245,8 @@ class IndianExpressSpider(scrapy.Spider):
                         },
                     }
                 ],
-                "text": response.css("div#pcl-full-content p::text").getall(),
-                "title": response.css("div.heading-part  h1::text").get(),
+                "text": [article_body],
+                "title": response.css("div.heading-part  h1::text").getall(),
                 "images": [
                     {"link": img, "caption": cap}
                     for img, cap in itertools.zip_longest(
@@ -291,6 +292,7 @@ class IndianExpressSpider(scrapy.Spider):
                     json.loads(block).get("publisher", None).get("@type", None)
                 )
                 publisher_id = json.loads(block).get("publisher", None).get("url", None)
+                article_body = json.loads(block).get("articleBody", [])
             if json.loads(block).get("address", None):
                 country = (
                     json.loads(block).get("address", None).get("addressRegion", None)
@@ -301,7 +303,7 @@ class IndianExpressSpider(scrapy.Spider):
                     .get("contactPoint", None)
                     .get("availableLanguage", None)
                 )
-        return author, publisher_type, publisher_id, country, language
+        return author, publisher_type, publisher_id, country, language, article_body
 
     def closed(self, response: str) -> None:
         """
