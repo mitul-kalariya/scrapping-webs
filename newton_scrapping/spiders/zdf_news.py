@@ -1,10 +1,8 @@
-import os
 import re
 import json
 import time
 import scrapy
 import requests
-import logging
 from PIL import Image
 from io import BytesIO
 from datetime import datetime
@@ -14,25 +12,10 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
+from newton_scrapping.utils import create_log_file_config_and_logger, make_directories_for_links_and_article, validations_for_start_date_and_end_date
 
-
-# Setting the threshold of logger to DEBUGlogging.basicConfig(
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
-# Creating an object
-logger = logging.getLogger()
-
-class InvalidDateRange(Exception):
-    pass
+logger = create_log_file_config_and_logger()
 
 
 class ZdfNewsSpider(scrapy.Spider):
@@ -45,53 +28,20 @@ class ZdfNewsSpider(scrapy.Spider):
         self.article_json_data = []
         self.type = type.lower()
         self.today_date = datetime.today().strftime("%Y-%m-%d")
-        self.links_path = "Links"
-        self.article_path = "Article"
+        self.import_logs = {}
 
-        if not os.path.exists(self.links_path):
-            os.makedirs(self.links_path)
-        if not os.path.exists(self.article_path):
-            os.makedirs(self.article_path)
+        self.links_path, self.article_path = make_directories_for_links_and_article()
 
         if self.type == "sitemap":
             self.start_urls.append("https://www.zdf.de/sitemap.xml")
-            try:
-                self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else None
-                )
-                self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-                )
-
-                if start_date and not end_date:
-                    raise ValueError(
-                        "end_date must be specified if start_date is provided"
-                    )
-                if not start_date and end_date:
-                    raise ValueError(
-                        "start_date must be specified if end_date is provided"
-                    )
-
-                if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date > self.end_date
-                ):
-                    raise InvalidDateRange(
-                        "start_date should not be later than end_date"
-                    )
-                if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date == self.end_date
-                ):
-                    raise ValueError("start_date and end_date must not be the same")
-
-            except ValueError as e:
-                self.logger.error(f"Error in __init__: {e}", exc_info=True)
-                raise InvalidDateRange(e)
+            today_date =  datetime.today().date()
+            self.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+            self.end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+            error_messages = validations_for_start_date_and_end_date(self, start_date, end_date, today_date)
+            if len(error_messages) > 0:
+                for error in error_messages.values():
+                    self.logger.error(f"Error in __init__: {error}", exc_info=True)
+                    raise Exception(error)
 
         if self.type == "article":
             if url:
@@ -148,11 +98,7 @@ class ZdfNewsSpider(scrapy.Spider):
         for link, pub_date in zip(links, published_date):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
             today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
-            if (
-                self.start_date
-                and self.end_date
-                and self.start_date <= published_at <= self.end_date
-            ):
+            if self.start_date and self.end_date and self.start_date <= published_at <= self.end_date:
                 yield scrapy.Request(
                     link,
                     callback=self.parse_sitemap_link_title,
