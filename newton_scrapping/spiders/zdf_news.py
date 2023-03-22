@@ -4,6 +4,7 @@ import json
 import time
 import scrapy
 import requests
+import logging
 from PIL import Image
 from io import BytesIO
 from datetime import datetime
@@ -17,6 +18,18 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
+
+# Setting the threshold of logger to DEBUGlogging.basicConfig(
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+# Creating an object
+logger = logging.getLogger()
 
 class InvalidDateRange(Exception):
     pass
@@ -33,7 +46,7 @@ class ZdfNewsSpider(scrapy.Spider):
         self.type = type.lower()
         self.today_date = datetime.today().strftime("%Y-%m-%d")
         self.links_path = "Links"
-        self.article_path = "Articles"
+        self.article_path = "Article"
 
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
@@ -231,9 +244,13 @@ class ZdfNewsSpider(scrapy.Spider):
                 self.logger.error(f"{e}")
                 print(f"Error: {e}")
 
-        thumbnail_image = images[0].get("link")
-        if thumbnail_image:
-            response_data["thumbnail_image"] = [thumbnail_image]
+        try:
+            thumbnail_image = images[0].get("link")
+            if thumbnail_image:
+                response_data["thumbnail_image"] = [thumbnail_image]
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while fetching thumbnail: {e}")
 
         article_lang = response.css("html::attr(lang)").get()
         if article_lang:
@@ -341,11 +358,11 @@ class ZdfNewsSpider(scrapy.Spider):
         options.headless = True
         driver = webdriver.Chrome(options=options)
         driver.get(response.url)
-        time.sleep(10)
+        time.sleep(5)
         banner_button = driver.find_element(By.XPATH, "//div[@class='banner-actions-container']//button")
         if banner_button:
             banner_button.click()
-            time.sleep(10)
+            time.sleep(5)
             video_button = driver.find_elements(By.XPATH, "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")
             if video_button:
                 data = {}
@@ -353,9 +370,9 @@ class ZdfNewsSpider(scrapy.Spider):
                     i.click()
                     time.sleep(5)
                     try:
-                        data["videos"] += [i.find_element(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']").get_attribute("src")]
+                        data["videos"] += [i.find_elements(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']")[-1].get_attribute("src")]
                     except:
-                        data["videos"] = [i.find_element(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']").get_attribute("src")]
+                        data["videos"] = [i.find_elements(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']")[-1].get_attribute("src")]
         return data
 
     def closed(self, response):
