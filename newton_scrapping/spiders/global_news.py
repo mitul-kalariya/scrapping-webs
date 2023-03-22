@@ -1,5 +1,6 @@
 import re
 import json
+import logging
 from io import BytesIO
 from datetime import datetime
 import os
@@ -10,7 +11,16 @@ from lxml import etree
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
-
+# Setting the threshold of logger to DEBUG
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Creating an object
+logger = logging.getLogger()
 class InvalidDateRange(Exception):
     pass
 
