@@ -130,25 +130,29 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
         "parsed_data": {
             "language": article_data["language"],
             "country": article_data["country"],
-            "author": [{'@type': article_data.get("json_data")['author'][0]["@type"] if article_data.get("json_data").get("author") else None,
-                        'name': article_data.get("json_data")['author'][0]['name'] if article_data.get("json_data").get("author") else None,
+            "author": [{'@type': article_data.get("json_data")['author'][0]["@type"]
+                        if article_data.get("json_data").get("author") else None,
+                        'name': article_data.get("json_data")['author'][0]['name'] if article_data.get("json_data").get(
+                            "author") else None,
                         'url': article_data.get("author_url")}],
             "description": [article_data.get("json_data")['description']],
             "published_at": [article_data.get("json_data")['datePublished']],
-            "publisher": [{'@id': article_data.get("json_ld_blocks")[1]['url'], '@type': article_data.get("json_data")['publisher']['@type'],
+            "publisher": [{'@id': article_data.get("json_ld_blocks")[1]['url'],
+                           '@type': article_data.get("json_data")['publisher']['@type'],
                            'name': article_data.get("json_data")['publisher']['name'],
                            'logo': {'@type': article_data.get("json_data")['publisher']['logo']['@type'],
-                                    'url': article_data.get("json_data")['publisher']['logo']['url'], 'width': {'@type': "Distance",
-                                                                                            "name": str(article_data.get("json_data")[
-                                                                                                            'publisher'][
-                                                                                                            'logo'][
-                                                                                                            'width']) + " Px"},
+                                    'url': article_data.get("json_data")['publisher']['logo']['url'],
+                                    'width': {'@type': "Distance",
+                                              "name": str(article_data.get("json_data")
+                                                          ['publisher']['logo']['width']) + " Px"},
                                     'height': {'@type': "Distance",
-                                               'name': str(article_data.get("json_data")['publisher']['logo']['height']) + " Px"}}}],
+                                               'name': str(article_data.get("json_data")
+                                                           ['publisher']['logo']['height']) + " Px"}}}],
             "text": [article_data.get("text")],
             "thumbnail_image": [article_data.get("img_url")],  # need to look it
             "title": [article_data.get("title")],
-            "images": [{'link': article_data.get("img_url"), 'caption': article_data.get("img_url")}] + article_data.get("article_img"),
+            "images": [{'link': article_data.get("img_url"),
+                        'caption': article_data.get("img_url")}] + article_data.get("article_img"),
             "section": "".join(article_data.get("section_content")).split(",")
         }
     }
