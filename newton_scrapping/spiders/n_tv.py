@@ -263,6 +263,10 @@ class NTvSpider(scrapy.Spider):
         if article_description:
             response_data["description"] = [article_description]
 
+        article_publisher = self.get_main(response)
+        if article_publisher:
+            response_data["publisher"] = [article_publisher[0].get("publisher")]
+
         article_text = " ".join(response.css("p::text").getall())
         if article_text:
             response_data["text"] = [article_text]
