@@ -268,10 +268,10 @@ class IndianExpressSpider(scrapy.Spider):
             articledata_loader.add_value("parsed_data", parsed_data_dict)
 
             self.articles.append(dict(articledata_loader.load_item()))
-
+            return self.articles
         except Exception as exception:
             self.log(
-                "Error occurred while scrapping an article for this link {response.url}."
+                f"Error occurred while scrapping an article for this link {response.url}."
                 + str(exception),
                 level=logging.ERROR,
             )

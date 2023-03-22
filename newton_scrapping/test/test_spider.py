@@ -1,0 +1,185 @@
+import unittest
+from newton_scrapping.spiders.indian_express import IndianExpressSpider
+from newton_scrapping.test.helpers.utils import online_response_from_url, get_article_content
+from newton_scrapping.test.helpers.constant import TEST_ARTICLES
+import logging
+
+# Creating an object
+logger = logging.getLogger()
+
+
+class TestIndianExpressArticle(unittest.TestCase):
+
+    def _test_article_results(self, articles, test_data_path):
+        article = list(articles)[0]
+        test_article_data = get_article_content(test_data_path)
+
+        # Testing raw_response object
+        self.assertEqual(article[0].get("raw_response").get("content_type"),
+                         test_article_data[0].get("raw_response").get("content_type"))
+        self.assertIsInstance(article[0].get("raw_response").get("content")[0], str)
+
+        # Testing parsed_json object
+        # it may be possible that we don't get either misc or main for some websites.
+        # In that case we will exclude the parsed_json object
+        if test_article_data[0].get("parsed_json"):
+            if test_article_data[0].get("parsed_json").get("main"):
+                self.assertIsInstance(article[0].get("parsed_json").get("main"), list)
+            if test_article_data[0].get("parsed_json").get("misc"):
+                self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
+
+        # Testing parsed_data object
+        self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
+                             test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("published_at"),
+                         test_article_data[0].get("parsed_data").get("published_at"), "published_at mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("publisher"),
+                         test_article_data[0].get("parsed_data").get("publisher"), "publisher mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("section"),
+                         test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("tags"), test_article_data[0].get(
+            "parsed_data").get("tags"), "tags mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("country"),
+                         test_article_data[0].get("parsed_data").get("country"), "country mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("language"),
+                         test_article_data[0].get("parsed_data").get("language"), "language mismatch in parsed_data")
+
+        # Since the content of article can be modified so not checkering exact text
+        # but below objects should be present
+        if article[0].get("parsed_data").get("text"):
+            self.assertIsInstance(article[0].get("parsed_data").get("text")[0],
+                                  str, "format mismatch for parsed_data--> text")
+            self.assertIsInstance(article[0].get("parsed_data").get(
+                "text"), list, "format mismatch for parsed_data--> text")
+        else:
+            raise AssertionError("missing object:- parsed_data--> text")
+
+        if article[0].get("parsed_data").get("title"):
+            self.assertIsInstance(article[0].get("parsed_data").get(
+                "title")[0], str, "format mismatch for parsed_data--> title")
+            self.assertIsInstance(article[0].get("parsed_data").get(
+                "title"), list, "format mismatch for parsed_data--> title")
+        else:
+            raise AssertionError("missing object:- parsed_data--> title")
+
+        if article[0].get("parsed_data").get("description"):
+            self.assertIsInstance(article[0].get("parsed_data").get("description")[
+                0], str, "format mismatch for parsed_data--> description")
+            self.assertIsInstance(article[0].get("parsed_data").get("description"),
+                                  list, "format mismatch for parsed_data--> description")
+        else:
+            raise AssertionError("missing object:- parsed_data--> description")
+        
+        if article[0].get("parsed_data").get("country"):
+            self.assertIsInstance(article[0].get("parsed_data").get("country")[
+                0], str, "format mismatch for parsed_data--> country")
+            self.assertIsInstance(article[0].get("parsed_data").get("country"),
+                                  list, "format mismatch for parsed_data--> country")
+        else:
+            raise AssertionError("missing object:- parsed_data--> country")
+        
+        if article[0].get("parsed_data").get("language"):
+            self.assertIsInstance(article[0].get("parsed_data").get("language")[
+                0], str, "format mismatch for parsed_data--> language")
+            self.assertIsInstance(article[0].get("parsed_data").get("language"),
+                                  list, "format mismatch for parsed_data--> language")
+        else:
+            raise AssertionError("missing object:- parsed_data--> language")
+        
+        if article[0].get("parsed_data").get("author"):
+            self.assertIsInstance(article[0].get("parsed_data").get("author")[
+                0], dict, "format mismatch for parsed_data--> author")
+            self.assertIsInstance(article[0].get("parsed_data").get("author"),
+                                  list, "format mismatch for parsed_data--> author")
+        else:
+            raise AssertionError("missing object:- parsed_data--> author")
+        
+        if article[0].get("parsed_data").get("modified_at"):
+            self.assertIsInstance(article[0].get("parsed_data").get("modified_at")[
+                0], str, "format mismatch for parsed_data--> modified_at")
+            self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
+                                  list, "format mismatch for parsed_data--> modified_at")
+        else:
+            raise AssertionError("missing object:- parsed_data--> modified_at")
+        
+        if article[0].get("parsed_data").get("published_at"):
+            self.assertIsInstance(article[0].get("parsed_data").get("published_at")[
+                0], str, "format mismatch for parsed_data--> published_at")
+            self.assertIsInstance(article[0].get("parsed_data").get("published_at"),
+                                  list, "format mismatch for parsed_data--> published_at")
+        else:
+            raise AssertionError("missing object:- parsed_data--> published_at")
+        
+        if article[0].get("parsed_data").get("publisher"):
+            self.assertIsInstance(article[0].get("parsed_data").get("publisher")[
+                0], dict, "format mismatch for parsed_data--> publisher")
+            self.assertIsInstance(article[0].get("parsed_data").get("publisher"),
+                                  list, "format mismatch for parsed_data--> publisher")
+        else:
+            raise AssertionError("missing object:- parsed_data--> publisher")
+        
+        if article[0].get("parsed_data").get("images"):
+            self.assertIsInstance(article[0].get("parsed_data").get("images")[
+                0], dict, "format mismatch for parsed_data--> images")
+            self.assertIsInstance(article[0].get("parsed_data").get("images"),
+                                  list, "format mismatch for parsed_data--> images")
+        else:
+            raise AssertionError("missing object:- parsed_data--> images")
+        
+        if article[0].get("parsed_data").get("section"):
+            self.assertIsInstance(article[0].get("parsed_data").get("section")[0],
+                                  str, "format mismatch for parsed_data--> section")
+            self.assertIsInstance(article[0].get("parsed_data").get("section"),
+                                  list, "format mismatch for parsed_data--> section")
+        else:
+            raise AssertionError("missing object:- parsed_data--> section")
+        
+        if article[0].get("parsed_data").get("tags"):
+            self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
+                                  str, "format mismatch for parsed_data--> tags")
+            self.assertIsInstance(article[0].get("parsed_data").get("tags"),
+                                  list, "format mismatch for parsed_data--> tags")
+        else:
+            raise AssertionError("missing object:- parsed_data--> tags")
+
+        article_images = article[0].get("parsed_data").get("images")
+        if article_images:
+            for image in article_images:
+                self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
+                self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
+        
+        article_authors = article[0].get("parsed_data").get("authors")
+        if article_authors:
+            for author in article_authors:
+                self.assertIsNotNone(author.get("@type"), "missing object:- parsed_data--> author --> @type")
+                self.assertIsNotNone(author.get("name"), "missing object:- parsed_data--> author --> name")
+                self.assertIsNotNone(author.get("url"), "missing object:- parsed_data--> author --> url")
+
+
+    def test_parse(self):
+        for article in TEST_ARTICLES:
+            logger.info(f"Testing article with URL:- {article['url']}")
+            spider = IndianExpressSpider(type="article", url=article["url"])
+            articles = spider.parse(online_response_from_url(spider.article_url))
+            self._test_article_results(articles, article["test_data_path"])
+            logger.info(f"Testing completed article with URL:- {article['url']}")
+
+
+# class TestIndianExpressSitemap(unittest.TestCase):
+#     def setUp(self):
+#         self.type="sitemap"
+#         self.url="https://indianexpress.com/sitemap.xml"
+#         self.spider = IndianExpressSpider(type=self.type, url=self.url)
+
+#     def _test_article_results(self, articles):
+#         article = list(articles)[0]
+#         test_article_data = get_article_content("/home/subham/Projects/newton-scrapping/newton_scrapping/test/data/article1.json")
+#         self.assertEqual(article[0].get("parsed_data").get("country"), test_article_data[0].get("parsed_data").get("country"))
+
+#     def test_parse(self):
+#         articles = self.spider.parse(online_response_from_url(self.url))
+#         self._test_article_results(articles)
+
+
+if __name__ == "__main__":
+    unittest.main()
