@@ -1,9 +1,9 @@
+import os
+from .utils import check_cmd_args, get_article_data, set_article_dict
 import scrapy
 import json
 from datetime import datetime
 from scrapy.selector import Selector
-from json.decoder import JSONDecodeError
-from scrapy.utils.project import get_project_settings
 
 
 class CP24News(scrapy.Spider):
@@ -22,38 +22,22 @@ class CP24News(scrapy.Spider):
         self.start_date = start_date
         self.end_date = end_date
 
-        initial_url = "https://www.cp24.com/sitemap.xml"
-        if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
-            self.logger.info('---------- Entering to fetch data for sitemap when start_date and end_date is given '
-                             '------------')
-            self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
-            if (self.end_date - self.start_date).days > 30:
-                raise ValueError("Enter start_date and end_date for maximum 30 days.")
-            else:
-                self.start_urls.append(initial_url)
-
-        elif self.type == "sitemap" and self.start_date is None and self.end_date is None:
-            self.logger.info('---------- Entering to fetch data for sitemap when start_date and end_date is not given '
-                             '------------')
-            today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            self.start_urls.append(initial_url)
-
-        elif self.type == "sitemap" and self.end_date is not None or self.start_date is not None:
-            raise ValueError("to use type sitemap give only type sitemap or with start date and end date")
-
-        elif self.type == "article" and self.url is not None:
-            self.logger.info('---------- Entering to fetch article data for given url ------------')
-            self.start_urls.append(self.url)
-
-        elif self.type == "article" and self.url is None:
-            raise ValueError("type article must be used with url")
-
-        else:
-            raise ValueError("type should be article or sitemap")
+        check_cmd_args(self, self.start_date, self.end_date)
 
     def parse(self, response):
+        """
+               Parses the given `response` object and extracts sitemap URLs or sends a
+               request for articles based on the `type` attribute of the class instance.
+               If `type` is "sitemap", extracts sitemap URLs from the XML content of the
+               response and sends a request for each of them to Scrapy's engine with the
+               callback function `parse_sitemap`.
+               If `type` is "articles", sends a request for the given URL to Scrapy's engine
+               with the callback function `parse_article`.
+               This function is intended to be used as a Scrapy spider callback function.
+               :param response: A Scrapy HTTP response object containing sitemap or article content.
+               :return: A generator of Scrapy Request objects, one for each sitemap
+               or article URL found in the response.
+        """
         if self.type == "sitemap":
             for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                      namespaces=self.namespace).getall()[1:3]:
@@ -63,17 +47,30 @@ class CP24News(scrapy.Spider):
             yield scrapy.Request(self.url, callback=self.parse_article)
 
     def parse_sitemap(self, response):
+        """
+        This function parses the sitemap page and extracts the URLs of individual articles.
+        :param response: the response object of the sitemap page
+        :return: a scrapy.Request object for each individual article URL
+        """
         self.logger.info('---------- Calling parse sitemap article for each article url ------------')
         for article_url in response.css('div.listInnerHorizontal  h2.teaserTitle a::attr("href")').getall():
             yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
 
     def parse_sitemap_article(self, response):
+        """
+         This function parses the sitemap page and extracts the URLs of individual articles.
 
+         :param response: the response object of the sitemap page
+         :type response: scrapy.http.Response
+
+         :return: a scrapy.Request object for each individual article URL
+         :rtype: scrapy.Request
+         """
         selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
         string = selector[0].split('"datePublished":')
         published_date = string[1].split('"')[1].strip()
         published_date = datetime.strptime(published_date[:10], '%Y-%m-%d')
-        if self.start_date == None and self.end_date == None:
+        if self.start_date is None and self.end_date is None:
 
             if published_date == self.today_date:
 
@@ -101,111 +98,35 @@ class CP24News(scrapy.Spider):
             self.logger.info(">>>>>>> There's no article url and link for given date of range")
 
     def parse_article(self, response):
+        """
+        This function takes the response object of the news article page and extracts the necessary information
+        using get_article_data() function and constructs a dictionary using set_article_dict() function
+        :param response: scrapy.http.Response object
+        :return: None
+        """
         self.logger.info('---------- Fetching article data for given url ------------')
-        title = response.css('h1.articleHeadline::text').get()
-        img_url = response.css('div.article div.image img::attr(src)').get()
-        img_caption = response.css('div.article div.image p::text').get()
-        article_body_img = response.css('div.articleBody p img::attr(src)').getall()
-        author_url = response.css('div.prof a::attr("href")').get()
-        text = " ".join(response.css('div.articleBody > p::text').getall())
-        section_meta = response.xpath('//meta[@property="article:section"]')
-        section_content = section_meta.xpath('@content').get()
-        selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
-
-        json_ld_blocks = []
-        for sec in selector:
-            try:
-                json_ld_blocks.append(json.loads(sec))
-            except JSONDecodeError as e:
-                self.logger.error(f'>>>>>  {e}')
-                new_str = sec.replace("],", "")
-                json_ld_blocks.append(json.loads(new_str))
-        article_img = [{"link": article, "caption": None} for article in article_body_img]
-
-        string = selector[0]
-        try:
-            json_data = json.loads(string)
-        except JSONDecodeError as e:
-            self.logger.error(f'>>>>>>  {e}')
-            new_str = string.replace("],", "")
-            json_data = json.loads(new_str)
-
-        try:
-            modified_date = json_data['dateModified']
-        except:
-            modified_date = None
-        article = {
-            'raw_response': {
-                "content_type": response.headers.get("Content-Type").decode("utf-8"),
-                "content": response.text,
-            },
-            "parsed_json": {
-                "main": {
-                    "@context": json_data['@context'],
-                    "@type": json_data['@type'],
-                    "mainEntityOfPage": {
-                        "@type": "WebPage",
-                        "@id": json_data['mainEntityOfPage']
-                    },
-                    "headline": json_data['headline'],
-                    # "alternativeHeadline": sub_title,
-                    "dateModified": modified_date,
-                    "datePublished": json_data['datePublished'],
-                    "description": json_data['description'],
-                    "author": {'@type': json_data['author'][0]["@type"] if json_data.get("author") else None,
-                               'name': json_data['author'][0]['name'] if json_data.get("author") else None,
-                               'url': author_url},
-                    "publisher": {
-                        '@id': json_ld_blocks[1]['url'],
-                        '@type': json_data['publisher']['@type'],
-                        'name': json_data['publisher']['name'],
-                        'logo': {
-                            '@type': json_data['publisher']['logo']['@type'],
-                            'url': json_data['publisher']['logo']['url'],
-                            'width': {
-                                '@type': "Distance",
-                                "name": str(json_data['publisher']['logo']['width']) + " Px"},
-                            'height': {
-                                '@type': "Distance",
-                                'name': str(json_data['publisher']['logo']['height']) + " Px"}}},
-                    "image": {
-                        "@type": "ImageObject",
-                        "url": img_url,
-                    }
-
-                },
-                "misc": json_ld_blocks
-            },
-            "parsed_data": {
-                "author": {'@type': json_data['author'][0]["@type"] if json_data.get("author") else None,
-                           'name': json_data['author'][0]['name'] if json_data.get("author") else None,
-                           'url': author_url},
-                "description": [json_data['description']],
-                "published_at": [json_data['datePublished']],
-                "publisher": [{'@id': json_ld_blocks[1]['url'], '@type': json_data['publisher']['@type'],
-                               'name': json_data['publisher']['name'],
-                               'logo': {'@type': json_data['publisher']['logo']['@type'],
-                                        'url': json_data['publisher']['logo']['url'], 'width': {'@type': "Distance",
-                                                                                                "name": str(json_data[
-                                                                                                                'publisher'][
-                                                                                                                'logo'][
-                                                                                                                'width']) + " Px"},
-                                        'height': {'@type': "Distance",
-                                                  'name': str(json_data['publisher']['logo']['height']) + " Px"}}}],
-                "text": [text],
-                "thumbnail_image": [img_url],  # need to look it
-                "title": [title],
-                "images": [{'link': img_url, 'caption': img_caption}] + article_img,
-                "section": "".join(section_content).split(",")
-            }
-        }
-
+        article_data = get_article_data(self, response)
+        article = set_article_dict(response, article_data)
         self.articles.append(article)
 
     def closed(self, reason):
+        """
+                  This function is executed when the spider is closed. It saves the data scraped
+                  by the spider into a JSON file with a filename based on the spider type and
+                  the current date and time.
+                  :param reason: the reason for the spider's closure
+                  """
         if self.type == "sitemap":
-            filename = f'cp24news-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if not os.path.isdir('Links'):
+                os.makedirs('Links')
+            filename = os.path.join(
+                'Links', f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
         elif self.type == "article":
-            filename = f'cp24news-article-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if not os.path.isdir('Article'):
+                os.makedirs('Article')
+            filename = os.path.join(
+                'Article', f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)
