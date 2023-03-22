@@ -47,11 +47,16 @@ class ZeitDeNews(scrapy.Spider):
             try:
                 for url, date in zip(site_map_url, mod_date):
                     _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                    
-                    if self.start_date <= _date <= self.end_date:
 
-                        yield scrapy.Request(
-                            url, callback=self.parse_sitemap)
+                    if not self.today_date:
+                        if self.start_date <= _date <= self.end_date:
+
+                            yield scrapy.Request(
+                                url, callback=self.parse_sitemap)
+                    else:
+                        if self.today_date == _date:
+                            yield scrapy.Request(
+                                url, callback=self.parse_sitemap)
             except Exception as e:
                 self.logger.exception(f"Error in parse_sitemap:- {e}")
 
