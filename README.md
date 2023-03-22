@@ -16,3 +16,22 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 - `source venv/bin/activate`
 - Install Requirements using requirements.txt file available in a main directory.
 - `pip install -r requirements.txt
+
+
+#### Sitemap file available: - Yes
+
+
+#### Command to fetch sitemap: - 
+
+- command to crawl on sitemap from specific date range
+- `scrapy crawl media_part -a type=sitemap -a start_date=2023-03-14 -a end_date=2023-03-16`
+- command to crawl sitemap for today’s date
+- `scrapy crawl media_part -a type=sitemap`
+
+
+#### Commands to fetch Articles: - 
+
+- command to crawl wanted article
+- `scrapy crawl media_part -a type=article -a url={{Article-URL}}`
+
+*Note:* Make sure to enter the virtual env before running.
