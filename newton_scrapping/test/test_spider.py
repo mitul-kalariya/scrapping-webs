@@ -1,8 +1,10 @@
-import unittest
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.utils import online_response_from_url, get_article_content
-from newton_scrapping.test.helpers.constant import TEST_ARTICLES
 import logging
+import unittest
+
+from newton_scrapping.spiders.indian_express import IndianExpressSpider
+from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from newton_scrapping.test.helpers.utils import (get_article_content,
+                                                 online_response_from_url)
 
 # Creating an object
 logger = logging.getLogger()
@@ -17,7 +19,6 @@ class TestIndianExpressArticle(unittest.TestCase):
         self._test_parse_json(article, test_article_data)
         self._test_parse_json_with_test_data(article, test_article_data)
         self._test_parse_json_data_format(article, test_article_data)
-        
 
     # This is first function called by crawler so testing the main function will cover all scenarios
     def test_parse(self):
@@ -49,7 +50,8 @@ class TestIndianExpressArticle(unittest.TestCase):
         self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
                              test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
         self.assertEqual(article[0].get("parsed_data").get("published_at"),
-                         test_article_data[0].get("parsed_data").get("published_at"), "published_at mismatch in parsed_data")
+                         test_article_data[0].get("parsed_data").get("published_at"),
+                         "published_at mismatch in parsed_data")
         self.assertEqual(article[0].get("parsed_data").get("publisher"),
                          test_article_data[0].get("parsed_data").get("publisher"), "publisher mismatch in parsed_data")
         self.assertEqual(article[0].get("parsed_data").get("section"),
@@ -60,7 +62,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                          test_article_data[0].get("parsed_data").get("country"), "country mismatch in parsed_data")
         self.assertEqual(article[0].get("parsed_data").get("language"),
                          test_article_data[0].get("parsed_data").get("language"), "language mismatch in parsed_data")
-    
+
     def _test_image_format(self, article):
         # Testing the image object inside parsed_data
         article_images = article[0].get("parsed_data").get("images")
@@ -104,7 +106,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> description")
         else:
             raise AssertionError("missing object:- parsed_data--> description")
-        
+
         if article[0].get("parsed_data").get("country"):
             self.assertIsInstance(article[0].get("parsed_data").get("country")[
                 0], str, "format mismatch for parsed_data--> country")
@@ -112,7 +114,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> country")
         else:
             raise AssertionError("missing object:- parsed_data--> country")
-        
+
         if article[0].get("parsed_data").get("language"):
             self.assertIsInstance(article[0].get("parsed_data").get("language")[
                 0], str, "format mismatch for parsed_data--> language")
@@ -120,7 +122,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> language")
         else:
             raise AssertionError("missing object:- parsed_data--> language")
-        
+
         if article[0].get("parsed_data").get("author"):
             self.assertIsInstance(article[0].get("parsed_data").get("author")[
                 0], dict, "format mismatch for parsed_data--> author")
@@ -128,7 +130,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> author")
         else:
             raise AssertionError("missing object:- parsed_data--> author")
-        
+
         if article[0].get("parsed_data").get("modified_at"):
             self.assertIsInstance(article[0].get("parsed_data").get("modified_at")[
                 0], str, "format mismatch for parsed_data--> modified_at")
@@ -136,7 +138,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> modified_at")
         else:
             raise AssertionError("missing object:- parsed_data--> modified_at")
-        
+
         if article[0].get("parsed_data").get("published_at"):
             self.assertIsInstance(article[0].get("parsed_data").get("published_at")[
                 0], str, "format mismatch for parsed_data--> published_at")
@@ -144,7 +146,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> published_at")
         else:
             raise AssertionError("missing object:- parsed_data--> published_at")
-        
+
         if article[0].get("parsed_data").get("publisher"):
             self.assertIsInstance(article[0].get("parsed_data").get("publisher")[
                 0], dict, "format mismatch for parsed_data--> publisher")
@@ -152,7 +154,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> publisher")
         else:
             raise AssertionError("missing object:- parsed_data--> publisher")
-        
+
         if article[0].get("parsed_data").get("images"):
             self.assertIsInstance(article[0].get("parsed_data").get("images")[
                 0], dict, "format mismatch for parsed_data--> images")
@@ -160,7 +162,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> images")
         else:
             raise AssertionError("missing object:- parsed_data--> images")
-        
+
         if article[0].get("parsed_data").get("section"):
             self.assertIsInstance(article[0].get("parsed_data").get("section")[0],
                                   str, "format mismatch for parsed_data--> section")
@@ -168,7 +170,7 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> section")
         else:
             raise AssertionError("missing object:- parsed_data--> section")
-        
+
         if article[0].get("parsed_data").get("tags"):
             self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
                                   str, "format mismatch for parsed_data--> tags")
@@ -176,24 +178,35 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> tags")
         else:
             raise AssertionError("missing object:- parsed_data--> tags")
-        
+
         self._test_image_format(article)
         self._test_author_format(article)
 
-# class TestIndianExpressSitemap(unittest.TestCase):
-#     def setUp(self):
-#         self.type="sitemap"
-#         self.url="https://indianexpress.com/sitemap.xml"
-#         self.spider = IndianExpressSpider(type=self.type, url=self.url)
 
-#     def _test_article_results(self, articles):
-#         article = list(articles)[0]
-#         test_article_data = get_article_content("/home/subham/Projects/newton-scrapping/newton_scrapping/test/data/article1.json")
-#         self.assertEqual(article[0].get("parsed_data").get("country"), test_article_data[0].get("parsed_data").get("country"))
+class TestIndianExpressSitemap(unittest.TestCase):
+    def setUp(self):
+        self.type = "sitemap"
+        self.spider = IndianExpressSpider(type=self.type)
 
-#     def test_parse(self):
-#         articles = self.spider.parse(online_response_from_url(self.url))
-#         self._test_article_results(articles)
+    def _test_sitemap_article_format(self):
+        # Testing the sitemap article object
+        for article in self.spider.articles:
+            self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
+            self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
+
+    def _test_sitemap_results(self, sitemap_urls):
+        for sitemap_url in sitemap_urls:
+            article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
+            for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
+                self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
+        self.assertEqual(len(self.spider.articles), 1, "Crawler did not fetched single article form sitemap")
+        self.assertIsInstance(self.spider.articles, list, "Sitemap Article format mismatch")
+        self.assertIsInstance(self.spider.articles[0], dict, "Sitemap Article format mismatch")
+        self._test_sitemap_article_format()
+
+    def test_parse(self):
+        sitemap_urls = self.spider.parse(online_response_from_url(SITEMAP_URL))
+        self._test_sitemap_results(sitemap_urls)
 
 
 if __name__ == "__main__":

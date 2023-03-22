@@ -22,7 +22,7 @@ def online_response_from_url(url: str) -> TextResponse:
     return response
 
 
-def get_article_content(file_name:str) -> dict:
+def get_article_content(file_name: str) -> dict:
     """Read json file and return as dict
 
     Args:
