@@ -204,21 +204,9 @@ class ArdNewsSpider(scrapy.Spider):
         if title:
             main_dict["title"] = [title]
 
-        publisher = response.css("div.header__items")
+        publisher = self.get_main(response)
         if publisher:
-            main_dict["publisher"] = [
-                {
-                    "@id": "tagesschau.de",
-                    "@type": "NewsMediaOrganization",
-                    "name": "tagesschau",
-                    "logo": {
-                        "@type": "ImageObject",
-                        "url": "https://www.tagesschau.de/res/assets/image/favicon/favicon-96x96.png",
-                        "width": {"@type": "Distance", "name": "96 px"},
-                        "height": {"@type": "Distance", "name": "96 px"},
-                    },
-                }
-            ]
+            main_dict["publisher"] = [publisher[0].get("publisher")]
 
         # extract the date published at
         published_at = response.css("div.metatextline::text").get()
