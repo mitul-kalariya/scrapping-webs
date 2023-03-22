@@ -9,7 +9,6 @@ from io import BytesIO
 from dateutil import parser
 from datetime import datetime
 
-
 # Setting the threshold of logger to DEBUG
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 
@@ -27,38 +26,32 @@ logger = logging.getLogger()
 class InvalidDateRange(Exception):
     pass
 
+
 class RepublicTvSpider(scrapy.Spider):
     name = "republic_tv"
 
-    def __init__(
-            self,
-            type=None,
-            start_date=None,
-            url=None,
-            end_date=None,
-            **kwargs
-    ):
+    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
-            Initializes a web scraper object with the given parameters.
+        Initializes a web scraper object with the given parameters.
 
-            Parameters:
-            type (str): The type of scraping to be performed. Either "sitemap" or "article".
-            start_date (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
-            url (str): The URL of the article to be scraped. Required if type is "article".
-            end_date (str): The end date of the time period to be scraped, in the format "YYYY-MM-DD".
-            **kwargs: Additional keyword arguments to be passed to the superclass constructor.
+        Parameters:
+        type (str): The type of scraping to be performed. Either "sitemap" or "article".
+        start_date (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
+        url (str): The URL of the article to be scraped. Required if type is "article".
+        end_date (str): The end date of the time period to be scraped, in the format "YYYY-MM-DD".
+        **kwargs: Additional keyword arguments to be passed to the superclass constructor.
 
-            Raises:
-            ValueError: If the start_date and/or end_date are invalid.
-            InvalidDateRange: If the start_date is later than the end_date.
-            Exception: If no URL is provided when type is "article".
-        """ 
+        Raises:
+        ValueError: If the start_date and/or end_date are invalid.
+        InvalidDateRange: If the start_date is later than the end_date.
+        Exception: If no URL is provided when type is "article".
+        """
         super().__init__(**kwargs)
         self.start_urls = []
         self.sitemap_data = []
         self.article_json_data = []
         self.type = type.lower()
-        self.today_date = datetime.today().strftime('%Y-%m-%d')
+        self.today_date = datetime.today().strftime("%Y-%m-%d")
         self.links_path = "Links"
         self.article_path = "Article"
 
@@ -67,12 +60,17 @@ class RepublicTvSpider(scrapy.Spider):
         if not os.path.exists(self.article_path):
             os.makedirs(self.article_path)
 
-
         if self.type == "sitemap":
             self.start_urls.append("https://www.republicworld.com/sitemap.xml")
             try:
-                self.start_date = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else None
-                self.end_date = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else None
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date()
+                    if start_date
+                    else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
 
                 if start_date and not end_date:
                     raise ValueError(
@@ -84,18 +82,18 @@ class RepublicTvSpider(scrapy.Spider):
                     )
 
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date > self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
 
                 if (
-                        self.start_date
-                        and self.end_date
-                        and self.start_date == self.end_date
+                    self.start_date
+                    and self.end_date
+                    and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
             except ValueError as e:
@@ -111,57 +109,62 @@ class RepublicTvSpider(scrapy.Spider):
 
     def parse(self, response):
         """
-            Parses the response obtained from a website.
+        Parses the response obtained from a website.
 
-            Yields:
-            scrapy.Request: A new request object to be sent to the website.
+        Yields:
+        scrapy.Request: A new request object to be sent to the website.
 
-            Raises:
-            BaseException: If an error occurs during parsing.
+        Raises:
+        BaseException: If an error occurs during parsing.
         """
         self.logger.info("Parse function called on %s", response.url)
-        if self.type == 'sitemap':
-            if self.start_date != None and self.end_date != None:
+        if self.type == "sitemap":
+            if self.start_date and self.end_date:
                 self.logger.info("Parse function called on %s", response.url)
                 yield scrapy.Request(response.url, callback=self.parse_by_date)
             else:
                 self.logger.info("Parse function called on %s", response.url)
                 yield scrapy.Request(response.url, callback=self.parse_by_date)
-        elif self.type == 'article':
+        elif self.type == "article":
             try:
                 self.logger.debug("Parse function called on %s", response.url)
-                current_url = response.request.url
+                response_json = self.response_json(response)
                 response_data = self.response_data(response)
-                response_json = self.response_json(response, current_url)
-                final_data = {
+                data = {
                     "raw_response": {
                         "content_type": "text/html; charset=utf-8",
                         "content": response.css("html").get(),
                     },
-                    "parsed_json": response_json,
-                    "parsed_data": response_data,
                 }
-                self.article_json_data.append(final_data)
+                if response_json:
+                    data["parsed_json"] = response_json
+                if response_data:
+                    response_data["country"] = ["India"]
+                    response_data["time_scraped"] = [str(datetime.now())]
+                    data["parsed_data"] = response_data
+
+                self.article_json_data.append(data)
+
             except BaseException as e:
                 print(f"Error: {e}")
                 self.logger.error(f"{e}")
 
     def parse_by_date(self, response):
         """
-            Parses a webpage response object and yields scrapy requests for each sitemap XML link found.
+        Parses a webpage response object and yields scrapy requests for each sitemap XML link found.
 
-            Yields:
-            scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
-        """ 
+        Yields:
+        scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
+        """
         self.logger.info("Parse by date at %s", response.url)
         if "sitemap.xml" in response.url:
             for sitemap in response.xpath(
-                    "//sitemap:loc/text()",
-                    namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+                "//sitemap:loc/text()",
+                namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
             ):
                 if sitemap.get().endswith(".xml"):
                     for link in sitemap.getall():
-                        if self.start_date == None and self.end_date == None:
+                        if self.start_date is None and self.end_date is None:
                             if self.today_date.replace("-", "") in link:
                                 yield scrapy.Request(link, callback=self.parse_sitemap)
                         else:
@@ -169,16 +172,16 @@ class RepublicTvSpider(scrapy.Spider):
 
     def parse_sitemap(self, response):
         """
-            Parses a sitemap and sends requests to scrape each of the links.
+        Parses a sitemap and sends requests to scrape each of the links.
 
-            Yields:
-            scrapy.Request: A request to scrape each of the links in the sitemap.
+        Yields:
+        scrapy.Request: A request to scrape each of the links in the sitemap.
 
-            Notes:
-            The sitemap must be in the XML format specified by the sitemaps.org protocol.
-            The function extracts the links from the sitemap and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
-            The function also extracts the publication date of the sitemap, if available, and passes it along as a meta parameter in each request.
-        """ # noqa
+        Notes:
+        The sitemap must be in the XML format specified by the sitemaps.org protocol.
+        The function extracts the links from the sitemap and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
+        The function also extracts the publication date of the sitemap, if available, and passes it along as a meta parameter in each request.
+        """  # noqa
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         links = response.xpath("//n:url/n:loc/text()", namespaces=namespaces).getall()
         published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
@@ -192,11 +195,11 @@ class RepublicTvSpider(scrapy.Spider):
 
     def parse_sitemap_link_title(self, response):
         """
-            Parses the link, title, and published date from a sitemap page.
+        Parses the link, title, and published date from a sitemap page.
 
-            Notes:
-            - Adds the parsed data to the scraper's sitemap_data list.
-            - Skips the link if the published date is outside the scraper's specified date range.
+        Notes:
+        - Adds the parsed data to the scraper's sitemap_data list.
+        - Skips the link if the published date is outside the scraper's specified date range.
         """
         link = response.meta["link"]
         published_date = response.meta["published_date"]
@@ -211,7 +214,7 @@ class RepublicTvSpider(scrapy.Spider):
 
         self.sitemap_data.append(data)
 
-    def response_json(self, response, current_url) -> dict:
+    def response_json(self, response) -> dict:
         """
         Extracts relevant information from a news article web page using the given
         Scrapy response object and the URL of the page.
@@ -225,51 +228,51 @@ class RepublicTvSpider(scrapy.Spider):
         - A dictionary representing the extracted information from the web page.
         """
         parsing_dict = {}
-        parsing_dict["main"] = {
-            "@context": "https://bharat.republicworld.com/",
-            "@type": "NewsArticle",
-            "mainEntityOfPage": {"@type": "WebPage", "@id": current_url},
-        }
-        main_dict = parsing_dict["main"]
+        main_data = self.get_main(response)
+        if main_data:
+            parsing_dict["main"] = main_data
 
-        headline = response.css("h1.story-title::text").get()
-        if headline:
-            main_dict["headline"] = headline
-
-        published_on = self.extract_publishd_on(response)
-        if published_on:
-            main_dict["datePublished"] = published_on
-
-        last_updated = self.extract_lastupdated(response)
-        if last_updated:
-            main_dict["dateModified"] = last_updated
-
-        publisher = self.extract_publisher(response)
-        if publisher:
-            main_dict["publisher"] = publisher
-
-        description = response.css("h2.story-description::text").get()
-        if description:
-            main_dict["description"] = description
-
-        authors = self.extract_author(response)
-        if authors:
-            main_dict["author"] = authors
-
-        article_images = self.extract_all_images(response)
-        if article_images:
-            main_dict["image"] = article_images
-
-        parsing_dict["misc"] = self.get_misc(response)
+        misc_data = self.get_misc(response)
+        if misc_data:
+            parsing_dict["misc"] = misc_data
 
         return parsing_dict
 
+    def get_main(self, response):
+        """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/ld+json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting main: {e}")
+
     def get_misc(self, response):
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
+        """
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
+        """
+        try:
+            data = []
+            misc = response.css('script[type="application/json"]::text').getall()
+            for block in misc:
+                data.append(json.loads(block))
+            return data
+        except BaseException as e:
+            self.logger.error(f"{e}")
+            print(f"Error while getting misc: {e}")
 
     def response_data(self, response) -> dict:
         """
@@ -303,10 +306,10 @@ class RepublicTvSpider(scrapy.Spider):
         if last_updated:
             main_dict["modified_at"] = [last_updated]
 
-        published_on = self.extract_publishd_on(response)
+        published_on = self.extract_published_on(response.css("div.story-wrapper"))
         if published_on:
             main_dict["published_at"] = [published_on]
-        
+
         description = response.css("h2.story-description::text").get()
         if description:
             main_dict["description"] = [description]
@@ -319,7 +322,7 @@ class RepublicTvSpider(scrapy.Spider):
         if article_text:
             main_dict["text"] = [" ".join(article_text)]
 
-        thumbnail = self.extract_thumnail(response)
+        thumbnail = self.extract_thumbnail(response)
         if thumbnail:
             main_dict["thumbnail_image"] = thumbnail
 
@@ -335,35 +338,11 @@ class RepublicTvSpider(scrapy.Spider):
         if video:
             main_dict["embed_video_link"] = video
 
+        article_lang = response.css("html::attr(lang)").get()
+        if article_lang:
+            main_dict["language"] = [article_lang]
+
         return main_dict
-
-    def extract_breadcrumbs(self, response) -> list:
-        """
-        Parameters:
-        response:
-            scrapy.http.Response object of the web page from which to extract the breadcrumb information.
-
-        Returns:
-            A list of dictionaries with the breadcrumb information. Each dictionary contains the following keys:
-            index: the index of the breadcrumb element in the list.
-            page: the text of the breadcrumb element.
-            url: the URL of the breadcrumb element (if available).
-        """
-        breadcrumb_list = response.css("nav#breadcrumb span")
-        info = []
-        index = 0
-        for i in breadcrumb_list:
-            temp_dict = {}
-            text = i.css("a::text").get()
-            if text:
-                temp_dict["index"] = index
-                temp_dict["page"] = text
-                link = i.css("a::attr(href)").get()
-                if link:
-                    temp_dict["url"] = link
-                info.append(temp_dict)
-                index += 1
-        return info
 
     def extract_lastupdated(self, response) -> str:
         """
@@ -378,14 +357,15 @@ class RepublicTvSpider(scrapy.Spider):
         if info:
             return info.css("time::attr(datetime)").get()
 
-    def extract_publishd_on(self, response) -> str:
-        info = response.css("div.padbtm10")
+    def extract_published_on(self, response) -> str:
+
+        info = response.xpath('//div[@class ="padtop10 padbtm10"]')
         info_eng = response.css("div.padtop20")
-        # when in some pages containing english text published date is reflected by this variable info_eng
-        if info_eng:
-            return info_eng.css("time::attr(datetime)").get()
-        elif info_eng:
+
+        if info:
             return info.css("time::attr(datetime)").get()
+        elif info_eng:
+            return info_eng.css("time::attr(datetime)").get()
 
     def extract_author(self, response) -> list:
         """
@@ -413,13 +393,14 @@ class RepublicTvSpider(scrapy.Spider):
                 data.append(temp_dict)
             return data
 
-    def extract_thumnail(self, response) -> list:
+    def extract_thumbnail(self, response) -> list:
         """
         The function extract_thumbnail extracts information about the thumbnail image(s) associated with a webpage,
         including its link, width, and height, and returns the information as a list of dictionaries.
 
         Returns:
-            A list of dictionaries, with each dictionary containing information about an image. If no images are found, an empty list is returned.
+            A list of dictionaries, with each dictionary containing information about an image.
+                If no images are found, an empty list is returned.
         """
         info = response.css("div.gallery-item")
         mod_info = response.css(".storypicture img.width100")
@@ -499,9 +480,9 @@ class RepublicTvSpider(scrapy.Spider):
 
     def closed(self, response):
         """
-          Method called when the spider is finished scraping.
-          Saves the scraped data to a JSON file with a timestamp
-          in the filename.
+        Method called when the spider is finished scraping.
+        Saves the scraped data to a JSON file with a timestamp
+        in the filename.
         """
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -510,7 +491,7 @@ class RepublicTvSpider(scrapy.Spider):
             with open(file_name, "w") as f:
                 json.dump(self.sitemap_data, f, indent=4, default=str)
 
-        if self.type == 'article':
+        if self.type == "article":
             file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4)
