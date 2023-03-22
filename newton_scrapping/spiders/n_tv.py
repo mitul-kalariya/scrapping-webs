@@ -1,27 +1,35 @@
-import scrapy
-import requests
-import gzip
+import re
 import os
 import json
+import gzip
+import scrapy
+import requests
 import logging
-import re
 from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime
+from scrapy.crawler import CrawlerProcess
+from scrapy.utils.project import get_project_settings
 
 
-# Setting the threshold of logger to DEBUG
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     filename="logs.log",
     filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-# Creating an object
 logger = logging.getLogger()
 
+
 class InvalidDateRange(Exception):
+    """
+    This code defines a custom exception class named
+    InvalidDateRange which inherits from the Exception class.
+    This exception is raised when the date range specified by the user is invalid,
+    for example, when the start date is later than the end date.
+    """
+
     pass
 
 
@@ -49,9 +57,9 @@ class NTvSpider(scrapy.Spider):
         self.sitemap_data = []
         self.article_json_data = []
         self.type = type.lower()
-        self.today_date = datetime.today().strftime("%Y-%m-%d")
         self.links_path = "Links"
         self.article_path = "Articles"
+
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
         if not os.path.exists(self.article_path):
@@ -106,83 +114,115 @@ class NTvSpider(scrapy.Spider):
 
     def parse(self, response):
         """
-        Parses the response obtained from a website.
+            Parses the response obtained from a website.
 
-        Yields:
-        scrapy.Request: A new request object to be sent to the website.
+            Yields:
+            scrapy.Request: A new request object to be sent to the website.
 
-        Raises:
-        BaseException: If an error occurs during parsing.
+            Raises:
+            BaseException: If an error occurs during parsing.
         """
         self.logger.info("Parse function called on %s", response.url)
-        if self.type == "sitemap":
-            for sitemap in response.xpath(
-                "//sitemap:loc/text()",
-                namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
-            ):
-                for link in sitemap.getall():
-                    r = requests.get(link, stream=True)
-                    g = gzip.GzipFile(fileobj=BytesIO(r.content))
-                    content = g.read()
-                    soup = BeautifulSoup(content, "html.parser")
-
-                    for particular_link in soup.find_all("loc"):
-                        response = particular_link.text
-                        yield scrapy.Request(response, callback=self.make_sitemap)
-        elif self.type == "article":
-            try:
-                self.logger.debug("Parse function called on %s", response.url)
-                response_json = self.response_json(response)
-                response_data = self.response_data(response)
-                data = {
-                    "raw_response": {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
+        try:
+            if self.type == "sitemap":
+                for sitemap in response.xpath(
+                    "//sitemap:loc/text()",
+                    namespaces={
+                        "sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"
                     },
-                }
-                if response_json:
-                    data["parsed_json"] = response_json
-                if response_data:
-                    response_data["country"] = ["Germany"]
-                    response_data["time_scraped"] = [str(datetime.now())]
-                    data["parsed_data"] = response_data
-                self.article_json_data.append(data)
+                ):
+                    for link in sitemap.getall():
+                        r = requests.get(link, stream=True)
+                        g = gzip.GzipFile(fileobj=BytesIO(r.content))
+                        content = g.read()
+                        soup = BeautifulSoup(content, "html.parser")
 
-            except BaseException as e:
-                print(f"Error: {e}")
-                self.logger.error(f"{e}")
+                        loc = soup.find_all("loc")
+                        lastmod = soup.find_all("lastmod")
+
+                        for particular_link, published_date in zip(loc, lastmod):
+                            if 'thema' in particular_link:
+                                continue
+                            link = particular_link.text
+                            published_at = published_date.text
+                            date_only = datetime.strptime(
+                                published_at[:10], "%Y-%m-%d"
+                            ).date()
+
+                            if self.start_date and date_only < self.start_date:
+                                continue
+                            if self.end_date and date_only > self.end_date:
+                                continue
+
+                            yield scrapy.Request(
+                                link,
+                                callback=self.make_sitemap,
+                                meta={"published_at": published_at},
+                            )
+            elif self.type == "article":
+                try:
+                    self.logger.debug("Parse function called on %s", response.url)
+                    response_json = self.response_json(response)
+                    response_data = self.response_data(response)
+                    data = {
+                        "raw_response": {
+                            "content_type": "text/html; charset=utf-8",
+                            "content": response.css("html").get(),
+                        },
+                    }
+                    if response_json:
+                        data["parsed_json"] = response_json
+                    if response_data:
+                        response_data["country"] = ["Germany"]
+                        response_data["time_scraped"] = [str(datetime.now())]
+                        data["parsed_data"] = response_data
+                    self.article_json_data.append(data)
+
+                except BaseException as e:
+                    print(f"Error: {e}")
+                    self.logger.error(f"{e}")
+        except BaseException as e:
+            print(f"Error occurring while parsing sitemap {e} in parse function")
+            self.logger.error(
+                f"Error occurring while parsing sitemap {e} in parse function"
+            )
 
     def make_sitemap(self, response):
-        link = response.url
-        title = response.css(".article__headline::text").get()
-        published_date = response.css(".article__date::text").get()
-        if isinstance(published_date, str):
-            match = re.search(r"\d{2}\.\d{2}\.\d{4}", published_date)
-            if match:
-                date_obj = datetime.strptime(match.group(), "%d.%m.%Y").date()
-                formatted_date = date_obj.strftime("%Y-%m-%d")
+        """
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
+        """
+        try:
+            published_date = response.meta["published_at"][:10]
+            date_only = datetime.strptime(published_date, "%Y-%m-%d").date()
 
-                if self.start_date and date_obj < self.start_date:
-                    return
+            if self.start_date and date_only < self.start_date:
+                return
+            if self.end_date and date_only > self.end_date:
+                return
 
-                if self.end_date and date_obj > self.end_date:
-                    return
+            link = response.url
+            title = response.css(".article__headline::text").get()
 
-                if self.start_date is None and self.end_date is None:
-                    data = {
-                        "link": link,
-                        "title": title,
-                        "published_date": formatted_date,
-                    }
-                    if date_obj == self.today_date:
-                        self.sitemap_data.append(data)
-                else:
-                    data = {
-                        "link": link,
-                        "title": title,
-                        "published_date": formatted_date,
-                    }
+            data = {
+                "link": link,
+                "title": title,
+            }
+
+            if self.start_date is None and self.end_date is None:
+                today_date = datetime.today().strftime("%Y-%m-%d")
+                today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
+                if date_only == today_date:
+                    print("++++++++++++++++++++++++++++++++", date_only, today_date)
                     self.sitemap_data.append(data)
+            else:
+                self.sitemap_data.append(data)
+        except BaseException as e:
+            print(
+                f"Error occurring while extracting link, title {e} in make_sitemap function"
+            )
+            self.logger.error(
+                f"Error occurring while extracting link, title {e} in make_sitemap function"
+            )
 
     def response_json(self, response) -> dict:
 
@@ -322,7 +362,6 @@ class NTvSpider(scrapy.Spider):
         """
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-        self.logger.info("Closed function called on %s")
         if self.type == "sitemap":
             file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
             with open(file_name, "w") as f:
@@ -332,3 +371,9 @@ class NTvSpider(scrapy.Spider):
             file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
                 json.dump(self.article_json_data, f, indent=4)
+
+
+if __name__ == "__main__":
+    process = CrawlerProcess(get_project_settings())
+    process.crawl(NTvSpider)
+    process.start()
