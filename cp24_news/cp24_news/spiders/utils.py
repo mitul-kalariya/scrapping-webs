@@ -3,6 +3,14 @@ from datetime import datetime
 from json import JSONDecodeError
 
 from scrapy.http import Response
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
 
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
@@ -102,7 +110,30 @@ def get_article_data(self, response: Response) -> dict:
     modified_date = json_data.get("modified_date")
 
     article_data["modified_date"] = modified_date
+    article_data["video_url"] = get_video(self, response.url)
     return article_data
+
+
+def get_video(self, url):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.get(url)
+    try:
+        textarea = driver.find_element(By.XPATH, '//*[@id="jw-settings-submenu-sharing"]/div/div[2]/textarea')
+        value = textarea.get_attribute("value")
+
+        iframe_string = value
+        soup = BeautifulSoup(iframe_string, 'html.parser')
+        video_url = soup.iframe.get("src")
+        element = WebDriverWait(driver, 1).until(
+            EC.presence_of_element_located((By.XPATH, '//video[@class="jw-video jw-reset"]'))
+        )
+    except Exception as e:
+        self.logger.exception(f"Error in {get_video.__name__} -> {e}")
+    else:
+        return video_url
 
 
 def set_article_dict(response: Response, article_data: dict) -> dict:
@@ -131,7 +162,7 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
             "language": article_data["language"],
             "country": article_data["country"],
             "author": [{'@type': article_data.get("json_data")['author'][0]["@type"]
-                        if article_data.get("json_data").get("author") else None,
+            if article_data.get("json_data").get("author") else None,
                         'name': article_data.get("json_data")['author'][0]['name'] if article_data.get("json_data").get(
                             "author") else None,
                         'url': article_data.get("author_url")}],
@@ -153,7 +184,10 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
             "title": [article_data.get("title")],
             "images": [{'link': article_data.get("img_url"),
                         'caption': article_data.get("img_url")}] + article_data.get("article_img"),
-            "section": "".join(article_data.get("section_content")).split(",")
+            "section": "".join(article_data.get("section_content")).split(","),
+            "embed_video_link": [
+                article_data.get("video_url")
+            ]
         }
     }
 
