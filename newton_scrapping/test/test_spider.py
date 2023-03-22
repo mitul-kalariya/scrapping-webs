@@ -13,12 +13,28 @@ class TestIndianExpressArticle(unittest.TestCase):
     def _test_article_results(self, articles, test_data_path):
         article = list(articles)[0]
         test_article_data = get_article_content(test_data_path)
+        self._test_raw_response(article, test_article_data)
+        self._test_parse_json(article, test_article_data)
+        self._test_parse_json_with_test_data(article, test_article_data)
+        self._test_parse_json_data_format(article, test_article_data)
+        
 
+    # This is first function called by crawler so testing the main function will cover all scenarios
+    def test_parse(self):
+        for article in TEST_ARTICLES:
+            logger.info(f"Testing article with URL:- {article['url']}")
+            spider = IndianExpressSpider(type="article", url=article["url"])
+            articles = spider.parse(online_response_from_url(spider.article_url))
+            self._test_article_results(articles, article["test_data_path"])
+            logger.info(f"Testing completed article with URL:- {article['url']}")
+
+    def _test_raw_response(self, article, test_article_data):
         # Testing raw_response object
         self.assertEqual(article[0].get("raw_response").get("content_type"),
                          test_article_data[0].get("raw_response").get("content_type"))
         self.assertIsInstance(article[0].get("raw_response").get("content")[0], str)
 
+    def _test_parse_json(self, article, test_article_data):
         # Testing parsed_json object
         # it may be possible that we don't get either misc or main for some websites.
         # In that case we will exclude the parsed_json object
@@ -28,6 +44,7 @@ class TestIndianExpressArticle(unittest.TestCase):
             if test_article_data[0].get("parsed_json").get("misc"):
                 self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
 
+    def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
         self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
                              test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
@@ -43,9 +60,27 @@ class TestIndianExpressArticle(unittest.TestCase):
                          test_article_data[0].get("parsed_data").get("country"), "country mismatch in parsed_data")
         self.assertEqual(article[0].get("parsed_data").get("language"),
                          test_article_data[0].get("parsed_data").get("language"), "language mismatch in parsed_data")
+    
+    def _test_image_format(self, article):
+        # Testing the image object inside parsed_data
+        article_images = article[0].get("parsed_data").get("images")
+        if article_images:
+            for image in article_images:
+                self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
+                self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
-        # Since the content of article can be modified so not checkering exact text
-        # but below objects should be present
+    def _test_author_format(self, article):
+        # Testing the author object inside parsed_data
+        article_authors = article[0].get("parsed_data").get("authors")
+        if article_authors:
+            for author in article_authors:
+                self.assertIsNotNone(author.get("@type"), "missing object:- parsed_data--> author --> @type")
+                self.assertIsNotNone(author.get("name"), "missing object:- parsed_data--> author --> name")
+                self.assertIsNotNone(author.get("url"), "missing object:- parsed_data--> author --> url")
+
+    def _test_parse_json_data_format(self, article, test_article_data):
+        # Since the content of article can be modified at anytime so not checkering exact text
+        # but testing the object format so that we can verify that crawler is working well.
         if article[0].get("parsed_data").get("text"):
             self.assertIsInstance(article[0].get("parsed_data").get("text")[0],
                                   str, "format mismatch for parsed_data--> text")
@@ -141,29 +176,9 @@ class TestIndianExpressArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> tags")
         else:
             raise AssertionError("missing object:- parsed_data--> tags")
-
-        article_images = article[0].get("parsed_data").get("images")
-        if article_images:
-            for image in article_images:
-                self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
         
-        article_authors = article[0].get("parsed_data").get("authors")
-        if article_authors:
-            for author in article_authors:
-                self.assertIsNotNone(author.get("@type"), "missing object:- parsed_data--> author --> @type")
-                self.assertIsNotNone(author.get("name"), "missing object:- parsed_data--> author --> name")
-                self.assertIsNotNone(author.get("url"), "missing object:- parsed_data--> author --> url")
-
-
-    def test_parse(self):
-        for article in TEST_ARTICLES:
-            logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
-            articles = spider.parse(online_response_from_url(spider.article_url))
-            self._test_article_results(articles, article["test_data_path"])
-            logger.info(f"Testing completed article with URL:- {article['url']}")
-
+        self._test_image_format(article)
+        self._test_author_format(article)
 
 # class TestIndianExpressSitemap(unittest.TestCase):
 #     def setUp(self):
