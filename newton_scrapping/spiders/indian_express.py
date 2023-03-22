@@ -285,7 +285,7 @@ class IndianExpressSpider(scrapy.Spider):
             str : author and publisher details
         """
         for block in blocks:
-            if json.loads(block).get("@type") == "NewsArticle":
+            if "NewsArticle" in json.loads(block).get("@type"):
                 author = json.loads(block).get("author", [{}])
                 publisher_type = (
                     json.loads(block).get("publisher", None).get("@type", None)
