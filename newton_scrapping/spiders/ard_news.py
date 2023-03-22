@@ -3,6 +3,16 @@ import json
 from datetime import datetime
 import os
 import scrapy
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger()
 
 
 class InvalidDateRange(Exception):
@@ -25,7 +35,7 @@ class ArdNewsSpider(scrapy.Spider):
         self.domain_name = "https://www.tagesschau.de"
         self.today_date = datetime.today().date()
         self.links_path = "Links"
-        self.article_path = "Articles"
+        self.article_path = "Article"
 
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
@@ -52,23 +62,23 @@ class ArdNewsSpider(scrapy.Spider):
                         "start_date must be specified if end_date is provided"
                     )
                 if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date > self.end_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date > self.end_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be later than end_date"
                     )
                 if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date == self.end_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date == self.end_date
                 ):
                     raise ValueError("start_date and end_date must not be the same")
                 if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date > self.today_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date > self.today_date
                 ):
                     raise InvalidDateRange(
                         "start_date should not be greater than today_date"
@@ -110,42 +120,50 @@ class ArdNewsSpider(scrapy.Spider):
             self.article_json_data.append(data)
 
     def parse_sitemap(self, response):
-        for link in response.css("a"):
-            url = link.css("::attr(href)").get()
-            title = link.css("a::text").get().replace("\n", "")
-            if url:
-                if url.startswith(("#", "//")) or url in [
-                    "https://www.ard.de",
-                    "https://www.tagesschau.de",
-                    "https://wetter.tagesschau.de/",
-                ]:
-                    continue
-                if url.startswith("/"):
-                    url = self.domain_name + url
-            if url is not None and title is not None:
-                title = title.strip()
+        try:
+            for link in response.css("a"):
+                url = link.css("::attr(href)").get()
+                title = link.css("a::text").get().replace("\n", "")
+                if url:
+                    if url.startswith(("#", "//")) or url in [
+                        "https://www.ard.de",
+                        "https://www.tagesschau.de",
+                        "https://wetter.tagesschau.de/",
+                    ]:
+                        continue
+                    if url.startswith("/"):
+                        url = self.domain_name + url
+                if url is not None and title is not None:
+                    title = title.strip()
 
-                if not title and title:
-                    self.sitemap_json["title"] = (
-                        link.css(".teaser-xs__headline::text , .teaser__headline::text")
-                        .get()
-                        .replace("\n", "")
-                        .replace(" ", "")
-                    )
-                # Storing the title in the sitemap_json dictionary
-                elif title:
-                    self.sitemap_json["title"] = title
-                # Sending a request to the parse_articlewise_get_date method
-                yield scrapy.Request(url, callback=self.parse_articlewise_get_date)
+                    if not title and title:
+                        self.sitemap_json["title"] = (
+                            link.css(".teaser-xs__headline::text , .teaser__headline::text")
+                            .get()
+                            .replace("\n", "")
+                            .replace(" ", "")
+                        )
+                    # Storing the title in the sitemap_json dictionary
+                    elif title:
+                        self.sitemap_json["title"] = title
+                    # Sending a request to the parse_articlewise_get_date method
+                    yield scrapy.Request(url, callback=self.parse_articlewise_get_date)
+        except BaseException as e:
+            print(f"Error while parsing sitemap: {e}")
+            self.logger.error("Error while parsing sitemap: {}".format(e))
 
     def parse_articlewise_get_date(self, response):
-        for article in response.css(".teaser__link"):
-            title = article.css(".teaser__headline::text").get()
-            link = article.css("a::attr(href)").get()
+        try:
+            for article in response.css(".teaser__link"):
+                title = article.css(".teaser__headline::text").get()
+                link = article.css("a::attr(href)").get()
 
-            yield scrapy.Request(
-                link, callback=self.parse_date, meta={"link": link, "title": title}
-            )
+                yield scrapy.Request(
+                    link, callback=self.parse_date, meta={"link": link, "title": title}
+                )
+        except BaseException as e:
+            print(f"Error while filtering date wise: {e}")
+            self.logger.error("Error while filtering date wise: {}".format(e))
 
     def parse_date(self, response):
         link = response.meta["link"]
