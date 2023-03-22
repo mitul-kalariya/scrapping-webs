@@ -1,4 +1,5 @@
 import re
+import os
 import json
 import scrapy
 import requests
@@ -7,7 +8,6 @@ from PIL import Image
 from io import BytesIO
 from dateutil import parser
 from datetime import datetime
-import os
 
 
 # Setting the threshold of logger to DEBUG
@@ -60,7 +60,7 @@ class RepublicTvSpider(scrapy.Spider):
         self.type = type.lower()
         self.today_date = datetime.today().strftime('%Y-%m-%d')
         self.links_path = "Links"
-        self.article_path = "Articles"
+        self.article_path = "Article"
 
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
