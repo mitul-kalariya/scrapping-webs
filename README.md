@@ -43,3 +43,7 @@ We have used Python's in-built module `unittest`. We have covered mainly two tes
 
 Run below command to run the test cases.
 - `python -m coverage run -m unittest`
+
+Run below command to chec the test cases coverage.
+- `python -m coverage html`
+
