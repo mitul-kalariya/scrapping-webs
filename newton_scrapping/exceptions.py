@@ -7,6 +7,11 @@ class InvalidDateException(Exception):
     pass
 
 
+class InvalidInputException(Exception):
+    """Raise when invalid input is given"""
+    pass
+
+
 class InputMissingException(Exception):
     """Raise when any of the required input is missing"""
 
