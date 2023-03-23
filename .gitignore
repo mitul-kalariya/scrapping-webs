@@ -128,5 +128,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Output Files
-*.json
+# VS Code
+.vscode
+
+*.zip
+
+# Output Data
+Article/
+Links/
+
+# Test Cases
+test/
