@@ -2,6 +2,7 @@ import re
 import os
 import json
 import gzip
+import time
 import scrapy
 import requests
 import logging
@@ -9,6 +10,11 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from scrapy.utils.project import get_project_settings
 
 
@@ -61,7 +67,7 @@ class NTvSpider(scrapy.Spider):
         self.today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
         self.main_json = None
         self.links_path = "Links"
-        self.article_path = "Articles"
+        self.article_path = "Article"
 
         if not os.path.exists(self.links_path):
             os.makedirs(self.links_path)
@@ -328,16 +334,38 @@ class NTvSpider(scrapy.Spider):
         if thumbnail_video:
             embedded_video_links.append(thumbnail_video)
 
-        video_linkes = self.extract_videos(response.request.url)
-        if video_linkes:
-            embedded_video_links.append(video_linkes)
+        video_links = self.extract_videos(response)
+        if video_links:
+            embedded_video_links.append(video_links)
 
         if embedded_video_links:
             response_data["embed_video_link"] = embedded_video_links
         return response_data
 
-    def extract_videos(self, current_url) -> list:
-        return 0
+    def extract_videos(self, response) -> list:
+
+        options = Options()
+        options.headless = True
+        driver = webdriver.Chrome(options=options)
+
+        driver.get(response.url)
+        time.sleep(5)
+        banner_button = driver.find_element(By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
+        if banner_button:
+            banner_button.click()
+            time.sleep(2)
+            scroll = driver.find_elements(By.XPATH, "//p")
+            for i in scroll:
+                driver.execute_script("window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
+            videos = driver.find_elements(By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
+            if videos:
+                data = {}
+                for i in videos:
+                    try:
+                        data["videos"] += [i.get_attribute("src").replace("blob:", "")]
+                    except:
+                        data["videos"] = [i.get_attribute("src").replace("blob:", "")]
+        return data
 
     def closed(self, response):
         """
