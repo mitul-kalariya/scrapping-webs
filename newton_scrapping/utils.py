@@ -151,7 +151,7 @@ def get_parsed_data(response):
     article_lang = response.css("html::attr(lang)").get()
     main_dict["language"] = [article_lang]
 
-    return main_dict
+    return remove_empty_elements(main_dict)
 
 
 def get_main(response):

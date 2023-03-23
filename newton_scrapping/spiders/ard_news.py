@@ -5,6 +5,8 @@ from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
 from newton_scrapping import exceptions
 from datetime import datetime
 from abc import ABC, abstractmethod
+from scrapy.loader import ItemLoader
+from newton_scrapping.items import ArticleData
 from newton_scrapping.utils import (
     create_log_file,
     validate_sitemap_date_range,
@@ -74,21 +76,28 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
         elif self.type == "article":
+            breakpoint()
             article_data = self.parse_article(response)
+            breakpoint()
             self.articles.append(article_data)
 
     def parse_article(self, response) -> list:
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)        
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
         response_data["country"] = ["Germany"]
         response_data["time_scraped"] = [str(datetime.now())]
+        
         data = {}
-        data["raw_resopnse"] = raw_response
-        data["parsed_json"] = response_json
-        data["parsed_data"] = response_data
 
-        return remove_empty_elements(data)
+        articledata_loader.add_value("raw_response", raw_response)
+        articledata_loader.add_value("parsed_json",response_json,)
+        articledata_loader.add_value(
+                "parsed_data", response_data)
+        
+
+        return dict(articledata_loader.load_item())
 
     def parse_sitemap(self, response):
         try:
