@@ -13,6 +13,8 @@ from scrapy.selector import Selector
 from scrapy.utils.project import get_project_settings
 
 
+# Todo: Implementation of Common Methods, Utils.py, Exceptions.py
+
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
     level=logging.DEBUG,
@@ -73,7 +75,6 @@ class CtvnewsSpider(scrapy.Spider):
                     self.scrape_start_date = (
                         self.scrape_end_date
                     ) = datetime.now().date()
-
                 for single_date in self.date_range(
                     self.scrape_start_date, self.scrape_end_date
                 ):
@@ -189,6 +190,7 @@ class CtvnewsSpider(scrapy.Spider):
         try:
             content_type = response.headers.get("Content-Type").decode("utf-8")
             language = response.css("html::attr(lang)").get()
+            # Todo: proper naming convention with camel case image_url
             imageurl = response.css(".inline-image::attr(src)").getall()
             image = None
             for img in imageurl:
@@ -203,9 +205,11 @@ class CtvnewsSpider(scrapy.Spider):
                 ".c-breadcrumb__item__link span::text"
             ).getall()
             logo_urls = response.css(".c-quickArticle__header_logo::attr(src)").get()
+            # TODO: make https://www.ctvnews.ca/ as constant (BASE_URL) as repeated more than 4 times
             logo_url = "https://www.ctvnews.ca/" + logo_urls
 
-            author = json.loads(response.css("bio-content::attr(content)").get())
+            authors = json.loads(response.css("bio-content::attr(content)").get())
+            # TODO: proper naming conventions
             for au in author:
                 first_name = au.get("firstName")
                 last_name = au.get("lastName")
