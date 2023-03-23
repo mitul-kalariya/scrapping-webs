@@ -229,6 +229,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
+            return self.articles
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching article details:- {str(exception)}",
