@@ -24,6 +24,19 @@ class LeParisien(scrapy.Spider):
         check_cmd_args(self, self.start_date, self.end_date)
 
     def parse(self, response):
+        """
+            Parses the response of a scrapy.Request and yields further requests or items.
+
+            If the `type` attribute of the spider is set to "sitemap", the method looks for all the sitemap URLs in the
+            response (assuming it's an XML file) and yields a scrapy.Request for each of them, using the `parse_sitemap`
+            method as the callback for each request.
+
+            If the `type` attribute of the spider is set to "article", the method yields a scrapy.Request for the URL
+            specified in the `url` attribute of the spider,
+            using the `parse_article` method as the callback for the request.
+
+            :param response: the response of the current request.
+            """
         if self.type == "sitemap":
             for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                      namespaces=self.namespace).getall():
@@ -108,13 +121,11 @@ class LeParisien(scrapy.Spider):
             if not os.path.isdir('Links'):
                 os.makedirs('Links')
             filename = os.path.join(
-                'Links', f'le_parisien-sitemap-\
-                    {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+                'Links', f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
         elif self.type == "article":
             if not os.path.isdir('Article'):
                 os.makedirs('Article')
             filename = os.path.join(
-                'Article', f'le_parisien-articles-\
-                    {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+                'Article', f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)

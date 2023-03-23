@@ -8,7 +8,7 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
        Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
 
     Args:
-        self (ZeitDeNews): The ZeitDeNews spider instance.
+        self (LeParisien): The ZeitDeNews spider instance.
         start_date (str): The start date for the sitemap spider in the format YYYY-MM-DD.
         end_date (str): The end date for the sitemap spider in the format YYYY-MM-DD.
 
@@ -58,6 +58,7 @@ def get_article_data(response: Response) -> dict:
        :param response: The response object obtained from a HTTP request to the URL
        :return: A dictionary containing relevant article data.
        """
+    mapper = {"FRA": "France", "fr-FR": "French"}
     article_data = {}
     article_data["title"] = response.css('header.article_header > h1::text').getall()
     article_data["img_url"] = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
@@ -73,6 +74,9 @@ def get_article_data(response: Response) -> dict:
     article_data['json_data'] = json_data
     json_misc_data = response.css('script[type="application/json"]::text').getall()
     article_data['json_misc_data'] = [json.loads(misc) for misc in json_misc_data]
+    language = response.css("html::attr(lang)").get()
+    article_data["language"] = mapper.get(language)
+    article_data["country"] = mapper.get("FRA")
     return article_data
 
 
@@ -104,6 +108,8 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
         },
 
         "parsed_data": {
+            "language": article_data["language"],
+            "country": article_data["country"],
             "author": [
                 {
                     "@type": json_data[1]['author'][0]["@type"],
@@ -123,7 +129,7 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
                         'url': json_data[1]['publisher']['logo']['url'],
                         'width': {
                             '@type': "Distance",
-                            "name": str(json_data[1]['publisher']['logo']['width']) + "Px"},
+                            "name": str(json_data[1]['publisher']['logo']['width']) + " Px"},
                         'height': {
                             '@type': "Distance",
                             'name': str(json_data[1]['publisher']['logo']['height']) + " Px"}}}],
@@ -135,7 +141,7 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
                         article_data.get('img_caption')[0]}],
 
             "section": "".join(article_data.get('category')).split(","),
-            "tag": json_data[1]["keywords"]
+            "tags": json_data[1]["keywords"]
         }
     }
 
