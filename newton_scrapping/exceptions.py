@@ -9,6 +9,7 @@ class InvalidDateException(Exception):
 
 class InvalidInputException(Exception):
     """Raise when invalid input is given"""
+
     pass
 
 

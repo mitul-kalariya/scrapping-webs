@@ -11,7 +11,6 @@ from newton_scrapping.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
-    remove_empty_elements,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -19,7 +18,6 @@ from newton_scrapping.utils import (
 
 
 class BaseSpider(ABC):
-
     @abstractmethod
     def parse(response):
         pass
@@ -76,26 +74,23 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
         elif self.type == "article":
-            breakpoint()
             article_data = self.parse_article(response)
-            breakpoint()
             self.articles.append(article_data)
 
     def parse_article(self, response) -> list:
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)        
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
         response_data["country"] = ["Germany"]
         response_data["time_scraped"] = [str(datetime.now())]
-        
-        data = {}
 
         articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value("parsed_json",response_json,)
         articledata_loader.add_value(
-                "parsed_data", response_data)
-        
+            "parsed_json",
+            response_json,
+        )
+        articledata_loader.add_value("parsed_data", response_data)
 
         return dict(articledata_loader.load_item())
 
@@ -147,7 +142,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                     meta={"link": link, "title": title},
                 )
         except BaseException as e:
-            exceptions.SitemapArticleScrappingException(f"Error while filtering date wise: {e}")
+            exceptions.SitemapArticleScrappingException(
+                f"Error while filtering date wise: {e}"
+            )
             LOGGER.error("Error while filtering date wise: {}".format(e))
 
     def parse_sitemap_datewise(self, response):
@@ -192,7 +189,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
+            exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
             self.log(
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
