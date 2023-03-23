@@ -274,68 +274,6 @@ class RepublicTvSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error while getting misc: {e}")
 
-    def response_data(self, response) -> dict:
-        """
-        Extracts data from a news article webpage and returns it in a dictionary format.
-
-        Parameters:
-        response (scrapy.http.Response): A scrapy response object of the news article webpage.
-
-        Returns:
-        dict: A dictionary containing the extracted data from the webpage, including:
-            - 'breadcrumbs': (list) The list of breadcrumb links to the article, if available.
-            - 'published_on': (str) The date and time the article was published.
-            - 'last_updated': (str) The date and time the article was last updated, if available.
-            - 'headline': (str) The headline of the article.
-            - 'description': (str) The description of the article, if available.
-            - 'publisher': (str) The name of the publisher of the article.
-            - 'authors': (list) The list of authors of the article, if available.
-            - 'video': (str) The video URL of the article, if available.
-            - 'thumbnail_image': (str) The URL of the thumbnail image of the article, if available.
-            - 'subheadings': (list) The list of subheadings in the article, if available.
-            - 'text': (list) The list of text paragraphs in the article.
-            - 'images': (list) The list of image URLs in the article, if available.
-        """
-        main_dict = {}
-
-        authors = self.extract_author(response)
-        main_dict["author"] = authors
-
-        last_updated = self.extract_lastupdated(response)
-        main_dict["modified_at"] = [last_updated]
-
-        published_on = self.extract_published_on(response.css("div.story-wrapper"))
-        main_dict["published_at"] = [published_on]
-
-        description = response.css("h2.story-description::text").get()
-        main_dict["description"] = [description]
-
-        publisher = self.extract_publisher(response)
-        main_dict["publisher"] = publisher
-
-        article_text = response.css("section p::text").getall()
-        main_dict["text"] = [" ".join(article_text)]
-
-        thumbnail = self.extract_thumbnail(response)
-        main_dict["thumbnail_image"] = thumbnail
-
-        headline = response.css("h1.story-title::text").get().strip()
-        main_dict["title"] = [headline]
-
-        article_images = self.extract_all_images(response)
-        main_dict["images"] = article_images
-
-        video = self.extract_video(response)
-        main_dict["embed_video_link"] = video
-
-        article_lang = response.css("html::attr(lang)").get()
-        main_dict["language"] = [article_lang]
-
-        return self.filter_dict(main_dict)
-
-    def filter_dict(self, raw_dict):
-        target_dict = dict([(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)])
-        return target_dict
 
     def extract_lastupdated(self, response) -> str:
         """
