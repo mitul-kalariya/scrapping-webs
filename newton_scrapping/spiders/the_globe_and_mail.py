@@ -93,7 +93,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
         if "web-sitemap.xml" in response.url:
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
         else:
-            yield scrapy.Request(self.article_url, callback=self.parse_article)
+            yield self.parse_article(response)
 
     def parse_sitemap(self, response):
         """

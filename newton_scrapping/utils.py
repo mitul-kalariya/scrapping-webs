@@ -190,7 +190,7 @@ def get_logo_height(response):
 
 def get_text(response):
     text_list = response.css("p.c-article-body__text::text").getall()
-    return "".join(text_list)
+    return ["".join(text_list)]
 
 
 def get_image_url(response):
