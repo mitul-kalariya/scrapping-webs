@@ -131,3 +131,5 @@ dmypy.json
 
 # VS Code
 .vscode
+
+*.zip
