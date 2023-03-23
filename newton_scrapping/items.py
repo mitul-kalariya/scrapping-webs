@@ -4,25 +4,30 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 import scrapy
+from scrapy import Item, Field
+from itemloaders.processors import TakeFirst, MapCompose
+from w3lib.html import remove_tags
 
 
 class NewtonScrappingItem(scrapy.Item):
     # define the fields for your item here like:
-    titles = scrapy.Field()
+    # name = scrapy.Field()
+    pass
 
-    content_type = scrapy.Field()
-    description = scrapy.Field()
-    published_date = scrapy.Field()
-    language = scrapy.Field()
-    text = scrapy.Field()
-    images = scrapy.Field()
-    caption = scrapy.Field()
-    tags = scrapy.Field()
-    author_name = scrapy.Field()
-    publisher_name = scrapy.Field()
-    headline = scrapy.Field()
-    alternativeheadline = scrapy.Field()
-    copyright = scrapy.Field()
-    images_data = scrapy.Field()
-    social_site = scrapy.Field()
-    social_url = scrapy.Field()
+
+class ArticleData(Item):
+    raw_response = Field(output_processor=TakeFirst())
+    parsed_json = Field(output_processor=TakeFirst())
+    parsed_data = Field(output_processor=TakeFirst())
+
+
+class ArticleRawResponse(Item):
+    content_type = Field(
+        input_processor=MapCompose(remove_tags), output_processor=TakeFirst()
+    )
+    content = Field(output_processor=TakeFirst())
+
+
+class ArticleRawParsedJson(Item):
+    main = Field()
+    misc = Field()
