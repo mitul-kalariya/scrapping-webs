@@ -131,9 +131,11 @@ class RepublicTvSpider(scrapy.Spider):
 
         Notes:
         The sitemap must be in the XML format specified by the sitemaps.org protocol.
-        The function extracts the links from the sitemap and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
-        The function also extracts the publication date of the sitemap, if available, and passes it along as a meta parameter in each request.
-        """  # noqa
+        The function extracts the links from the sitemap
+            and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
+        The function also extracts the publication date of the sitemap, if available, and
+            passes it along as a meta parameter in each request.
+        """
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         links = response.xpath("//n:url/n:loc/text()", namespaces=namespaces).getall()
         published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
