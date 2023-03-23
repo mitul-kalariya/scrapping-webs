@@ -8,6 +8,6 @@
 from itemadapter import ItemAdapter
 
 
-class NewtonScrappingPipeline:
+class FranceEtvInfoPipeline:
     def process_item(self, item, spider):
         return item

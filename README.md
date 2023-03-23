@@ -1,6 +1,6 @@
-## Leparisien Scraper
+## France-Info-TV Scraper
 
-This repo contains the code to scrap all sitemaps (if available) and articles from [Leparisien](https://www.leparisien.fr/) website and the Tech stacks used are:-
+This repo contains the code to scrap all sitemaps (if available) and articles from [France-tv-info](https://www.francetvinfo.fr/) website and the Tech stacks used are:-
 -  Python 3.10
 -  Scrapy 
 
@@ -26,16 +26,16 @@ pip install -r requirements.txt
 ### Command to fetch Sitemap:-
 -  Command to crawl on sitemap from specific date range
 ```bash
-scrapy crawl le_parisien -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
+scrapy crawl francetv-info -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
 ```
     
 -  Command to crawl sitemap for today’s date  
 ```bash
-scrapy crawl le_parisien -a type=sitemap
+scrapy crawl francetv-info -a type=sitemap
 ```
     
 ### Command to fetch Articles:-
-[Laprisien_article_url](https://www.leparisien.fr/sports/football/pas-appele-en-equipe-de-france-depuis-2020-houssem-aouar-va-representer-lalgerie-15-03-2023-BLJ2OJSGFVADTNP4DHYWESB3HQ.php)
+[francetvinfo_article_url](https://www.francetvinfo.fr/economie/retraite/reforme-des-retraites/retraites-face-aux-elus-de-la-majorite-emmanuel-macron-a-voulu-tracer-les-perspectives-des-annees-qui-viennent-selon-le-depute-renaissance-benjamin-haddad_5724728.html)
 ```bash
-scrapy crawl le_parisien -a type=article url=timesnownews_article_url
+scrapy crawl francetv-info -a type=article url=timesnownews_article_url
 ```

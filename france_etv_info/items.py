@@ -6,8 +6,7 @@
 import scrapy
 
 
-class NewtonScrappingItem(scrapy.Item):
+class FranceEtvInfoItem(scrapy.Item):
     # define the fields for your item here like:
-    name = scrapy.Field()
-    logo = scrapy.Field()
+    # name = scrapy.Field()
     pass
