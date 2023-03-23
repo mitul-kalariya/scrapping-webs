@@ -36,7 +36,6 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     elif self.type == "sitemap" and self.start_date is None and self.end_date is None:
         today_time = datetime.today().strftime("%Y-%m-%d")
         self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-        print(self.today_date)
         self.start_urls.append(initial_url)
 
     elif self.type == "sitemap" and self.end_date is not None or self.start_date is not None:
