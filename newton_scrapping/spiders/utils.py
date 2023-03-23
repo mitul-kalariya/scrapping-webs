@@ -24,8 +24,8 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
        Note:
            This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
        """
-    initial_url = "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap-index/?from=0&outputType=xml&_website" \
-                      "=leparisien"
+    initial_url = "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap-index/?from=0&outputType=xml&_website="\
+        "leparisien"
     if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
         self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
@@ -94,44 +94,50 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
       """
     json_data = article_data.get('json_data')
     article = {
-            'raw_response': {
-                "content_type": response.headers.get("Content-Type").decode("utf-8"),
-                "content": response.text,
-            },
-            "parsed_json": {
-                "main": article_data.get('json_data'),
-                "misc": article_data.get('json_misc_data')
-            },
+        'raw_response': {
+            "content_type": response.headers.get("Content-Type").decode("utf-8"),
+            "content": response.text,
+        },
+        "parsed_json": {
+            "main": article_data.get('json_data'),
+            "misc": article_data.get('json_misc_data')
+        },
 
-            "parsed_data": {
-                "author": [
-                    {
-                        "@type": json_data[1]['author'][0]["@type"],
-                        "name": json_data[1]['author'][0]["name"],
-                    }
-                ],
-                "description": [json_data[1]['description']],
-                "modified_at": [json_data[1]['dateModified']],
-                "published_at": [json_data[1]['datePublished']],
+        "parsed_data": {
+            "author": [
+                {
+                    "@type": json_data[1]['author'][0]["@type"],
+                    "name": json_data[1]['author'][0]["name"],
+                }
+            ],
+            "description": [json_data[1]['description']],
+            "modified_at": [json_data[1]['dateModified']],
+            "published_at": [json_data[1]['datePublished']],
 
-                "publisher": [{'@type': json_data[1]['publisher']['@type'],
-                               'name': json_data[1]['publisher']['name'],
-                               'logo': {'@type': json_data[1]['publisher']['logo']['@type'],
-                                        'url': json_data[1]['publisher']['logo']['url'], 
-                                        'width': {'@type': "Distance",
-                                                    "name": str(json_data[1][ 'publisher']['logo']['width']) + "Px"},
-                                        'height': {'@type': "Distance",
-                                                   'name': str(json_data[1]['publisher']['logo']['height']) + " Px"}}}],
+            "publisher": [
+                {
+                    '@type': json_data[1]['publisher']['@type'],
+                    'name': json_data[1]['publisher']['name'],
+                    'logo': {
+                        '@type': json_data[1]['publisher']['logo']['@type'],
+                        'url': json_data[1]['publisher']['logo']['url'],
+                        'width': {
+                            '@type': "Distance",
+                            "name": str(json_data[1]['publisher']['logo']['width']) + "Px"},
+                        'height': {
+                            '@type': "Distance",
+                            'name': str(json_data[1]['publisher']['logo']['height']) + " Px"}}}],
 
-                "text": ["".join(article_data.get('text'))],
-                "thumbnail_image": [json_data[2]["url"] + article_data.get('img_url')[0][1:]],  # need to look it
-                "title": article_data.get('title'),
-                "images": [{'link': json_data[2]["url"] + article_data.get('img_url')[0][1:], 'caption': article_data.get('img_caption')[0]}],
+            "text": ["".join(article_data.get('text'))],
+            "thumbnail_image": [json_data[2]["url"] + article_data.get('img_url')[0][1:]],  # need to look it
+            "title": article_data.get('title'),
+            "images": [{'link': json_data[2]["url"] + article_data.get('img_url')[0][1:], 'caption': \
+                        article_data.get('img_caption')[0]}],
 
-                "section": "".join(article_data.get('category')).split(","),
-                "tag": json_data[1]["keywords"]
-            }
+            "section": "".join(article_data.get('category')).split(","),
+            "tag": json_data[1]["keywords"]
         }
+    }
 
     if article_data.get('article_author_url'):
         article['parsed_data']['author'][0]['url'] = json_data[2]["url"] + article_data.get('article_author_url')[0][1:]
