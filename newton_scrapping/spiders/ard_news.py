@@ -1,9 +1,13 @@
 import re
 import json
-from datetime import datetime
 import os
 import scrapy
 import logging
+from newton_scrapping import utils
+from newton_scrapping import exceptions
+from datetime import datetime
+ek minnnn
+from abc import ABC, abstractmethod
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -15,8 +19,32 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 
-class InvalidDateRange(Exception):
-    pass
+class BaseSpider(ABC):
+
+    # should have below attributes in your Spider class
+    # articles=[]
+    # type = "sitemap" or "article"
+
+    @abstractmethod
+    def parse(response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        # parse_sitemap_article will be called from here
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        # below functions will be called from here
+        # get_raw_response
+        # get_parsed_json
+        # get_parsed_data
+        # should return self.articles
+        pass
 
 
 class ArdNewsSpider(scrapy.Spider):
@@ -27,8 +55,9 @@ class ArdNewsSpider(scrapy.Spider):
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         super().__init__(**kwargs)
         self.start_urls = []
-        self.sitemap_data = []
-        self.article_json_data = []
+        # self.sitemap_data = []
+        # self.article_json_data = []
+        self.articles = []
         self.start_urls = []
         self.sitemap_json = {}
         self.type = type.lower()
@@ -58,15 +87,31 @@ class ArdNewsSpider(scrapy.Spider):
                         "end_date must be specified if start_date is provided"
                     )
                 if not start_date and end_date:
-                    raise ValueError("start_date must be specified if end_date is provided")
+                    raise ValueError(
+                        "start_date must be specified if end_date is provided"
+                    )
 
-                if (self.start_date and self.end_date and self.start_date > self.end_date):
-                    raise InvalidDateRange("start_date should not be later than end_date")
+                if (
+                    self.start_date
+                    and self.end_date
+                    and self.start_date > self.end_date
+                ):
+                    raise InvalidDateRange(
+                        "start_date should not be later than end_date"
+                    )
 
-                if (self.start_date and self.end_date and self.start_date == self.end_date):
+                if (
+                    self.start_date
+                    and self.end_date
+                    and self.start_date == self.end_date
+                ):
                     raise ValueError("start_date and end_date must not be the same")
 
-                if (self.start_date and self.end_date and self.start_date > self.today_date):
+                if (
+                    self.start_date
+                    and self.end_date
+                    and self.start_date > self.today_date
+                ):
                     raise InvalidDateRange(
                         "start_date should not be greater than today_date"
                     )
@@ -126,7 +171,9 @@ class ArdNewsSpider(scrapy.Spider):
 
                     if not title and title:
                         self.sitemap_json["title"] = (
-                            link.css(".teaser-xs__headline::text , .teaser__headline::text")
+                            link.css(
+                                ".teaser-xs__headline::text , .teaser__headline::text"
+                            )
                             .get()
                             .replace("\n", "")
                             .replace(" ", "")
@@ -207,7 +254,9 @@ class ArdNewsSpider(scrapy.Spider):
         main_dict["text"] = [" ".join(list(filter(None, text)))]
 
         # extract the thumbnail image
-        thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
+        thumbnail_image = response.css(
+            "picture.ts-picture--topbanner .ts-image::attr(src)"
+        ).get()
         main_dict["thumbnail_image"] = ["https://www.tagesschau.de/" + thumbnail_image]
 
         # extract video files if any
@@ -224,7 +273,9 @@ class ArdNewsSpider(scrapy.Spider):
         return self.filter_dict(main_dict)
 
     def filter_dict(self, raw_dict):
-        target_dict = dict([(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)])
+        target_dict = dict(
+            [(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)]
+        )
         return target_dict
 
     def response_json(self, response) -> dict:
@@ -323,18 +374,23 @@ class ArdNewsSpider(scrapy.Spider):
                     info.append(video_link)
         return info
 
-    def closed(self, response):
+    def closed(self, reason: any) -> None:
         """
-        Saves the sitemap data or article JSON data to a file with a timestamped filename.
+        store all scrapped data into json file with given date in filename
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-        if self.type == "sitemap":
-            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.sitemap_data, f, indent=4, default=str)
-
-        if self.type == "article":
-            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.article_json_data, f, indent=4, default=str)
+        try:
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                utils.export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while writing json file{str(exception)} - {reason}",
+                level=logging.ERROR,
+            )
