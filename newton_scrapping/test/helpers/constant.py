@@ -3,15 +3,15 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
-        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
-    },
-    {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://indianexpress.com/article/cities/ahmedabad/in-2-years-189-custodial-deaths-registered-in-gujarat-government-8516134",
         "test_data_path": "newton_scrapping/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://indianexpress.com/article/lifestyle/adnan-sami-massive-weight-loss-120-kilos-230-survival-8514339/",
+        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
+    },
+    {
+        "url": "https://indianexpress.com/article/opinion/columns/delhi-budget-delay-aap-reena-gupta-8516464/",
         "test_data_path": "newton_scrapping/test/data/test_article_3.json"
     }
 ]

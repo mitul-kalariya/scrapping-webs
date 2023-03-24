@@ -35,3 +35,10 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 
 - command to crawl wanted article
 - `scrapy crawl indian_express -a type=article -a url={{Article-URL}}` 
+
+
+## Test Cases
+We have used Python's in-built module `unittest`. 
+We have covered mainly two test cases.
+1. For Sitemap article links crawler2. For Article data CrawlerRun below command to run the test cases.
+- `python -m unittest`
