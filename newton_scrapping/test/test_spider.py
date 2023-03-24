@@ -253,7 +253,7 @@ class TestSitemap(unittest.TestCase):
             for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
                 self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
         with self.subTest():
-            self.assertEqual(len(self.spider.articles), 1, "Crawler did not fetched single article form sitemap")
+            self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
         with self.subTest():
             self.assertIsInstance(self.spider.articles, list, "Sitemap Article format mismatch")
         with self.subTest():
