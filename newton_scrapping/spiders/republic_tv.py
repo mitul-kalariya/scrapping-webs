@@ -55,8 +55,8 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
         super().__init__(**kwargs)
         self.start_urls = []
-        self.sitemap_data = []
         self.articles = []
+        self.articles_url = url
         self.type = type.lower()
 
         create_log_file()
