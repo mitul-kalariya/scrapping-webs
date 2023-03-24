@@ -1,4 +1,4 @@
-# Scrapy settings for france_etv_info project
+# Scrapy settings for newton_scrapping project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,14 +7,14 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "france_etv_info"
+BOT_NAME = "newton_scrapping"
 
-SPIDER_MODULES = ["france_etv_info.spiders"]
-NEWSPIDER_MODULE = "france_etv_info.spiders"
+SPIDER_MODULES = ["newton_scrapping.spiders"]
+NEWSPIDER_MODULE = "newton_scrapping.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "france_etv_info (+http://www.yourdomain.com)"
+#USER_AGENT = "newton_scrapping (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "france_etv_info.middlewares.FranceEtvInfoSpiderMiddleware": 543,
+#    "newton_scrapping.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "france_etv_info.middlewares.FranceEtvInfoDownloaderMiddleware": 543,
+#    "newton_scrapping.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "france_etv_info.pipelines.FranceEtvInfoPipeline": 300,
+#    "newton_scrapping.pipelines.NewtonScrappingPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
