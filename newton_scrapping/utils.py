@@ -166,8 +166,9 @@ def get_parsed_data(response):
         videos = get_embed_video_link(response)
         main_dict["embed_video_link"] = videos
 
+        mapper = {"en-US": "English"}
         article_lang = response.css("html::attr(lang)").get()
-        main_dict["language"] = [article_lang]
+        main_dict["language"] = [mapper.get(article_lang)]
 
         return remove_empty_elements(main_dict)
     except BaseException as e:
