@@ -3,6 +3,8 @@ import scrapy
 import logging
 from datetime import datetime
 from newton_scrapping import exceptions
+from scrapy.crawler import CrawlerProcess
+from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from newton_scrapping.constants import BASE_URL, LOGGER
@@ -233,3 +235,8 @@ class ZdfNewsSpider(scrapy.Spider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
+if __name__ == "__main__":
+    process = CrawlerProcess(get_project_settings())
+    process.crawl(ZdfNewsSpider)
+    process.start()

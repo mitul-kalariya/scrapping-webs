@@ -102,14 +102,25 @@ def get_raw_response(response):
 
 def get_parsed_json(response):
     parsed_json = {}
-    main = get_main(response)
-    if main:
-        parsed_json["main"] = main
+    other_data = []
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            other_data.append(data)
+    
+    parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
 
-    return parsed_json
+    return remove_empty_elements(parsed_json)
 
 
 def get_parsed_data(response):
@@ -167,8 +178,9 @@ def get_parsed_data(response):
     except BaseException as e:
         LOGGER.error(f"{e}")
 
+    mapper = {"de":"German"}
     article_lang = response.css("html::attr(lang)").get()
-    main_dict["language"] = [article_lang]
+    main_dict["language"] = [mapper.get(article_lang)]
 
     video = get_embed_video_link(response)
     main_dict["embed_video_link"] = video.get("videos")
