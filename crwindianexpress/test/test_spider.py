@@ -23,11 +23,11 @@ class TestArticle(unittest.TestCase):
     # This is first function called by crawler so testing the main function will cover all scenarios
     def test_parse(self):
         for article in TEST_ARTICLES:
-            logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            logger.info(f"Testing article with URL:- {article['link']}")
+            spider = IndianExpressSpider(type="article", url=article["link"], args= {'callback': None})
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
-            logger.info(f"Testing completed article with URL:- {article['url']}")
+            logger.info(f"Testing completed article with URL:- {article['link']}")
 
     def _test_raw_response(self, article, test_article_data):
         # Testing raw_response object
@@ -226,7 +226,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.spider = IndianExpressSpider(type=self.type, args= {'callback': None})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
