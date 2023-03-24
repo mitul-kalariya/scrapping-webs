@@ -237,10 +237,8 @@ class TimesNow(scrapy.Spider, BaseSpider):
             return articledata_loader.item
 
         except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details:- {str(exception)}",
-                level=logging.ERROR,
-            )
+            self.logger.exception(
+                f"Error occurred while fetching article details:- {str(exception)}")
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception

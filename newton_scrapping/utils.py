@@ -137,7 +137,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject" or json.loads(data).get('@type') != "NewsArticle"]
             )
-        
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -169,16 +169,16 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    article_raw_parsed_json_loader = ItemLoader(
-        item=ArticleRawParsedJson(), response=response
-    )
-
-    for key, value in parsed_json_dict.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
-    parsed_data_dict = get_parsed_data_dict()
-    article_data = dict(article_raw_parsed_json_loader.load_item())
+    # article_raw_parsed_json_loader = ItemLoader(
+    #     item=ArticleRawParsedJson(), response=response
+    # )
+    #
+    # for key, value in parsed_json_dict.items():
+    #     article_raw_parsed_json_loader.add_value(
+    #         key, [json.loads(data) for data in value.getall()]
+    #     )
+    # parsed_data_dict = get_parsed_data_dict()
+    article_data = parsed_json_dict
 
     article_data["title"] = response.css('#readtrinity0  h1._1FcxJ::text').getall()
     article_data["sub_title"] = response.css('#readtrinity0 div.QA-An h2::text').get()
@@ -191,31 +191,31 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["source_country"] = ["India"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    parsed_data_dict["author"] = [article_data.get("main")[2].get('author')[0]]
+    article_data["main_copy"] = json.loads(article_data.get("main")[2].get())
+    parsed_data_dict["author"] = [article_data.get("main_copy").get('author')[0]]
     parsed_data_dict["description"] = [article_data.get("sub_title")]
-    parsed_data_dict["modified_at"] = [article_data.get("main")[2].get('dateModified')]
-    parsed_data_dict["published_at"] = [article_data.get("main")[2].get('datePublished')]
+    parsed_data_dict["modified_at"] = [article_data.get("main_copy").get('dateModified')]
+    parsed_data_dict["published_at"] = [article_data.get("main_copy").get('datePublished')]
     parsed_data_dict["publisher"] = [{
-        '@type': article_data.get("main")[2].get('publisher').get('@type'),
-        'url': article_data.get("main")[2].get('publisher').get('url'),
+        '@type': article_data.get("main_copy").get('publisher').get('@type'),
+        'url': article_data.get("main_copy").get('publisher').get('url'),
         "logo": {
-            "@type": article_data.get("main")[2].get('publisher').get("logo").get('@type'),
-            "url": article_data.get("main")[2].get('publisher').get("logo").get('url'),
+            "@type": article_data.get("main_copy").get('publisher').get("logo").get('@type'),
+            "url": article_data.get("main_copy").get('publisher').get("logo").get('url'),
             'width': {
                 '@type': "Distance",
-                "name": str(article_data.get("main")[2].get('publisher').get('logo').get('width')) + " Px"},
+                "name": str(article_data.get("main_copy").get('publisher').get('logo').get('width')) + " Px"},
             'height': {
                 '@type': "Distance",
-                'name': str(article_data.get("main")[2].get('publisher').get('logo').get('height')) + " Px"}}
+                'name': str(article_data.get("main_copy").get('publisher').get('logo').get('height')) + " Px"}}
     }]
 
     parsed_data_dict["text"] = ["".join(article_data.get("text"))]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("main")[2].get('image').get('url')]
+    parsed_data_dict["thumbnail_image"] = [article_data.get("main_copy").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get("title")[0]]
-    parsed_data_dict["images"] = [{"link": article_data.get("main")[2].get('image').get('url'), "caption": article_data.get("main")[2].get('image').get('caption')}]
+    parsed_data_dict["images"] = [{"link": article_data.get("main_copy").get('image').get('url'), "caption": article_data.get("main_copy").get('image').get('caption')}]
     parsed_data_dict["section"] = article_data.get("category")[1:]
     parsed_data_dict["tags"] = article_data.get("tags")
-
     return remove_empty_elements(parsed_data_dict)
 
 
