@@ -172,9 +172,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
                                   list, "format mismatch for parsed_data--> modified_at")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
@@ -229,35 +226,35 @@ class TestArticle(unittest.TestCase):
         
 
 
-# class TestSitemap(unittest.TestCase):
-#     def setUp(self):
-#         self.type = "sitemap"
-#         self.spider = CP24News(type=self.type)
+class TestSitemap(unittest.TestCase):
+    def setUp(self):
+        self.type = "sitemap"
+        self.spider = CP24News(type=self.type)
 
-#     def _test_sitemap_article_format(self):
-#         # Testing the sitemap article object
-#         for article in self.spider.articles:
-#             with self.subTest():
-#                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-#             with self.subTest():
-#                 self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
+    def _test_sitemap_article_format(self):
+        # Testing the sitemap article object
+        for article in self.spider.articles:
+            with self.subTest():
+                self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
+            with self.subTest():
+                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
-#     def _test_sitemap_results(self, sitemap_urls):
-#         for sitemap_url in sitemap_urls:
-#             article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
-#             for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
-#                 self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
-#         with self.subTest():
-#             self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
-#         with self.subTest():
-#             self.assertIsInstance(self.spider.articles, list, "Sitemap Article format mismatch")
-#         with self.subTest():
-#             self.assertIsInstance(self.spider.articles[0], dict, "Sitemap Article format mismatch")
-#         self._test_sitemap_article_format()
+    def _test_sitemap_results(self, sitemap_urls):
+        for sitemap_url in sitemap_urls:
+            article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
+            for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
+                self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
+        with self.subTest():
+            self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
+        with self.subTest():
+            self.assertIsInstance(self.spider.articles, list, "Sitemap Article format mismatch")
+        with self.subTest():
+            self.assertIsInstance(self.spider.articles[0], dict, "Sitemap Article format mismatch")
+        self._test_sitemap_article_format()
 
-#     def test_parse(self):
-#         sitemap_urls = self.spider.parse(online_response_from_url(SITEMAP_URL))
-#         self._test_sitemap_results(sitemap_urls)
+    def test_parse(self):
+        sitemap_urls = self.spider.parse(online_response_from_url(SITEMAP_URL))
+        self._test_sitemap_results(sitemap_urls)
 
 
 if __name__ == "__main__":
