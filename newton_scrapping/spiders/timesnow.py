@@ -50,7 +50,7 @@ class BaseSpider(ABC):
         pass
 
 
-class TimesNow(scrapy.Spider):
+class TimesNow(scrapy.Spider, BaseSpider):
     name = "times_now_news"
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
