@@ -11,7 +11,7 @@ from PIL import Image
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from newton_scrapping import exceptions
-from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
+from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
@@ -71,7 +71,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append("https://www.mediapart.fr/sitemap_index.xml")
+            self.start_urls.append(SITEMAP_URL)
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
