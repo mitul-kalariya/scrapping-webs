@@ -9,7 +9,7 @@ from PIL import Image
 import logging
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():

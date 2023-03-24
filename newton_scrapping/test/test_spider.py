@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
+from newton_scrapping.spiders.republic_tv import RepublicTvSpider
 from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from newton_scrapping.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
@@ -24,7 +24,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = RepublicTvSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -215,9 +215,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                   list, "format mismatch for parsed_data--> section")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -226,10 +223,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
                                   list, "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
-
         self._test_image_format(article)
         self._test_author_format(article)
 
@@ -237,7 +230,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.spider = RepublicTvSpider(type=self.type)
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

@@ -2,7 +2,7 @@ import scrapy
 import logging
 from dateutil import parser
 from datetime import datetime
-from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
+from newton_scrapping.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
 from newton_scrapping import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -58,6 +58,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         self.sitemap_data = []
         self.articles = []
         self.type = type.lower()
+        self.article_url = url
 
         create_log_file()
 
