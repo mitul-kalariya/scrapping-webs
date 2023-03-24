@@ -114,7 +114,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
-    # print(selector_and_key)
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
@@ -190,13 +189,13 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     article_data["tags"] = response.css('#readtrinity0 div.regular a div::text').getall()
     mapper = {"en": "English"}
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict["source_country"] = "India",
-    parsed_data_dict["source_language"] = mapper.get(response.css("html::attr(lang)").get()),
-    parsed_data_dict["author"] = article_data.get("main")[2].get('author')[0],
-    parsed_data_dict["description"] = article_data.get("sub_title"),
-    parsed_data_dict["modified_at"] = article_data.get("main")[2].get('dateModified'),
-    parsed_data_dict["published_at"] = article_data.get("main")[2].get('datePublished'),
-    parsed_data_dict["publisher"] = {
+    parsed_data_dict["source_country"] = ["India"]
+    parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
+    parsed_data_dict["author"] = [article_data.get("main")[2].get('author')[0]]
+    parsed_data_dict["description"] = [article_data.get("sub_title")]
+    parsed_data_dict["modified_at"] = [article_data.get("main")[2].get('dateModified')]
+    parsed_data_dict["published_at"] = [article_data.get("main")[2].get('datePublished')]
+    parsed_data_dict["publisher"] = [{
         '@type': article_data.get("main")[2].get('publisher').get('@type'),
         'url': article_data.get("main")[2].get('publisher').get('url'),
         "logo": {
@@ -208,14 +207,14 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             'height': {
                 '@type': "Distance",
                 'name': str(article_data.get("main")[2].get('publisher').get('logo').get('height')) + " Px"}}
-    },
+    }]
 
-    parsed_data_dict["text"] = "".join(article_data.get("text")),
-    parsed_data_dict["thumbnail_image"] = article_data.get("main")[2].get('image').get('url'),  # need to look it
-    parsed_data_dict["title"] = article_data.get("title")[0],
-    parsed_data_dict["images"] = {"link": article_data.get("main")[2].get('image').get('url'), "caption": article_data.get("main")[2].get('image').get('caption')},
+    parsed_data_dict["text"] = ["".join(article_data.get("text"))]
+    parsed_data_dict["thumbnail_image"] = [article_data.get("main")[2].get('image').get('url')]
+    parsed_data_dict["title"] = [article_data.get("title")[0]]
+    parsed_data_dict["images"] = [{"link": article_data.get("main")[2].get('image').get('url'), "caption": article_data.get("main")[2].get('image').get('caption')}]
     parsed_data_dict["section"] = article_data.get("category")[1:]
-    # parsed_data_dict["tags"] = article_data.get("tags")
+    parsed_data_dict["tags"] = article_data.get("tags")
 
     return remove_empty_elements(parsed_data_dict)
 

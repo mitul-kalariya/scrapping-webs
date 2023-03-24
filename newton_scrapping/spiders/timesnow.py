@@ -122,7 +122,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
                 
         elif self.type == "article":
             try:
-                yield scrapy.Request(self.url, callback=self.parse_article)
+                yield self.parse_article(response)
             
             except Exception as exception:
                 self.log(
@@ -234,7 +234,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
-            # return self.articles
+            return self.articles
 
         except Exception as exception:
             self.log(

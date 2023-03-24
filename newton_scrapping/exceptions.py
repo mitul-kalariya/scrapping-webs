@@ -2,15 +2,11 @@
 # exceptions.py
 class InvalidDateException(Exception):
     """Raise when invalid date is passed"""
-
-    # Use InvalidDateException("Please enter valid date")
     pass
 
 
 class InvalidArgumentException(Exception):
     """Raise when invalid date is passed"""
-
-    # Use InvalidDateException("Please enter valid date")
     pass
 
 

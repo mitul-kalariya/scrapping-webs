@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
+from newton_scrapping.spiders.timesnow import TimesNow
 from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from newton_scrapping.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
@@ -24,7 +24,7 @@ class TestIndianExpressArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = TimesNow(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -58,10 +58,10 @@ class TestIndianExpressArticle(unittest.TestCase):
                          test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
         self.assertEqual(article[0].get("parsed_data").get("tags"), test_article_data[0].get(
             "parsed_data").get("tags"), "tags mismatch in parsed_data")
-        self.assertEqual(article[0].get("parsed_data").get("country"),
-                         test_article_data[0].get("parsed_data").get("country"), "country mismatch in parsed_data")
-        self.assertEqual(article[0].get("parsed_data").get("language"),
-                         test_article_data[0].get("parsed_data").get("language"), "language mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("source_country"),
+                         test_article_data[0].get("parsed_data").get("source_country"), "source_country mismatch in parsed_data")
+        self.assertEqual(article[0].get("parsed_data").get("source_language"),
+                         test_article_data[0].get("parsed_data").get("source_language"), "source_language mismatch in parsed_data")
 
     def _test_image_format(self, article):
         # Testing the image object inside parsed_data
@@ -107,21 +107,21 @@ class TestIndianExpressArticle(unittest.TestCase):
         else:
             raise AssertionError("missing object:- parsed_data--> description")
 
-        if article[0].get("parsed_data").get("country"):
-            self.assertIsInstance(article[0].get("parsed_data").get("country")[
-                0], str, "format mismatch for parsed_data--> country")
-            self.assertIsInstance(article[0].get("parsed_data").get("country"),
-                                  list, "format mismatch for parsed_data--> country")
+        if article[0].get("parsed_data").get("source_country"):
+            self.assertIsInstance(article[0].get("parsed_data").get("source_country")[
+                0], str, "format mismatch for parsed_data--> source_country")
+            self.assertIsInstance(article[0].get("parsed_data").get("source_country"),
+                                  list, "format mismatch for parsed_data--> source_country")
         else:
-            raise AssertionError("missing object:- parsed_data--> country")
+            raise AssertionError("missing object:- parsed_data--> source_country")
 
-        if article[0].get("parsed_data").get("language"):
-            self.assertIsInstance(article[0].get("parsed_data").get("language")[
-                0], str, "format mismatch for parsed_data--> language")
-            self.assertIsInstance(article[0].get("parsed_data").get("language"),
-                                  list, "format mismatch for parsed_data--> language")
+        if article[0].get("parsed_data").get("source_language"):
+            self.assertIsInstance(article[0].get("parsed_data").get("source_language")[
+                0], str, "format mismatch for parsed_data--> source_language")
+            self.assertIsInstance(article[0].get("parsed_data").get("source_language"),
+                                  list, "format mismatch for parsed_data--> source_language")
         else:
-            raise AssertionError("missing object:- parsed_data--> language")
+            raise AssertionError("missing object:- parsed_data--> source_language")
 
         if article[0].get("parsed_data").get("author"):
             self.assertIsInstance(article[0].get("parsed_data").get("author")[
@@ -186,7 +186,7 @@ class TestIndianExpressArticle(unittest.TestCase):
 class TestIndianExpressSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.spider = TimesNow(type=self.type)
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
