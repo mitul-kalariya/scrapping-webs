@@ -111,7 +111,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                 )
         elif self.type == "article":
             try:
-                yield scrapy.Request(self.url, callback=self.parse_article)
+                yield self.parse_article(response)
             except Exception as exception:
                 self.log(
                     f"Error occured while iterating article url. {str(exception)}",

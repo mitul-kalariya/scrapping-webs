@@ -115,7 +115,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
-    # print(selector_and_key)
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
