@@ -90,7 +90,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
-                self.articles.append(article_data)
+                yield article_data
 
         except BaseException as e:
             self.logger.error(f"Error while parse function: {e}")
@@ -211,7 +211,8 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         articledata_loader.add_value("parsed_json", response_json, )
         articledata_loader.add_value("parsed_data", response_data)
 
-        return dict(articledata_loader.load_item())
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
     def closed(self, reason: any) -> None:
         """

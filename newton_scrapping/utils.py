@@ -94,7 +94,7 @@ def get_parsed_json(response):
         - A dictionary representing the extracted information from the web page.
     """
     parsed_json = {}
-
+    other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
     for a_block in ld_json_data:
         data = json.loads(a_block)
@@ -105,8 +105,9 @@ def get_parsed_json(response):
         elif data.get("@type") == "VideoObject":
             parsed_json["VideoObject"] = data
         else:
-            parsed_json["other"] = data
+            other_data.append(data)
 
+    parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
