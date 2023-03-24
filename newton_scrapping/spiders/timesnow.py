@@ -234,7 +234,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
-            return self.articles
+            return articledata_loader.item
 
         except Exception as exception:
             self.log(
