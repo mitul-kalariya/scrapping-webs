@@ -12,6 +12,7 @@ from newton_scrapping.constant import (
     DATE_FORMAT
 )
 
+
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
        Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
@@ -33,7 +34,6 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
        Note:
            This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
        """
-    # initial_url = "https://www.timesnownews.com/staticsitemap/timesnow/sitemap-index.xml"
 
     validate_type(self)
 

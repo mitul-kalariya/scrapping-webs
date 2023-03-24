@@ -11,7 +11,7 @@ from newton_scrapping.utils import check_cmd_args, get_article_data, set_article
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
+    filename="leparisien.log",
     filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
