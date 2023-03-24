@@ -183,7 +183,7 @@ def get_parsed_data(response):
     main_dict["embed_video_link"] = video
     mapper = {"en": "English", "hi_IN": "Hindi"}
     article_lang = response.css("html::attr(lang)").get()
-    main_dict["language"] = [mapper.get(article_lang)]
+    main_dict["source_language"] = [mapper.get(article_lang)]
 
     return remove_empty_elements(main_dict)
 

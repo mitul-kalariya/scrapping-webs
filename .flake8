@@ -5,6 +5,6 @@
 # H306  : imports not in alphabetical order
 # W503 : line break before binary operator
 ignore = H903, E266, D203, H306, W503
-exclude = .git,
+exclude = .git, venv, env, settings.py, middlewares.py, constant.py, pipelines.py
 max-complexity = 10
 max_line_length = 120
