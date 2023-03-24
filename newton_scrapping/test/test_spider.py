@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
+from newton_scrapping.spiders.ct_news import CtvnewsSpider
 from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from newton_scrapping.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
@@ -10,7 +10,7 @@ from newton_scrapping.test.helpers.utils import (get_article_content,
 logger = logging.getLogger()
 
 
-class TestIndianExpressArticle(unittest.TestCase):
+class TestCTVNewsArticle(unittest.TestCase):
 
     def _test_article_results(self, articles, test_data_path):
         article = list(articles)[0]
@@ -24,7 +24,7 @@ class TestIndianExpressArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = CtvnewsSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -183,10 +183,10 @@ class TestIndianExpressArticle(unittest.TestCase):
         self._test_author_format(article)
 
 
-class TestIndianExpressSitemap(unittest.TestCase):
+class TestCTVNewsSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.spider = CtvnewsSpider(type=self.type)
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

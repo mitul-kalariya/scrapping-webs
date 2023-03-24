@@ -27,7 +27,6 @@ from newton_scrapping.exceptions import (
     URLNotFoundException,
 )
 
-
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
     level=logging.DEBUG,
@@ -58,7 +57,7 @@ class BaseSpider(ABC):
         pass
 
 
-class CtvnewsSpider(scrapy.Spider):
+class CtvnewsSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of CTV news site"""
 
     name = "ct_news"
@@ -67,7 +66,8 @@ class CtvnewsSpider(scrapy.Spider):
     namespace_news = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs  # pylint: disable=redefined-builtin
+            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+            # pylint: disable=redefined-builtin
     ):
         """init method to take date, type and validating it"""
 
@@ -97,8 +97,8 @@ class CtvnewsSpider(scrapy.Spider):
 
         except Exception as exception:  # pylint: disable=broad-except
             self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, start_date and end_date args. "
-                + str(exception)
+                    "Error occurred while taking type, url, start_date and end_date args. "
+                    + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. "
@@ -129,32 +129,41 @@ class CtvnewsSpider(scrapy.Spider):
             raise URLNotFoundException("URL not found")
 
         if "sitemap_news.xml" in response.url:
-            for link, date in zip(
-                Selector(response, type="xml")
-                .xpath("//sitemap:loc/text()", namespaces=self.namespace)
-                .getall(),
-                Selector(response, type="xml")
-                .xpath("//sitemap:publication_date/text()", namespaces=self.namespace_news)
-                .getall(),
-            ):
-                try:
-                    date_datetime_obj = datetime.strptime(
-                        date.strip()[:-6], "%Y-%m-%dT%H:%M:%S"
-                    )
-                    if date_in_date_range(date_datetime_obj, self.date_range_lst):
-                        yield scrapy.Request(
-                            link.strip(), callback=self.parse_sitemap_article
-                        )
-                except Exception as exception:  # pylint: disable=broad-except
-                    self.log(
-                        f"Error occurred while fetching sitemap:- {str(exception)}",
-                        level=logging.ERROR,
-                    )
-                    raise SitemapScrappingException(
-                        f"Error occurred while fetching sitemap:- {str(exception)}"
-                    ) from exception
+            yield scrapy.Request(response.url, callback=self.parse_sitemap)
         else:
-            self.parse_article(response)
+            yield self.parse_article(response)
+
+    def parse_sitemap(self, response: str) -> None:
+        """
+        parse sitemap and scrap article url
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
+        """
+        for link, date in zip(
+                Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
+                Selector(response, type="xml").xpath("//sitemap:publication_date/text()",
+                                                     namespaces=self.namespace_news).getall(),
+        ):
+            try:
+                date_datetime_obj = datetime.strptime(
+                    date.strip()[:-6], "%Y-%m-%dT%H:%M:%S"
+                )
+                if date_in_date_range(date_datetime_obj, self.date_range_lst):
+                    yield scrapy.Request(
+                        link.strip(), callback=self.parse_sitemap_article
+                    )
+            except Exception as exception:  # pylint: disable=broad-except
+                self.log(
+                    f"Error occurred while fetching sitemap:- {str(exception)}",
+                    level=logging.ERROR,
+                )
+                raise SitemapScrappingException(
+                    f"Error occurred while fetching sitemap:- {str(exception)}"
+                ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
         """
