@@ -9,32 +9,42 @@ from io import BytesIO
 from PIL import Image
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
+from newton_scrapping import exceptions
+from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-
-# Setting the threshold of logger to DEBUG
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
-    datefmt="%Y-%m-%d %H:%M:%S",
+from abc import ABC, abstractmethod
+from scrapy.loader import ItemLoader
+from newton_scrapping.items import ArticleData
+from newton_scrapping.utils import (
+    create_log_file,
+    validate_sitemap_date_range,
+    export_data_to_json_file,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
 )
-# Creating an object
-logger = logging.getLogger()
-
-class InvalidDateRange(Exception):
-    """
-    This code defines a custom exception class named
-    InvalidDateRange which inherits from the Exception class.
-    This exception is raised when the date range specified by the user is invalid,
-    for example, when the start date is later than the end date.
-    """
-
-    pass
 
 
-class MediaPartSpider(scrapy.Spider):
+
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
+
+
+class MediaPartSpider(scrapy.Spider, BaseSpider):
     name = "media_part"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
@@ -54,61 +64,21 @@ class MediaPartSpider(scrapy.Spider):
         """
         super().__init__(**kwargs)
         self.start_urls = []
-        self.sitemap_data = []
-        self.article_json_data = []
+        self.articles = []
         self.type = type.lower()
-        self.today_date = datetime.today().strftime("%Y-%m-%d")
-        self.links_path = "Links"
-        self.article_path = "Article"
 
-        if not os.path.exists(self.links_path):
-            os.makedirs(self.links_path)
-        if not os.path.exists(self.article_path):
-            os.makedirs(self.article_path)
+        create_log_file()
 
         if self.type == "sitemap":
             self.start_urls.append("https://www.mediapart.fr/sitemap_index.xml")
-            try:
-                self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else None
-                )
-                self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-                )
-                if start_date and not end_date:
-                    raise ValueError(
-                        "end_date must be specified if start_date is provided"
-                    )
-                if not start_date and end_date:
-                    raise ValueError(
-                        "start_date must be specified if end_date is provided"
-                    )
-                if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date > self.end_date
-                ):
-                    raise InvalidDateRange(
-                        "start_date should not be later than end_date"
-                    )
-                if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date == self.end_date
-                ):
-                    raise ValueError("start_date and end_date must not be the same")
-            except ValueError as e:
-                self.logger.error(f"Error in __init__: {e}", exc_info=True)
-                raise InvalidDateRange(e)
+            self.start_date = (
+                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+            )
+            self.end_date = (
+                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+            )
+            validate_sitemap_date_range(start_date, end_date)
 
-        if self.type == "article":
-            if url:
-                self.start_urls.append(url)
-            else:
-                self.logger.error("Error while")
-                raise Exception("Must have a URL to scrap")
 
     def parse(self, response):
         """
@@ -126,9 +96,9 @@ class MediaPartSpider(scrapy.Spider):
             self.logger.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
-                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             if self.type == "article":
                 response_json = self.response_json(response)
@@ -151,8 +121,7 @@ class MediaPartSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-    def parse_by_date(self, response):
-
+    def parse_sitemap(self, response):
         """
         Function to parse a sitemap response by date
 
@@ -179,13 +148,13 @@ class MediaPartSpider(scrapy.Spider):
             ):
                 # Loop through each link in the sitemap and create a scrapy request for it
                 for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap)
+                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
         # If there's any error during the above process, log it and print
         except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
+            LOGGER.error("Error while parsing sitemap: {}".format(e))
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
-    def parse_sitemap(self, response):
+    def parse_sitemap_article(self, response):
 
         """
         This function takes in a response object and parses the sitemap.
@@ -212,7 +181,7 @@ class MediaPartSpider(scrapy.Spider):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
                 # Convert today's date to a datetime object
-                today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
+                # today_date = datetime.strptime(TODAYS_DATE, "%Y-%m-%d").date()
 
                 # If the published date falls within the specified date range, make a request to the link
                 if (
@@ -222,24 +191,25 @@ class MediaPartSpider(scrapy.Spider):
                 ):
                     yield scrapy.Request(
                         link,
-                        callback=self.parse_sitemap_link_title,
+                        callback=self.parse_sitemap_by_title_link,
                         meta={"link": link, "published_date": published_at},
                     )
 
                 # If the published date is today's date, make a request to the link
-                elif today_date == published_at:
+                elif TODAYS_DATE == published_at:
                     yield scrapy.Request(
                         link,
-                        callback=self.parse_sitemap_link_title,
+                        callback=self.parse_sitemap_by_title_link,
                         meta={"link": link, "published_date": published_at},
                     )
                 else:
                     continue
+                    # If there's any error during the above process, log it and print
         except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
+            LOGGER.error(f"Error while parsing sitemap article: {e}")
+            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
-    def parse_sitemap_link_title(self, response):
+    def parse_sitemap_by_title_link(self, response):
         try:
             link = response.meta["link"]
             published_date = response.meta["published_date"]
@@ -253,10 +223,39 @@ class MediaPartSpider(scrapy.Spider):
                 "title": title,
             }
             if title:
-                self.sitemap_data.append(data)
+                self.articles.append(data)
         except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
+            LOGGER.error(f"Error while parsing sitemap article: {e}")
+            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
+
+    def parse_article(self, response) -> list:
+        """
+            Parses the article data from the response object and returns it as a dictionary.
+
+            Args:
+                response (scrapy.http.Response): The response object containing the article data.
+
+            Returns:
+                dict: A dictionary containing the parsed article data, including the raw response,
+                parsed JSON, and parsed data, along with additional information such as the country
+                and time scraped.
+        """
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = get_parsed_data(response)
+        response_data["country"] = ["Germany"]
+        response_data["time_scraped"] = [str(datetime.now())]
+
+        articledata_loader.add_value("raw_response", raw_response)
+        articledata_loader.add_value(
+            "parsed_json",
+            response_json,
+        )
+        articledata_loader.add_value("parsed_data", response_data)
+
+        return dict(articledata_loader.load_item())
+
 
     def response_json(self, response):
         """
@@ -448,21 +447,30 @@ class MediaPartSpider(scrapy.Spider):
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-    def closed(self, response):
+    def closed(self, reason: any) -> None:
         """
-        Saves the sitemap data or article JSON data to a file with a timestamped filename.
+        store all scrapped data into json file with given date in filename
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-        if self.type == "sitemap":
-            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.sitemap_data, f, indent=4, default=str)
 
-        if self.type == "article":
-            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.article_json_data, f, indent=4, default=str)
+        try:
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
+            self.log(
+                f"Error occurred while writing json file{str(exception)} - {reason}",
+                level=logging.ERROR,
+            )
 
 
 if __name__ == "__main__":
