@@ -48,7 +48,7 @@ def sitemap_validations(
             not (scrape_start_date or scrape_end_date),
             "start_date and end_date",
         )
-        scrape_start_date = scrape_end_date = datetime.utcnow().date()
+        scrape_start_date = scrape_end_date = datetime.now().date()
 
     validate_arg(
         InvalidArgumentException, not article_url, "url is not required for sitemap."
