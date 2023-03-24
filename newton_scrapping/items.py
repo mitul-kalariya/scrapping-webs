@@ -6,7 +6,7 @@
 import scrapy
 
 
-class Cp24NewsItem(scrapy.Item):
+class NewtonScrappingItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     pass

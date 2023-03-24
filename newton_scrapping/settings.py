@@ -1,4 +1,4 @@
-# Scrapy settings for cp24_news project
+# Scrapy settings for newton_scrapping project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,14 +7,14 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "cp24_news"
+BOT_NAME = "newton_scrapping"
 
-SPIDER_MODULES = ["cp24_news.spiders"]
-NEWSPIDER_MODULE = "cp24_news.spiders"
+SPIDER_MODULES = ["newton_scrapping.spiders"]
+NEWSPIDER_MODULE = "newton_scrapping.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "cp24_news (+http://www.yourdomain.com)"
+#USER_AGENT = "newton_scrapping (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "cp24_news.middlewares.Cp24NewsSpiderMiddleware": 543,
+#    "newton_scrapping.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "cp24_news.middlewares.Cp24NewsDownloaderMiddleware": 543,
+#    "newton_scrapping.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "cp24_news.pipelines.Cp24NewsPipeline": 300,
+#    "newton_scrapping.pipelines.NewtonScrappingPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
