@@ -1,29 +1,22 @@
 import re
 import requests
 import logging
+import json
 from PIL import Image
 from io import BytesIO
 from datetime import datetime
+from newton_scrapping.constants import LOGGER
 
-# Setting the threshold of logger to DEBUG
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+def create_log_file():
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename="logs.log",
-    format=LOG_FORMAT,
-    filemode="a",
-)
-
-# Creating an object
-logger = logging.getLogger()
-
-
-class InvalidDateRange(Exception):
-    pass
-
-
-def parse_sitemap_main(self, start_urls, start_date, end_date):
+def parse_sitemap_main(start_urls, start_date, end_date):
     start_urls.append("https://www.republicworld.com/sitemap.xml")
     try:
         start_date = (
@@ -40,11 +33,89 @@ def parse_sitemap_main(self, start_urls, start_date, end_date):
         if start_date and end_date and start_date == end_date:
             raise ValueError("start_date and end_date must not be the same")
     except ValueError as e:
-        logger.error(f"Error in __init__: {e}")
+        LOGGER.error(f"Error in __init__: {e}")
         raise InvalidDateRange(f"{e}")
 
 
-def response_data(response):
+def get_raw_response(response):
+    raw_resopnse = {
+        "content_type": "text/html; charset=utf-8",
+        "content": response.css("html").get(),
+    }
+    return raw_resopnse
+
+
+
+def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
+    parsed_json = {}
+
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            parsed_json["other"] = data
+
+    misc = get_misc(response)
+    if misc:
+        parsed_json["misc"] = misc
+
+    return remove_empty_elements(parsed_json)
+
+
+
+def get_main(response):
+    """
+    returns a list of main data available in the article from application/ld+json
+    Parameters:
+        response:
+    Returns:
+        main data
+    """
+    try:
+        data = []
+        misc = response.css('script[type="application/ld+json"]::text').getall()
+        for block in misc:
+
+            data.append(json.loads(block))
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        print(f"Error while getting main: {e}")
+
+
+def get_misc(response):
+    """
+    returns a list of misc data available in the article from application/json
+    Parameters:
+        response:
+    Returns:
+        misc data
+    """
+    try:
+        data = []
+        misc = response.css('script[type="application/json"]::text').getall()
+        for block in misc:
+            data.append(json.loads(block))
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        print(f"Error while getting misc: {e}")
+
+
+def get_parsed_data(response):
     """
     Extracts data from a news article webpage and returns it in a dictionary format.
 
@@ -67,40 +138,33 @@ def response_data(response):
         - 'images': (list) The list of image URLs in the article, if available.
     """
     main_dict = {}
-    authors = extract_author(response)
+    authors = get_author(response)
     main_dict["author"] = authors
-    last_updated = extract_lastupdated(response)
+    last_updated = get_lastupdated(response)
     main_dict["modified_at"] = [last_updated]
-    published_on = extract_published_on(response.css("div.story-wrapper"))
+    published_on = get_published_at(response.css("div.story-wrapper"))
     main_dict["published_at"] = [published_on]
     description = response.css("h2.story-description::text").get()
     main_dict["description"] = [description]
-    publisher = extract_publisher(response)
+    publisher = get_publisher(response)
     main_dict["publisher"] = publisher
     article_text = response.css("section p::text").getall()
     main_dict["text"] = [" ".join(article_text)]
-    thumbnail = extract_thumbnail(response)
+    thumbnail = get_thumbnail_image(response)
     main_dict["thumbnail_image"] = thumbnail
     headline = response.css("h1.story-title::text").get().strip()
     main_dict["title"] = [headline]
-    article_images = extract_all_images(response)
+    article_images = get_images(response)
     main_dict["images"] = article_images
-    video = extract_video(response)
+    video = get_embed_video_link(response)
     main_dict["embed_video_link"] = video
+    mapper = {"en": "English", "hi_IN":"Hindi"}
     article_lang = response.css("html::attr(lang)").get()
-    main_dict["language"] = [article_lang]
-    return filter_dict(main_dict)
+    main_dict["language"] = [mapper.get(article_lang)]
+    
+    return remove_empty_elements(main_dict)
 
-
-def filter_dict(raw_dict):
-    """
-        Filtering null value from the dictionary
-    """
-    target_dict = dict([(vkey, vdata) for vkey, vdata in raw_dict.items() if (vdata)])
-    return target_dict
-
-
-def extract_lastupdated(response) -> str:
+def get_lastupdated(response) -> str:
     """
     This function extracts the last updated date and time of an article from a given Scrapy response object.
     It returns a string representation of the date and time in ISO 8601 format.
@@ -114,7 +178,7 @@ def extract_lastupdated(response) -> str:
         return info.css("time::attr(datetime)").get()
 
 
-def extract_published_on(response) -> str:
+def get_published_at(response) -> str:
     info = response.xpath('//div[@class ="padtop10 padbtm10"]')
     info_eng = response.css("div.padtop20")
 
@@ -124,7 +188,7 @@ def extract_published_on(response) -> str:
         return info_eng.css("time::attr(datetime)").get()
 
 
-def extract_author(response) -> list:
+def get_author(response) -> list:
     """
     The extract_author function extracts information about the author(s)
     of an article from the given response object and returns it in the form of a list of dictionaries.
@@ -151,7 +215,7 @@ def extract_author(response) -> list:
         return data
 
 
-def extract_thumbnail(response) -> list:
+def get_thumbnail_image(response) -> list:
     """
     The function extract_thumbnail extracts information about the thumbnail image(s) associated with a webpage,
     including its link, width, and height, and returns the information as a list of dictionaries.
@@ -176,7 +240,7 @@ def extract_thumbnail(response) -> list:
     return data
 
 
-def extract_video(response) -> list:
+def get_embed_video_link(response) -> list:
     """
     A list of video objects containing information about the videos on the webpage.
     """
@@ -193,7 +257,7 @@ def extract_video(response) -> list:
     return data
 
 
-def extract_publisher(response) -> list:
+def get_publisher(response) -> list:
     """
     Extracts publisher information from the given response object and returns it as a dictionary.
 
@@ -220,7 +284,7 @@ def extract_publisher(response) -> list:
     return [a_dict]
 
 
-def extract_all_images(response) -> list:
+def get_images(response) -> list:
     """
     Extracts all the images present in the web page.
 
@@ -238,3 +302,36 @@ def extract_all_images(response) -> list:
                 temp_dict["link"] = image
             data.append(temp_dict)
     return data
+
+
+def remove_empty_elements(parsed_data_dict):
+    """
+    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
+    :param d: Input dictionary.
+    :type d: dict
+    :return: Dictionary with all empty lists, and empty dictionaries removed.
+    :rtype: dict
+    """
+
+    def empty(value):
+        return value is None or value == {} or value == []
+
+    if not isinstance(parsed_data_dict, (dict, list)):
+        data_dict = parsed_data_dict
+    elif isinstance(parsed_data_dict, list):
+        data_dict = [
+            value
+            for value in (remove_empty_elements(value) for value in parsed_data_dict)
+            if not empty(value)
+        ]
+    else:
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value))
+                for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
+    return data_dict
+

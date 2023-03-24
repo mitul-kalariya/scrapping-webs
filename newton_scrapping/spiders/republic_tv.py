@@ -3,8 +3,14 @@ import json
 import scrapy
 from dateutil import parser
 from datetime import datetime
-from . import utils
-
+from scrapy.loader import ItemLoader
+from newton_scrapping.items import ArticleData
+from newton_scrapping.utils import (
+    parse_sitemap_main,
+    get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
+)
 
 class RepublicTvSpider(scrapy.Spider):
     name = "republic_tv"
@@ -28,7 +34,7 @@ class RepublicTvSpider(scrapy.Spider):
         super().__init__(**kwargs)
         self.start_urls = []
         self.sitemap_data = []
-        self.article_json_data = []
+        self.articles = []
         self.type = type.lower()
         # self.start_date = start_date
         # self.end_date = end_date
@@ -50,7 +56,7 @@ class RepublicTvSpider(scrapy.Spider):
         )
 
         if self.type == "sitemap":
-            utils.parse_sitemap_main(self, self.start_urls, start_date, end_date)
+            parse_sitemap_main(self, self.start_urls, start_date, end_date)
 
         if self.type == "article":
             if url:
@@ -69,37 +75,53 @@ class RepublicTvSpider(scrapy.Spider):
         Raises:
         BaseException: If an error occurs during parsing.
         """
-        self.logger.info("Parse function called on %s", response.url)
-        if self.type == "sitemap":
-            if self.start_date and self.end_date:
-                self.logger.info("Parse function called on %s", response.url)
-                yield scrapy.Request(response.url, callback=self.parse_by_date)
-            else:
-                self.logger.info("Parse function called on %s", response.url)
-                yield scrapy.Request(response.url, callback=self.parse_by_date)
-        elif self.type == "article":
-            try:
-                self.logger.debug("Parse function called on %s", response.url)
-                response_json = self.response_json(response)
-                response_data = utils.response_data(response)
-                data = {
-                    "raw_response": {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },
-                }
-                if response_json:
-                    data["parsed_json"] = response_json
-                if response_data:
-                    response_data["country"] = ["India"]
-                    response_data["time_scraped"] = [str(datetime.now())]
-                    data["parsed_data"] = response_data
+        try:
+            self.logger.info("Parse function called on %s", response.url)
+            if self.type == "sitemap":
+                if self.start_date and self.end_date:
+                    self.logger.info("Parse function called on %s", response.url)
+                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+                else:
+                    self.logger.info("Parse function called on %s", response.url)
+                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+            elif self.type == "article":
+               self.parse_article(response)
 
-                self.article_json_data.append(data)
 
-            except BaseException as e:
-                print(f"Error: {e}")
-                self.logger.error(f"{e}")
+        except BaseException as e:
+            print(f"Error: {e}")
+            self.logger.error(f"{e}")
+
+
+    def parse_article(self, response):
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = get_parsed_data(response)
+        response_data["country"] = ["India"]
+        response_data["time_scraped"] = [str(datetime.now())]
+
+        articledata_loader.add_value("raw_response", raw_response)
+        articledata_loader.add_value(
+            "parsed_json",
+            response_json,
+        )
+        articledata_loader.add_value("parsed_data", response_data)
+
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
+
 
     def parse_by_date(self, response):
         """
@@ -168,66 +190,6 @@ class RepublicTvSpider(scrapy.Spider):
 
         self.sitemap_data.append(data)
 
-    def response_json(self, response) -> dict:
-        """
-        Extracts relevant information from a news article web page using the given
-        Scrapy response object and the URL of the page.
-
-        Args:
-        - response: A Scrapy response object representing the web page to extract
-          information from.
-        - current_url: A string representing the URL of the web page.
-
-        Returns:
-        - A dictionary representing the extracted information from the web page.
-        """
-        parsing_dict = {}
-        main_data = self.get_main(response)
-        if main_data:
-            parsing_dict["main"] = main_data
-
-        misc_data = self.get_misc(response)
-        if misc_data:
-            parsing_dict["misc"] = misc_data
-
-        return parsing_dict
-
-    def get_main(self, response):
-        """
-        returns a list of main data available in the article from application/ld+json
-        Parameters:
-            response:
-        Returns:
-            main data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/ld+json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting main: {e}")
-
-    def get_misc(self, response):
-        """
-        returns a list of misc data available in the article from application/json
-        Parameters:
-            response:
-        Returns:
-            misc data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting misc: {e}")
-
     def closed(self, response):
         """
         Method called when the spider is finished scraping.
@@ -244,4 +206,4 @@ class RepublicTvSpider(scrapy.Spider):
         if self.type == "article":
             file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
             with open(file_name, "w") as f:
-                json.dump(self.article_json_data, f, indent=4)
+                json.dump(self.articles, f, indent=4)
