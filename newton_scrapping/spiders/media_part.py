@@ -1,6 +1,7 @@
 import re
-import os
 import json
+from typing import Dict, Any
+
 import scrapy
 import requests
 import logging
@@ -78,6 +79,12 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
             validate_sitemap_date_range(start_date, end_date)
+        if self.type == "article":
+            if url:
+                self.start_urls.append(url)
+            else:
+                LOGGER.error("Must have a URL to scrap")
+                raise Exception("Must have a URL to scrap")
 
 
     def parse(self, response):
@@ -100,26 +107,42 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-            if self.type == "article":
-                response_json = self.response_json(response)
-                response_data = self.response_data(response)
-                data = {
-                    "raw_response": {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },
-                }
-                if response_json:
-                    data["parsed_json"] = response_json
-                if response_data:
-                    response_data["country"] = ["France"]
-                    response_data["time_scraped"] = [str(datetime.now())]
-                    data["parsed_data"] = response_data
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                self.articles.append(article_data)
 
-                self.article_json_data.append(data)
         except BaseException as e:
             self.logger.error(f"{e}")
             print(f"Error: {e}")
+
+
+    def parse_article(self,response):
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = get_parsed_data(response)
+        response_data["country"] = ["Germany"]
+        response_data["time_scraped"] = [str(datetime.now())]
+
+        articledata_loader.add_value("raw_response", raw_response)
+        articledata_loader.add_value(
+            "parsed_json",
+            response_json,
+        )
+        articledata_loader.add_value("parsed_data", response_data)
+
+        return dict(articledata_loader.load_item())
 
     def parse_sitemap(self, response):
         """
@@ -228,7 +251,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             LOGGER.error(f"Error while parsing sitemap article: {e}")
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
-    def parse_article(self, response) -> list:
+    def parse_article(self, response) -> dict[Any, Any]:
         """
             Parses the article data from the response object and returns it as a dictionary.
 
@@ -244,7 +267,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["Germany"]
+        response_data["country"] = ["France"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
@@ -257,195 +280,9 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         return dict(articledata_loader.load_item())
 
 
-    def response_json(self, response):
-        """
-        Extracts relevant information from a news article web page using the given
-        Scrapy response object and the URL of the page.
 
-        Args:
-        - response: A Scrapy response object representing the web page to extract
-          information from.
-        - current_url: A string representing the URL of the web page.
 
-        Returns:
-        - A dictionary representing the extracted information from the web page.
-        """
-        try:
 
-            parsed_json = {}
-            main = self.get_main(response)
-            if main:
-                parsed_json["main"] = main
-
-            misc = self.get_misc(response)
-            if misc:
-                parsed_json["misc"] = misc
-
-            return parsed_json
-
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
-
-    def response_data(self, response):
-        """
-        Extracts data from a news article webpage and returns it in a dictionary format.
-
-        Parameters:
-        response (scrapy.http.Response): A scrapy response object of the news article webpage.
-
-        Returns:
-        dict: A dictionary containing the extracted data from the webpage, including:
-             - 'publisher': (str) The name of the publisher of the article.
-             - 'article_catagory': The region of the news that the article refers to
-             - 'headline': (str) The headline of the article.
-             - 'authors': (list) The list of authors of the article, if available.
-             - 'published_on': (str) The date and time the article was published.
-             - 'updated_on': (str) The date and time the article was last updated, if available.
-             - 'text': (list) The list of text paragraphs in the article.
-             - 'images': (list) The list of image URLs in the article, if available. (using bs4)
-
-        """
-        try:
-            main_dict = {}
-            pattern = r"[\r\n\t\"]+"
-            publisher = self.extract_publisher(response)
-            if publisher:
-                main_dict["publisher"] = publisher
-
-            headline = response.css("h1.l-article__title::text").getall()
-            if headline:
-                main_dict["title"] = headline
-
-            authors = self.extract_author(response)
-            if authors:
-                main_dict["author"] = authors
-
-            published_on = response.css("div.splitter__first").get()
-            if published_on:
-                published_on = (
-                    re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")
-                ).strip()
-                main_dict["published_at"] = [published_on]
-
-            description = response.css("p.news__heading__top__intro::text").get()
-            if description:
-                main_dict["description"] = [description]
-
-            article_text = response.css("p.dropcap-wrapper::text").getall()
-            if article_text:
-                main_dict["text"] = [" ".join(article_text).replace("\n", "")]
-
-            article_lang = response.css("html::attr(lang)").get()
-            if article_lang:
-                main_dict["language"] = [article_lang]
-
-            return main_dict
-
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
-
-    def get_main(self, response):
-        """
-        returns a list of main data available in the article from application/ld+json
-        Parameters:
-            response:
-        Returns:
-            main data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/ld+json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting main: {e}")
-
-    def get_misc(self, response):
-        """
-        returns a list of misc data available in the article from application/json
-        Parameters:
-            response:
-        Returns:
-            misc data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting misc: {e}")
-
-    def extract_publisher(self, response) -> list:
-        """
-        Extracts publisher information from the given response object and returns it as a dictionary.
-
-        Returns:
-        - A dictionary containing information about the publisher.The dictionary has the following keys:
-        ---
-        @id: The unique identifier for the publisher.
-        @type: The type of publisher (in this case, always "NewsMediaOrganization").
-        name: The name of the publisher.
-        logo: Logo of the publisher as an image object
-        """
-        try:
-            logo = response.css('head link[rel="icon"]::attr(href)').get()
-            img_response = requests.get(logo)
-            width, height = Image.open(BytesIO(img_response.content)).size
-            a_dict = {
-                "@id": "mediapart.fr",
-                "@type": "NewsMediaOrganization",
-                "name": "Global NEWS",
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": logo,
-                    "width": {"@type": "Distance", "name": str(width) + " px"},
-                    "height": {"@type": "Distance", "name": str(height) + " px"},
-                },
-            }
-            return [a_dict]
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
-
-    def extract_author(self, response) -> list:
-        """
-        The extract_author function extracts information about the author(s)
-        of an article from the given response object and returns it in the form of a list of dictionaries.
-
-        Parameters:
-            response (scrapy.http.Response): The response object containing the HTML of the article page.
-
-        Returns:
-            A list of dictionaries, where each dictionary contains information about one author.
-
-        """
-        try:
-            info = response.css("div.splitter__first p a")
-            pattern = r"[\r\n\t\"]+"
-            data = []
-            if info:
-                for i in info:
-                    temp_dict = {}
-                    temp_dict["@type"] = "Person"
-                    name = i.css("a::text").get()
-                    if name:
-                        name = re.sub(pattern, "", name).strip()
-                        temp_dict["name"] = "".join((name.split("("))[0::-2])
-                        url = i.css("a::attr(href)").get()
-                        if url:
-                            temp_dict["url"] = "https://www.mediapart.fr" + url
-                        data.append(temp_dict)
-                return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
 
     def closed(self, reason: any) -> None:
         """
