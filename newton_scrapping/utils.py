@@ -204,6 +204,9 @@ def get_parsed_data(response):
         authors = get_author(response)
         main_dict["author"] = authors
 
+        article_description = get_main(response)
+        main_dict["description"] = [article_description[0].get("description")]
+
         published_on = response.css(
             "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
         ).get()
@@ -232,7 +235,10 @@ def get_parsed_data(response):
 
         mapper = {"en-US": "English"}
         article_lang = response.css("html::attr(lang)").get()
-        main_dict["language"] = [mapper.get(article_lang)]
+        main_dict["source_language"] = [mapper.get(article_lang)]
+
+        main_dict["source_country"] = ["Canada"]
+        main_dict["time_scraped"] = [str(datetime.now())]
 
         return remove_empty_elements(main_dict)
     except BaseException as e:

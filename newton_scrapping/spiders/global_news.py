@@ -99,6 +99,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
+    
         root = etree.fromstring(response.body)
         urls = root.xpath(
             "//xmlns:loc/text()",
@@ -112,7 +113,6 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             "//news:publication_date/text()",
             namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
         )
-
         for url, title, pub_date in zip(urls, titles, publication_dates):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
             if self.start_date and published_at < self.start_date:
@@ -123,13 +123,13 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             if self.start_date is None and self.end_date is None:
                 if TODAYS_DATE == published_at:
                     data = {
-                        "url": url,
+                        "link": url,
                         "title": title,
                     }
                     self.articles.append(data)
             else:
                 data = {
-                    "url": url,
+                    "link": url,
                     "title": title,
                 }
                 self.articles.append(data)
@@ -154,8 +154,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["source_country"] = ["Canada"]
-        response_data["time_scraped"] = [str(datetime.now())]
+        
 
         articledata_loader.add_value("raw_response", raw_response)
         articledata_loader.add_value(
@@ -165,6 +164,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         articledata_loader.add_value("parsed_data", response_data)
 
         self.articles.append(dict(articledata_loader.load_item()))
+
         return articledata_loader.item
 
 
