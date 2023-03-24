@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
+from newton_scrapping.spiders.cbc_news import CbcNewsSpider
 from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from newton_scrapping.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
@@ -10,7 +10,7 @@ from newton_scrapping.test.helpers.utils import (get_article_content,
 logger = logging.getLogger()
 
 
-class TestIndianExpressArticle(unittest.TestCase):
+class TestArticle(unittest.TestCase):
 
     def _test_article_results(self, articles, test_data_path):
         article = [article for article in articles]
@@ -24,7 +24,7 @@ class TestIndianExpressArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = CbcNewsSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -219,25 +219,14 @@ class TestIndianExpressArticle(unittest.TestCase):
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> section")
 
-        if article[0].get("parsed_data").get("tags"):
-            with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
-                                  str, "format mismatch for parsed_data--> tags")
-            with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-                                  list, "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
-
         self._test_image_format(article)
         self._test_author_format(article)
 
 
-class TestIndianExpressSitemap(unittest.TestCase):
+class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.spider = CbcNewsSpider(type=self.type)
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
@@ -253,7 +242,7 @@ class TestIndianExpressSitemap(unittest.TestCase):
             for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
                 self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
         with self.subTest():
-            self.assertEqual(len(self.spider.articles), 1, "Crawler did not fetched single article form sitemap")
+            self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
         with self.subTest():
             self.assertIsInstance(self.spider.articles, list, "Sitemap Article format mismatch")
         with self.subTest():

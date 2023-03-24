@@ -3,17 +3,17 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
-        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
-    },
-    {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.cbc.ca/news/politics/joe-biden-official-visit-canada-1.6789140",
         "test_data_path": "newton_scrapping/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.cbc.ca/news/canada/saskatchewan/first-person-tenille-campbell-beadwork-1.6749167",
+        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
+    },
+    {
+        "url": "https://www.cbc.ca/news/canada/north/behchoko-tlicho-youth-wellness-gathering-1.6788711",
         "test_data_path": "newton_scrapping/test/data/test_article_3.json"
     }
 ]
 
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://www.cbc.ca/rss/"
