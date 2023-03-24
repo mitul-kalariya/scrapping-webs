@@ -1,19 +1,12 @@
-import re
-import json
-import logging
-from io import BytesIO
-from datetime import datetime
-import os
 import scrapy
-import requests
-from PIL import Image
+import logging
+from datetime import datetime
 from lxml import etree
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-
 from newton_scrapping import exceptions
 from scrapy.loader import ItemLoader
-from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
+from newton_scrapping.constants import TODAYS_DATE, LOGGER
 from abc import ABC, abstractmethod
 from newton_scrapping.items import ArticleData
 from newton_scrapping.utils import (
@@ -44,7 +37,7 @@ class BaseSpider(ABC):
 
 
 
-class GlobalNewsSpider(scrapy.Spider):
+class GlobalNewsSpider(scrapy.Spider, BaseSpider):
     name = "global_news"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
@@ -64,6 +57,7 @@ class GlobalNewsSpider(scrapy.Spider):
         super().__init__(**kwargs)
         self.start_urls = []
         self.articles = []
+        self.article_url = url
         self.type = type.lower()
 
         create_log_file()
@@ -82,7 +76,7 @@ class GlobalNewsSpider(scrapy.Spider):
             if url:
                 self.start_urls.append(url)
             else:
-                self.logger.error("Must have a URL to scrap")
+                LOGGER.error("Must have a URL to scrap")
                 raise Exception("Must have a URL to scrap")
 
     def parse(self, response):
@@ -92,7 +86,7 @@ class GlobalNewsSpider(scrapy.Spider):
         """
         if self.type == "sitemap":
             if self.start_date and self.end_date:
-                self.logger.info("Parse function called on %s", response.url)
+                LOGGER.info("Parse function called on %s", response.url)
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             else:
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -127,7 +121,7 @@ class GlobalNewsSpider(scrapy.Spider):
                 return
 
             if self.start_date is None and self.end_date is None:
-                if TODAYS_DATE in pub_date:
+                if TODAYS_DATE == published_at:
                     data = {
                         "url": url,
                         "title": title,
@@ -197,7 +191,7 @@ class GlobalNewsSpider(scrapy.Spider):
             return parsed_json
 
         except BaseException as e:
-            self.logger.error(f"{e}")
+            LOGGER.error(f"{e}")
             print(f"Error: {e}")
 
     def closed(self, reason: any) -> None:
