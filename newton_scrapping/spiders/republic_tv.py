@@ -1,18 +1,50 @@
 import os
+import re
 import json
 import scrapy
+import logging
 from dateutil import parser
 from datetime import datetime
+from newton_scrapping.constants import(
+        SITEMAP_URL,
+        TODAYS_DATE,
+        LOGGER
+)
+from newton_scrapping import exceptions
+from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from newton_scrapping.items import ArticleData
 from newton_scrapping.utils import (
-    parse_sitemap_main,
+    create_log_file,
+    validate_sitemap_date_range,
+    export_data_to_json_file,
+    get_raw_response,
     get_parsed_data,
     get_parsed_json,
-    get_raw_response,
 )
 
-class RepublicTvSpider(scrapy.Spider):
+
+
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
+
+
+
+
+class RepublicTvSpider(scrapy.Spider, BaseSpider):
     name = "republic_tv"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
@@ -36,34 +68,25 @@ class RepublicTvSpider(scrapy.Spider):
         self.sitemap_data = []
         self.articles = []
         self.type = type.lower()
-        # self.start_date = start_date
-        # self.end_date = end_date
-        self.today_date = datetime.today().strftime("%Y-%m-%d")
-        self.links_path = "Links"
-        self.article_path = "Article"
 
-        if not os.path.exists(self.links_path):
-            os.makedirs(self.links_path)
-        if not os.path.exists(self.article_path):
-            os.makedirs(self.article_path)
-
-        self.start_date = (
-            datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-        )
-
-        self.end_date = (
-            datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-        )
+        create_log_file()
 
         if self.type == "sitemap":
-            parse_sitemap_main(self, self.start_urls, start_date, end_date)
+            self.start_urls.append(SITEMAP_URL)
+            self.start_date = (
+                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+            )
+            self.end_date = (
+                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+            )
+            validate_sitemap_date_range(start_date, end_date)
 
         if self.type == "article":
             if url:
                 self.start_urls.append(url)
             else:
-                self.logger.error("Must have a URL to scrap")
-                raise Exception("Must have a URL to scrap")
+                LOGGER.error("Error while")
+                raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
         """
@@ -80,20 +103,102 @@ class RepublicTvSpider(scrapy.Spider):
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
                     self.logger.info("Parse function called on %s", response.url)
-                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
                     self.logger.info("Parse function called on %s", response.url)
-                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
             elif self.type == "article":
-               self.parse_article(response)
-
-
+                article_data = self.parse_article(response)
+                yield article_data
+                
         except BaseException as e:
-            print(f"Error: {e}")
-            self.logger.error(f"{e}")
+            print(f"Error while parse function: {e}")
+            self.logger.error(f"Error while parse function: {e}")
 
+    def parse_sitemap(self, response):
+        """
+        Parses a webpage response object and yields scrapy requests for each sitemap XML link found.
 
-    def parse_article(self, response):
+        Yields:
+        scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
+        """
+        try:
+            self.logger.info("Parse Sitemap at %s", response.url)
+            if "sitemap.xml" in response.url:
+                for sitemap in response.xpath(
+                    "//sitemap:loc/text()",
+                    namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+                ):
+                    if sitemap.get().endswith(".xml"):
+                        for link in sitemap.getall():
+                            if self.start_date is None and self.end_date is None:
+                                if str(TODAYS_DATE).replace("-", "") in link:
+                                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                            else:
+                                 yield scrapy.Request(link, callback=self.parse_sitemap_article)
+        except BaseException as e:
+            LOGGER.error("Error while parsing sitemap: {}".format(e))
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+
+    def parse_sitemap_article(self, response):
+        """
+        Parses a sitemap and sends requests to scrape each of the links.
+
+        Yields:
+        scrapy.Request: A request to scrape each of the links in the sitemap.
+
+        Notes:
+        The sitemap must be in the XML format specified by the sitemaps.org protocol.
+        The function extracts the links from the sitemap
+            and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
+        The function also extracts the publication date of the sitemap, if available, and
+            passes it along as a meta parameter in each request.
+        """
+        try:
+            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = response.xpath("//n:url/n:loc/text()", namespaces=namespaces).getall()
+            published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
+            published_date = parser.parse(published_at).date() if published_at else None
+            for link in links:
+                yield scrapy.Request(
+                    link,
+                    callback=self.parse_sitemap_by_link_title,
+                    meta={"link": link, "published_date": published_date},
+                )
+        except BaseException as e:
+            exceptions.SitemapArticleScrappingException(
+                f"Error while parse sitemap article: {e}"
+            )
+            LOGGER.error(f"Error while parse sitemap article: {e}")
+
+    def parse_sitemap_by_link_title(self, response):
+        """
+        Parses the link, title, and published date from a sitemap page.
+
+        Notes:
+        - Adds the parsed data to the scraper's sitemap_data list.
+        - Skips the link if the published date is outside the scraper's specified date range.
+        """
+        try:
+            link = response.meta["link"]
+            published_date = response.meta["published_date"]
+            title = response.css(".story-title::text").get().strip()
+
+            if self.start_date and published_date < self.start_date:
+                return
+            if self.end_date and published_date > self.end_date:
+                return
+
+            data = {"link": link, "title": title}
+
+            self.articles.append(data)
+        except BaseException as e:
+            exceptions.SitemapArticleScrappingException(
+                f"Error while parse sitemap article: {e}"
+            )
+            LOGGER.error(f"Error while parse sitemap article: {e}")
+    
+    def parse_article(self, response: str) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
 
@@ -123,87 +228,28 @@ class RepublicTvSpider(scrapy.Spider):
         return articledata_loader.item
 
 
-    def parse_by_date(self, response):
-        """
-        Parses a webpage response object and yields scrapy requests for each sitemap XML link found.
 
-        Yields:
-        scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
+    def closed(self, reason: any) -> None:
         """
-        self.logger.info("Parse by date at %s", response.url)
-        if "sitemap.xml" in response.url:
-            for sitemap in response.xpath(
-                "//sitemap:loc/text()",
-                namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
-            ):
-                if sitemap.get().endswith(".xml"):
-                    for link in sitemap.getall():
-                        if self.start_date is None and self.end_date is None:
-                            if self.today_date.replace("-", "") in link:
-                                yield scrapy.Request(link, callback=self.parse_sitemap)
-                        else:
-                            yield scrapy.Request(link, callback=self.parse_sitemap)
-
-    def parse_sitemap(self, response):
+        store all scrapped data into json file with given date in filename
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
-        Parses a sitemap and sends requests to scrape each of the links.
 
-        Yields:
-        scrapy.Request: A request to scrape each of the links in the sitemap.
-
-        Notes:
-        The sitemap must be in the XML format specified by the sitemaps.org protocol.
-        The function extracts the links from the sitemap
-            and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
-        The function also extracts the publication date of the sitemap, if available, and
-            passes it along as a meta parameter in each request.
-        """
-        namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        links = response.xpath("//n:url/n:loc/text()", namespaces=namespaces).getall()
-        published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
-        published_date = parser.parse(published_at).date() if published_at else None
-        for link in links:
-            yield scrapy.Request(
-                link,
-                callback=self.parse_sitemap_link_title,
-                meta={"link": link, "published_date": published_date},
+        try:
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
             )
-
-    def parse_sitemap_link_title(self, response):
-        """
-        Parses the link, title, and published date from a sitemap page.
-
-        Notes:
-        - Adds the parsed data to the scraper's sitemap_data list.
-        - Skips the link if the published date is outside the scraper's specified date range.
-        """
-        link = response.meta["link"]
-        published_date = response.meta["published_date"]
-        title = response.css(".story-title::text").get().strip()
-
-        if self.start_date and published_date < self.start_date:
-            return
-        if self.end_date and published_date > self.end_date:
-            return
-
-        data = {"link": link, "title": title}
-
-        self.sitemap_data.append(data)
-
-    def closed(self, response):
-        """
-        Method called when the spider is finished scraping.
-        Saves the scraped data to a JSON file with a timestamp
-        in the filename.
-        """
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-        if self.type == "sitemap":
-            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.sitemap_data, f, indent=4, default=str)
-
-        if self.type == "article":
-            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.articles, f, indent=4)
+            self.log(
+                f"Error occurred while writing json file{str(exception)} - {reason}",
+                level=logging.ERROR,
+            )

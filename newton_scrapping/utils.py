@@ -1,11 +1,17 @@
+# Utility/helper functions
+# utils.py
+
+import os
 import re
-import requests
-import logging
 import json
-from PIL import Image
+import requests
 from io import BytesIO
+from PIL import Image
+import logging
 from datetime import datetime
-from newton_scrapping.constants import LOGGER
+from newton_scrapping import exceptions
+from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
+
 
 def create_log_file():
     logging.basicConfig(
@@ -35,6 +41,70 @@ def parse_sitemap_main(start_urls, start_date, end_date):
     except ValueError as e:
         LOGGER.error(f"Error in __init__: {e}")
         raise InvalidDateRange(f"{e}")
+
+def validate_sitemap_date_range(start_date, end_date):
+    start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
+    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    try:
+        if start_date and not end_date:
+            raise exceptions.InvalidDateException(
+                "end_date must be specified if start_date is provided"
+            )
+        if not start_date and end_date:
+            raise exceptions.InvalidDateException(
+                "start_date must be specified if end_date is provided"
+            )
+
+        if start_date and end_date and start_date > end_date:
+            raise exceptions.InvalidDateException(
+                "start_date should not be later than end_date"
+            )
+
+        if start_date and end_date and start_date == end_date:
+            raise exceptions.InvalidDateException(
+                "start_date and end_date must not be the same"
+            )
+
+        if start_date and end_date and start_date > TODAYS_DATE:
+            raise exceptions.InvalidDateException(
+                "start_date should not be greater than today_date"
+            )
+
+    except exceptions.InvalidDateException as e:
+        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
+        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+
+
+def remove_empty_elements(parsed_data_dict):
+    """
+    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
+    :param d: Input dictionary.
+    :type d: dict
+    :return: Dictionary with all empty lists, and empty dictionaries removed.
+    :rtype: dict
+    """
+
+    def empty(value):
+        return value is None or value == {} or value == []
+
+    if not isinstance(parsed_data_dict, (dict, list)):
+        data_dict = parsed_data_dict
+    elif isinstance(parsed_data_dict, list):
+        data_dict = [
+            value
+            for value in (remove_empty_elements(value) for value in parsed_data_dict)
+            if not empty(value)
+        ]
+    else:
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value))
+                for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
+    return data_dict
 
 
 def get_raw_response(response):
@@ -88,7 +158,6 @@ def get_main(response):
         data = []
         misc = response.css('script[type="application/ld+json"]::text').getall()
         for block in misc:
-
             data.append(json.loads(block))
         return data
     except BaseException as e:
@@ -334,4 +403,34 @@ def remove_empty_elements(parsed_data_dict):
             if not empty(value)
         }
     return data_dict
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4)
+
 
