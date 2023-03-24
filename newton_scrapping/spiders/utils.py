@@ -1,8 +1,15 @@
 import json
+import logging
+
 from scrapy.http import Response
 from datetime import datetime
 
 
+from ..selenium import Selenium
+from selenium.common.exceptions import NoSuchElementException
+
+logging.basicConfig(filename='selenium.log', level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(message)s')
+logger = logging.getLogger(__name__)
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
        Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
@@ -57,15 +64,25 @@ def get_article_data(response: Response) -> dict:
        :param response: The response object obtained from a HTTP request to the URL
        :return: A dictionary containing relevant article data.
        """
+    sel = Selenium()
+    sel.visit(response.url)
+
     article_data = {}
-    article_data["title"] = response.css('div.newsEntryContainer h1::text').get()
-    article_data["text"] = response.css('h6.descContainer pre::text').getall()
+    # article_data["title"] = response.css('div.newsEntryContainer h1::text').get()
+    # article_data["text"] = response.css('h6.descContainer > pre::text').getall()
+    try:
+        article_data["text"] = sel.get_text()
+        article_data["title"] = sel.get_title()
+        # article_data["category"] = sel.get_category()
+    except NoSuchElementException as e:
+        logger.error(f"Couldn't find element - {e}")
     article_data["category"] = response.css('div.breadcrumbContainer a h5 font font::text').getall()
     selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
     misc_data = response.xpath('//script[@type="application/json"]/text()').getall()
     article_data["json_data"] = [json.loads(data) for data in selector]
     article_data["json_misc_data"] = [json.loads(misc) for misc in misc_data]
-
+    # print(f'>>>>>> {article_data["text"]}')
+    # exit()
     return article_data
 
 
@@ -95,61 +112,30 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
             "misc": article_data.get("json_misc_data")
         },
         "parsed_data": {
-            "author": article_data.get("json_data")['author'],
-            "description": article_data.get('json_data').get("description"),
-            "modified_at": article_data.get("json_data")['dateModified'],
-            "published_at": article_data.get("json_data")['datePublished'],
-            # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
-            "publisher": {'@type': article_data.get("json_data")['publisher']['@type'],
-                          'url': article_data.get("json_data")['publisher']['url'],
-                          'logo':{
-                            "@type": article_data.get("json_data")['publisher']['logo']["@type"],
-                            'width': {
-                                '@type': "Distance",
-                                "name": str(article_data.get("json_data")['publisher']['logo']['width']) + " Px"},
-                            'height': {
-                                '@type': "Distance",
-                                'name': str(article_data.get("json_data")['publisher']['logo']['height']) + " Px"}},
-            "text": article_data.get("text"),
-            "thumbnail_image": [article_data.get("img_url")],  # need to look it
-            "title": article_data.get("title"),
-            "images": [{"link": article_data.get("img_url"), "caption": article_data.get("img_caption")}],
-            # "video": {"link": video_link, "caption": None},
-            "section": "".join(article_data.get("category")).split(","),
-            "tags": article_data.get("tags")
+            "author": article_data.get("json_data")[0].get("author"),
+            "description": article_data.get('json_data')[0].get("description"),
+            "modified_at": article_data.get("json_data")[0]['dateModified'],
+            "published_at": article_data.get("json_data")[0]['datePublished'],
+            "publisher": {'@type': article_data.get("json_data")[0]['publisher']['@type'],
+                          'name': article_data.get("json_data")[0]['publisher']['name'],
+                          'url': article_data.get("json_data")[0]['publisher']['url'],
+                          'logo': {
+                              "@type": article_data.get("json_data")[0]['publisher']['logo']["@type"],
+                              'width': {
+                                  '@type': "Distance",
+                                  "name": str(article_data.get("json_data")[0]['publisher']['logo']['width']) + " Px"},
+                              'height': {
+                                  '@type': "Distance",
+                                  'name': str(
+                                      article_data.get("json_data")[0]['publisher']['logo']['height']) + " Px"}},
+                          "text": article_data.get("text"),
+                          # "thumbnail_image": [article_data.get("img_url")],  # need to look it
+                          "title": article_data.get("title"),
+                          # "images": [{"link": article_data.get("img_url"), "caption": article_data.get(
+                          # "img_caption")}], "video": {"link": video_link, "caption": None},
+                          "section": "".join(article_data.get("category")).split(","),
+                          # "tags": article_data.get("tags")
+                          }
         }
     }
-    }
     return article
-
-# def request_today_or_range_date(self: TimesNow, site_map_url: list, response: Response) -> Generator:
-#     # if not today's date the start date and end date will be available
-#     # if not self.today_date:
-#     self.logger.info(
-#         '======================== start to follow url ===============================')
-#     try:
-#         for url in site_map_url:
-#             # , mod_date):
-#             # _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-#             # if not today's date the start date and end date will be available
-#             # if not self.today_date:
-#             #     if _date.month == self.start_date.month or _date.month == self.end_date.month:
-#             #         yield response.follow(url, callback=self.parse_sitemap)
-#             # else it will fetch only today's date as start date and date is none
-#             # else:
-#             #     if _date.month == self.today_date.month:
-#             self.logger.info(
-#                 '======================== start to follow url ===============================')
-#             yield response.follow(url, callback=self.parse_sitemap)
-#     except Exception as e:
-#         self.logger.exception(f"Error in {request_today_or_range_date.__name__}:- {e}")
-#
-#     # else it will fetch only today's date as start date and date is none
-#     # else:
-#     #     try:
-#     #         for url, date in zip(site_map_url, mod_date):
-#     #             _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-#     #             if _date.month == self.today_date.month:
-#     #                 yield response.follow(url, callback=self.parse_sitemap)
-#     #     except Exception as e:
-#     #         self.logger.exception(f"Error in {request_today_or_range_date.__name__}:- {e}")

@@ -1,5 +1,4 @@
 import os
-
 import scrapy
 import json
 from datetime import datetime
@@ -112,15 +111,13 @@ class NewsTVB(scrapy.Spider):
             if not os.path.isdir('Links'):
                 os.makedirs('Links')
             filename = os.path.join(
-                'Links', f'news-tvb-sitemap-\
-                    {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                'Links', f'{self.name}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                 )
         elif self.type == "article":
             if not os.path.isdir('Article'):
                 os.makedirs('Article')
             filename = os.path.join(
-                'Article', f'news-tvb-articles-\
-                    {datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                'Article', f'{self.name}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                 )
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)
