@@ -1,27 +1,67 @@
+import logging
+from abc import ABC, abstractmethod
+
 import scrapy
 import json
 import os
 from datetime import datetime
 from scrapy.selector import Selector
-from .utils import check_cmd_args, get_article_data, set_article_dict
+from newton_scrapping.utils import check_cmd_args, get_article_data, set_article_dict
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Creating an object
+logger = logging.getLogger()
 
 
-class LeParisien(scrapy.Spider):
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(self, response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
+
+
+class LeParisien(scrapy.Spider, BaseSpider):
     name = "le_parisien"
 
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
 
     def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
-        super(LeParisien, self).__init__(*args, **kwargs)
-        self.start_urls = []
-        self.articles = []
-        self.type = type
-        self.start_date = start_date
-        self.end_date = end_date
-        self.url = url
-        self.today = None
-        check_cmd_args(self, self.start_date, self.end_date)
+        try:
+            super(LeParisien, self).__init__(*args, **kwargs)
+            self.start_urls = []
+            self.articles = []
+            self.type = type
+            self.start_date = start_date
+            self.end_date = end_date
+            self.url = url
+            self.error_msg_dict = {}
+            self.today = None
+            check_cmd_args(self, self.start_date, self.end_date)
+        except Exception as exception:
+            self.error_msg_dict["error_msg"] = (
+                    "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+            )
+            self.log(
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
+                level=logging.ERROR,
+            )
 
     def parse(self, response):
         """
@@ -57,9 +97,9 @@ class LeParisien(scrapy.Spider):
                                                               namespaces=self.namespace).getall()
         title = Selector(response, type='xml').xpath('//news:title/text()', namespaces=self.namespace).getall()
         if self.start_date is not None and self.end_date is not None:
-            self.logger.info('Fetching sitemap data for given date range  ------------')
             for article, date, title in zip(article_urls, published_date, title):
                 if self.start_date <= datetime.strptime(date.split('T')[0], '%Y-%m-%d') <= self.end_date:
+                    self.logger.info('Fetching sitemap data for given date range  ------------')
                     article = {
                         "link": article,
                         "title": title,

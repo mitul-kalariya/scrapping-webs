@@ -2,6 +2,15 @@ import json
 from datetime import datetime
 from scrapy.http import Response
 
+from .exceptions import (
+    InputMissingException,
+    InvalidDateException,
+    InvalidArgumentException,
+)
+from newton_scrapping.constant import (
+    SITEMAP_URL,
+    DATE_FORMAT
+)
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
@@ -24,32 +33,58 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
        Note:
            This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
        """
-    initial_url = "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap-index/?from=0&outputType=xml&_website="\
-        "leparisien"
-    if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
-        if (self.end_date - self.start_date).days > 30:
-            raise ValueError("Enter start_date and end_date for maximum 30 days.")
-        else:
-            self.start_urls.append(initial_url)
+    # initial_url = "https://www.timesnownews.com/staticsitemap/timesnow/sitemap-index.xml"
 
-    elif self.type == "sitemap" and self.start_date is None and self.end_date is None:
-        today_time = datetime.today().strftime("%Y-%m-%d")
-        self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-        self.start_urls.append(initial_url)
+    validate_type(self)
 
-    elif self.type == "sitemap" and self.end_date is not None or self.start_date is not None:
-        raise ValueError("to use type sitemap give only type sitemap or with start date and end date")
+    if self.type == "sitemap":
+        handle_sitemap_type(self, start_date, end_date, SITEMAP_URL)
 
-    elif self.type == "article" and self.url is not None:
-        self.start_urls.append(self.url)
+    elif self.type == "article":
+        handle_article_type(self)
 
-    elif self.type == "article" and self.url is None:
-        raise ValueError("type articles must be used with url")
 
+def add_start_url(self, url):
+    self.start_urls.append(url)
+
+
+def set_date_range(self, start_date, end_date):
+    self.start_date = datetime.strptime(start_date, DATE_FORMAT)
+    self.end_date = datetime.strptime(end_date, DATE_FORMAT)
+
+
+def validate_date_range(self):
+    if self.start_date > self.end_date:
+        raise InvalidDateException("start_date must be less then end_date")
+    if (self.end_date - self.start_date).days > 30:
+        raise InvalidDateException("Enter start_date and end_date for maximum 30 days.")
+
+
+def validate_type(self):
+    if self.type not in ["article", "sitemap"]:
+        raise InvalidArgumentException("type should be articles or sitemap")
+
+
+def handle_sitemap_type(self, start_date, end_date, initial_url):
+    if self.end_date is not None and self.start_date is not None:
+        set_date_range(self, start_date, end_date)
+        validate_date_range(self)
+        add_start_url(self, initial_url)
+
+    elif self.start_date is None and self.end_date is None:
+        today_time = datetime.today().strftime(DATE_FORMAT)
+        self.today_date = datetime.strptime(today_time, DATE_FORMAT)
+        add_start_url(self, initial_url)
+
+    elif self.end_date is not None or self.start_date is not None:
+        raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
+
+
+def handle_article_type(self):
+    if self.url is not None:
+        add_start_url(self, self.url)
     else:
-        raise ValueError("type should be articles or sitemap")
+        raise InputMissingException("type articles must be used with url")
 
 
 def get_article_data(response: Response) -> dict:
@@ -138,7 +173,7 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
             "thumbnail_image": [json_data[2]["url"] + article_data.get('img_url')[0][1:]],  # need to look it
             "title": article_data.get('title'),
             "images": [{'link': json_data[2]["url"] + article_data.get('img_url')[0][1:], 'caption': \
-                        article_data.get('img_caption')[0]}],
+                article_data.get('img_caption')[0]}],
 
             "section": "".join(article_data.get('category')).split(","),
             "tags": json_data[1]["keywords"]
