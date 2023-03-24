@@ -10,8 +10,8 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwcbcnews.items import ArticleData
+from crwcbcnews.utils import (
     based_on_scrape_type,
     date_in_date_range,
     get_raw_response,
@@ -20,7 +20,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     remove_empty_elements,
 )
-from newton_scrapping.exceptions import (
+from crwcbcnews.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -66,8 +66,9 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
     ):
         """init method to take date, type and validating it"""
 
-        super(CbcNewsSpider).__init__(*args, **kwargs)
+        super(CbcNewsSpider, self).__init__(*args, **kwargs)
         try:
+            self.output_callback = kwargs.get('args').get('callback')
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -245,10 +246,11 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
