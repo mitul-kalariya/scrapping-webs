@@ -41,3 +41,10 @@ scrapy crawl cp24 -a type=sitemap
 ```bash
 scrapy crawl cp24 -a type=article url=timesnownews_article_url
 ```
+
+## Test Cases
+We have used Python's in-built module `unittest`.
+We have covered mainly two test cases.
+1. For Sitemap article links crawler
+2. For Article data CrawlerRun below command to run the test cases.
+- `python -m unittest`
