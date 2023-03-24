@@ -100,8 +100,6 @@ class TestArticle(unittest.TestCase):
     def _test_parse_json_data_format(self, article, test_article_data):
         # Since the content of article can be modified at anytime so not checkering exact text
         # but testing the object format so that we can verify that crawler is working well.
-    
-        # print(article[0].get("parsed_data"),"Test")
         if article[0].get("parsed_data").get("text"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("text")[0],
@@ -109,6 +107,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                 "text"), list, "format mismatch for parsed_data--> text")
+            self._test_author_format(article)
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> text")
@@ -173,6 +172,9 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
                                   list, "format mismatch for parsed_data--> modified_at")
+        else:
+            with self.subTest():
+                raise AssertionError("missing object:- parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
@@ -212,16 +214,8 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                   list, "format mismatch for parsed_data--> section")
-
-        # if article[0].get("parsed_data").get("tags"):
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
-        #                           str, "format mismatch for parsed_data--> tags")
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-        #                           list, "format mismatch for parsed_data--> tags")
        
-        self._test_author_format(article)
+        
 
 
 class TestSitemap(unittest.TestCase):
@@ -239,9 +233,7 @@ class TestSitemap(unittest.TestCase):
 
     def _test_sitemap_results(self, sitemap_urls):
         for sitemap_url in sitemap_urls:
-            article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
-            # for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
-            #     self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
+            self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
         with self.subTest():
             self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
         with self.subTest():
