@@ -22,7 +22,7 @@ from newton_scrapping.utils import (
 from newton_scrapping.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
-    # ArticleScrappingException,
+    ArticleScrappingException,
     ExportOutputFileException,
     URLNotFoundException,
 )
@@ -223,10 +223,13 @@ class CtvnewsSpider(scrapy.Spider):
 
         except Exception as exception:  # pylint: disable=broad-except
             self.log(
-                "Error occurred while scrapping an article for this link {response.url}."
+                f"Error occurred while scrapping an article for this link {response.url}."
                 + str(exception),
                 level=logging.ERROR,
             )
+            raise ArticleScrappingException(
+                f"Error occurred while scrapping article details from sitemap:- {str(exception)}"
+            ) from exception
 
     def closed(self, reason: any) -> None:
         """
