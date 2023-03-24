@@ -5,7 +5,16 @@ import os
 import re
 import json
 import logging
+import time
+from io import BytesIO
+from bs4 import BeautifulSoup
 from datetime import datetime
+from scrapy.crawler import CrawlerProcess
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from newton_scrapping import exceptions
 from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
 
@@ -22,7 +31,8 @@ def create_log_file():
 
 def validate_sitemap_date_range(start_date, end_date):
     start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+        datetime.strptime(
+            start_date, "%Y-%m-%d").date() if start_date else None
     )
     end_date = (
         datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
@@ -98,64 +108,34 @@ def get_raw_response(response):
 
 
 def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
     parsed_json = {}
-    main = get_main(response)
-    if main:
-        parsed_json["main"] = main
+    other_data = []
+    ld_json_data = response.css(
+        'script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            other_data.append(data)
+
+    parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
 
-    return parsed_json
-
-
-def get_parsed_data(response):
-
-    pattern = r"[\r\n\t\"]+"
-    main_dict = {}
-
-    # extract author info
-    authors = get_author(response.css("div.copytext-element-wrapper"))
-    main_dict["author"] = authors
-
-    # extract main headline of article
-    title = response.css("span.seitenkopf__headline--text::text").get()
-    main_dict["title"] = [title]
-
-    publisher = get_main(response)
-    main_dict["publisher"] = [publisher[0].get("publisher")]
-
-    # extract the date published at
-    published_at = response.css("div.metatextline::text").get()
-    clean_time = re.sub(pattern, "", published_at).strip()
-    main_dict["published_at"] = [clean_time]
-
-    descryption = response.css("p strong::text").get()
-    main_dict["description"] = [re.sub(pattern, "", descryption).strip()]
-
-    # extract the description or read text of the article
-    text = response.css("p.textabsatz::text").getall()
-    text = [re.sub(pattern, "", i) for i in text]
-    main_dict["text"] = [" ".join(list(filter(None, text)))]
-
-    # extract the thumbnail image
-    thumbnail_image = response.css(
-        "picture.ts-picture--topbanner .ts-image::attr(src)"
-    ).get()
-    main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
-
-    # extract video files if any
-    video = get_embed_video_link(response.css("div.copytext__video"))
-    main_dict["embed_video_link"] = video
-
-    # extract tags associated with article
-    tags = response.css("ul.taglist li a::text").getall()
-    main_dict["tags"] = tags
-
-    article_lang = response.css("html::attr(lang)").get()
-    main_dict["language"] = [article_lang]
-
-    return remove_empty_elements(main_dict)
+    return remove_empty_elements(parsed_json)
 
 
 def get_main(response):
@@ -168,7 +148,8 @@ def get_main(response):
     """
     try:
         data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
+        misc = response.css(
+            'script[type="application/ld+json"]::text').getall()
         for block in misc:
             data.append(json.loads(block))
         return data
@@ -196,32 +177,94 @@ def get_misc(response):
         print(f"Error while getting misc: {e}")
 
 
-def get_author(response) -> list:
-    info = []
-    if response:
-        for child in response:
-            a_dict = {}
-            auth_name = child.css("span.id-card__name::text").get()
-            if auth_name:
-                a_dict["@type"] = "Person"
-                a_dict["name"] = auth_name.strip()
-                link = child.css("a.id-card__twitter-id::attr(href)").get()
-                if link:
-                    a_dict["url"] = link
-                info.append(a_dict)
+def get_parsed_data(response):
 
-        return info
+    response_data = {}
+    pattern = r"[\r\n\t\"]+"
+    embedded_video_links = []
+    text = []
+    main_json = get_main(response)
+
+    article_title = response.css("h1.content_title::text").get()
+    response_data["title"] = [re.sub(pattern, "", article_title).strip()]
+
+    article_published = response.css(
+        "div#content_scroll_start time::text").get()
+    response_data["published_at"] = [article_published]
+
+    article_description = response.css("div.chapo::text").get()
+    response_data["description"] = [article_description]
+
+    article_text = " ".join(response.css("p::text").getall())
+    text.append(re.sub(pattern, "", article_text).strip())
+
+    article_blockquote_text = " ".join(response.css("span::text").getall())
+    text.append(re.sub(pattern, "", article_blockquote_text))
+
+    response_data["text"] = [" ".join(text)]
+
+    article_author = response.css("span.author_name::text").get()
+    response_data["author"] = [
+        {"@type": "Person",
+            "name": re.sub(pattern, "", article_author).strip()}
+    ]
+
+    article_publisher = (main_json[1]).get("publisher")
+    response_data["publisher"] = [article_publisher]
+
+    article_thumbnail = (main_json[1]).get("image").get("contentUrl")
+    if isinstance(article_thumbnail, list):
+        response_data["thumbnail_image"] = article_thumbnail
+
+    thumbnail_video = (main_json[1]).get("video").get("embedUrl")
+    embedded_video_links.append(thumbnail_video)
+    
 
 
-def get_embed_video_link(response) -> list:
-    info = []
-    for child in response:
-        video = child.css("div.ts-mediaplayer::attr(data-config)").get()
-        if video:
-            video_link = re.findall(r"http?.*?\.mp4", video)[0]
-            if video_link:
-                info.append(video_link)
-    return info
+    video_links = extract_videos(response)
+    if video_links:
+        embedded_video_links.append(video_links)
+
+
+    response_data["embed_video_link"] = embedded_video_links
+
+    mapper = {"fr": "French"}
+    article_lang = response.css("html::attr(lang)").get()
+    response_data["language"] = [mapper.get(article_lang)]
+
+ 
+    return remove_empty_elements(response_data)
+
+
+def extract_videos(response) -> list:
+
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+
+    driver.get(response.url)
+    time.sleep(5)
+    banner_button = driver.find_element(
+        By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
+    if banner_button:
+        banner_button.click()
+        time.sleep(2)
+        scroll = driver.find_elements(By.XPATH, "//p")
+        for i in scroll:
+            driver.execute_script(
+                "window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
+        videos = driver.find_elements(
+            By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
+        if videos:
+            data = {}
+            for i in videos:
+                try:
+                    data["videos"] += [i.get_attribute(
+                        "src").replace("blob:", "")]
+                except:
+                    data["videos"] = [i.get_attribute(
+                        "src").replace("blob:", "")]
+    return data
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:

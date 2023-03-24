@@ -24,9 +24,9 @@ from newton_scrapping.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
-    # get_raw_response,
-    # get_parsed_data,
-    # get_parsed_json,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
 )
 
 class BaseSpider(ABC):
@@ -105,29 +105,43 @@ class NTvSpider(scrapy.Spider):
         try:
             if self.type == "sitemap":
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
-
             elif self.type == "article":
-                    self.logger.debug("Parse function called on %s", response.url)
-                    response_json = self.response_json(response)
-                    response_data = self.response_data(response)
-                    data = {
-                        "raw_response": {
-                            "content_type": "text/html; charset=utf-8",
-                            "content": response.css("html").get(),
-                        },
-                    }
-                    if response_json:
-                        data["parsed_json"] = response_json
-                    if response_data:
-                        response_data["country"] = ["France"]
-                        response_data["time_scraped"] = [str(datetime.now())]
-                        data["parsed_data"] = response_data
-
-                    self.articles.append(data)
+                article_data = self.parse_article(response)
+                yield article_data
 
         except BaseException as e:
             print(f"Error while parse function: {e}")
             LOGGER.error(f"Error while parse function: {e}")
+    
+
+    def parse_article(self, response) -> list:
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = get_parsed_data(response)
+        response_data["country"] = ["France"]
+        response_data["time_scraped"] = [str(datetime.now())]
+
+        articledata_loader.add_value("raw_response", raw_response)
+        articledata_loader.add_value(
+            "parsed_json",
+            response_json,
+        )
+        articledata_loader.add_value("parsed_data", response_data)
+
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
     def parse_sitemap(self, response):
         try:
@@ -170,7 +184,7 @@ class NTvSpider(scrapy.Spider):
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
-
+            
     def parse_sitemap_article(self, response):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
@@ -204,137 +218,6 @@ class NTvSpider(scrapy.Spider):
             )
             LOGGER.error(f"Error while filtering date wise: {e}")
 
-
-    def response_json(self, response) -> dict:
-
-        parsed_json = {}
-        main = self.get_main(response)
-        if main:
-            parsed_json["main"] = main
-
-        misc = self.get_misc(response)
-        if misc:
-            parsed_json["misc"] = misc
-
-        return parsed_json
-
-    def get_main(self, response):
-        """
-        returns a list of main data available in the article from application/ld+json
-        Parameters:
-            response:
-        Returns:
-            main data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/ld+json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            self.main_json = data
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting main: {e}")
-
-    def get_misc(self, response):
-        """
-        returns a list of misc data available in the article from application/json
-        Parameters:
-            response:
-        Returns:
-            misc data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting misc: {e}")
-
-    def response_data(self, response):
-        response_data = {}
-        pattern = r"[\r\n\t\"]+"
-        embedded_video_links = []
-        text = []
-
-        article_title = response.css("h1.content_title::text").get()
-        if article_title:
-            response_data["title"] = [re.sub(pattern, "", article_title).strip()]
-
-        article_published = response.css("div#content_scroll_start time::text").get()
-        if article_published:
-            response_data["published_at"] = [article_published]
-
-        article_description = response.css("div.chapo::text").get()
-        if article_description:
-            response_data["description"] = [article_description]
-
-        article_text = " ".join(response.css("p::text").getall())
-        print("\n\n\n\n ====>", article_text)
-        if article_text:
-            text.append(re.sub(pattern, "", article_text).strip())
-
-        article_blockquote_text = " ".join(response.css("span::text").getall())
-        if article_blockquote_text:
-            text.append(re.sub(pattern, "", article_blockquote_text))
-
-        if text:
-            response_data["text"] = [" ".join(text)]
-
-        article_author = response.css("span.author_name::text").get()
-        if article_author:
-            response_data["author"] = [
-                {"@type": "Person", "name": re.sub(pattern, "", article_author).strip()}
-            ]
-
-        article_publisher = (self.main_json[1]).get("publisher")
-        if article_publisher:
-            response_data["publisher"] = [article_publisher]
-
-        article_thumbnail = (self.main_json[1]).get("image").get("contentUrl")
-        if isinstance(article_thumbnail, list):
-            response_data["thumbnail_image"] = article_thumbnail
-
-        thumbnail_video = (self.main_json[1]).get("video").get("embedUrl")
-        if thumbnail_video:
-            embedded_video_links.append(thumbnail_video)
-
-        video_links = self.extract_videos(response)
-        if video_links:
-            embedded_video_links.append(video_links)
-
-        if embedded_video_links:
-            response_data["embed_video_link"] = embedded_video_links
-        return response_data
-
-    def extract_videos(self, response) -> list:
-
-        options = Options()
-        options.headless = True
-        driver = webdriver.Chrome(options=options)
-
-        driver.get(response.url)
-        time.sleep(5)
-        banner_button = driver.find_element(By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
-        if banner_button:
-            banner_button.click()
-            time.sleep(2)
-            scroll = driver.find_elements(By.XPATH, "//p")
-            for i in scroll:
-                driver.execute_script("window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
-            videos = driver.find_elements(By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
-            if videos:
-                data = {}
-                for i in videos:
-                    try:
-                        data["videos"] += [i.get_attribute("src").replace("blob:", "")]
-                    except:
-                        data["videos"] = [i.get_attribute("src").replace("blob:", "")]
-        return data
 
     def closed(self, reason: any) -> None:
         """
