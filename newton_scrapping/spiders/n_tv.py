@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from newton_scrapping.constants import BASE_URL, SITEMAP_URL, LOGGER
+from newton_scrapping.constant import BASE_URL, SITEMAP_URL, LOGGER
 from newton_scrapping import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -68,7 +68,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
-            self.start_urls.append(BASE_URL)
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
@@ -171,10 +170,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 today_date = datetime.today().strftime("%Y-%m-%d")
                 today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
                 if date_only == today_date:
-                    print("++++++++++++++++++++++++++++++++", date_only, today_date)
                     self.articles.append(data)
             else:
-                print("------------------------------------------------")
                 self.articles.append(data)
         except BaseException as e:
             print(
@@ -201,7 +198,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["Germany"]
+        response_data["source_country"] = ["Germany"]
         response_data["time_scraped"] = [str(datetime.now())]
         articledata_loader.add_value("raw_response", raw_response)
         articledata_loader.add_value(

@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
@@ -153,7 +153,7 @@ def get_parsed_data(response):
     response_data["tags"] = article_tags
 
     article_lang = response.css("html::attr(lang)").get()
-    response_data["language"] = [article_lang]
+    response_data["source_language"] = [article_lang]
 
     return remove_empty_elements(response_data)
 
@@ -196,7 +196,12 @@ def get_misc(response):
         print(f"Error while getting misc: {e}")
 
 
-def get_thumbnail(response):
+def get_thumbnail(response)->list:
+    """extract thumbnail info from article
+
+    Returns:
+        list: target_data
+    """
     video_article = response.css("div.vplayer div.vplayer__video")
     normal_article = response.css("div.article__media figure")
     data = []
