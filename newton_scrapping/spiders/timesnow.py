@@ -143,7 +143,7 @@ class TimesNow(scrapy.Spider):
             .xpath('//sitemap:lastmod/text()',
                    namespaces=self.namespace).getall()
         try:
-            for url, date in zip(article_urls[:3000], mod_date[:3000]):
+            for url, date in zip(article_urls, mod_date):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
                     if _date == self.today_date:
