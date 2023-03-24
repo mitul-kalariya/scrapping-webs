@@ -154,7 +154,7 @@ class CtvnewsSpider(scrapy.Spider):
                         f"Error occurred while fetching sitemap:- {str(exception)}"
                     ) from exception
         else:
-            self.parse_article(response)
+            yield self.parse_article(response)
 
     def parse_sitemap_article(self, response: str) -> None:
         """
