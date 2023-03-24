@@ -9,7 +9,7 @@ from PIL import Image
 import logging
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
+from newton_scrapping.constants import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
@@ -20,27 +20,6 @@ def create_log_file():
         filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-
-
-def parse_sitemap_main(start_urls, start_date, end_date):
-    start_urls.append("https://www.republicworld.com/sitemap.xml")
-    try:
-        start_date = (
-            datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-        )
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-
-        if start_date and not end_date:
-            raise ValueError("end_date must be specified if start_date is provided")
-        if not start_date and end_date:
-            raise ValueError("start_date must be specified if end_date is provided")
-        if start_date and end_date and start_date > end_date:
-            raise InvalidDateRange("start_date should not be later than end_date")
-        if start_date and end_date and start_date == end_date:
-            raise ValueError("start_date and end_date must not be the same")
-    except ValueError as e:
-        LOGGER.error(f"Error in __init__: {e}")
-        raise InvalidDateRange(f"{e}")
 
 
 def validate_sitemap_date_range(start_date, end_date):
@@ -74,38 +53,6 @@ def validate_sitemap_date_range(start_date, end_date):
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {e}")
-
-
-def remove_empty_elements(parsed_data_dict):
-    """
-    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
-    :param d: Input dictionary.
-    :type d: dict
-    :return: Dictionary with all empty lists, and empty dictionaries removed.
-    :rtype: dict
-    """
-
-    def empty(value):
-        return value is None or value == {} or value == []
-
-    if not isinstance(parsed_data_dict, (dict, list)):
-        data_dict = parsed_data_dict
-    elif isinstance(parsed_data_dict, list):
-        data_dict = [
-            value
-            for value in (remove_empty_elements(value) for value in parsed_data_dict)
-            if not empty(value)
-        ]
-    else:
-        data_dict = {
-            key: value
-            for key, value in (
-                (key, remove_empty_elements(value))
-                for key, value in parsed_data_dict.items()
-            )
-            if not empty(value)
-        }
-    return data_dict
 
 
 def get_raw_response(response):

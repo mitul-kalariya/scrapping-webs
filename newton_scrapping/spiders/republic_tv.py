@@ -1,15 +1,8 @@
-import os
-import re
-import json
 import scrapy
 import logging
 from dateutil import parser
 from datetime import datetime
-from newton_scrapping.constants import(
-        SITEMAP_URL,
-        TODAYS_DATE,
-        LOGGER
-)
+from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
 from newton_scrapping import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -22,7 +15,6 @@ from newton_scrapping.utils import (
     get_parsed_data,
     get_parsed_json,
 )
-
 
 
 class BaseSpider(ABC):
@@ -40,8 +32,6 @@ class BaseSpider(ABC):
     @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
-
-
 
 
 class RepublicTvSpider(scrapy.Spider, BaseSpider):
@@ -110,7 +100,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
-                
+
         except BaseException as e:
             print(f"Error while parse function: {e}")
             self.logger.error(f"Error while parse function: {e}")
@@ -127,15 +117,21 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             if "sitemap.xml" in response.url:
                 for sitemap in response.xpath(
                     "//sitemap:loc/text()",
-                    namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+                    namespaces={
+                        "sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"
+                    },
                 ):
                     if sitemap.get().endswith(".xml"):
                         for link in sitemap.getall():
                             if self.start_date is None and self.end_date is None:
                                 if str(TODAYS_DATE).replace("-", "") in link:
-                                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                                    yield scrapy.Request(
+                                        link, callback=self.parse_sitemap_article
+                                    )
                             else:
-                                 yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                                yield scrapy.Request(
+                                    link, callback=self.parse_sitemap_article
+                                )
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -156,7 +152,9 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath("//n:url/n:loc/text()", namespaces=namespaces).getall()
+            links = response.xpath(
+                "//n:url/n:loc/text()", namespaces=namespaces
+            ).getall()
             published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
             published_date = parser.parse(published_at).date() if published_at else None
             for link in links:
@@ -197,7 +195,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
                 f"Error while parse sitemap article: {e}"
             )
             LOGGER.error(f"Error while parse sitemap article: {e}")
-    
+
     def parse_article(self, response: str) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
@@ -226,8 +224,6 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
 
         self.articles.append(dict(articledata_loader.load_item()))
         return articledata_loader.item
-
-
 
     def closed(self, reason: any) -> None:
         """
