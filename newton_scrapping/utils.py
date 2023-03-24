@@ -10,12 +10,17 @@ from PIL import Image
 from io import BytesIO
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
+from newton_scrapping.constants import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def validate_sitemap_date_range(start_date, end_date):
@@ -56,11 +61,17 @@ def remove_empty_elements(parsed_data_dict):
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
     elif isinstance(parsed_data_dict, list):
-        data_dict = [value for value in (remove_empty_elements(value) for value in parsed_data_dict) if
-            not empty(value)]
+        data_dict = [value for value in (remove_empty_elements(value) for value in parsed_data_dict)
+                     if not empty(value)]
     else:
-        data_dict = {key: value for key, value in
-            ((key, remove_empty_elements(value)) for key, value in parsed_data_dict.items()) if not empty(value)}
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value)) for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
+
     return data_dict
 
 
@@ -216,9 +227,17 @@ def get_publisher(response) -> list:
         logo = response.css('head link[rel="icon"]::attr(href)').get()
         img_response = requests.get(logo)
         width, height = Image.open(BytesIO(img_response.content)).size
-        a_dict = {"@id": "mediapart.fr", "@type": "NewsMediaOrganization", "name": "Global NEWS",
-            "logo": {"@type": "ImageObject", "url": logo, "width": {"@type": "Distance", "name": str(width) + " px"},
-                "height": {"@type": "Distance", "name": str(height) + " px"}, }, }
+        a_dict = {
+            "@id": "mediapart.fr",
+            "@type": "NewsMediaOrganization",
+            "name": "Global NEWS",
+            "logo": {
+                "@type": "ImageObject",
+                "url": logo,
+                "width": {"@type": "Distance", "name": str(width) + " px"},
+                "height": {"@type": "Distance", "name": str(height) + " px"},
+            },
+        }
         return [a_dict]
     except BaseException as e:
         LOGGER.error(f"while fetching publisher{e}")

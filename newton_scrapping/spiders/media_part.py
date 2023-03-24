@@ -1,13 +1,6 @@
-import re
-import json
-from typing import Dict, Any
-
 import scrapy
-import requests
 import logging
 from datetime import datetime
-from io import BytesIO
-from PIL import Image
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from newton_scrapping import exceptions
@@ -100,33 +93,8 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 self.articles.append(article_data)
 
         except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
-
-    def parse_article(self, response):
-        """
-        Parses the article data from the response object and returns it as a dictionary.
-
-        Args:
-            response (scrapy.http.Response): The response object containing the article data.
-
-        Returns:
-            dict: A dictionary containing the parsed article data, including the raw response,
-            parsed JSON, and parsed data, along with additional information such as the country
-            and time scraped.
-        """
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        raw_response = get_raw_response(response)
-        response_json = get_parsed_json(response)
-        response_data = get_parsed_data(response)
-        response_data["country"] = ["Germany"]
-        response_data["time_scraped"] = [str(datetime.now())]
-
-        articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value("parsed_json", response_json, )
-        articledata_loader.add_value("parsed_data", response_data)
-
-        return dict(articledata_loader.load_item())
+            self.logger.error(f"Error while parse function: {e}")
+            print(f"Error while parse function: {e}")
 
     def parse_sitemap(self, response):
         """
@@ -186,13 +154,18 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
                 # If the published date falls within the specified date range, make a request to the link
                 if (self.start_date and self.end_date and self.start_date <= published_at <= self.end_date):
-                    yield scrapy.Request(link, callback=self.parse_sitemap_by_title_link,
-                        meta={"link": link, "published_date": published_at}, )
-
+                    yield scrapy.Request(
+                        link,
+                        callback=self.parse_sitemap_by_title_link,
+                        meta={"link": link, "published_date": published_at},
+                    )
                 # If the published date is today's date, make a request to the link
                 elif TODAYS_DATE == published_at:
-                    yield scrapy.Request(link, callback=self.parse_sitemap_by_title_link,
-                        meta={"link": link, "published_date": published_at}, )
+                    yield scrapy.Request(
+                        link,
+                        callback=self.parse_sitemap_by_title_link,
+                        meta={"link": link, "published_date": published_at},
+                    )
                 else:
                     continue  # If there's any error during the above process, log it and print
         except BaseException as e:
@@ -215,23 +188,23 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             LOGGER.error(f"Error while parsing sitemap article: {e}")
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
-    def parse_article(self, response) -> dict[Any, Any]:
+    def parse_article(self, response):
         """
-            Parses the article data from the response object and returns it as a dictionary.
+        Parses the article data from the response object and returns it as a dictionary.
 
-            Args:
-                response (scrapy.http.Response): The response object containing the article data.
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
 
-            Returns:
-                dict: A dictionary containing the parsed article data, including the raw response,
-                parsed JSON, and parsed data, along with additional information such as the country
-                and time scraped.
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
         """
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["France"]
+        response_data["country"] = ["Germany"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
