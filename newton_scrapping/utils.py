@@ -21,6 +21,7 @@ ERROR_MESSAGES = {
     "InvalidDateException": "Please provide valid date.",
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
+language_mapper = {"en": "English"}
 
 
 # Regex patterns
@@ -176,7 +177,38 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
     return dict(article_raw_response_loader.load_item())
 
 
-def get_parsed_json(response: str, selector_and_key: dict, regex_pattern: str = "") -> dict:
+def get_parsed_json_filter(blocks: list, misc: list, regex_pattern: str = "") -> dict:
+    """
+     Parsed json response from generated data using given response and selector
+    Args:
+        blocks: application/ld+json data list
+        misc: misc data list
+        regex_pattern: pattern to remove that type of string
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
+    parsed_json_flter_dict = {
+        "main": None,
+        "ImageGallery": None,
+        "VideoObject": None,
+        "Other": [],
+        "misc": [],
+    }
+    for block in blocks:
+        space_removed_block = re.sub(regex_pattern, "", block).strip()
+        if "NewsArticle" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(space_removed_block)
+        elif "ImageGallery" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = json.loads(space_removed_block)
+        elif "VideoObject" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = json.loads(space_removed_block)
+        else:
+            parsed_json_flter_dict["Other"].append(json.loads(space_removed_block))
+    parsed_json_flter_dict["misc"] = [json.loads(re.sub(regex_pattern, "", data).strip()) for data in misc]
+    return parsed_json_flter_dict
+
+
+def get_parsed_json(response: str) -> dict:
     """
      Parsed json response from generated data using given response and selector
 
@@ -191,20 +223,13 @@ def get_parsed_json(response: str, selector_and_key: dict, regex_pattern: str = 
         item=ArticleRawParsedJson(), response=response
     )
 
-    if regex_pattern:
-        for key, value in selector_and_key.items():
-            article_raw_parsed_json_loader.add_value(
-                key,
-                [
-                    json.loads(re.sub(regex_pattern, "", data).strip())
-                    for data in value.getall()
-                ],
-            )
-    else:
-        for key, value in selector_and_key.items():
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall()]
-            )
+    for key, value in get_parsed_json_filter(
+        response.css('script[type="application/ld+json"]::text').getall(),
+        response.css('script[type="application/json"]::text').getall(),
+        SPACE_REMOVER_PATTERN
+    ).items():
+        article_raw_parsed_json_loader.add_value(key, value)
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -253,8 +278,8 @@ def get_parsed_data_dict() -> dict:
         dict: Return base data dictionary
     """
     return {
-        "country": None,
-        "language": None,
+        "source_country": None,
+        "source_language": None,
         "author": [{"@type": None, "name": None, "url": None}],
         "description": None,
         "modified_at": None,
@@ -285,8 +310,8 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
-        "country": ["India"],
-        "language": [response.css("html::attr(lang)").get()],
+        "source_country": ["India"],
+        "source_language": [language_mapper.get(response.css("html::attr(lang)").get())],
     }
     caption = response.css(".c-text span::text").getall()
 
@@ -313,10 +338,10 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "video": [{"link": video_link}],
         "thumbnail_image": [data_dict.get("thumbnail_url")],
     }
-    return remove_empty_elements(parsed_data_dict)
+    return parsed_data_dict
 
 
-def get_author_and_publisher_details(blocks: list) -> str:
+def get_author_and_publisher_details(block: dict) -> dict:
     """
     get author and publisher details
     Args:
@@ -325,26 +350,25 @@ def get_author_and_publisher_details(blocks: list) -> str:
         str : author and publisher details
     """
     data_dict = {}
-    for block in blocks:
-        data_dict["publisher_name"] = block.get("publisher", None).get("name", None)
-        data_dict["publisher_type"] = block.get("publisher", None).get(
-            "@type", None
-        )
-        data_dict["published_date"] = block.get("datePublished", None)
-        data_dict["modified_date"] = block.get("dateModified", None)
-        data_dict["headline"] = block.get("headline", None)
-        data_dict["alternativeheadline"] = block.get("description", None)
-        data_dict["thumbnail_url"] = block.get("thumbnailUrl", None)
+    data_dict["publisher_name"] = block.get("publisher", None).get("name", None)
+    data_dict["publisher_type"] = block.get("publisher", None).get(
+        "@type", None
+    )
+    data_dict["published_date"] = block.get("datePublished", None)
+    data_dict["modified_date"] = block.get("dateModified", None)
+    data_dict["headline"] = block.get("headline", None)
+    data_dict["alternativeheadline"] = block.get("description", None)
+    data_dict["thumbnail_url"] = block.get("thumbnailUrl", None)
 
-        if "News" in block.get("@type") and block.get("author"):
-            data_dict["author"] = data_dict.get("author", [])
-            for author in block.get("author"):
-                auth = {}
-                auth["name"] = author.get("name")
-                auth["@type"] = author.get("@type")
-                auth["url"] = author.get("sameAs")
-                data_dict["author"].append(auth)
-        data_dict["image_url"] = block.get("image", None).get("url", None)
+    if "News" in block.get("@type") and block.get("author"):
+        data_dict["author"] = data_dict.get("author", [])
+        for author in block.get("author"):
+            auth = {}
+            auth["name"] = author.get("name")
+            auth["@type"] = author.get("@type")
+            auth["url"] = author.get("sameAs")
+            data_dict["author"].append(auth)
+    data_dict["image_url"] = block.get("image", None).get("url", None)
     return data_dict
 
 
@@ -395,7 +419,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     """
 
     def empty(value):
-        return value is None or value == {} or value == []
+        return value is None or value == {} or value == [] or value == ""
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict

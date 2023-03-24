@@ -17,7 +17,7 @@ from newton_scrapping.utils import (
     get_parsed_json,
     export_data_to_json_file,
     get_parsed_data,
-    SPACE_REMOVER_PATTERN,
+    remove_empty_elements,
 )
 from newton_scrapping.exceptions import (
     SitemapScrappingException,
@@ -154,7 +154,7 @@ class CtvnewsSpider(scrapy.Spider):
                         f"Error occurred while fetching sitemap:- {str(exception)}"
                     ) from exception
         else:
-            yield self.parse_article(response)
+            self.parse_article(response)
 
     def parse_sitemap_article(self, response: str) -> None:
         """
@@ -196,19 +196,8 @@ class CtvnewsSpider(scrapy.Spider):
             }
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
-            parsed_json_dict = {}
 
-            parsed_json_main = response.css('script[type="application/ld+json"]::text')
-            parsed_json_misc = response.css('script[type="application/json"]::text')
-
-            if parsed_json_main:
-                parsed_json_dict["main"] = parsed_json_main
-            if parsed_json_misc:
-                parsed_json_dict["misc"] = parsed_json_misc
-
-            parsed_json_data = get_parsed_json(
-                response, parsed_json_dict, SPACE_REMOVER_PATTERN
-            )
+            parsed_json_data = get_parsed_json(response)
 
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -217,9 +206,11 @@ class CtvnewsSpider(scrapy.Spider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main", []))
+                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
             )
-            self.articles.append(dict(articledata_loader.load_item()))
+            article = remove_empty_elements(dict(articledata_loader.load_item()))
+            self.articles.append(article)
+            return articledata_loader.item
 
         except Exception as exception:  # pylint: disable=broad-except
             self.log(
