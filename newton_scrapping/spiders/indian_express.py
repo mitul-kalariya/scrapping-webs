@@ -224,7 +224,7 @@ class IndianExpressSpider(scrapy.Spider):
             self.articles.append(
                 remove_empty_elements(dict(articledata_loader.load_item()))
             )
-            return articledata_loader
+            return articledata_loader.item
         except Exception as exception:
             self.log(
                 f"Error occurred while scrapping an article for this link {response.url}."
