@@ -10,7 +10,7 @@ from newton_scrapping.test.helpers.utils import (get_article_content,
 logger = logging.getLogger()
 
 
-class TestIndianExpressArticle(unittest.TestCase):
+class TestArticle(unittest.TestCase):
 
     def _test_article_results(self, articles, test_data_path):
         article = [article for article in articles]
@@ -234,7 +234,7 @@ class TestIndianExpressArticle(unittest.TestCase):
         self._test_author_format(article)
 
 
-class TestIndianExpressSitemap(unittest.TestCase):
+class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
         self.spider = IndianExpressSpider(type=self.type)
