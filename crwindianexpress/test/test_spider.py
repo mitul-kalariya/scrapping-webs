@@ -1,9 +1,9 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
+from crwindianexpress.spiders.indian_express import IndianExpressSpider
+from crwindianexpress.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwindianexpress.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
 
 # Creating an object

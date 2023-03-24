@@ -10,8 +10,8 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwindianexpress.items import ArticleData
+from crwindianexpress.utils import (
     based_on_scrape_type,
     date_range,
     get_raw_response,
@@ -20,7 +20,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     remove_empty_elements,
 )
-from newton_scrapping.exceptions import (
+from crwindianexpress.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -68,9 +68,10 @@ class IndianExpressSpider(scrapy.Spider):
     ):
         """init method to take date, type and validating it"""
 
-        super(IndianExpressSpider).__init__(*args, **kwargs)
+        super(IndianExpressSpider, self).__init__(*args, **kwargs)
 
         try:
+            # self.output_callback = kwargs.get('args').get('callback')
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -247,10 +248,9 @@ class IndianExpressSpider(scrapy.Spider):
             Values of parameters
         """
         try:
+            self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
