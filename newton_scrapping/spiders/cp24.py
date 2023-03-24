@@ -68,8 +68,8 @@ class CP24News(scrapy.Spider, BaseSpider):
             self.type = type
             self.url = url
             self.error_msg_dict = {}
-            self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
-            self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
+            self.start_date = start_date
+            self.end_date = end_date
             self.article_url = url
             self.today_date = None
             check_cmd_args(self, self.start_date, self.end_date)
@@ -111,7 +111,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                 )
         elif self.type == "article":
             try:
-                yield scrapy.Request(self.url, callback=self.parse_article)
+                yield self.parse_article(response)
             except Exception as exception:
                 self.log(
                     f"Error occured while iterating article url. {str(exception)}",
@@ -241,7 +241,7 @@ class CP24News(scrapy.Spider, BaseSpider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
-            # return self.articles
+            return articledata_loader.item
 
         except Exception as exception:
             self.log(
