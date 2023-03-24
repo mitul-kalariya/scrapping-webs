@@ -3,8 +3,12 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://www.timesnownews.com/lifestyle/bread-pakora-recipe-crispy-and-delicious-snack-to-enjoy-on-rainy-day-article-98960097",
+        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
         "test_data_path": "newton_scrapping/test/data/test_article_1.json"
+    },
+    {
+        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
     },
     # {
     #     "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
