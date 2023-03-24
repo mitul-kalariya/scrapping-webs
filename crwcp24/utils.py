@@ -4,9 +4,9 @@ from datetime import datetime
 from json import JSONDecodeError
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
-from newton_scrapping.videos import get_video
-from newton_scrapping.constant import SITEMAP_URL
-from newton_scrapping.items import (
+from crwcp24.videos import get_video
+from crwcp24.constant import SITEMAP_URL
+from crwcp24.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )

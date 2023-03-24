@@ -7,16 +7,16 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
-from newton_scrapping.items import ArticleData
+from crwcp24.items import ArticleData
 
-from ..utils import (
+from crwcp24.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
     export_data_to_json_file
 )
-from newton_scrapping.exceptions import (
+from crwcp24.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -63,6 +63,7 @@ class CP24News(scrapy.Spider, BaseSpider):
     ):
         try:
             super(CP24News, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args').get('callback')
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -263,10 +264,11 @@ class CP24News(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
