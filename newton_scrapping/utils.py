@@ -97,6 +97,74 @@ def get_raw_response(response):
     return raw_resopnse
 
 
+def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
+    parsed_json = {}
+
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            parsed_json["other"] = data
+
+    misc = get_misc(response)
+    if misc:
+        parsed_json["misc"] = misc
+
+    return remove_empty_elements(parsed_json)
+
+
+def get_main(response):
+    """
+    returns a list of main data available in the article from application/ld+json
+    Parameters:
+        response:
+    Returns:
+        main data
+    """
+    try:
+        data = []
+        misc = response.css('script[type="application/ld+json"]::text').getall()
+        for block in misc:
+
+            data.append(json.loads(block))
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        print(f"Error while getting main: {e}")
+
+
+def get_misc(response):
+    """
+    returns a list of misc data available in the article from application/json
+    Parameters:
+        response:
+    Returns:
+        misc data
+    """
+    try:
+        data = []
+        misc = response.css('script[type="application/json"]::text').getall()
+        for block in misc:
+            data.append(json.loads(block))
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        print(f"Error while getting misc: {e}")
+
+
 def get_parsed_data(response):
     """
     Extracts data from a news article webpage and returns it in a dictionary format.
@@ -328,73 +396,6 @@ def get_embed_video_link(response) -> list:
         LOGGER.error(f"{e}")
         print(f"Error: {e}")
 
-
-def get_parsed_json(response):
-    """
-    extracts json data from web page and returns a dictionary
-    Parameters:
-        response(object): web page
-    Returns
-        parsed_json(dictionary): available json data
-    """
-    parsed_json = {}
-
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            parsed_json["other"] = data
-
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
-
-    return remove_empty_elements(parsed_json)
-
-
-def get_main(response):
-    """
-    returns a list of main data available in the article from application/ld+json
-    Parameters:
-        response:
-    Returns:
-        main data
-    """
-    try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-
-            data.append(json.loads(block))
-        return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
-
-
-def get_misc(response):
-    """
-    returns a list of misc data available in the article from application/json
-    Parameters:
-        response:
-    Returns:
-        misc data
-    """
-    try:
-        data = []
-        misc = response.css('script[type="application/json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:

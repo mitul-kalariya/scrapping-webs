@@ -92,7 +92,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
         elif self.type == "article":
             article_data = self.parse_article(response)
-            self.articles.append(article_data)
+            
 
     def parse_sitemap(self, response):
         """
@@ -133,6 +133,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 }
                 self.articles.append(data)
 
+
     def parse_sitemap_article(self, response):
         pass
 
@@ -162,36 +163,9 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         )
         articledata_loader.add_value("parsed_data", response_data)
 
-        return dict(articledata_loader.load_item())
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
-    def response_json(self, response):
-        """
-        Extracts relevant information from a news article web page using the given
-        Scrapy response object and the URL of the page.
-
-        Args:
-        - response: A Scrapy response object representing the web page to extract
-          information from.
-        - current_url: A string representing the URL of the web page.
-
-        Returns:
-        - A dictionary representing the extracted information from the web page.
-        """
-        try:
-            parsed_json = {}
-            main = self.get_main(response)
-            if main:
-                parsed_json["main"] = main
-
-            misc = self.get_misc(response)
-            if misc:
-                parsed_json["misc"] = misc
-
-            return parsed_json
-
-        except BaseException as e:
-            LOGGER.error(f"{e}")
-            print(f"Error: {e}")
 
     def closed(self, reason: any) -> None:
         """
