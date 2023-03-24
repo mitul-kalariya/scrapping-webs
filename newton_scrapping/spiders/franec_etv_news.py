@@ -1,9 +1,53 @@
-import scrapy
-import json
-import os
+import logging
 from datetime import datetime
+from abc import ABC, abstractmethod
+import scrapy
 from scrapy.selector import Selector
-from .utils import check_cmd_args, get_article_data, set_article_dict
+from scrapy.loader import ItemLoader
+from scrapy.exceptions import CloseSpider
+
+from newton_scrapping.items import ArticleData
+
+from ..utils import (
+    check_cmd_args,
+    get_parsed_data,
+    get_raw_response,
+    get_parsed_json,
+    export_data_to_json_file
+)
+from newton_scrapping.exceptions import (
+    SitemapScrappingException,
+    SitemapArticleScrappingException,
+    ArticleScrappingException,
+    ExportOutputFileException,
+)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+    filename="logs.log",
+    filemode="a",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Creating an object
+logger = logging.getLogger()
+
+
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(self, response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
 
 
 class FranceTvInfo(scrapy.Spider):
@@ -18,6 +62,7 @@ class FranceTvInfo(scrapy.Spider):
         self.articles = []
         self.type = type
         self.url = url
+        self.article_url = url
         self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
         self.today_date = None
@@ -40,106 +85,112 @@ class FranceTvInfo(scrapy.Spider):
             using the `parse_article` callback.
         """
         if self.type == "sitemap":
-
-            for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                     namespaces=self.namespace).getall():
-
-                if "article" in site_map_url:
-                    sitemap_moth = site_map_url.split('-')[1]
-                    sitemap_year = site_map_url.split('-')[0][-4:]
-                    sitemap_date = datetime.strptime(f'{sitemap_year}-{sitemap_moth}', '%Y-%m')
-                    if not self.today_date:
-                        _start_date = self.start_date.strftime('%Y-%m')
-                        _end_date = self.end_date.strftime('%Y-%m')
-                        _start_date = datetime.strptime(_start_date, '%Y-%m')
-                        _end_date = datetime.strptime(_end_date, '%Y-%m')
-                        if _start_date <= sitemap_date <= _end_date:
-                            yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-                    else:
-                        _today_date = self.today_date.strftime('%Y-%m')
-                        _today_date = datetime.strptime(_today_date, '%Y-%m')
-                        if _today_date == sitemap_date:
-                            yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-
-        if self.type == "article":
-            yield scrapy.Request(self.url, callback=self.parse_article)
-
-    def parse_sitemap(self, response):
-        """
-           Parses the sitemap and extracts the article URLs and their last modified date.
-           If the last modified date is within the specified date range, sends a request to the article URL
-           :param response: the response from the sitemap request
-           :return: scrapy.Request object
-           """
-
-        article_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-        sitemap_articel_urls = []
-        mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()', namespaces=self.namespace).getall()
-        if self.today_date:
-            try:
-                for url, date in zip(article_urls, mod_date):
-                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+            article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                                     namespaces=self.namespace).getall()
+            published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
+                                                                     namespaces=self.namespace).getall()
+            article_title = Selector(response, type='xml').xpath('//news:title/text()',
+                                                                     namespaces=self.namespace).getall()
+            
+            for url, date, title in zip(article_url, published_date, article_title):
+                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                if self.today_date:
                     if _date == self.today_date:
-                        yield scrapy.Request(url, callback=self.parse_sitemap_article)
-            except Exception as e:
-                self.logger.exception(f"Error in parse_sitemap:- {e}")
-        else:
-            try:
-                for url, date in zip(article_urls, mod_date):
-                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                        if title:
+                            article = {
+                                "link": url,
+                                "title": title,
+                            }
+                            self.articles.append(article)
+                        
+                else:
                     if self.start_date <= _date <= self.end_date:
-                        sitemap_articel_urls.append(url)
-                yield from response.follow_all(sitemap_articel_urls, callback=self.parse_sitemap_article)
-            except Exception as e:
-                self.logger.exception(f"Error in parse_sitemap:- {e}")
-
-    def parse_sitemap_article(self, response):
-        """
-        Parse article information from a given sitemap URL.
-
-        :param response: HTTP response from the sitemap URL.
-        :return: None
-        """
-        title = response.css('h1.c-title ::text').get()
-        if title:
-            article = {
-                "link": response.url,
-                "title": title,
-            }
-            self.articles.append(article)
+                        if title:
+                            article = {
+                                "link": url,
+                                "title": title,
+                            }
+                            self.articles.append(article)
+                        
+        if self.type == "article":
+            yield self.parse_article(response)
 
     def parse_article(self, response):
-
         """
-            This function takes the response object of the news article page and extracts the necessary information
-            using get_article_data() function and constructs a dictionary using set_article_dict() function
-            :param response: scrapy.http.Response object
-            :return: None
+        parse article and append related data to class's articles variable
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
 
-        article_data = get_article_data(response)
-        article = set_article_dict(self, response, article_data)
+        try:
+            raw_response_dict = {
+                "content_type": response.headers.get("Content-Type").decode("utf-8"),
+                "content": response.text,
+            }
+            raw_response = get_raw_response(response, raw_response_dict)
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            parsed_json_dict = {}
 
-        self.articles.append(article)
+            parsed_json_main = response.css('script[type="application/ld+json"]::text')
+            parsed_json_misc = response.css('script[type="application/json"]::text')
 
-    def closed(self, reason):
-        """
-            This function is executed when the spider is closed. It saves the data scraped
-            by the spider into a JSON file with a filename based on the spider type and
-            the current date and time.
-            :param reason: the reason for the spider's closure
-            """
-        if self.type == "sitemap":
-            if not os.path.isdir('Links'):
-                os.makedirs('Links')
-            filename = os.path.join(
-                'Links', f'france-tv-info-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if parsed_json_main:
+                parsed_json_dict["main"] = parsed_json_main
+                parsed_json_dict['ImageGallery'] = parsed_json_main
+                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['other'] = parsed_json_main
+                
+            if parsed_json_misc:
+                parsed_json_dict["misc"] = parsed_json_misc
+            
+            parsed_json_data = get_parsed_json(response, parsed_json_dict)
+            articledata_loader.add_value("raw_response", raw_response)
+            if parsed_json_data:
+                articledata_loader.add_value(
+                    "parsed_json",
+                    parsed_json_data,
+                )
+            articledata_loader.add_value(
+                "parsed_data", get_parsed_data(self, response, parsed_json_dict)
             )
-        elif self.type == "article":
-            if not os.path.isdir('Article'):
-                os.makedirs('Article')
-            filename = os.path.join(
-                'Article', f'france-tv-info-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+
+        except Exception as exception:
+            self.log(
+                f"Error occurred while fetching article details:- {str(exception)}",
+                level=logging.ERROR,
             )
-        with open(f'{filename}.json', 'w') as f:
-            json.dump(self.articles, f, indent=4)
+            raise ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            ) from exception
+
+    def closed(self, reason: any) -> None:
+        """
+        store all scrapped data into json file with given date in filename
+        Args:
+            reason: generated reason
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
+        """
+        try:
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while exporting file:- {str(exception)} - {reason}",
+                level=logging.ERROR,
+            )
+            raise ExportOutputFileException(
+                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+            ) from exception
+
