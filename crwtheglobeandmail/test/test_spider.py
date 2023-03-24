@@ -1,9 +1,9 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.the_globe_and_mail import TheGlobeAndMailSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
+from crwtheglobeandmail.spiders.the_globe_and_mail import TheGlobeAndMailSpider
+from crwtheglobeandmail.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwtheglobeandmail.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
 
 # Creating an object

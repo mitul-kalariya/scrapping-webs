@@ -1,0 +1,1 @@
+from crwtheglobeandmail.main import Crawler

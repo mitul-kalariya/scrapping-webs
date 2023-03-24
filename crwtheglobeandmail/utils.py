@@ -5,7 +5,7 @@ import os
 
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import (
+from crwtheglobeandmail.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
@@ -48,7 +48,7 @@ def sitemap_validations(
             not (scrape_start_date or scrape_end_date),
             "start_date and end_date",
         )
-        scrape_start_date = scrape_end_date = datetime.now().date()
+        scrape_start_date = scrape_end_date = datetime.utcnow().date()
 
     validate_arg(
         InvalidArgumentException, not article_url, "url is not required for sitemap."
