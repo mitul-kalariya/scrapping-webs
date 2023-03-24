@@ -9,7 +9,7 @@ from PIL import Image
 import logging
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
@@ -23,6 +23,13 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """validated date range given by user
+
+    Args:
+        start_date (str): start_date
+        end_date (str): end_date
+
+    """
     start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
@@ -196,6 +203,14 @@ def get_lastupdated(response) -> str:
 
 
 def get_published_at(response) -> str:
+    """get data of when article was published
+
+    Args:
+        response (object):page data
+
+    Returns:
+        str: datetime of published date
+    """
     info = response.xpath('//div[@class ="padtop10 padbtm10"]')
     info_eng = response.css("div.padtop20")
 
