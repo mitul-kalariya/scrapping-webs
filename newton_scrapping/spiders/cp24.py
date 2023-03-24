@@ -68,8 +68,8 @@ class CP24News(scrapy.Spider, BaseSpider):
             self.type = type
             self.url = url
             self.error_msg_dict = {}
-            self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
-            self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
+            self.start_date = start_date
+            self.end_date = end_date
             self.article_url = url
             self.today_date = None
             check_cmd_args(self, self.start_date, self.end_date)
