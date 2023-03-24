@@ -24,6 +24,20 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """validate date range given by user
+
+    Args:
+        start_date (datetime): start_date
+        end_date (datetime): end date
+
+    Raises:
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+    """
     start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
@@ -76,6 +90,14 @@ def remove_empty_elements(parsed_data_dict):
 
 
 def get_raw_response(response):
+    """generate dictrionary of raw html data
+
+    Args:
+        response (object): page_data
+
+    Returns:
+        raw_response (dict): targeted data
+    """
     raw_resopnse = {"content_type": "text/html; charset=utf-8", "content": response.css("html").get(), }
     return raw_resopnse
 
