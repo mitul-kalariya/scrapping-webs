@@ -202,28 +202,28 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["source_country"] = ["India"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
     parsed_data_dict["author"] = [{
-        "@type": article_data.get("main")[0].get('author')[0].get("@type"),
-        "name": article_data.get("main")[0].get('author')[0].get("name"),
+        "@type": article_data.get("main").get('author')[0].get("@type"),
+        "name": article_data.get("main").get('author')[0].get("name"),
         "url": article_data.get('author_url')
     }]
-    parsed_data_dict["description"] = [article_data.get("main")[0].get('description')]
-    parsed_data_dict["modified_at"] = [article_data.get("main")[0].get('dateModified')]
-    parsed_data_dict["published_at"] = [article_data.get("main")[0].get('datePublished')]
+    parsed_data_dict["description"] = [article_data.get("main").get('description')]
+    parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
+    parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
     parsed_data_dict["publisher"] = [{
-        '@type': article_data.get("main")[0].get('publisher').get('@type'),
-        'url': article_data.get("main")[0].get('publisher').get('url'),
+        '@type': article_data.get("main").get('publisher').get('@type'),
+        'url': article_data.get("main").get('publisher').get('url'),
         "logo": {
-            "@type": article_data.get("main")[0].get('publisher').get("logo").get('@type'),
-            "url": article_data.get("main")[0].get('publisher').get("logo").get('url'),
+            "@type": article_data.get("main").get('publisher').get("logo").get('@type'),
+            "url": article_data.get("main").get('publisher').get("logo").get('url'),
             'width': {
                 '@type': "Distance",
-                "name": str(article_data.get("main")[0].get('publisher').get('logo').get('width')) + " Px"},
+                "name": str(article_data.get("main").get('publisher').get('logo').get('width')) + " Px"},
             'height': {
                 '@type': "Distance",
-                'name': str(article_data.get("main")[0].get('publisher').get('logo').get('height')) + " Px"}}
+                'name': str(article_data.get("main").get('publisher').get('logo').get('height')) + " Px"}}
     }]
     parsed_data_dict["text"] = [article_data.get("text")]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("main")[0].get('image').get('url')]
+    parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get("title")]
     parsed_data_dict["images"] = [{"link": article_data.get("img_url"), "caption": article_data.get("img_caption")}]
     parsed_data_dict["section"] = [article_data.get("section_content")]
