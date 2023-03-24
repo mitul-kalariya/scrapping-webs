@@ -213,7 +213,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["India"]
+        response_data["source_country"] = ["India"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
