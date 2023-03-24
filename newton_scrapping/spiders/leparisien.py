@@ -5,7 +5,11 @@ import scrapy
 import json
 import os
 from datetime import datetime
+
+from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
+
+from newton_scrapping.exceptions import SitemapScrappingException
 from newton_scrapping.utils import check_cmd_args, get_article_data, set_article_dict
 
 logging.basicConfig(
@@ -52,7 +56,7 @@ class LeParisien(scrapy.Spider, BaseSpider):
             self.end_date = end_date
             self.url = url
             self.error_msg_dict = {}
-            self.today = None
+            self.today_date = None
             check_cmd_args(self, self.start_date, self.end_date)
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -77,13 +81,29 @@ class LeParisien(scrapy.Spider, BaseSpider):
 
             :param response: the response of the current request.
             """
+        if response.status != 200:
+            raise CloseSpider(
+                f"Unable to scrape due to getting this status code {response.status}"
+            )
         if self.type == "sitemap":
-            for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                     namespaces=self.namespace).getall():
-                yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+            try:
+                for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                                         namespaces=self.namespace).getall():
+                    yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+            except Exception as exception:
+                self.log(
+                    f"Error occured while iterating sitemap url. {str(exception)}",
+                    level=logging.ERROR,
+                )
 
         elif self.type == "article":
-            yield scrapy.Request(self.url, callback=self.parse_article)
+            try:
+                yield self.parse_article(response)
+            except Exception as exception:
+                self.log(
+                    f"Error occured while parsing article url. {str(exception)}",
+                    level=logging.ERROR,
+                )
 
     def parse_sitemap(self, response):
         """
@@ -96,31 +116,40 @@ class LeParisien(scrapy.Spider, BaseSpider):
         published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
                                                               namespaces=self.namespace).getall()
         title = Selector(response, type='xml').xpath('//news:title/text()', namespaces=self.namespace).getall()
-        if self.start_date is not None and self.end_date is not None:
-            for article, date, title in zip(article_urls, published_date, title):
-                if self.start_date <= datetime.strptime(date.split('T')[0], '%Y-%m-%d') <= self.end_date:
-                    self.logger.info('Fetching sitemap data for given date range  ------------')
-                    article = {
-                        "link": article,
-                        "title": title,
-                    }
-                    self.articles.append(article)
+        try:
+            if self.start_date is not None and self.end_date is not None:
+                for article, date, title in zip(article_urls, published_date, title):
+                    if self.start_date <= datetime.strptime(date.split('T')[0], '%Y-%m-%d') <= self.end_date:
+                        self.logger.info('Fetching sitemap data for given date range  ------------')
+                        article = {
+                            "link": article,
+                            "title": title,
+                        }
+                        self.articles.append(article)
 
-        elif self.start_date is None and self.end_date is None:
-            for article, date, title in zip(article_urls, published_date, title):
-                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                if _date == self.today_date:
-                    self.logger.info("Fetching today's sitemap data ------------")
-                    article = {
-                        "link": article,
-                        "title": title,
-                    }
-                    self.articles.append(article)
+            elif self.start_date is None and self.end_date is None:
+                for article, date, title in zip(article_urls, published_date, title):
+                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                    if _date == self.today_date:
+                        self.logger.info("Fetching today's sitemap data ------------")
+                        article = {
+                            "link": article,
+                            "title": title,
+                        }
+                        self.articles.append(article)
 
-        elif self.start_date is None or self.end_date is None:
-            raise ValueError("start_date and end_date both required.")
-        else:
-            raise ValueError("Invalid date range")
+            elif self.start_date is None or self.end_date is None:
+                raise ValueError("start_date and end_date both required.")
+            else:
+                raise ValueError("Invalid date range")
+        except Exception as exception:
+            self.log(
+                f"Error occurred while fetching sitemap:- {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap_article(self, response):
         """
