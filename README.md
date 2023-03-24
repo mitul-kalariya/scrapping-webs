@@ -36,3 +36,10 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 - `scrapy crawl ct_news -a type=article -a url={{Article-URL}}`
 
 *Note:* Make sure to enter the virtual env before running.
+
+## Test Cases
+We have used Python's in-built module `unittest`.
+We have covered mainly two test cases.
+1. For Sitemap article links crawler
+2. For Article data CrawlerRun below command to run the test cases.
+- `python -m unittest`
