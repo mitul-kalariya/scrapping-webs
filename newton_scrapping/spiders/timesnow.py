@@ -68,6 +68,7 @@ class TimesNow(scrapy.Spider):
             self.error_msg_dict = {}
             self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
             self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
+            self.article_url = url
             self.today_date = None
             check_cmd_args(self, self.start_date, self.end_date)
         
@@ -135,7 +136,7 @@ class TimesNow(scrapy.Spider):
            If the last modified date is within the specified date range, sends a request to the article URL
            :param response: the response from the sitemap request
            :return: scrapy.Request object
-           """
+        """
         
         article_urls = Selector(response, type='xml'). \
             xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
@@ -214,9 +215,13 @@ class TimesNow(scrapy.Spider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
+                parsed_json_dict['ImageGallery'] = parsed_json_main
+                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['other'] = parsed_json_main
+                
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
-
+            
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -229,6 +234,7 @@ class TimesNow(scrapy.Spider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
+            # return self.articles
 
         except Exception as exception:
             self.log(
@@ -237,7 +243,7 @@ class TimesNow(scrapy.Spider):
             )
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception    
+            ) from exception
 
     def closed(self, reason: any) -> None:
         """

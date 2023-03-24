@@ -114,14 +114,31 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
+    # print(selector_and_key)
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
 
     for key, value in selector_and_key.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
+
+        if key == "main":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
+            )
+        elif key == "ImageGallery":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+            )
+
+        elif key == "VideoObject":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+            )
+        else:
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject" or json.loads(data).get('@type') != "NewsArticle"]
+            )
+        
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -171,10 +188,10 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     article_data["text"] = response.css('#readtrinity0 div._18840::text').getall()
     article_data["category"] = response.css('#readtrinity0 div.Faqqe li a p::text').getall()
     article_data["tags"] = response.css('#readtrinity0 div.regular a div::text').getall()
-
+    mapper = {"en": "English"}
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict["country"] = "India",
-    parsed_data_dict["language"] = response.css("html::attr(lang)").get(),
+    parsed_data_dict["source_country"] = "India",
+    parsed_data_dict["source_language"] = mapper.get(response.css("html::attr(lang)").get()),
     parsed_data_dict["author"] = article_data.get("main")[2].get('author')[0],
     parsed_data_dict["description"] = article_data.get("sub_title"),
     parsed_data_dict["modified_at"] = article_data.get("main")[2].get('dateModified'),
