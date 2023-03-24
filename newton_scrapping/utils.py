@@ -1,6 +1,5 @@
 # Utility/helper functions
 # utils.py
-
 import os
 import re
 import json
