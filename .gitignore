@@ -136,3 +136,7 @@ dmypy.json
 # Output Data
 Article/
 Links/
+
+# Test Cases
+test/
+.idea/.gitignore
