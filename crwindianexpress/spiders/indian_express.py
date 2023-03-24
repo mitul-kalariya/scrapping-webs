@@ -71,7 +71,7 @@ class IndianExpressSpider(scrapy.Spider):
         super(IndianExpressSpider, self).__init__(*args, **kwargs)
 
         try:
-            # self.output_callback = kwargs.get('args').get('callback')
+            self.output_callback = kwargs.get('args').get('callback')
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
