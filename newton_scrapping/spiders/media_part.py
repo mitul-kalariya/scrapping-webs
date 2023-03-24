@@ -17,15 +17,8 @@ from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
-    create_log_file,
-    validate_sitemap_date_range,
-    export_data_to_json_file,
-    get_raw_response,
-    get_parsed_data,
-    get_parsed_json,
-)
-
+from newton_scrapping.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
+                                    get_raw_response, get_parsed_data, get_parsed_json, )
 
 
 class BaseSpider(ABC):
@@ -72,12 +65,8 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-            )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            )
+            self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
+            self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
             validate_sitemap_date_range(start_date, end_date)
         if self.type == "article":
             if url:
@@ -85,7 +74,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             else:
                 LOGGER.error("Must have a URL to scrap")
                 raise Exception("Must have a URL to scrap")
-
 
     def parse(self, response):
         """
@@ -115,8 +103,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             self.logger.error(f"{e}")
             print(f"Error: {e}")
 
-
-    def parse_article(self,response):
+    def parse_article(self, response):
         """
         Parses the article data from the response object and returns it as a dictionary.
 
@@ -136,10 +123,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
+        articledata_loader.add_value("parsed_json", response_json, )
         articledata_loader.add_value("parsed_data", response_data)
 
         return dict(articledata_loader.load_item())
@@ -158,17 +142,13 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         """
         try:
             # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
+            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             # Create a Selector object from the XmlResponse
             xml_selector = Selector(xmlresponse)
             # Define the XML namespaces used in the sitemap
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             # Loop through each sitemap URL in the XML response
-            for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ):
+            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
                 # Loop through each link in the sitemap and create a scrapy request for it
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
@@ -194,9 +174,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
             # Extract the links and published dates from the sitemap
             links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            published_date = response.xpath(
-                '//*[local-name()="lastmod"]/text()'
-            ).getall()
+            published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
 
             # Loop through the links and published dates
             for link, pub_date in zip(links, published_date):
@@ -207,27 +185,16 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 # today_date = datetime.strptime(TODAYS_DATE, "%Y-%m-%d").date()
 
                 # If the published date falls within the specified date range, make a request to the link
-                if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date <= published_at <= self.end_date
-                ):
-                    yield scrapy.Request(
-                        link,
-                        callback=self.parse_sitemap_by_title_link,
-                        meta={"link": link, "published_date": published_at},
-                    )
+                if (self.start_date and self.end_date and self.start_date <= published_at <= self.end_date):
+                    yield scrapy.Request(link, callback=self.parse_sitemap_by_title_link,
+                        meta={"link": link, "published_date": published_at}, )
 
                 # If the published date is today's date, make a request to the link
                 elif TODAYS_DATE == published_at:
-                    yield scrapy.Request(
-                        link,
-                        callback=self.parse_sitemap_by_title_link,
-                        meta={"link": link, "published_date": published_at},
-                    )
+                    yield scrapy.Request(link, callback=self.parse_sitemap_by_title_link,
+                        meta={"link": link, "published_date": published_at}, )
                 else:
-                    continue
-                    # If there's any error during the above process, log it and print
+                    continue  # If there's any error during the above process, log it and print
         except BaseException as e:
             LOGGER.error(f"Error while parsing sitemap article: {e}")
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
@@ -241,10 +208,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 return
             if self.start_date and published_date > self.end_date:
                 return
-            data = {
-                "link": link,
-                "title": title,
-            }
+            data = {"link": link, "title": title, }
             if title:
                 self.articles.append(data)
         except BaseException as e:
@@ -271,18 +235,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
+        articledata_loader.add_value("parsed_json", response_json, )
         articledata_loader.add_value("parsed_data", response_data)
 
         return dict(articledata_loader.load_item())
-
-
-
-
-
 
     def closed(self, reason: any) -> None:
         """
@@ -301,13 +257,8 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
-            self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
-            )
+            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
+            self.log(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
 
 
 if __name__ == "__main__":

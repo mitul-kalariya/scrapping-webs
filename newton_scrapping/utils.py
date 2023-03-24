@@ -14,44 +14,27 @@ from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
 
 
 def create_log_file():
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    )
+    start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
-            raise exceptions.InvalidDateException(
-                "end_date must be specified if start_date is provided"
-            )
+            raise exceptions.InvalidDateException("end_date must be specified if start_date is provided")
         if not start_date and end_date:
-            raise exceptions.InvalidDateException(
-                "start_date must be specified if end_date is provided"
-            )
+            raise exceptions.InvalidDateException("start_date must be specified if end_date is provided")
 
         if start_date and end_date and start_date > end_date:
-            raise exceptions.InvalidDateException(
-                "start_date should not be later than end_date"
-            )
+            raise exceptions.InvalidDateException("start_date should not be later than end_date")
 
         if start_date and end_date and start_date == end_date:
-            raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
-            )
+            raise exceptions.InvalidDateException("start_date and end_date must not be the same")
 
         if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
-            )
+            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
 
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
@@ -73,28 +56,16 @@ def remove_empty_elements(parsed_data_dict):
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
     elif isinstance(parsed_data_dict, list):
-        data_dict = [
-            value
-            for value in (remove_empty_elements(value) for value in parsed_data_dict)
-            if not empty(value)
-        ]
+        data_dict = [value for value in (remove_empty_elements(value) for value in parsed_data_dict) if
+            not empty(value)]
     else:
-        data_dict = {
-            key: value
-            for key, value in (
-                (key, remove_empty_elements(value))
-                for key, value in parsed_data_dict.items()
-            )
-            if not empty(value)
-        }
+        data_dict = {key: value for key, value in
+            ((key, remove_empty_elements(value)) for key, value in parsed_data_dict.items()) if not empty(value)}
     return data_dict
 
 
 def get_raw_response(response):
-    raw_resopnse = {
-        "content_type": "text/html; charset=utf-8",
-        "content": response.css("html").get(),
-    }
+    raw_resopnse = {"content_type": "text/html; charset=utf-8", "content": response.css("html").get(), }
     return raw_resopnse
 
 
@@ -130,6 +101,7 @@ def get_parsed_json(response):
         parsed_json["misc"] = misc
 
     return remove_empty_elements(parsed_json)
+
 
 def get_parsed_data(response):
     """
@@ -167,9 +139,7 @@ def get_parsed_data(response):
 
         published_on = response.css("div.splitter__first").get()
         if published_on:
-            published_on = (
-                re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")
-            ).strip()
+            published_on = (re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")).strip()
             main_dict["published_at"] = [published_on]
 
         description = response.css("p.news__heading__top__intro::text").get()
@@ -180,7 +150,7 @@ def get_parsed_data(response):
         if article_text:
             main_dict["text"] = [" ".join(article_text).replace("\n", "")]
 
-        mapper = {"FRA": "France", "fr-FR": "French", "fr":"French"}
+        mapper = {"FRA": "France", "fr-FR": "French", "fr": "French"}
         article_lang = response.css("html::attr(lang)").get()
         if article_lang:
             main_dict["language"] = [mapper.get(article_lang)]
@@ -192,7 +162,7 @@ def get_parsed_data(response):
         raise exceptions.ArticleScrappingException(f"Error: {e}")
 
 
-def get_main(response)->list:
+def get_main(response) -> list:
     """
     returns a list of main data available in the article from application/ld+json
     Parameters:
@@ -211,7 +181,7 @@ def get_main(response)->list:
         raise exceptions.ArticleScrappingException(f"Error while getting main: {e}")
 
 
-def get_misc(response)->list:
+def get_misc(response) -> list:
     """
     returns a list of misc data available in the article from application/json
     Parameters:
@@ -246,17 +216,9 @@ def get_publisher(response) -> list:
         logo = response.css('head link[rel="icon"]::attr(href)').get()
         img_response = requests.get(logo)
         width, height = Image.open(BytesIO(img_response.content)).size
-        a_dict = {
-            "@id": "mediapart.fr",
-            "@type": "NewsMediaOrganization",
-            "name": "Global NEWS",
-            "logo": {
-                "@type": "ImageObject",
-                "url": logo,
-                "width": {"@type": "Distance", "name": str(width) + " px"},
-                "height": {"@type": "Distance", "name": str(height) + " px"},
-            },
-        }
+        a_dict = {"@id": "mediapart.fr", "@type": "NewsMediaOrganization", "name": "Global NEWS",
+            "logo": {"@type": "ImageObject", "url": logo, "width": {"@type": "Distance", "name": str(width) + " px"},
+                "height": {"@type": "Distance", "name": str(height) + " px"}, }, }
         return [a_dict]
     except BaseException as e:
         LOGGER.error(f"while fetching publisher{e}")
@@ -317,9 +279,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         elif scrape_type == "article":
             folder_structure = "Article"
-            filename = (
-                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-            )
+            filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
 
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
