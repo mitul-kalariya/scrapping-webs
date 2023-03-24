@@ -21,6 +21,7 @@ def create_log_file():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+
 def parse_sitemap_main(start_urls, start_date, end_date):
     start_urls.append("https://www.republicworld.com/sitemap.xml")
     try:
@@ -40,6 +41,7 @@ def parse_sitemap_main(start_urls, start_date, end_date):
     except ValueError as e:
         LOGGER.error(f"Error in __init__: {e}")
         raise InvalidDateRange(f"{e}")
+
 
 def validate_sitemap_date_range(start_date, end_date):
     start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
@@ -114,7 +116,6 @@ def get_raw_response(response):
     return raw_resopnse
 
 
-
 def get_parsed_json(response):
     """
     extracts json data from web page and returns a dictionary
@@ -143,7 +144,6 @@ def get_parsed_json(response):
         parsed_json["misc"] = misc
 
     return remove_empty_elements(parsed_json)
-
 
 
 def get_main(response):
@@ -227,11 +227,12 @@ def get_parsed_data(response):
     main_dict["images"] = article_images
     video = get_embed_video_link(response)
     main_dict["embed_video_link"] = video
-    mapper = {"en": "English", "hi_IN":"Hindi"}
+    mapper = {"en": "English", "hi_IN": "Hindi"}
     article_lang = response.css("html::attr(lang)").get()
     main_dict["language"] = [mapper.get(article_lang)]
-    
+
     return remove_empty_elements(main_dict)
+
 
 def get_lastupdated(response) -> str:
     """
@@ -432,5 +433,3 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
         json.dump(file_data, file, indent=4)
-
-
