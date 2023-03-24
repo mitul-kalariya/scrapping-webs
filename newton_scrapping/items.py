@@ -21,13 +21,13 @@ class ArticleData(Item):
     parsed_data = Field(output_processor=TakeFirst())
 
 
-class IndianNewsArticleRawResponse(Item):
+class ArticleRawResponse(Item):
     content_type = Field(
         input_processor=MapCompose(remove_tags), output_processor=TakeFirst()
     )
     content = Field(output_processor=TakeFirst())
 
 
-class IndianNewsArticleRawParsedJson(Item):
+class ArticleRawParsedJson(Item):
     main = Field()
     misc = Field()

@@ -1,9 +1,8 @@
 """Spider to scrap Indian Express news website"""
 
-import itertools
-import json
 import logging
 from datetime import datetime
+from abc import ABC, abstractmethod
 
 import scrapy
 
@@ -11,15 +10,20 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import (
-    ArticleData,
-)
+from newton_scrapping.items import ArticleData
 from newton_scrapping.utils import (
     based_on_scrape_type,
     date_range,
-    raw_response_data,
-    parsed_json,
+    get_raw_response,
+    get_parsed_json,
     export_data_to_json_file,
+    get_parsed_data,
+)
+from newton_scrapping.exceptions import (
+    SitemapScrappingException,
+    SitemapArticleScrappingException,
+    ArticleScrappingException,
+    ExportOutputFileException,
 )
 
 # Setting the threshold of logger to DEBUG
@@ -32,6 +36,23 @@ logging.basicConfig(
 )
 # Creating an object
 logger = logging.getLogger()
+
+
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(self, response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
 
 
 class IndianExpressSpider(scrapy.Spider):
@@ -84,7 +105,17 @@ class IndianExpressSpider(scrapy.Spider):
                 level=logging.ERROR,
             )
 
-    def parse(self, response, **kwargs):
+    def parse(self, response: str, **kwargs) -> None:
+        """
+        differentiate sitemap and article and redirect its callback to different parser
+        Args:
+            response: generated response
+        Raises:
+            CloseSpider: Close spider if error in passed args
+            Error if any while scrapping
+        Returns:
+            None
+        """
         if self.error_msg_dict:
             raise CloseSpider(self.error_msg_dict.get("error_msg"))
         if response.status != 200:
@@ -128,10 +159,12 @@ class IndianExpressSpider(scrapy.Spider):
                 yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
         except Exception as exception:
             self.log(
-                "Error occurred while scrapping urls from given sitemap url. "
-                + str(exception),
+                f"Error occurred while fetching sitemap:- {str(exception)}",
                 level=logging.ERROR,
             )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
         """
@@ -149,9 +182,12 @@ class IndianExpressSpider(scrapy.Spider):
                 self.articles.append(data)
         except Exception as exception:
             self.log(
-                f"Error occurred while scraping sitemap's article. {str(exception)}",
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
                 level=logging.ERROR,
             )
+            raise SitemapArticleScrappingException(
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -168,9 +204,8 @@ class IndianExpressSpider(scrapy.Spider):
                 "content_type": response.headers.get("Content-Type").decode("utf-8"),
                 "content": response.text,
             }
-            raw_response = raw_response_data(response, raw_response_dict)
+            raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
-
             parsed_json_dict = {}
 
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
@@ -181,92 +216,16 @@ class IndianExpressSpider(scrapy.Spider):
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
-            parsed_json_data = parsed_json(response, parsed_json_dict)
+            parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
                 articledata_loader.add_value(
                     "parsed_json",
                     parsed_json_data,
                 )
-            author = None
-            (
-                author,
-                publisher_type,
-                publisher_id,
-                country,
-                language,
-                article_body,
-            ) = self.get_author_and_publisher_details(parsed_json_main.getall())
-
-            logo_height = response.css(
-                "#wrapper div.main-header__logo img::attr(height)"
-            ).get()
-            logo_width = response.css(
-                "#wrapper div.main-header__logo img::attr(width)"
-            ).get()
-            video_url = response.css("span.embed-youtube iframe::attr(src)").getall()
-            images = response.css("span.custom-caption > img::attr(src)").getall()
-            published_date = response.css("div.ie-first-publish span::text").getall()
-            modified_date = (
-                response.css("div.editor-date-logo div span::text").getall()
-                or response.css("span.updated-date::attr(content)").getall()
+            articledata_loader.add_value(
+                "parsed_data", get_parsed_data(response, parsed_json_main)
             )
-            if not modified_date:
-                modified_date = None
-
-            parsed_data_dict = {
-                "country": [country],
-                "language": [language],
-                "author": author,
-                "description": response.css("h2.synopsis::text").getall(),
-                "modified_at": modified_date,
-                "published_at": published_date,
-                # "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
-                "publisher": [
-                    {
-                        "@id": publisher_id,
-                        "@type": publisher_type,
-                        "name": response.css(
-                            "#wrapper div.main-header__logo img::attr(title)"
-                        ).get(),
-                        "logo": {
-                            "type": "ImageObject",
-                            "url": response.css(
-                                "#wrapper div.main-header__logo img::attr(src)"
-                            ).get(),
-                            "width": {
-                                "type": "Distance",
-                                "name": f"{logo_width} px",
-                            },
-                            "height": {
-                                "type": "Distance",
-                                "name": f"{logo_height} px",
-                            },
-                        },
-                    }
-                ],
-                "text": [article_body],
-                "title": response.css("div.heading-part  h1::text").getall(),
-                "images": [
-                    {"link": img, "caption": cap}
-                    for img, cap in itertools.zip_longest(
-                        response.css("span.custom-caption > img::attr(src)").getall(),
-                        response.css("span.ie-custom-caption::text").getall()
-                        + response.css("span.custom-caption::text").getall(),
-                        fillvalue=None,
-                    )
-                ],
-                "video": {"link": video_url},
-                "section": response.css("ol.m-breadcrumb li a::text").getall(),
-                "tags": response.css("div.storytags ul li a::text").getall(),
-            }
-
-            if not video_url:
-                parsed_data_dict.pop("video")
-            if not images:
-                parsed_data_dict.pop("images")
-
-            articledata_loader.add_value("parsed_data", parsed_data_dict)
 
             self.articles.append(dict(articledata_loader.load_item()))
 
@@ -276,40 +235,15 @@ class IndianExpressSpider(scrapy.Spider):
                 + str(exception),
                 level=logging.ERROR,
             )
+            raise ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            ) from exception
 
-    def get_author_and_publisher_details(self, blocks: list) -> str:
-        """
-        get author and publisher details
-        Args:
-            blocks: json/+ld data
-        Returns:
-            str : author and publisher details
-        """
-        for block in blocks:
-            if "NewsArticle" in json.loads(block).get("@type"):
-                author = json.loads(block).get("author", [{}])
-                publisher_type = (
-                    json.loads(block).get("publisher", None).get("@type", None)
-                )
-                publisher_id = json.loads(block).get("publisher", None).get("url", None)
-                article_body = json.loads(block).get("articleBody", [])
-            if json.loads(block).get("address", None):
-                country = (
-                    json.loads(block).get("address", None).get("addressRegion", None)
-                )
-            if json.loads(block).get("contactPoint", None):
-                language = (
-                    json.loads(block)
-                    .get("contactPoint", None)
-                    .get("availableLanguage", None)
-                )
-        return author, publisher_type, publisher_id, country, language, article_body
-
-    def closed(self, response: str) -> None:
+    def closed(self, reason: any) -> None:
         """
         store all scrapped data into json file with given date in filename
         Args:
-            response: generated response
+            reason: generated reason
         Raises:
             ValueError if not provided
         Returns:
@@ -322,6 +256,9 @@ class IndianExpressSpider(scrapy.Spider):
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occurred while writing json file{str(exception)}",
+                f"Error occurred while exporting file:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+            raise ExportOutputFileException(
+                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+            ) from exception
