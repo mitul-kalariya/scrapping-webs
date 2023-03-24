@@ -10,7 +10,7 @@ from io import BytesIO
 from PIL import Image
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
@@ -24,6 +24,13 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """
+    validated date range given by user
+
+    Args:
+        start_date (str): start_date
+        end_date (str): end_date
+    """
     start_date = (
         datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     )
@@ -106,7 +113,7 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     parsed_json = {}
-
+    other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
     for a_block in ld_json_data:
         data = json.loads(a_block)
@@ -117,8 +124,9 @@ def get_parsed_json(response):
         elif data.get("@type") == "VideoObject":
             parsed_json["VideoObject"] = data
         else:
-            parsed_json["other"] = data
-
+            other_data.append(data)
+    
+    parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc

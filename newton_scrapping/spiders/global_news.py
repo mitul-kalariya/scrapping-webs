@@ -6,7 +6,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from newton_scrapping import exceptions
 from scrapy.loader import ItemLoader
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, LOGGER
 from abc import ABC, abstractmethod
 from newton_scrapping.items import ArticleData
 from newton_scrapping.utils import (
@@ -154,7 +154,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["Canada"]
+        response_data["source_country"] = ["Canada"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
