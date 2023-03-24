@@ -169,15 +169,7 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    # article_raw_parsed_json_loader = ItemLoader(
-    #     item=ArticleRawParsedJson(), response=response
-    # )
-    #
-    # for key, value in parsed_json_dict.items():
-    #     article_raw_parsed_json_loader.add_value(
-    #         key, [json.loads(data) for data in value.getall()]
-    #     )
-    # parsed_data_dict = get_parsed_data_dict()
+
     article_data = parsed_json_dict
 
     article_data["title"] = response.css('#readtrinity0  h1._1FcxJ::text').getall()
