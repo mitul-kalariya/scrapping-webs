@@ -97,18 +97,6 @@ def get_raw_response(response):
     return raw_resopnse
 
 
-def get_parsed_json(response):
-    parsed_json = {}
-    main = get_main(response)
-    if main:
-        parsed_json["main"] = main
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
-
-    return parsed_json
-
-
 def get_parsed_data(response):
     """
     Extracts data from a news article webpage and returns it in a dictionary format.
@@ -341,6 +329,35 @@ def get_embed_video_link(response) -> list:
         print(f"Error: {e}")
 
 
+def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
+    parsed_json = {}
+
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            parsed_json["other"] = data
+
+    misc = get_misc(response)
+    if misc:
+        parsed_json["misc"] = misc
+
+    return remove_empty_elements(parsed_json)
+
+
 def get_main(response):
     """
     returns a list of main data available in the article from application/ld+json
@@ -353,6 +370,7 @@ def get_main(response):
         data = []
         misc = response.css('script[type="application/ld+json"]::text').getall()
         for block in misc:
+
             data.append(json.loads(block))
         return data
     except BaseException as e:
