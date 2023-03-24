@@ -103,14 +103,14 @@ class TimesNow(scrapy.Spider):
                     .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
               
                 for url in site_map_url:
-                    date = url.split('/')[-1].split('.')[0]
-
-                    _date = datetime.strptime(f"{date}-01", '%Y-%B-%d')
+                    date = "-".join(url.split('/')[-1].split('.')[0].split('-')[:2])
+                    _date = datetime.strptime(f"{date}", '%Y-%B')
                     if self.today_date:
-                        if _date == self.today_date:
+                        if (_date.year, _date.month) == (self.today_date.year, self.today_date.month):
                             yield response.follow(url, callback=self.parse_sitemap)
                     else:
-                        if self.start_date <= _date <= self.end_date:
+                        if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= \
+                            (self.end_date.year, self.start_date.month):
                             yield scrapy.Request(
                                 url, callback=self.parse_sitemap)
             except Exception as exception:
@@ -143,7 +143,7 @@ class TimesNow(scrapy.Spider):
             .xpath('//sitemap:lastmod/text()',
                    namespaces=self.namespace).getall()
         try:
-            for url, date in zip(article_urls, mod_date):
+            for url, date in zip(article_urls[:3000], mod_date[:3000]):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
                     if _date == self.today_date:

@@ -171,6 +171,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     article_data["text"] = response.css('#readtrinity0 div._18840::text').getall()
     article_data["category"] = response.css('#readtrinity0 div.Faqqe li a p::text').getall()
     article_data["tags"] = response.css('#readtrinity0 div.regular a div::text').getall()
+
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["country"] = "India",
     parsed_data_dict["language"] = response.css("html::attr(lang)").get(),
@@ -181,7 +182,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["publisher"] = {
         '@type': article_data.get("main")[2].get('publisher').get('@type'),
         'url': article_data.get("main")[2].get('publisher').get('url'),
-        "logo":{
+        "logo": {
             "@type": article_data.get("main")[2].get('publisher').get("logo").get('@type'),
             "url": article_data.get("main")[2].get('publisher').get("logo").get('url'),
             'width': {
@@ -193,10 +194,10 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     },
 
     parsed_data_dict["text"] = "".join(article_data.get("text")),
-    parsed_data_dict["thumbnail_image"] = article_data.get("img_url"),  # need to look it
+    parsed_data_dict["thumbnail_image"] = article_data.get("main")[2].get('image').get('url'),  # need to look it
     parsed_data_dict["title"] = article_data.get("title")[0],
-    parsed_data_dict["images"] = {"link": article_data.get("img_url"), "caption": article_data.get("img_caption")},
-    parsed_data_dict["section"] = "".join(article_data.get("category")).split(",")[0],
+    parsed_data_dict["images"] = {"link": article_data.get("main")[2].get('image').get('url'), "caption": article_data.get("main")[2].get('image').get('caption')},
+    parsed_data_dict["section"] = article_data.get("category")[1:]
     # parsed_data_dict["tags"] = article_data.get("tags")
 
     return remove_empty_elements(parsed_data_dict)
