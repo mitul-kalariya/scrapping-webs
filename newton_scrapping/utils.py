@@ -174,7 +174,38 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
     return dict(article_raw_response_loader.load_item())
 
 
-def get_parsed_json(response: str, selector_and_key: dict) -> dict:
+def get_parsed_json_filter(blocks: list, misc: list) -> dict:
+    """
+     Parsed json response from generated data using given response and selector
+
+    Args:
+        blocks: application/ld+json data list
+        misc: misc data list
+
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
+    parsed_json_flter_dict = {
+        "main": None,
+        "ImageGallery": None,
+        "VideoObject": None,
+        "Other": [],
+        "misc": [],
+    }
+    for block in blocks:
+        if "NewsArticle" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+        else:
+            parsed_json_flter_dict["Other"].append(json.loads(block))
+    parsed_json_flter_dict["misc"].append(misc)
+    return parsed_json_flter_dict
+
+
+def get_parsed_json(response) -> dict:
     """
      Parsed json response from generated data using given response and selector
 
@@ -189,10 +220,12 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
         item=ArticleRawParsedJson(), response=response
     )
 
-    for key, value in selector_and_key.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
+    for key, value in get_parsed_json_filter(
+        response.css('script[type="application/ld+json"]::text').getall(),
+        response.css('script[type="application/json"]::text').getall(),
+    ).items():
+        article_raw_parsed_json_loader.add_value(key, value)
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -242,8 +275,8 @@ def get_parsed_data_dict() -> dict:
         dict: Return base data dictionary
     """
     return {
-        "country": None,
-        "language": None,
+        "source_country": None,
+        "source_language": None,
         "author": [{"@type": None, "name": None, "url": None}],
         "description": None,
         "modified_at": None,
@@ -314,7 +347,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         parsed_json_main.getall(), response
     )
     parsed_data_dict |= get_thumbnail_image_video(parsed_json_main.getall(), response)
-    return remove_empty_elements(parsed_data_dict)
+    return parsed_data_dict
 
 
 def get_country_details(parsed_data: list) -> dict:
@@ -328,14 +361,14 @@ def get_country_details(parsed_data: list) -> dict:
     return next(
         (
             {
-                "country": [
+                "source_country": [
                     json.loads(block).get("address", None).get("addressRegion", None)
                 ]
             }
             for block in parsed_data
             if json.loads(block).get("address", None)
         ),
-        {"country": ["India"]},
+        {"source_country": ["India"]},
     )
 
 
@@ -351,7 +384,7 @@ def get_language_details(parsed_data: list, response: str) -> dict:
     return next(
         (
             {
-                "language": [
+                "source_language": [
                     json.loads(block)
                     .get("contactPoint", None)
                     .get("availableLanguage", None)
@@ -360,7 +393,7 @@ def get_language_details(parsed_data: list, response: str) -> dict:
             for block in parsed_data
             if json.loads(block).get("contactPoint", None)
         ),
-        {"language": [response.css("html::attr(lang)").get()]},
+        {"source_language": [response.css("html::attr(lang)").get()]},
     )
 
 
