@@ -25,7 +25,7 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 #### Command to fetch sitemap: - 
 
 - command to crawl on sitemap from specific date range
-- `scrapy crawl ct_news-a type=sitemap-a start_date=2023-03-06 -a end_date=2023-03-10`
+- `scrapy crawl ct_news -a type=sitemap-a start_date=2023-03-06 -a end_date=2023-03-10`
 - command to crawl sitemap for today’s date
 - `scrapy crawl ct_news -a type=sitemap`
 
