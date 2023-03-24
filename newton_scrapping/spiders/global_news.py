@@ -91,7 +91,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
         elif self.type == "article":
-            article_data = self.parse_article(response)
+            self.parse_article(response)
             
 
     def parse_sitemap(self, response):
