@@ -97,8 +97,8 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:  # pylint: disable=broad-except
             self.error_msg_dict["error_msg"] = (
-                    "Error occurred while taking type, url, start_date and end_date args. "
-                    + str(exception)
+                "Error occurred while taking type, url, start_date and end_date args. "
+                + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. "
