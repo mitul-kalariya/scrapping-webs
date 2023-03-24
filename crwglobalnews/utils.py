@@ -9,8 +9,8 @@ import requests
 from io import BytesIO
 from PIL import Image
 from datetime import datetime
-from newton_scrapping import exceptions
-from newton_scrapping.constant import TODAYS_DATE, LOGGER
+from crwglobalnews import exceptions
+from crwglobalnews.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
