@@ -5,7 +5,7 @@ from json import JSONDecodeError
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
 from newton_scrapping.videos import get_video
-
+from newton_scrapping.constant import SITEMAP_URL
 from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -38,7 +38,6 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-    initial_url = "https://www.cp24.com/sitemap.xml"
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -61,12 +60,12 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
         if self.end_date is not None and self.start_date is not None:
             set_date_range(start_date, end_date)
             validate_date_range()
-            add_start_url(initial_url)
+            add_start_url(SITEMAP_URL)
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
             self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            add_start_url(initial_url)
+            add_start_url(SITEMAP_URL)
 
         elif self.end_date is not None or self.start_date is not None:
             raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
@@ -181,7 +180,6 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         article_raw_parsed_json_loader.add_value(
             key, [json.loads(data) for data in value.getall()]
         )
-    parsed_data_dict = get_parsed_data_dict()
     article_data = dict(article_raw_parsed_json_loader.load_item())
     article_data["title"] = response.css('h1.articleHeadline::text').get()
     article_data["img_url"] = response.css('div.article div.image img::attr(src)').get()
