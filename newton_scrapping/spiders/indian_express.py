@@ -231,7 +231,7 @@ class IndianExpressSpider(scrapy.Spider):
 
         except Exception as exception:
             self.log(
-                "Error occurred while scrapping an article for this link {response.url}."
+                f"Error occurred while scrapping an article for this link {response.url}."
                 + str(exception),
                 level=logging.ERROR,
             )
