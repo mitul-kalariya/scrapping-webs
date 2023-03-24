@@ -130,3 +130,14 @@ dmypy.json
 
 .idea/
 *.pyc
+# VS Code
+.vscode
+
+#PyCharm
+.idea
+
+*.zip
+
+# Output Data
+Article/
+Links/

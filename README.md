@@ -41,4 +41,3 @@ scrapy crawl cp24 -a type=sitemap
 ```bash
 scrapy crawl cp24 -a type=article url=timesnownews_article_url
 ```
-
