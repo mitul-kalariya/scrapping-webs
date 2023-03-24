@@ -10,7 +10,7 @@ from PIL import Image
 from io import BytesIO
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
@@ -187,7 +187,7 @@ def get_parsed_data(response):
         mapper = {"FRA": "France", "fr-FR": "French", "fr": "French"}
         article_lang = response.css("html::attr(lang)").get()
         if article_lang:
-            main_dict["language"] = [mapper.get(article_lang)]
+            main_dict["source_language"] = [mapper.get(article_lang)]
 
         return remove_empty_elements(main_dict)
 

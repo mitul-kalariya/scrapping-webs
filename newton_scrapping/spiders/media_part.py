@@ -4,7 +4,7 @@ from datetime import datetime
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from newton_scrapping import exceptions
-from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
+from newton_scrapping.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
@@ -52,6 +52,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         super().__init__(**kwargs)
         self.start_urls = []
         self.articles = []
+        self.article_url = url
         self.type = type.lower()
 
         create_log_file()
@@ -173,6 +174,14 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
     def parse_sitemap_by_title_link(self, response):
+        """
+            Parses a sitemap article page and extracts its link, title, and published date. If the published date is outside
+            the specified start and end dates, the article is not added to the list of articles. If parsing fails, a 
+            SitemapArticleScrappingException is raised.
+
+            :param response: The response object from the sitemap article page.
+            :return: None
+        """
         try:
             link = response.meta["link"]
             published_date = response.meta["published_date"]
@@ -204,7 +213,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["Germany"]
+        response_data["source_country"] = ["Germany"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
