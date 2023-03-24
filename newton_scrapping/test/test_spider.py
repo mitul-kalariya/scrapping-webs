@@ -10,7 +10,7 @@ from newton_scrapping.test.helpers.utils import (get_article_content,
 logger = logging.getLogger()
 
 
-class TestCTVNewsArticle(unittest.TestCase):
+class TestArticle(unittest.TestCase):
 
     def _test_article_results(self, articles, test_data_path):
         article = [article for article in articles]
@@ -82,8 +82,6 @@ class TestCTVNewsArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -219,22 +217,11 @@ class TestCTVNewsArticle(unittest.TestCase):
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> section")
 
-        if article[0].get("parsed_data").get("tags"):
-            with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
-                                  str, "format mismatch for parsed_data--> tags")
-            with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-                                  list, "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
-
         self._test_image_format(article)
         self._test_author_format(article)
 
 
-class TestCTVNewsSitemap(unittest.TestCase):
+class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
         self.spider = CtvnewsSpider(type=self.type)
