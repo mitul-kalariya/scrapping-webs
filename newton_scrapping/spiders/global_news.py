@@ -36,7 +36,6 @@ class BaseSpider(ABC):
         pass
 
 
-
 class GlobalNewsSpider(scrapy.Spider, BaseSpider):
     name = "global_news"
 
@@ -139,15 +138,15 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
     def parse_article(self, response) -> list:
         """
-            Parses the article data from the response object and returns it as a dictionary.
+        Parses the article data from the response object and returns it as a dictionary.
 
-            Args:
-                response (scrapy.http.Response): The response object containing the article data.
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
 
-            Returns:
-                dict: A dictionary containing the parsed article data, including the raw response,
-                parsed JSON, and parsed data, along with additional information such as the country
-                and time scraped.
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
         """
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         raw_response = get_raw_response(response)

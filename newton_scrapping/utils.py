@@ -24,7 +24,9 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
@@ -109,19 +111,19 @@ def get_parsed_json(response):
 
 def get_parsed_data(response):
     """
-        Extracts data from a news article webpage and returns it in a dictionary format.
-        Parameters:
-        response (scrapy.http.Response): A scrapy response object of the news article webpage.
-        Returns:
-        dict: A dictionary containing the extracted data from the webpage, including:
-             - 'publisher': (str) The name of the publisher of the article.
-             - 'article_catagory': The region of the news that the article refers to
-             - 'headline': (str) The headline of the article.
-             - 'authors': (list) The list of authors of the article, if available.
-             - 'published_on': (str) The date and time the article was published.
-             - 'updated_on': (str) The date and time the article was last updated, if available.
-             - 'text': (list) The list of text paragraphs in the article.
-             - 'images': (list) The list of image URLs in the article, if available. (using bs4)
+    Extracts data from a news article webpage and returns it in a dictionary format.
+    Parameters:
+    response (scrapy.http.Response): A scrapy response object of the news article webpage.
+    Returns:
+    dict: A dictionary containing the extracted data from the webpage, including:
+         - 'publisher': (str) The name of the publisher of the article.
+         - 'article_catagory': The region of the news that the article refers to
+         - 'headline': (str) The headline of the article.
+         - 'authors': (list) The list of authors of the article, if available.
+         - 'published_on': (str) The date and time the article was published.
+         - 'updated_on': (str) The date and time the article was last updated, if available.
+         - 'text': (list) The list of text paragraphs in the article.
+         - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
     try:
         main_dict = {}
@@ -147,7 +149,6 @@ def get_parsed_data(response):
         updated_on = response.css(
             "div.c-byline__datesWrapper > div > div.c-byline__date--modDate > span::text"
         ).get()
-        # updated_on = updated_on.strip("Updated ")
         main_dict["modified_at"] = [updated_on]
 
         thumbnail_image = get_thumbnail_image(response)
@@ -174,17 +175,16 @@ def get_parsed_data(response):
         print(f"Error: {e}")
 
 
-
 def get_publisher(response):
     """
-        Extracts publisher information from the given response object and returns it as a dictionary.
-        Returns:
-        - A dictionary containing information about the publisher.The dictionary has the following keys:
-        ---
-        @id: The unique identifier for the publisher.
-        @type: The type of publisher (in this case, always "NewsMediaOrganization").
-        name: The name of the publisher.
-        logo: Logo of the publisher as an image object
+    Extracts publisher information from the given response object and returns it as a dictionary.
+    Returns:
+    - A dictionary containing information about the publisher.The dictionary has the following keys:
+    ---
+    @id: The unique identifier for the publisher.
+    @type: The type of publisher (in this case, always "NewsMediaOrganization").
+    name: The name of the publisher.
+    logo: Logo of the publisher as an image object
     """
     try:
         logo = response.css('head link[rel="icon"]::attr(href)').get()
@@ -206,7 +206,8 @@ def get_publisher(response):
         LOGGER.error(f"{e}")
         print(f"Error: {e}")
 
-def get_author( response) -> list:
+
+def get_author(response) -> list:
     """
     The get_author function extracts information about the author(s)
     of an article from the given response object and returns it in the form of a list of dictionaries.
@@ -234,9 +235,6 @@ def get_author( response) -> list:
                 link = i.css("div.c-byline__attribution span a::attr(href)").get()
                 if link:
                     temp_dict["url"] = link
-                # temp_dict["organization"] = re.sub(
-                #     pattern, "", i.css("span.c-byline__source::text").get()
-                # ).strip()
                 """while reviewing if you feel that this data can be useful please uncomment it
                     it states from which organization the author is"""
 
@@ -246,7 +244,8 @@ def get_author( response) -> list:
         LOGGER.error(f"{e}")
         print(f"Error: {e}")
 
-def get_thumbnail_image( response) -> list:
+
+def get_thumbnail_image(response) -> list:
     """extracting thumbnail image from application+ld/json data in main function
     Args:
         response (obj): page_object
@@ -258,7 +257,8 @@ def get_thumbnail_image( response) -> list:
     thumbnail_image.append(image[0].get("thumbnailUrl"))
     return thumbnail_image
 
-def get_tags( response) -> list:
+
+def get_tags(response) -> list:
     """
     Extracts lables associated to the news article in form of a list of dictionary
     containing name of the tag and the corrosponding link to the tag
@@ -283,7 +283,8 @@ def get_tags( response) -> list:
         LOGGER.error(f"{e}")
         print(f"Error: {e}")
 
-def get_images( response) -> list:
+
+def get_images(response) -> list:
     """extracting image links from provided response
     Args:
         response (_type_): html page object
@@ -311,7 +312,8 @@ def get_images( response) -> list:
         LOGGER.error(f"Error: {e}")
         print(f"Error: {e}")
 
-def get_embed_video_link( response) -> list:
+
+def get_embed_video_link(response) -> list:
     """
     extracting all the videos available from article
     parameters:
@@ -337,6 +339,7 @@ def get_embed_video_link( response) -> list:
         LOGGER.error(f"{e}")
         print(f"Error: {e}")
 
+
 def get_main(response):
     """
     returns a list of main data available in the article from application/ld+json
@@ -355,6 +358,7 @@ def get_main(response):
         LOGGER.error(f"{e}")
         print(f"Error while getting main: {e}")
 
+
 def get_misc(response):
     """
     returns a list of misc data available in the article from application/json
@@ -372,6 +376,7 @@ def get_misc(response):
     except BaseException as e:
         LOGGER.error(f"{e}")
         print(f"Error while getting misc: {e}")
+
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """
