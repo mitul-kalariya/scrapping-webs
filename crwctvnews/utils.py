@@ -6,7 +6,7 @@ import re
 
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import (
+from crwctvnews.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
