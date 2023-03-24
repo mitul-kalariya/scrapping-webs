@@ -60,7 +60,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         super().__init__(**kwargs)
         self.start_urls = []
         self.articles = []
-        self.start_urls = []
+        self.article_url = url
         self.sitemap_json = {}
         self.type = type.lower()
 
@@ -68,6 +68,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
         if self.type == "sitemap":
             self.start_urls.append(BASE_URL)
+
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
