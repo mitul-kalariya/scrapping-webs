@@ -133,3 +133,14 @@ dmypy.json
 
 #logfile
 logs.log
+# VS Code
+.vscode
+
+*.zip
+
+# Output Data
+Article/
+Links/
+
+# Test Cases
+test/
