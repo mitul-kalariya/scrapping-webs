@@ -1,84 +1,149 @@
 import re
-import json
-import time
 import scrapy
-import requests
-from PIL import Image
-from io import BytesIO
+import logging
 from datetime import datetime
+from newton_scrapping import exceptions
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from newton_scrapping.utils import create_log_file_config_and_logger, make_directories_for_links_and_article, validations_for_start_date_and_end_date
+from newton_scrapping.constants import BASE_URL, LOGGER
+from scrapy.loader import ItemLoader
+from newton_scrapping.items import ArticleData
+from abc import ABC, abstractmethod
+from newton_scrapping.utils import (
+    create_log_file,
+    validate_sitemap_date_range,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
+    export_data_to_json_file,
+)
 
-logger = create_log_file_config_and_logger()
+
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(response):
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
 
 
 class ZdfNewsSpider(scrapy.Spider):
     name = "zdf_news"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+        """
+        Initializes a web scraper object to scrape data from a website or sitemap.
+        Args:
+            type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
+            start_date (str): A string representing the start date of the sitemap to be scraped.
+            Must be in the format "YYYY-MM-DD".
+            url (str): A string representing the URL of the webpage to be scraped.
+            end_date (str): A string representing the end date of the sitemap to be scraped.
+            Must be in the format "YYYY-MM-DD".
+            **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
+        Raises:
+            InvalidInputException: If a URL is not provided for an "article" type scraper.
+        Notes:
+            This function initializes a web scraper object and sets various properties based on the arguments passed.
+            If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
+            If the type argument is "article",
+            the URL to be scraped is validated and set. A log file is created for the web scraper.
+        """
         super().__init__(**kwargs)
         self.start_urls = []
-        self.sitemap_data = []
-        self.article_json_data = []
+        self.articles = []
+        self.article_url = url
+        self.sitemap_json = {}
         self.type = type.lower()
-        self.today_date = datetime.today().strftime("%Y-%m-%d")
-        self.import_logs = {}
 
-        self.links_path, self.article_path = make_directories_for_links_and_article()
+        create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append("https://www.zdf.de/sitemap.xml")
-            today_date =  datetime.today().date()
-            self.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-            self.end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            error_messages = validations_for_start_date_and_end_date(self, start_date, end_date, today_date)
-            if len(error_messages) > 0:
-                for error in error_messages.values():
-                    self.logger.error(f"Error in __init__: {error}", exc_info=True)
-                    raise Exception(error)
+            self.start_urls.append(BASE_URL)
+
+            self.start_date = (
+                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+            )
+            self.end_date = (
+                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+            )
+            validate_sitemap_date_range(start_date, end_date)
 
         if self.type == "article":
             if url:
                 self.start_urls.append(url)
             else:
-                self.logger.error("Must have a URL to scrap")
-                raise Exception("Must have a URL to scrap")
+                LOGGER.error("Error while")
+                raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
+        """
+        Parses the given Scrapy response based on the specified type of parsing.
+        Returns:
+            A generator that yields a scrapy.Request object to parse a sitemap or an article.
+        Example Usage:
+            parse(scrapy.http.Response(url="https://example.com", body="..."))
+        """
+
         try:
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_by_date)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
-                    yield scrapy.Request(response.url, callback=self.parse_by_date)
-            elif self.type == "article":
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-                response_json, response_data = self.scrap_site(response)
-                final_data = {
-                    "raw_response": {
-                        "content_type": "text/html; charset=utf-8",
-                        "content": response.css("html").get(),
-                    },
-                }
-                if response_json:
-                    final_data["parsed_json"] = response_json
-                if response_data:
-                    final_data["parsed_data"] = response_data
-                    response_data["country"] = ["Germany"]
-                    response_data["time_scraped"] = [str(datetime.now())]
-                self.article_json_data.append(final_data)
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                self.articles.append(article_data)
 
         except BaseException as e:
             print(f"Error: {e}")
             self.logger.error(f"{e}")
 
-    def parse_by_date(self, response):
+    def parse_article(self, response) -> list:
+        """
+            Parses the article data from the response object and returns it as a dictionary.
+            Args:
+                response (scrapy.http.Response): The response object containing the article data.
+            Returns:
+                dict: A dictionary containing the parsed article data, including the raw response,
+                parsed JSON, and parsed data, along with additional information such as the country
+                and time scraped.
+        """
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = get_parsed_data(response)
+        response_data["source_country"] = ["Germany"]
+        response_data["time_scraped"] = [str(datetime.now())]
+
+        articledata_loader.add_value("raw_response", raw_response)
+        articledata_loader.add_value(
+            "parsed_json",
+            response_json,
+        )
+        articledata_loader.add_value("parsed_data", response_data)
+
+        return dict(articledata_loader.load_item())
+
+    def parse_sitemap(self, response):
+        """Parses a sitemap page and extracts links and titles for further processing.
+        Args:
+            response (scrapy.http.Response): The HTTP response object containing the sitemap page.
+        Yields:
+            scrapy.http.Request: A request object for each link on the sitemap page.
+        Raises:
+            exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
+        """
         xmlresponse = XmlResponse(
             url=response.url, body=response.body, encoding="utf-8"
         )
@@ -88,32 +153,51 @@ class ZdfNewsSpider(scrapy.Spider):
             "//xmlns:loc/text()", namespaces=xml_namespaces
         ):
             for link in sitemap.getall():
-                yield scrapy.Request(link, callback=self.parse_sitemap)
+                yield scrapy.Request(link, callback=self.parse_sitemap_article)
 
-    def parse_sitemap(self, response):
+    def parse_sitemap_article(self, response):
+        """Extracts article titles and links from the response object and yields a Scrapy request for each article.
+        Args:
+            self: The Scrapy spider instance calling this method.
+            response: The response object obtained after making a request to a sitemap URL.
+        Yields:
+            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
+            method as the callback and the article link and title as metadata.
+        Raises:
+            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+        """
         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
         published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
 
         for link, pub_date in zip(links, published_date):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            today_date = datetime.strptime(self.today_date, "%Y-%m-%d").date()
+            today_date = datetime.today().strftime('%Y-%m-%d')
             if self.start_date and self.end_date and self.start_date <= published_at <= self.end_date:
                 yield scrapy.Request(
                     link,
-                    callback=self.parse_sitemap_link_title,
+                    callback=self.parse_sitemap_datewise,
                     meta={"link": link, "published_date": published_at},
                 )
             elif today_date == published_at:
                 yield scrapy.Request(
                     link,
-                    callback=self.parse_sitemap_link_title,
+                    callback=self.parse_sitemap_datewise,
                     meta={"link": link, "published_date": published_at},
                 )
             else:
                 continue
 
-    def parse_sitemap_link_title(self, response):
+    def parse_sitemap_datewise(self, response):
+        """
+        Parses a response from a sitemap and extracts articles published within a certain date range.
+        Args:
+            response: The response to parse, containing information about a link.
+        Returns:
+            None if the published date of the article is outside of the specified date range, otherwise a dictionary
+            containing the link and title of the article,
+            which is appended to the 'articles' list attribute of the object.
+        """
         link = response.meta["link"]
         published_date = response.meta["published_date"]
         title = response.css("h2#main-content").get()
@@ -128,219 +212,24 @@ class ZdfNewsSpider(scrapy.Spider):
                 "link": link,
                 "title": title,
             }
-            self.sitemap_data.append(data)
+            self.articles.append(data)
 
-    def scrap_site(self, response):
-        """generate required data as response json and response data
-
-        Args:
-            response (obj): site response object
-
-        Returns:
-            dict: returns 2 dictionary parsed_json and parsed_data
-        """
-
-        response_json, response_data = {}, {}
-
-        main_data = self.get_main(response)
-        if main_data:
-            response_json["main"] = main_data
-        misc_data = self.get_misc(response)
-        if misc_data:
-            response_json["misc"] = misc_data
-
-        pattern = r"[\r\n\t\</h2>\<h2>]+"
-
-        topline = response.css("span.news-overline::text").get()
-        if topline:
-            response_data["description"] = [topline]
-
-        title = response.css("h2#main-content").get()
-        if title:
-            title = re.sub(pattern, "", title.split("</span>")[2]).strip()
-            response_data["title"] = [title]
-
-        published_on = response.css("dd.postdate time::text").get()
-        if published_on:
-            response_data["published_on"] = [published_on]
-
-        author = response.css("div.author-wrap div span::text").get()
-        if author:
-            author = re.sub(pattern, "", author).strip()
-            response_data["author"] = [{"@type": "Person", "name": author}]
-
-        publisher = self.extract_publisher(response)
-        if publisher:
-            response_data["publisher"] = [publisher]
-
-        display_text = response.css("p::text").getall()
-        if display_text:
-            response_data["text"] = [
-                " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])
-            ]
-
-        images = self.extract_images(response)
-        if images:
-            try:
-                response_images = images[1:]
-                if response_images:
-                    response_data["images"] = response_images
-
-            except BaseException as e:
-                self.logger.error(f"{e}")
-                print(f"Error: {e}")
-
-        try:
-            thumbnail_image = images[0].get("link")
-            if thumbnail_image:
-                response_data["thumbnail_image"] = [thumbnail_image]
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while fetching thumbnail: {e}")
-
-        article_lang = response.css("html::attr(lang)").get()
-        if article_lang:
-            response_data["language"] = [article_lang]
-
-        video = self.extract_video(response)
-        if video:
-            response_data["embed_video_link"] = video.get("videos")
-
-        return response_json, response_data
-
-    def get_main(self, response):
-        """
-        returns a list of main data available in the article from application/ld+json
-        Parameters:
-            response:
-        Returns:
-            main data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/ld+json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting main: {e}")
-
-    def get_misc(self, response):
-        """
-        returns a list of misc data available in the article from application/json
-        Parameters:
-            response:
-        Returns:
-            misc data
-        """
-        try:
-            data = []
-            misc = response.css('script[type="application/json"]::text').getall()
-            for block in misc:
-                data.append(json.loads(block))
-            return data
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error while getting misc: {e}")
-
-    def extract_images(self, response, parsed_json=False) -> list:
-        images = response.css("figure.content-image")
-        data = []
-        for image in images:
-            temp_dict = {}
-            link = image.css("img::attr(data-src)").get()
-            caption = image.css("figcaption small::text").get()
-            if parsed_json:
-                if link:
-                    temp_dict["@type"] = "ImageObject"
-                    temp_dict["link"] = link
-            else:
-                if link:
-                    temp_dict["link"] = link
-                    if caption:
-                        temp_dict["caption"] = caption
-            data.append(temp_dict)
-        return data
-
-    def extract_publisher(self, response) -> list:
-        """
-        Extracts publisher information from the given response object and returns it as a dictionary.
-
-        Returns:
-        - A dictionary containing information about the publisher.The dictionary has the following keys:
-        ---
-        @id: The unique identifier for the publisher.
-        @type: The type of publisher (in this case, always "NewsMediaOrganization").
-        name: The name of the publisher.
-        logo: Logo of the publisher as an image object
-        """
-        try:
-            misc_resp = self.get_misc(response)
-            publisher = misc_resp[0].get("publisher")
-            logo_url = publisher.get("logo").get("url")
-            img_response = requests.get(logo_url)
-            width, height = Image.open(BytesIO(img_response.content)).size
-            a_dict = {
-                "@id": "zdf.de",
-                "@type": "NewsMediaOrganization",
-                "name": "Zweites Deutsches Fernsehen",
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": logo_url,
-                    "width": {"@type": "Distance", "name": str(width) + " px"},
-                    "height": {"@type": "Distance", "name": str(height) + " px"},
-                },
-            }
-
-            return a_dict
-        except BaseException as e:
-            self.logger.error(f"{e}")
-            print(f"Error: {e}")
-
-    def extract_video(self, response) -> list:
-
-        options = Options()
-        options.headless = True
-        driver = webdriver.Chrome(options=options)
-        driver.get(response.url)
-        time.sleep(5)
-        banner_button = driver.find_element(By.XPATH, "//div[@class='banner-actions-container']//button")
-        if banner_button:
-            banner_button.click()
-            time.sleep(5)
-            video_button = driver.find_elements(By.XPATH, "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")
-            if video_button:
-                data = {}
-                for i in video_button:
-                    i.click()
-                    time.sleep(5)
-                    try:
-                        data["videos"] += [i.find_elements(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']")[-1].get_attribute("src")]
-                    except:
-                        data["videos"] = [i.find_elements(By.XPATH, "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']")[-1].get_attribute("src")]
-        return data
-
-    def closed(self, response):
+    def closed(self, reason: any) -> None:
         """
         Method called when the spider is finished scraping.
         Saves the scraped data to a JSON file with a timestamp
         in the filename.
         """
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-        if self.type == "sitemap":
-            file_name = f"{self.links_path}/{self.name}-{'sitemap'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.sitemap_data, f, indent=4, default=str)
-
-        if self.type == "article":
-            file_name = f"{self.article_path}/{self.name}-{'article'}-{timestamp}.json"
-            with open(file_name, "w") as f:
-                json.dump(self.article_json_data, f, indent=4)
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(ZdfNewsSpider)
-    process.start()
+        try:
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
+            self.log(
+                f"Error occurred while writing json file{str(exception)} - {reason}",
+                level=logging.ERROR,
+            )
