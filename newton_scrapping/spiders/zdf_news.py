@@ -7,7 +7,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from newton_scrapping.constants import BASE_URL, LOGGER
+from newton_scrapping.constant import SITEMAP_URL, LOGGER
 from scrapy.loader import ItemLoader
 from newton_scrapping.items import ArticleData
 from abc import ABC, abstractmethod
@@ -64,13 +64,12 @@ class ZdfNewsSpider(scrapy.Spider):
         self.start_urls = []
         self.articles = []
         self.article_url = url
-        self.sitemap_json = {}
         self.type = type.lower()
 
         create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append(BASE_URL)
+            self.start_urls.append(SITEMAP_URL)
 
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
