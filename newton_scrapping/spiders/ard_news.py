@@ -41,20 +41,20 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     # Initializing the spider class with site_url and category parameters
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
-            Initializes a web scraper object to scrape data from a website or sitemap.
+        Initializes a web scraper object to scrape data from a website or sitemap.
 
-            Args:
-                type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
-                start_date (str): A string representing the start date of the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
-                url (str): A string representing the URL of the webpage to be scraped.
-                end_date (str): A string representing the end date of the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
-                **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
+        Args:
+            type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
+            start_date (str): A string representing the start date of the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
+            url (str): A string representing the URL of the webpage to be scraped.
+            end_date (str): A string representing the end date of the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
+            **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
 
-            Raises:
-                InvalidInputException: If a URL is not provided for an "article" type scraper.
+        Raises:
+            InvalidInputException: If a URL is not provided for an "article" type scraper.
 
-            Notes:
-                This function initializes a web scraper object and sets various properties based on the arguments passed to it. If the type argument is "sitemap", the start and end dates of the sitemap are validated and set. If the type argument is "article", the URL to be scraped is validated and set. A log file is created for the web scraper.
+        Notes:
+            This function initializes a web scraper object and sets various properties based on the arguments passed to it. If the type argument is "sitemap", the start and end dates of the sitemap are validated and set. If the type argument is "article", the URL to be scraped is validated and set. A log file is created for the web scraper.
 
         """
         super().__init__(**kwargs)
@@ -85,13 +85,13 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
     def parse(self, response):
         """
-            Parses the given Scrapy response based on the specified type of parsing.
+        Parses the given Scrapy response based on the specified type of parsing.
 
-            Returns:
-                A generator that yields a scrapy.Request object to parse a sitemap or an article.
+        Returns:
+            A generator that yields a scrapy.Request object to parse a sitemap or an article.
 
-            Example Usage:
-                >>> parse(scrapy.http.Response(url="https://example.com", body="..."))
+        Example Usage:
+            parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
         if self.type == "sitemap":
             if self.start_date and self.end_date:
@@ -105,15 +105,15 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
     def parse_article(self, response) -> list:
         """
-            Parses the article data from the response object and returns it as a dictionary.
+        Parses the article data from the response object and returns it as a dictionary.
 
-            Args:
-                response (scrapy.http.Response): The response object containing the article data.
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
 
-            Returns:
-                dict: A dictionary containing the parsed article data, including the raw response,
-                parsed JSON, and parsed data, along with additional information such as the country
-                and time scraped.
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
         """
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         raw_response = get_raw_response(response)
@@ -134,14 +134,14 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
 
-            Args:
-                response (scrapy.http.Response): The HTTP response object containing the sitemap page.
+        Args:
+            response (scrapy.http.Response): The HTTP response object containing the sitemap page.
 
-            Yields:
-                scrapy.http.Request: A request object for each link on the sitemap page.
+        Yields:
+            scrapy.http.Request: A request object for each link on the sitemap page.
 
-            Raises:
-                exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
+        Raises:
+            exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
 
         """
         try:
@@ -182,15 +182,15 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
 
-            Args:
-                self: The Scrapy spider instance calling this method.
-                response: The response object obtained after making a request to a sitemap URL.
+        Args:
+            self: The Scrapy spider instance calling this method.
+            response: The response object obtained after making a request to a sitemap URL.
 
-            Yields:
-                A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise` method as the callback and the article link and title as metadata.
+        Yields:
+            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise` method as the callback and the article link and title as metadata.
 
-            Raises:
-                SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+        Raises:
+            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
             for article in response.css(".teaser__link"):
@@ -210,14 +210,14 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap_datewise(self, response):
         """
-            Parses a response from a sitemap and extracts articles published within a certain date range.
+        Parses a response from a sitemap and extracts articles published within a certain date range.
 
-            Args:
-                response: The response to parse, containing information about a link.
+        Args:
+            response: The response to parse, containing information about a link.
 
-            Returns:
-                None if the published date of the article is outside of the specified date range, otherwise a dictionary
-                containing the link and title of the article, which is appended to the 'articles' list attribute of the object.
+        Returns:
+            None if the published date of the article is outside of the specified date range, otherwise a dictionary
+            containing the link and title of the article, which is appended to the 'articles' list attribute of the object.
 
         """
         link = response.meta["link"]
