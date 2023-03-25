@@ -71,7 +71,7 @@ class IndianExpressSpider(scrapy.Spider):
         super(IndianExpressSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args').get('callback')
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -248,7 +248,8 @@ class IndianExpressSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-            self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
         except Exception as exception:
