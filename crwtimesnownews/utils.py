@@ -4,7 +4,7 @@ from datetime import datetime
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import (
+from crwtimesnownews.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )

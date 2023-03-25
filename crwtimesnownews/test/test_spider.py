@@ -1,10 +1,10 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.timesnow import TimesNow
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+from crwtimesnownews.spiders.timesnow import TimesNow
+from crwtimesnownews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwtimesnownews.test.helpers.utils import (get_article_content,
+                                                online_response_from_url)
 
 # Creating an object
 logger = logging.getLogger()

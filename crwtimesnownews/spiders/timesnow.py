@@ -6,16 +6,16 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
-from newton_scrapping.items import ArticleData
+from crwtimesnownews.items import ArticleData
 
-from ..utils import (
+from crwtimesnownews.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
     export_data_to_json_file
 )
-from newton_scrapping.exceptions import (
+from crwtimesnownews.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -61,6 +61,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
     ):
         try:
             super(TimesNow, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -71,10 +72,10 @@ class TimesNow(scrapy.Spider, BaseSpider):
             self.article_url = url
             self.today_date = None
             check_cmd_args(self, self.start_date, self.end_date)
-        
+
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+                    "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
@@ -97,12 +98,12 @@ class TimesNow(scrapy.Spider, BaseSpider):
             raise CloseSpider(
                 f"Unable to scrape due to getting this status code {response.status}"
             )
-        
+
         if self.type == "sitemap":
             try:
                 site_map_url = Selector(response, type='xml') \
                     .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-              
+
                 for url in site_map_url:
                     date = "-".join(url.split('/')[-1].split('.')[0].split('-')[:2])
                     _date = datetime.strptime(f"{date}", '%Y-%B')
@@ -111,22 +112,22 @@ class TimesNow(scrapy.Spider, BaseSpider):
                             yield response.follow(url, callback=self.parse_sitemap)
                     else:
                         if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= \
-                            (self.end_date.year, self.start_date.month):
+                                (self.end_date.year, self.start_date.month):
                             yield scrapy.Request(
                                 url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
-                    f"Error occured while iterating sitemap url. {str(exception)}",
+                    f"Error occurred while iterating sitemap url. {str(exception)}",
                     level=logging.ERROR,
                 )
-                
+
         elif self.type == "article":
             try:
                 yield self.parse_article(response)
-            
+
             except Exception as exception:
                 self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
+                    f"Error occurred while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
 
@@ -137,7 +138,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
         """
-        
+
         article_urls = Selector(response, type='xml'). \
             xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
         mod_date = Selector(response, type='xml') \
@@ -163,7 +164,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-        
+
     def parse_sitemap_article(self, response):
         """
            Parse article information from a given sitemap URL.
@@ -218,10 +219,10 @@ class TimesNow(scrapy.Spider, BaseSpider):
                 parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['VideoObject'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
-                
+
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
-            
+
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -254,10 +255,12 @@ class TimesNow(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
