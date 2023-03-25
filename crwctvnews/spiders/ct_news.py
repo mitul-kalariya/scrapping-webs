@@ -73,7 +73,7 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
 
         super(CtvnewsSpider, self).__init__(*args, **kwargs)
         try:
-            self.output_callback = kwargs.get('args').get('callback')
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -243,7 +243,9 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
+
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             # else:
