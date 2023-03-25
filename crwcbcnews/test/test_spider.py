@@ -24,7 +24,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = CbcNewsSpider(type="article", url=article["url"])
+            spider = CbcNewsSpider(type="article", url=article["url"], args={'callback': None})
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -226,7 +226,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = CbcNewsSpider(type=self.type)
+        self.spider = CbcNewsSpider(type=self.type, args={'callback': None})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
