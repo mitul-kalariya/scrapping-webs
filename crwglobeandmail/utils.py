@@ -5,7 +5,7 @@ import os
 
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import (
+from crwglobeandmail.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )

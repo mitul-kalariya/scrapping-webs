@@ -10,8 +10,8 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwglobeandmail.items import ArticleData
+from crwglobeandmail.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
@@ -19,7 +19,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     remove_empty_elements,
 )
-from newton_scrapping.exceptions import (
+from crwglobeandmail.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -68,9 +68,10 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
     ):
         """init method to take date, type and validating it"""
 
-        super(TheGlobeAndMailSpider).__init__(*args, **kwargs)
+        super(TheGlobeAndMailSpider, self).__init__(*args, **kwargs)
 
         try:
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -237,10 +238,12 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
