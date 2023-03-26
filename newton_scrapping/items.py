@@ -6,8 +6,6 @@
 
 import scrapy
 from scrapy import Item, Field
-from itemloaders.processors import TakeFirst, MapCompose
-from w3lib.html import remove_tags
 
 
 class NewtonScrappingItem(scrapy.Item):
@@ -16,16 +14,14 @@ class NewtonScrappingItem(scrapy.Item):
 
 
 class ArticleData(Item):
-    raw_response = Field(output_processor=TakeFirst())
-    parsed_json = Field(output_processor=TakeFirst())
-    parsed_data = Field(output_processor=TakeFirst())
+    raw_response = Field()
+    parsed_json = Field()
+    parsed_data = Field()
 
 
 class ArticleRawResponse(Item):
-    content_type = Field(
-        input_processor=MapCompose(remove_tags), output_processor=TakeFirst()
-    )
-    content = Field(output_processor=TakeFirst())
+    content_type = Field()
+    content = Field()
 
 
 class ArticleRawParsedJson(Item):

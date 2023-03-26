@@ -1,16 +1,26 @@
 import logging
 from abc import ABC, abstractmethod
-
+from newton_scrapping.itemLoader import ArticleDataLoader
 import scrapy
-import json
-import os
-from datetime import datetime
 
+from datetime import datetime
+from newton_scrapping.items import ArticleData
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 
-from newton_scrapping.exceptions import SitemapScrappingException
-from newton_scrapping.utils import check_cmd_args, get_article_data, set_article_dict
+from newton_scrapping.exceptions import (
+    SitemapScrappingException,
+    SitemapArticleScrappingException,
+    ArticleScrappingException,
+    ExportOutputFileException,
+)
+from newton_scrapping.utils import (
+    check_cmd_args,
+    get_parsed_data,
+    get_raw_response,
+    get_parsed_json,
+    export_data_to_json_file
+)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -32,6 +42,7 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
+    @abstractmethod
     def parse_sitemap_article(self, response: str) -> None:
         pass
 
@@ -92,7 +103,7 @@ class LeParisien(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
-                    f"Error occured while iterating sitemap url. {str(exception)}",
+                    f"Error occurred while iterating sitemap url. {str(exception)}",
                     level=logging.ERROR,
                 )
 
@@ -158,14 +169,22 @@ class LeParisien(scrapy.Spider, BaseSpider):
         :param response: HTTP response from the sitemap URL.
         :return: None
         """
-
-        title = response.css('#top > header > h1::text').getall()
-        if title:
-            article = {
-                "link": response.url,
-                "title": title,
-            }
-            self.articles.append(article)
+        try:
+            title = response.css('#top > header > h1::text').getall()
+            if title:
+                article = {
+                    "link": response.url,
+                    "title": title,
+                }
+                self.articles.append(article)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapArticleScrappingException(
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_article(self, response):
         """
@@ -174,10 +193,51 @@ class LeParisien(scrapy.Spider, BaseSpider):
             :param response: scrapy.http.Response object
             :return: None
         """
-        article_data = get_article_data(response)
-        article = set_article_dict(response, article_data)
+        try:
+            raw_response_dict = {
+                "content_type": response.headers.get("Content-Type").decode("utf-8"),
+                "content": response.text,
+            }
+            raw_response = get_raw_response(response, raw_response_dict)
+            articledata_loader = ArticleDataLoader(item=ArticleData())
+            parsed_json_dict = {}
 
-        self.articles.append(article)
+            parsed_json_main = response.css('script[type="application/ld+json"]::text')
+            parsed_json_misc = response.css('script[type="application/json"]::text')
+
+            if parsed_json_main:
+                parsed_json_dict["main"] = parsed_json_main
+                parsed_json_dict['ImageGallery'] = parsed_json_main
+                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['other'] = parsed_json_main
+
+            if parsed_json_misc:
+                parsed_json_dict["misc"] = parsed_json_misc
+
+            parsed_json_data = get_parsed_json(parsed_json_dict)
+            articledata_loader.add_value("raw_response", raw_response)
+            if parsed_json_data:
+                articledata_loader.add_value(
+                    "parsed_json",
+                    parsed_json_data,
+                )
+            articledata_loader.add_value(
+                "parsed_data", get_parsed_data(self, response, parsed_json_data)
+            )
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+        # self.articles.append(article)
+        except Exception as exception:
+            self.logger.exception(
+                f"Error occurred while fetching article details:- {str(exception)}"
+            )
+            self.log(
+                f"Error occurred while fetching article details:- {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            ) from exception
 
     def closed(self, reason):
         """
@@ -186,15 +246,16 @@ class LeParisien(scrapy.Spider, BaseSpider):
             the current date and time.
             :param reason: the reason for the spider's closure
             """
-        if self.type == "sitemap":
-            if not os.path.isdir('Links'):
-                os.makedirs('Links')
-            filename = os.path.join(
-                'Links', f'{self.name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
-        elif self.type == "article":
-            if not os.path.isdir('Article'):
-                os.makedirs('Article')
-            filename = os.path.join(
-                'Article', f'{self.name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
-        with open(f'{filename}.json', 'w') as f:
-            json.dump(self.articles, f, indent=4)
+        try:
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while exporting file:- {str(exception)} - {reason}",
+                level=logging.ERROR,
+            )
+            raise ExportOutputFileException(
+                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+            ) from exception

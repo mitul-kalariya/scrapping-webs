@@ -1,7 +1,7 @@
 import json
+import os
 from datetime import datetime
 from scrapy.http import Response
-
 from .exceptions import (
     InputMissingException,
     InvalidDateException,
@@ -9,7 +9,17 @@ from .exceptions import (
 )
 from newton_scrapping.constant import (
     SITEMAP_URL,
-    DATE_FORMAT
+    DATE_FORMAT,
+    TYPE,
+    PARSED_DATA_KEYS_LIST
+)
+from newton_scrapping.itemLoader import (
+    ArticleRawResponseLoader,
+    ArticleRawParsedJsonLoader
+)
+from newton_scrapping.items import (
+    ArticleRawResponse,
+    ArticleRawParsedJson,
 )
 
 
@@ -87,102 +97,203 @@ def handle_article_type(self):
         raise InputMissingException("type articles must be used with url")
 
 
-def get_article_data(response: Response) -> dict:
+def get_raw_response(response: str, selector_and_key: dict) -> dict:
     """
-       Extracts relevant data from the response of the given URL
-       :param response: The response object obtained from a HTTP request to the URL
-       :return: A dictionary containing relevant article data.
-       """
+    Raw response data generated from given response and selector
+    Args:
+        response: provided response
+        selector_and_key: A dictionary with key and selector
+    Returns:
+        Dictionary with generated raw response
+    """
+    article_raw_response_loader = ArticleRawResponseLoader(
+        item=ArticleRawResponse(), response=response
+    )
+    for key, value in selector_and_key.items():
+        article_raw_response_loader.add_value(key, value)
+    return dict(article_raw_response_loader.load_item())
+
+
+def get_parsed_json(selector_and_key: dict) -> dict:
+    """
+     Parsed json response from generated data using given response and selector
+    Args:
+        response: provided response
+        selector_and_key: A dictionary with key and selector
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
+
+    article_raw_parsed_json_loader = ArticleRawParsedJsonLoader(
+        item=ArticleRawParsedJson()
+    )
+
+    for key, value in selector_and_key.items():
+        article_raw_parsed_json_loader.add_value(
+            key, [json.loads(data) for data in value.getall()]
+        )
+    return dict(article_raw_parsed_json_loader.load_item())
+
+
+def get_parsed_data_dict() -> dict:
+    """
+    Return base data dictionary
+    Args:
+    None
+    Returns:
+        dict: Return base data dictionary
+    """
+    return dict.fromkeys(PARSED_DATA_KEYS_LIST, None)
+
+
+def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
+    parsed_data_dict = get_parsed_data_dict()
+
+    img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
+    text = response.css('section.content > p::text').getall()
     mapper = {"FRA": "France", "fr-FR": "French"}
-    article_data = {}
-    article_data["title"] = response.css('header.article_header > h1::text').getall()
-    article_data["img_url"] = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
-    article_data["img_caption"] = response.css('div.width_full >figure > figcaption > span::text').getall()
-    article_data["article_author_url"] = response.css('a.author_link::attr(href)').getall()
-    article_data["video_link"] = response.css('iframe.dailymotion-player::attr(src)').getall()
-    article_data["text"] = response.css('section.content > p::text').getall()
-    article_data["category"] = response.css('div.breadcrumb > a::text').getall()
-
-    json_data = "".join(response.css('script[type="application/ld+json"]::text').getall())
-
-    json_data = json.loads(json_data)
-    article_data['json_data'] = json_data
-    json_misc_data = response.css('script[type="application/json"]::text').getall()
-    article_data['json_misc_data'] = [json.loads(misc) for misc in json_misc_data]
+    title = response.css('header.article_header > h1::text').getall()
+    category = response.css('div.breadcrumb > a::text').getall()
     language = response.css("html::attr(lang)").get()
-    article_data["language"] = mapper.get(language)
-    article_data["country"] = mapper.get("FRA")
-    return article_data
+
+    parsed_data_dict["source_country"] = [mapper.get("FRA")]
+    parsed_data_dict["source_language"] = [mapper.get(language)]
+
+    article_author_url = response.css('a.author_link::attr(href)').getall()
+    main = parsed_json_data.get("main")
+    other = parsed_json_data.get("other")
+
+    parsed_data_dict["author"] = get_author(main, other, article_author_url)
+
+    parsed_data_dict["description"] = [main.get('description')]
+    parsed_data_dict["modified_at"] = [main.get('dateModified')]
+    parsed_data_dict["published_at"] = [main.get('datePublished')]
+
+    parsed_data_dict["publisher"] = get_publisher(main)
+    parsed_data_dict["text"] = ["".join(text)]
+    parsed_data_dict["thumbnail_image"] = [other[1].get('url') + img_url[0][1:]]
+
+    parsed_data_dict["title"] = title
+    parsed_data_dict["images"] = get_image(other, response)
+    parsed_data_dict["section"] = "".join(category).split(",")
+
+    parsed_data_dict["tags"] = main.get("keywords")
+    parsed_data_dict['embed_video_link'] = get_video(response)
+
+    return remove_empty_elements(parsed_data_dict)
 
 
-def set_article_dict(response: Response, article_data: dict) -> dict:
-    """
-      Takes in a `Response` object and a dictionary containing article data, and returns a dictionary
-      containing the article information in a standardized format.
+def get_video(response):
+    video_link = response.css('iframe.dailymotion-player::attr(src)').getall()
+    if video_link:
+        return [video_link]
 
-      Args:
-          response (requests.Response): A `Response` object containing the raw HTTP response data.
-          article_data (dict): A dictionary containing the extracted article data.
 
-      Returns:
-          dict: A dictionary containing the article information in a standardized format. The
-          dictionary contains three main sections: `raw_response`, `parsed_json`, and `parsed_data`.
-          The `raw_response` section contains the raw response data from the HTTP request, while
-          the `parsed_json` section contains the parsed JSON-LD data extracted from the article.
-          The `parsed_data` section contains the article information extracted from the raw HTML data.
-      """
-    json_data = article_data.get('json_data')
-    article = {
-        'raw_response': {
-            "content_type": response.headers.get("Content-Type").decode("utf-8"),
-            "content": response.text,
-        },
-        "parsed_json": {
-            "main": article_data.get('json_data'),
-            "misc": article_data.get('json_misc_data')
-        },
-
-        "parsed_data": {
-            "language": article_data["language"],
-            "country": article_data["country"],
-            "author": [
-                {
-                    "@type": json_data[1]['author'][0]["@type"],
-                    "name": json_data[1]['author'][0]["name"],
-                }
-            ],
-            "description": [json_data[1]['description']],
-            "modified_at": [json_data[1]['dateModified']],
-            "published_at": [json_data[1]['datePublished']],
-
-            "publisher": [
-                {
-                    '@type': json_data[1]['publisher']['@type'],
-                    'name': json_data[1]['publisher']['name'],
-                    'logo': {
-                        '@type': json_data[1]['publisher']['logo']['@type'],
-                        'url': json_data[1]['publisher']['logo']['url'],
-                        'width': {
-                            '@type': "Distance",
-                            "name": str(json_data[1]['publisher']['logo']['width']) + " Px"},
-                        'height': {
-                            '@type': "Distance",
-                            'name': str(json_data[1]['publisher']['logo']['height']) + " Px"}}}],
-
-            "text": ["".join(article_data.get('text'))],
-            "thumbnail_image": [json_data[2]["url"] + article_data.get('img_url')[0][1:]],  # need to look it
-            "title": article_data.get('title'),
-            "images": [{'link': json_data[2]["url"] + article_data.get('img_url')[0][1:], 'caption': \
-                article_data.get('img_caption')[0]}],
-
-            "section": "".join(article_data.get('category')).split(","),
-            "tags": json_data[1]["keywords"]
-        }
+def get_author(main, other, article_author_url) -> list:
+    author_list = []
+    author_dict = {
+        TYPE: main.get("author")[0].get(TYPE),
+        "name": main.get("author")[0].get("name")
     }
 
-    if article_data.get('article_author_url'):
-        article['parsed_data']['author'][0]['url'] = json_data[2]["url"] + article_data.get('article_author_url')[0][1:]
+    if article_author_url and len(other) > 1:
+        author_dict["url"] = other[1].get("url") + article_author_url[0][1:]
 
-    if article_data.get("video_link"):
-        article['parsed_data']['embed_video_link'] = [article_data.get("video_link")]
-    return article
+    author_list.append(author_dict)
+    return author_list
+
+
+def get_publisher(main):
+    publisher_list = []
+    publisher_dict = {
+        TYPE: main.get('publisher').get(TYPE),
+        'name': main.get('publisher').get('name'),
+
+        'logo': {
+            TYPE: main.get('publisher').get('logo').get(TYPE),
+            'url': main.get('publisher').get('logo').get('url'),
+
+            'width': {
+                TYPE: "Distance",
+                "name": str(main.get('publisher').get('logo').get('width')) + " Px"},
+
+            'height': {
+                TYPE: "Distance",
+                'name': str(main.get('publisher').get('logo').get('height')) + " Px"}}
+    }
+    publisher_list.append(publisher_dict)
+    return publisher_list
+
+
+def get_image(other, response):
+    img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
+    img_caption = response.css('div.width_full >figure > figcaption > span::text').getall()
+    img_dict = {
+        "link": other[1].get("url") + img_url[0][1:],
+        "caption": img_caption[0],
+    }
+    return [img_dict]
+
+
+def remove_empty_elements(parsed_data_dict: dict) -> dict:
+    """
+    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
+    :param parsed_data_dict: Input dictionary.
+    :type parsed_data_dict: dict
+    :return: Dictionary with all empty lists, and empty dictionaries removed.
+    :rtype: dict
+    """
+
+    def empty(value):
+        return value is None or value == {} or value == []
+
+    if not isinstance(parsed_data_dict, (dict, list)):
+        data_dict = parsed_data_dict
+    elif isinstance(parsed_data_dict, list):
+        data_dict = [
+            value
+            for value in (remove_empty_elements(value) for value in parsed_data_dict)
+            if not empty(value)
+        ]
+    else:
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value))
+                for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
+    return data_dict
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = (
+            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+
+    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4)
