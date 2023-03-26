@@ -71,7 +71,7 @@ class LeParisien(scrapy.Spider, BaseSpider):
             check_cmd_args(self, self.start_date, self.end_date)
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                    "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
@@ -226,7 +226,6 @@ class LeParisien(scrapy.Spider, BaseSpider):
             )
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
-        # self.articles.append(article)
         except Exception as exception:
             self.logger.exception(
                 f"Error occurred while fetching article details:- {str(exception)}"
