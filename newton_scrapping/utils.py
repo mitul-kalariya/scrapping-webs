@@ -188,9 +188,8 @@ def get_parsed_data(response):
     article_title = response.css("h1.content_title::text").get()
     response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
-    article_published = response.css(
-        "div#content_scroll_start time::text").get()
-    response_data["published_at"] = [article_published]
+    response_data["published_at"] = [main_json[1].get('datePublished')]
+    response_data["modified_at"] = [main_json[1].get('dateModified')]
 
     article_description = response.css("div.chapo::text").get()
     response_data["description"] = [article_description]
@@ -220,10 +219,10 @@ def get_parsed_data(response):
     if thumbnail_video:
         embedded_video_links.append(thumbnail_video.get("embedUrl"))
 
-    # video_links = extract_videos(response)
-    # if video_links:
-    #     for i in video_links.get("videos"):
-    #         embedded_video_links.append(i)
+    video_links = extract_videos(response)
+    if video_links:
+        for i in video_links.get("videos"):
+            embedded_video_links.append(i)
 
     response_data["embed_video_link"] = embedded_video_links
 
