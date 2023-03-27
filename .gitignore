@@ -12,7 +12,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -129,3 +128,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# VS Code
+.vscode
+
+#PyCharm
+.idea
+
+*.zip
+
+# Output Data
+Article/
+Links/

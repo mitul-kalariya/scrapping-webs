@@ -1,10 +1,10 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.global_news import GlobalNewsSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+from crwglobalnews.spiders.global_news import GlobalNewsSpider
+from crwglobalnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwglobalnews.test.helpers.utils import (get_article_content,
+                                              online_response_from_url)
 
 # Creating an object
 logger = logging.getLogger()
@@ -24,7 +24,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = GlobalNewsSpider(type="article", url=article["url"])
+            spider = GlobalNewsSpider(type="article", url=article["url"], args={'callback': None})
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -100,8 +100,6 @@ class TestArticle(unittest.TestCase):
     def _test_parse_json_data_format(self, article, test_article_data):
         # Since the content of article can be modified at anytime so not checkering exact text
         # but testing the object format so that we can verify that crawler is working well.
-    
-        # print(article[0].get("parsed_data"),"Test")
         if article[0].get("parsed_data").get("text"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("text")[0],
@@ -109,6 +107,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                 "text"), list, "format mismatch for parsed_data--> text")
+            self._test_author_format(article)
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> text")
@@ -173,6 +172,9 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
                                   list, "format mismatch for parsed_data--> modified_at")
+        else:
+            with self.subTest():
+                raise AssertionError("missing object:- parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
@@ -212,22 +214,14 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                   list, "format mismatch for parsed_data--> section")
-
-        # if article[0].get("parsed_data").get("tags"):
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
-        #                           str, "format mismatch for parsed_data--> tags")
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-        #                           list, "format mismatch for parsed_data--> tags")
        
-        self._test_author_format(article)
+        
 
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = GlobalNewsSpider(type=self.type)
+        self.spider = GlobalNewsSpider(type=self.type, args={'callback': None})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
@@ -239,9 +233,7 @@ class TestSitemap(unittest.TestCase):
 
     def _test_sitemap_results(self, sitemap_urls):
         for sitemap_url in sitemap_urls:
-            article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
-            # for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
-            #     self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
+            self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
         with self.subTest():
             self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
         with self.subTest():

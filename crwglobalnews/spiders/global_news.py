@@ -4,12 +4,12 @@ from datetime import datetime
 from lxml import etree
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from newton_scrapping import exceptions
+from crwglobalnews import exceptions
 from scrapy.loader import ItemLoader
-from newton_scrapping.constant import TODAYS_DATE, LOGGER
+from crwglobalnews.constant import TODAYS_DATE, LOGGER
 from abc import ABC, abstractmethod
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwglobalnews.items import ArticleData
+from crwglobalnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -39,7 +39,7 @@ class BaseSpider(ABC):
 class GlobalNewsSpider(scrapy.Spider, BaseSpider):
     name = "global_news"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args, **kwargs):
         """
         A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
         1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
@@ -53,7 +53,9 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
             url (str): The URL of the article to scrape in article mode.
         """
-        super().__init__(**kwargs)
+        super(GlobalNewsSpider, self).__init__(*args, **kwargs)
+
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -180,10 +182,13 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
+
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

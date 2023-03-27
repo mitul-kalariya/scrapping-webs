@@ -9,8 +9,8 @@ import requests
 from io import BytesIO
 from PIL import Image
 from datetime import datetime
-from newton_scrapping import exceptions
-from newton_scrapping.constant import TODAYS_DATE, LOGGER
+from crwglobalnews import exceptions
+from crwglobalnews.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
@@ -212,12 +212,7 @@ def get_parsed_data(response):
         ).get()
         published_on = published_on.strip("Posted ")
         main_dict["published_at"] = [published_on]
-       
-
-        updated_on = response.css(
-            "div.c-byline__datesWrapper > div > div.c-byline__date--modDate > span::text"
-        ).get()
-        main_dict["modified_at"] = [updated_on]
+        main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
