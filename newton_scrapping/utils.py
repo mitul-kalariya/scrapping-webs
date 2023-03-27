@@ -1,14 +1,14 @@
 import json
 import os
 from datetime import datetime
-from scrapy.http import Response
+from scrapy.http import Response  # TODO : Remove Unwanted Imports
 from scrapy.loader import ItemLoader
 from newton_scrapping.videos import get_video 
 from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from .exceptions import (  # TODO: Do not use . in import, Instead use package name like newton_scrapping.exceptions
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,

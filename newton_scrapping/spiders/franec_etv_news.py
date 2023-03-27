@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 import scrapy
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
-from scrapy.exceptions import CloseSpider
+from scrapy.exceptions import CloseSpider # TODO : Remove Unwanted Imports
 
 from newton_scrapping.items import ArticleData
 
+# TODO: Do not use .. in import, Instead use package name like newton_scrapping.utils
 from ..utils import (
     check_cmd_args,
     get_parsed_data,
@@ -50,6 +51,7 @@ class BaseSpider(ABC):
         pass
 
 
+# TODO: Use BaseSpider as parent class
 class FranceTvInfo(scrapy.Spider):
     name = "francetv-info"
 
@@ -115,6 +117,7 @@ class FranceTvInfo(scrapy.Spider):
         if self.type == "article":
             yield self.parse_article(response)
 
+    # TODO : Missing parse_sitemap function & parse_sitemap_article function
     def parse_article(self, response):
         """
         parse article and append related data to class's articles variable
