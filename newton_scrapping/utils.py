@@ -1,6 +1,5 @@
 import json
 import os
-import pdb
 from datetime import datetime
 from scrapy.http import Response
 from .exceptions import (
