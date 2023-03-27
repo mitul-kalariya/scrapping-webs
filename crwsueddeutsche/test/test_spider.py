@@ -1,9 +1,9 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.sueddeutsche import SueddeutscheSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
+from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwsueddeutsche.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwsueddeutsche.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
 
 # Creating an object

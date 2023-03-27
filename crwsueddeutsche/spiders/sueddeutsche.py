@@ -9,8 +9,8 @@ import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwsueddeutsche.items import ArticleData
+from crwsueddeutsche.utils import (
     based_on_scrape_type,
     date_range,
     date_in_date_range,
@@ -20,7 +20,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     remove_empty_elements,
 )
-from newton_scrapping.exceptions import (
+from crwsueddeutsche.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -69,6 +69,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
 
         super(SueddeutscheSpider).__init__(*args, **kwargs)
         try:
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -253,10 +254,12 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
