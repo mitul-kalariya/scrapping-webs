@@ -54,7 +54,7 @@ Use the command `pip install <path_to_package>`. for example `pip install dist/c
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 ```
-from crwindianexpress import Crawler
+from crwglobalnews import Crawler
 
 crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
 data = crawler.crawl()
