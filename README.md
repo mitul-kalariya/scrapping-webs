@@ -16,31 +16,31 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### Install required dependencies
-
-Install requirements using requirements.txt file available in main
-```bash
-pip install -r requirements.txt
-```
+### Sitemap file available:- Yes
 
 ### Sitemap file available:- Yes
 
-### Command to fetch Sitemap:-
--  Command to crawl on sitemap from specific date range
-```bash
-scrapy crawl cp24 -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
+### Package Information
+A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
 ```
-    
--  Command to crawl sitemap for today’s date  
-```bash
-scrapy crawl cp24 -a type=sitemap
+python setup.py sdist
 ```
-    
-### Command to fetch Articles:-
-[cp24_article_url](https://www.cp24.com/news/investigation-underway-after-senior-killed-in-st-catharines-crash-police-1.6315571)
-```bash
-scrapy crawl cp24 -a type=article url=timesnownews_article_url
+
+### Installation
+
+Use the command `pip install <path_to_package>`. for example `pip install dist/crwcp24-0.1.tar.gz`
+
+### Usage
+
+You can use the `Crawler` class and its `crawl` method to crawl the data.
+Quick example as shown below.
 ```
+from crwcp24 import Crawler
+
+crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+data = crawler.crawl()
+```
+The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
 
 ## Test Cases
 We have used Python's in-built module `unittest`.
