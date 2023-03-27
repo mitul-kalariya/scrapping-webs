@@ -183,9 +183,8 @@ def get_parsed_data(response):
     article_title = response.css("h1.content_title::text").get()
     response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
-    article_published = response.css(
-        "div#content_scroll_start time::text").get()
-    response_data["published_at"] = [article_published]
+    response_data["published_at"] = [main_json[1].get('datePublished')]
+    response_data["modified_at"] = [main_json[1].get('dateModified')]
 
     article_description = response.css("div.chapo::text").get()
     response_data["description"] = [article_description]
@@ -207,12 +206,13 @@ def get_parsed_data(response):
     article_publisher = (main_json[1]).get("publisher")
     response_data["publisher"] = [article_publisher]
 
-    article_thumbnail = (main_json[1]).get("image").get("contentUrl")
-    if isinstance(article_thumbnail, list):
-        response_data["thumbnail_image"] = article_thumbnail
+    article_thumbnail = (main_json[1]).get("image")
+    if article_thumbnail:
+        response_data["thumbnail_image"] = [article_thumbnail.get("contentUrl")]
 
-    thumbnail_video = (main_json[1]).get("video").get("embedUrl")
-    embedded_video_links.append(thumbnail_video)
+    thumbnail_video = ((main_json[1]).get("video"))
+    if thumbnail_video:
+        embedded_video_links.append(thumbnail_video.get("embedUrl"))
 
     video_links = extract_videos(response)
     if video_links:
@@ -225,7 +225,6 @@ def get_parsed_data(response):
     article_lang = response.css("html::attr(lang)").get()
     response_data["source_language"] = [mapper.get(article_lang)]
 
- 
     return remove_empty_elements(response_data)
 
 
@@ -236,21 +235,21 @@ def extract_videos(response) -> list:
     driver = webdriver.Chrome(options=options)
     driver.get(response.url)
     time.sleep(3)
-    banner_button = driver.find_element(
-        By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
-    if banner_button:
-        banner_button.click()
-        time.sleep(2)
-        scroll = driver.find_elements(By.XPATH, "//p")
-        for i in scroll:
-            driver.execute_script(
-                "window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
-        time.sleep(3)
-        try:
+    data = {}
+    try:
+        banner_button = driver.find_element(
+            By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
+        if banner_button:
+            banner_button.click()
+            time.sleep(2)
+            scroll = driver.find_elements(By.XPATH, "//p")
+            for i in scroll:
+                driver.execute_script(
+                    "window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
+            time.sleep(3)
             videos = driver.find_elements(
                 By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
             if videos:
-                data = {}
                 for i in videos:
                     try:
                         data["videos"] += [i.get_attribute(
@@ -258,8 +257,8 @@ def extract_videos(response) -> list:
                     except:
                         data["videos"] = [i.get_attribute(
                             "src").replace("blob:", "")]
-        except:
-            LOGGER.error("Video not found in this article")
+    except:
+        LOGGER.error("Video not found in this article")
     driver.quit()
     return data
 
