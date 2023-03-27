@@ -230,10 +230,6 @@ class LeParisien(scrapy.Spider, BaseSpider):
             self.logger.exception(
                 f"Error occurred while fetching article details:- {str(exception)}"
             )
-            self.log(
-                f"Error occurred while fetching article details:- {str(exception)}",
-                level=logging.ERROR,
-            )
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception
