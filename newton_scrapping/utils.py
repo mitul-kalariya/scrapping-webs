@@ -167,14 +167,15 @@ def get_parsed_data(response):
         if headline:
             main_dict["title"] = headline
 
-        authors = get_author(response)
-        if authors:
-            main_dict["author"] = authors
+        main_data = get_main(response)
+        author = main_data[0].get("author")
+        main_dict["author"] = author
 
-        published_on = response.css("div.splitter__first").get()
-        if published_on:
-            published_on = (re.sub(pattern, "", published_on.split(">")[-3]).strip("</p")).strip()
-            main_dict["published_at"] = [published_on]
+        thumbnail_image = main_data[0].get("image")
+        main_dict["thumbnail_image"] = thumbnail_image
+
+        main_dict["published_at"] = [main_data[0].get("datePublished")]
+        main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
         description = response.css("p.news__heading__top__intro::text").get()
         if description:
