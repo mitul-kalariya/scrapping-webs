@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
+from newton_scrapping.constant import TODAYS_DATE, BASE_URL, LOGGER
 
 
 def create_log_file():
@@ -172,7 +172,7 @@ def get_parsed_data(response):
 
     mapper = {'de': "German"}
     article_lang = response.css("html::attr(lang)").get()
-    main_dict["language"] = [mapper.get(article_lang)]
+    main_dict["source_language"] = [mapper.get(article_lang)]
 
     return remove_empty_elements(main_dict)
 

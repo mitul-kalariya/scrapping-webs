@@ -1,7 +1,7 @@
 import scrapy
 import logging
 import w3lib.html
-from newton_scrapping.constants import LOGGER
+from newton_scrapping.constant import LOGGER, SITEMAP_URL
 from newton_scrapping import exceptions
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
@@ -85,7 +85,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append("https://www.tagesschau.de/archiv/")
+            self.start_urls.append(SITEMAP_URL)
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
@@ -137,7 +137,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["Germany"]
+        response_data["source_country"] = ["Germany"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
