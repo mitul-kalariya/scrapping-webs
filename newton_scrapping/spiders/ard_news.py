@@ -2,8 +2,9 @@ import re
 import scrapy
 import logging
 from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
+from dateutil.parser import parse
 from newton_scrapping import exceptions
-from datetime import datetime
+from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from newton_scrapping.items import ArticleData
@@ -63,11 +64,12 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         self.start_urls = []
         self.sitemap_json = {}
         self.type = type.lower()
+        self.date_wise = []
 
         create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append(BASE_URL)
+            self.start_urls.append("https://www.tagesschau.de/archiv/")
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
@@ -145,36 +147,38 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
         """
         try:
+
+            # Get the start and end dates as datetime objects
+            start_date = datetime.strptime(str(self.start_date), '%Y-%m-%d') if self.start_date else None
+            end_date = datetime.strptime(str(self.end_date), '%Y-%m-%d') if self.end_date else None
+
+            # Create a list of dates within the range
+            date_wise = []
+            if start_date and end_date:
+                while start_date <= end_date:
+                    date_wise.append(start_date.date())
+                    start_date += timedelta(days=1)
+            print("======================================================", date_wise)
             for link in response.css("a"):
                 url = link.css("::attr(href)").get()
-                title = link.css("a::text").get().replace("\n", "")
-                if url:
-                    if url.startswith(("#", "//")) or url in [
-                        "https://www.ard.de",
-                        "https://wetter.tagesschau.de/",
-                        BASE_URL,
-                    ]:
-                        continue
-                    if url.startswith("/"):
-                        url = BASE_URL + url
-                if url is not None and title is not None:
-                    title = title.strip()
+                title = link.css(".teaser-xs__headline::text").get()
+                published_at = link.css(".teaser-xs__date::text").get()
 
-                    if not title and title:
-                        self.sitemap_json["title"] = (
-                            link.css(
-                                ".teaser-xs__headline::text , .teaser__headline::text"
-                            )
-                            .get()
-                            .replace("\n", "")
-                            .replace(" ", "")
-                        )
-                    # Storing the title in the sitemap_json dictionary
-                    elif title:
-                        self.sitemap_json["title"] = title
+                if url and title and published_at:
+                    published_at = published_at.replace("\n", "").strip()[:10]
+                    data = {
+                        "link": url,
+                        "title": title.replace("\n", "").strip(),
+                        "date": published_at
+                    }
 
-                    # Sending a request to the parse_articlewise_get_date method
-                    yield scrapy.Request(url, callback=self.parse_sitemap_article)
+                    if self.start_date is None and self.end_date is None:
+                        self.articles.append(data)
+                    elif self.start_date and self.end_date:
+                        for i in date_wise:
+                            date_wise_url = f"https://www.tagesschau.de/archiv/?datum={i}"
+                            yield scrapy.Request(date_wise_url, callback=self.parse_sitemap_article)
+
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -193,15 +197,22 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-            for article in response.css(".teaser__link"):
-                title = article.css(".teaser__headline::text").get()
-                link = article.css("a::attr(href)").get()
+            url = response.css("::attr(href)").get()
+            title = response.css(".teaser-xs__headline::text").get()
+            published_at = response.css(".teaser-xs__date::text").get()
 
-                yield scrapy.Request(
-                    link,
-                    callback=self.parse_sitemap_datewise,
-                    meta={"link": link, "title": title},
-                )
+            if url and title and published_at:
+                published_at = published_at.replace("\n", "").strip()[:10]
+                data = {
+                    "link": url,
+                    "title": title.replace("\n", "").strip(),
+                    "date": published_at
+                }
+
+                if self.start_date is None and self.end_date is None:
+                    self.articles.append(data)
+
+
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {e}"
