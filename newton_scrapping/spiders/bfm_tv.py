@@ -69,7 +69,7 @@ class NTvSpider(scrapy.Spider):
         self.articles = []
         self.type = type.lower()
         self.main_json = None
-        self.articles = url
+        self.article_url = url
 
         create_log_file()
 
@@ -139,7 +139,6 @@ class NTvSpider(scrapy.Spider):
             response_json,
         )
         articledata_loader.add_value("parsed_data", response_data)
-
         self.articles.append(dict(articledata_loader.load_item()))
         return articledata_loader.item
 
@@ -197,7 +196,6 @@ class NTvSpider(scrapy.Spider):
                 return
             if self.end_date and date_only > self.end_date:
                 return
-
             link = response.url
             title = response.css("#contain_title::text").get()
 

@@ -223,8 +223,8 @@ def get_parsed_data(response):
 
     video_links = extract_videos(response)
     if video_links:
-        embedded_video_links.append(video_links)
-
+        for i in video_links.get("videos"):
+            embedded_video_links.append(i)
 
     response_data["embed_video_link"] = embedded_video_links
 
@@ -241,9 +241,8 @@ def extract_videos(response) -> list:
     options = Options()
     options.headless = True
     driver = webdriver.Chrome(options=options)
-
     driver.get(response.url)
-    time.sleep(5)
+    time.sleep(3)
     banner_button = driver.find_element(
         By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
     if banner_button:
@@ -253,6 +252,7 @@ def extract_videos(response) -> list:
         for i in scroll:
             driver.execute_script(
                 "window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
+        time.sleep(3)
         videos = driver.find_elements(
             By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
         if videos:
@@ -264,6 +264,7 @@ def extract_videos(response) -> list:
                 except:
                     data["videos"] = [i.get_attribute(
                         "src").replace("blob:", "")]
+    driver.quit()
     return data
 
 
