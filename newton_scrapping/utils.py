@@ -96,15 +96,34 @@ def get_raw_response(response):
 
 
 def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
     parsed_json = {}
-    main = get_main(response)
-    if main:
-        parsed_json["main"] = main
+    other_data = []
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            other_data.append(data)
+
+    parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
 
-    return parsed_json
+    return remove_empty_elements(parsed_json)
+
 
 
 def get_parsed_data(response):
@@ -114,13 +133,8 @@ def get_parsed_data(response):
     article_title = response.css("h2 span.article__headline::text").get()
     response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
-    article_author = response.css(
-        "span.article__infos span.article__author::text"
-    ).get()
-    if article_author:
-        response_data["author"] = [
-            {"@type": "Person", "name": re.sub(pattern, "", article_author).strip()}
-        ]
+    article_author = get_main(response)
+    response_data['author'] =  article_author[0].get('author')
 
     article_published = response.css("span.article__date::text").get()
     response_data["published_at"] = [article_published]
@@ -151,9 +165,9 @@ def get_parsed_data(response):
 
     article_tags = response.css("section.article__tags ul li a::text").getall()
     response_data["tags"] = article_tags
-
+    mapper = {"de":"German"}
     article_lang = response.css("html::attr(lang)").get()
-    response_data["source_language"] = [article_lang]
+    response_data["source_language"] = [mapper.get(article_lang)]
 
     return remove_empty_elements(response_data)
 
@@ -174,7 +188,7 @@ def get_main(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while getting main: {e}")
 
 
 def get_misc(response):
@@ -193,7 +207,7 @@ def get_misc(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while getting misc: {e}")
 
 
 def get_thumbnail(response)->list:
