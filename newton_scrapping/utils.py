@@ -221,16 +221,16 @@ def get_parsed_data(response):
     
 
 
-    video_links = extract_videos(response)
-    if video_links:
-        for i in video_links.get("videos"):
-            embedded_video_links.append(i)
+    # video_links = extract_videos(response)
+    # if video_links:
+    #     for i in video_links.get("videos"):
+    #         embedded_video_links.append(i)
 
     response_data["embed_video_link"] = embedded_video_links
 
     mapper = {"fr": "French"}
     article_lang = response.css("html::attr(lang)").get()
-    response_data["language"] = [mapper.get(article_lang)]
+    response_data["source_language"] = [mapper.get(article_lang)]
 
  
     return remove_empty_elements(response_data)

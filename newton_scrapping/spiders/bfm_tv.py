@@ -45,7 +45,7 @@ class BaseSpider(ABC):
     def parse_article(self, response: str) -> list:
         pass
 
-class NTvSpider(scrapy.Spider):
+class NTvSpider(scrapy.Spider, BaseSpider):
     name = "bfm_tv"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
@@ -130,7 +130,7 @@ class NTvSpider(scrapy.Spider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["country"] = ["France"]
+        response_data["source_country"] = ["France"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
