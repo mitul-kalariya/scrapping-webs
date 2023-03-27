@@ -1,5 +1,6 @@
 import json
 import os
+import pdb
 from datetime import datetime
 from scrapy.http import Response
 from .exceptions import (
@@ -97,7 +98,7 @@ def handle_article_type(self):
         raise InputMissingException("type articles must be used with url")
 
 
-def get_raw_response(response: str, selector_and_key: dict) -> dict:
+def get_raw_response(selector_and_key: dict) -> dict:
     """
     Raw response data generated from given response and selector
     Args:
@@ -107,7 +108,7 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
         Dictionary with generated raw response
     """
     article_raw_response_loader = ArticleRawResponseLoader(
-        item=ArticleRawResponse(), response=response
+        item=ArticleRawResponse()
     )
     for key, value in selector_and_key.items():
         article_raw_response_loader.add_value(key, value)
@@ -149,61 +150,47 @@ def get_parsed_data_dict() -> dict:
 def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
 
-    img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
-    text = response.css('section.content > p::text').getall()
-    mapper = {"FRA": "France", "fr-FR": "French"}
-    title = response.css('header.article_header > h1::text').getall()
-    category = response.css('div.breadcrumb > a::text').getall()
+    headline = response.css('#content h1::text').get()
+    mapper = {"CA": "Canada", "en": "English"}
+    logo_height = response.css('#ds-economist-logo::attr("height")').get()
+    logo_width = response.css('#ds-economist-logo::attr("width")').get()
     language = response.css("html::attr(lang)").get()
 
-    parsed_data_dict["source_country"] = [mapper.get("FRA")]
+    parsed_data_dict["source_country"] = [mapper.get("CA")]
     parsed_data_dict["source_language"] = [mapper.get(language)]
 
-    article_author_url = response.css('a.author_link::attr(href)').getall()
     main = parsed_json_data.get("main")
-    other = parsed_json_data.get("other")
 
-    parsed_data_dict["author"] = get_author(main, other, article_author_url)
+    parsed_data_dict["author"] = get_author(main)
 
     parsed_data_dict["description"] = [main.get('description')]
     parsed_data_dict["modified_at"] = [main.get('dateModified')]
     parsed_data_dict["published_at"] = [main.get('datePublished')]
 
-    parsed_data_dict["publisher"] = get_publisher(main)
-    parsed_data_dict["text"] = ["".join(text)]
-    parsed_data_dict["thumbnail_image"] = [other[1].get('url') + img_url[0][1:]]
+    parsed_data_dict["publisher"] = get_publisher(main, logo_width, logo_height)
+    parsed_data_dict["text"] = [main.get("articleBody")]
+    parsed_data_dict["thumbnail_image"] = [main.get("thumbnailUrl")]
 
-    parsed_data_dict["title"] = title
-    parsed_data_dict["images"] = get_image(other, response)
-    parsed_data_dict["section"] = "".join(category).split(",")
+    parsed_data_dict["title"] = [headline]
+    parsed_data_dict["images"] = get_image(main)
+    parsed_data_dict["section"] = [main.get("articleSection")]
 
     parsed_data_dict["tags"] = main.get("keywords")
-    parsed_data_dict['embed_video_link'] = get_video(response)
 
     return remove_empty_elements(parsed_data_dict)
 
 
-def get_video(response):
-    video_link = response.css('iframe.dailymotion-player::attr(src)').getall()
-    if video_link:
-        return [video_link]
-
-
-def get_author(main, other, article_author_url) -> list:
+def get_author(main) -> list:
     author_list = []
     author_dict = {
-        TYPE: main.get("author")[0].get(TYPE),
-        "name": main.get("author")[0].get("name")
-    }
-
-    if article_author_url and len(other) > 1:
-        author_dict["url"] = other[1].get("url") + article_author_url[0][1:]
-
+        TYPE: main.get("author").get(TYPE),
+        "name": main.get("author").get("name")
+      }
     author_list.append(author_dict)
     return author_list
 
 
-def get_publisher(main):
+def get_publisher(main, logo_width, logo_height):
     publisher_list = []
     publisher_dict = {
         TYPE: main.get('publisher').get(TYPE),
@@ -215,22 +202,19 @@ def get_publisher(main):
 
             'width': {
                 TYPE: "Distance",
-                "name": str(main.get('publisher').get('logo').get('width')) + " Px"},
+                "name": f"{logo_width} Px"},
 
             'height': {
                 TYPE: "Distance",
-                'name': str(main.get('publisher').get('logo').get('height')) + " Px"}}
+                'name': f"{logo_height} Px"}}
     }
     publisher_list.append(publisher_dict)
     return publisher_list
 
 
-def get_image(other, response):
-    img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
-    img_caption = response.css('div.width_full >figure > figcaption > span::text').getall()
+def get_image(main):
     img_dict = {
-        "link": other[1].get("url") + img_url[0][1:],
-        "caption": img_caption[0],
+        "link": main.get("image")
     }
     return [img_dict]
 
@@ -285,13 +269,11 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         filename = (
             f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
         )
-
     elif scrape_type == "article":
         folder_structure = "Article"
         filename = (
             f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
         )
-
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
 

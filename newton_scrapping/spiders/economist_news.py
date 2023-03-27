@@ -28,7 +28,7 @@ from newton_scrapping.utils import (
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="leparisien.log",
+    filename="economist_canada.log",
     filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -154,7 +154,7 @@ class Economist(scrapy.Spider, BaseSpider):
                 "content_type": response.headers.get("Content-Type").decode("utf-8"),
                 "content": response.text,
             }
-            raw_response = get_raw_response(response, raw_response_dict)
+            raw_response = get_raw_response(raw_response_dict)
             articledata_loader = ArticleDataLoader(item=ArticleData())
             parsed_json_dict = {}
 
@@ -177,9 +177,8 @@ class Economist(scrapy.Spider, BaseSpider):
                     "parsed_json",
                     parsed_json_data,
                 )
-            exit()
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(self, response, parsed_json_data)
+                "parsed_data", get_parsed_data(response, parsed_json_data)
             )
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
@@ -187,82 +186,9 @@ class Economist(scrapy.Spider, BaseSpider):
             self.logger.exception(
                 f"Error occurred while fetching article details:- {str(exception)}"
             )
-            self.log(
-                f"Error occurred while fetching article details:- {str(exception)}",
-                level=logging.ERROR,
-            )
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception
-
-        # headline = response.css('#content h1::text').get()
-        # alternative_headline = response.css('#content h2::text').get()
-        #
-        # selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
-        # logo_height = response.css('#ds-economist-logo::attr("height")').get()
-        # logo_width = response.css('#ds-economist-logo::attr("width")').get()
-        #
-        # json_data = json.loads(selector[0])
-        #
-        # article = {
-        #     'raw_response': {
-        #         "content_type": response.headers.get("Content-Type").decode("utf-8"),
-        #         "content": response.text,
-        #     },
-        #     "parsed_json": {
-        #         "main": {
-        #             "@context": json_data['@context'],
-        #             "@type": json_data['@type'],
-        #             "mainEntityOfPage": {
-        #                 "@type": "WebPage",
-        #                 "@id": json_data['mainEntityOfPage']
-        #             },
-        #             "headline": json_data['headline'],
-        #             "alternativeHeadline": alternative_headline,
-        #             "dateModified": json_data['dateModified'],
-        #             "datePublished": json_data['datePublished'],
-        #             "description": json_data['description'],
-        #             "author": {"@type": json_data['author']['@type'], "name": json_data['author']['name'],
-        #                        "url": json_data['author']['logo']['url']},
-        #             "publisher": {'@type': json_data['publisher']['@type'],
-        #                           'name': json_data['publisher']['name'],
-        #                           'logo': {'@type': json_data['publisher']['logo']['@type'],
-        #                                    'url': json_data['publisher']['logo']['url'],
-        #                                    'width': {'@type': "Distance",
-        #                                              "name": f"{logo_width} Px"},
-        #                                    'height': {'@type': "Distance",
-        #                                               'name': f"{logo_height} Px"}}},
-        #             "image": {
-        #                 "@type": "ImageObject",
-        #                 "url": json_data['image'],
-        #             }
-        #
-        #         },
-        #         "misc": json_data
-        #     },
-        #     "parsed_data": {
-        #         "author": [{"@type": json_data['author']['@type'], "name": json_data['author']['name'],
-        #                     "url": json_data['author']['logo']['url']}],
-        #         "description": [json_data['description']],
-        #         "modified_at": [json_data['dateModified']],
-        #         "published_at": [json_data['datePublished']],
-        #         "publisher": [{'@type': json_data['publisher']['@type'],
-        #                        'name': json_data['publisher']['name'],
-        #                        'logo': {'@type': json_data['publisher']['logo']['@type'],
-        #                                 'url': json_data['publisher']['logo']['url'],
-        #                                 'width': {'@type': "Distance",
-        #                                           "name": f"{logo_width} Px"},
-        #                                 'height': {'@type': "Distance",
-        #                                            'name': f"{logo_height} Px"}}}],
-        #         "text": [json_data['articleBody']],
-        #         "thumbnail_image": [json_data["thumbnailUrl"]],  # need to look it
-        #         "title": [headline],
-        #         "images": [{"link": json_data['image']}],
-        #         "section": [json_data['articleSection']],
-        #         "tags": json_data['keywords']
-        #     }
-        # }
-        # self.articles.append(article)
 
     def closed(self, reason):
         try:

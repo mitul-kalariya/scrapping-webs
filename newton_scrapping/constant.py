@@ -3,16 +3,19 @@
 # Initial url for sitemap
 SITEMAP_URL = "https://www.economist.com/sitemap.xml"
 
+# date format used in spider arguments
 DATE_FORMAT = '%Y-%m-%d'
+
+# constant used for @type
 TYPE = "@type"
 
-# Used in itemLoader.py for main field's output processor
+# Used in itemLoader.py for main field's input processor
 NEWS_ARTICLE = "NewsArticle"
 
-# Used in itemLoader.py for ImageGallery field's output processor
+# Used in itemLoader.py for ImageGallery field's input processor
 IMAGE_GALLERY = "ImageGallery"
 
-# Used in itemLoader.py for VideoObject field's output processor
+# Used in itemLoader.py for VideoObject field's input processor
 VIDEO_OBJECT = "VideoObject"
 
 # Used in itemLoader.py for other field's output processor
