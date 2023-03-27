@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
-
+from newton_scrapping.constant import SITEMAP_URL
 from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -16,9 +16,9 @@ from newton_scrapping.exceptions import (
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
-       Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
+    Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
     Args:
-        self (ZeitDeNews): The ZeitDeNews spider instance.
+        self (TimesNow): The TimesNow spider instance.
         start_date (str): The start date for the sitemap spider in the format YYYY-MM-DD.
         end_date (str): The end date for the sitemap spider in the format YYYY-MM-DD.
     Raises:
@@ -28,34 +28,55 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
         ValueError: If the type is "articles" and the URL is missing.
     Returns:
         None.
-       Note:
-           This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
-       """
-    initial_url = "https://economictimes.indiatimes.com/etstatic/sitemaps/et/sitemap-index.xml"
-    if self.type == "sitemap" and self.end_date is not None and self.start_date is not None:
+    Note:
+        This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
+    """
+    
+
+    def add_start_url(url):
+        self.start_urls.append(url)
+
+    def set_date_range(start_date, end_date):
         self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+    def validate_date_range():
+        if self.start_date > self.end_date:
+            raise InvalidDateException("start_date must be less then end_date")
         if (self.end_date - self.start_date).days > 30:
-            raise ValueError("Enter start_date and end_date for maximum 30 days.")
+            raise InvalidDateException("Enter start_date and end_date for maximum 30 days.")
+
+    def validate_type():
+        if self.type not in ["article", "sitemap"]:
+            raise InvalidArgumentException("type should be articles or sitemap")
+
+    def handle_sitemap_type():
+        if self.end_date is not None and self.start_date is not None:
+            set_date_range(start_date, end_date)
+            validate_date_range()
+            add_start_url(SITEMAP_URL)
+
+        elif self.start_date is None and self.end_date is None:
+            today_time = datetime.today().strftime("%Y-%m-%d")
+            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
+            add_start_url(SITEMAP_URL)
+
+        elif self.end_date is not None or self.start_date is not None:
+            raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
+
+    def handle_article_type():
+        if self.url is not None:
+            add_start_url(self.url)
         else:
-            self.start_urls.append(initial_url)
+            raise InputMissingException("type articles must be used with url")
 
-    elif self.type == "sitemap" and self.start_date is None and self.end_date is None:
-        today_time = datetime.today().strftime("%Y-%m-%d")
-        self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-        self.start_urls.append(initial_url)
+    validate_type()
 
-    elif self.type == "sitemap" and self.end_date is not None or self.start_date is not None:
-        raise ValueError("to use type sitemap give only type sitemap or with start date and end date")
+    if self.type == "sitemap":
+        handle_sitemap_type()
 
-    elif self.type == "article" and self.url is not None:
-        self.start_urls.append(self.url)
-
-    elif self.type == "article" and self.url is None:
-        raise ValueError("type articles must be used with url")
-
-    else:
-        raise ValueError("type should be articles or sitemap")
+    elif self.type == "article":
+        handle_article_type()
 
 
 def get_raw_response(response: str, selector_and_key: dict) -> dict:
@@ -97,7 +118,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
         elif key == "VideoObject":
@@ -106,8 +127,9 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject" or json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in selector_and_key.keys()  or json.loads(data).get('@type') != "NewsArticle"]
             )
+    # print(dict(article_raw_parsed_json_loader.load_item()))
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -136,43 +158,46 @@ def get_parsed_data_dict() -> dict:
     }
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    article_raw_parsed_json_loader = ItemLoader(
-        item=ArticleRawParsedJson(), response=response
-    )
+    # article_raw_parsed_json_loader = ItemLoader(
+    #     item=ArticleRawParsedJson(), response=response
+    # )
 
-    for key, value in parsed_json_dict.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
+    # print(parsed_json_dict)    
+    # for key, value in parsed_json_dict.items():
+    #     article_raw_parsed_json_loader.add_value(
+    #         key, [json.loads(data) for data in value.getall()]
+    #     )
+    article_data = parsed_json_dict
     parsed_data_dict = get_parsed_data_dict()
-    article_data = dict(article_raw_parsed_json_loader.load_item())
+    # article_data = dict(article_raw_parsed_json_loader.load_item())
+    print(article_data)
     mapper = {"en": "English"}
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["source_country"] = ["India"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    parsed_data_dict["author"] = [article_data.get("main")[1].get('author')]
-    parsed_data_dict["description"] = [article_data.get("main")[1].get('description')]
-    parsed_data_dict["modified_at"] = [article_data.get("main")[1]['dateModified']]
-    parsed_data_dict["published_at"] = [article_data.get("main")[1]['datePublished']]
+    parsed_data_dict["author"] = [article_data.get("main").get('author')]
+    parsed_data_dict["description"] = [article_data.get("main").get('description')]
+    parsed_data_dict["modified_at"] = [article_data.get("main")['dateModified']]
+    parsed_data_dict["published_at"] = [article_data.get("main")['datePublished']]
     # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
-    parsed_data_dict["publisher"] = [{'@type': article_data.get("main")[1].get('publisher').get('@type'),
-        'name': article_data.get("main")[1].get('publisher').get('name'),
-        'logo':{
-            "@type": article_data.get("main")[1].get('publisher').get('logo').get('@type'),
-            "url":article_data.get("main")[1].get('publisher').get('logo').get('url'),
+    parsed_data_dict["publisher"] = [{'@type': article_data.get("main").get('publisher').get('@type'),
+        'name': article_data.get("main").get('publisher').get('name'),
+        'logo': {
+            "@type": article_data.get("main").get('publisher').get('logo').get('@type'),
+            "url": article_data.get("main").get('publisher').get('logo').get('url'),
             'width': {'@type': "Distance",
-                "name": str(article_data.get("main")[1]['publisher']['logo']['width']) + " Px"},
+                "name": str(article_data.get("main")['publisher']['logo']['width']) + " Px"},
             'height': {'@type': "Distance",
                 'name': str(
-                    article_data.get("main")[1]['publisher']['logo']['height']) + " Px"}}    
+                    article_data.get("main")['publisher']['logo']['height']) + " Px"}}    
             }
     ]
-    parsed_data_dict["text"] = [article_data.get("main")[1].get("articleBody")]
+    parsed_data_dict["text"] = [article_data.get("main").get("articleBody")]
     parsed_data_dict["thumbnail_image"] = [article_data.get("img_url")]
-    parsed_data_dict["title"] = article_data.get('main')[1].get('headline')
-    parsed_data_dict["images"] = [{"link": article_data.get("main")[1].get('image').get('url')}]
-    parsed_data_dict["section"] = [article_data.get('main')[1].get('articleSection')]
-    parsed_data_dict["tags"] = article_data.get('main')[1].get('keywords')
+    parsed_data_dict["title"] = article_data.get('main').get('headline')
+    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image').get('url')}]
+    parsed_data_dict["section"] = [article_data.get('main').get('articleSection')]
+    parsed_data_dict["tags"] = article_data.get('main').get('keywords')
 
     return remove_empty_elements(parsed_data_dict)
 

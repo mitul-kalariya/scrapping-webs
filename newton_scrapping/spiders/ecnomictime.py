@@ -232,7 +232,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_dict)
+                "parsed_data", get_parsed_data(response, parsed_json_data)
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
