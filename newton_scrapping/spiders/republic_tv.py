@@ -60,6 +60,18 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         self.type = type.lower()
         self.article_url = url
 
+        self.ignored_url = [
+            'https://bharat.republicworld.com/',
+            'https://bharat.republicworld.com/shows',
+            'https://bharat.republicworld.com/technology-news',
+            'https://bharat.republicworld.com/sports-news',
+            'https://bharat.republicworld.com/india-news',
+            'https://bharat.republicworld.com/lifestyle',
+            'https://bharat.republicworld.com/entertainment-news',
+            'https://bharat.republicworld.com/world-news',
+        ]
+        self.pagination = []
+
         create_log_file()
 
         if self.type == "sitemap":
@@ -114,25 +126,13 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
         """
         try:
-            self.logger.info("Parse Sitemap at %s", response.url)
-            if "sitemap.xml" in response.url:
-                for sitemap in response.xpath(
-                    "//sitemap:loc/text()",
-                    namespaces={
-                        "sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"
-                    },
-                ):
-                    if sitemap.get().endswith(".xml"):
-                        for link in sitemap.getall():
-                            if self.start_date is None and self.end_date is None:
-                                if str(TODAYS_DATE).replace("-", "") in link:
-                                    yield scrapy.Request(
-                                        link, callback=self.parse_sitemap_article
-                                    )
-                            else:
-                                yield scrapy.Request(
-                                    link, callback=self.parse_sitemap_article
-                                )
+            response.selector.remove_namespaces()
+            links = response.xpath('//url/loc/text()').getall()
+            for link in links:
+                if link in self.ignored_url or 'shows' in link:
+                    continue
+                else:
+                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -152,25 +152,19 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             passes it along as a meta parameter in each request.
         """
         try:
-            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath(
-                "//n:url/n:loc/text()", namespaces=namespaces
-            ).getall()
-            published_at = response.xpath('//*[local-name()="lastmod"]/text()').get()
-            published_date = parser.parse(published_at).date() if published_at else None
-            for link in links:
-                yield scrapy.Request(
-                    link,
-                    callback=self.parse_sitemap_by_link_title,
-                    meta={"link": link, "published_date": published_date},
-                )
+            pagi = response.css('.page-jump-number~ .page-jump+ .page-jump div a::attr(href)').get()
+            last_num = int(pagi.split("/")[-1])
+            self.start_urls.append(response.request.url)
+            for i in range(1, last_num):
+                yield scrapy.Request(response.request.url + "/" + str(i), callback=self.parse_sitemap_by_title_link,
+                                     meta={'index': i})
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while parse sitemap article: {e}"
             )
             LOGGER.error(f"Error while parse sitemap article: {e}")
 
-    def parse_sitemap_by_link_title(self, response):
+    def parse_sitemap_by_title_link(self, response):
         """
         Parses the link, title, and published date from a sitemap page.
 
@@ -179,23 +173,41 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         - Skips the link if the published date is outside the scraper's specified date range.
         """
         try:
-            link = response.meta["link"]
-            published_date = response.meta["published_date"]
-            title = response.css(".story-title::text").get().strip()
-
-            if self.start_date and published_date < self.start_date:
-                return
-            if self.end_date and published_date > self.end_date:
-                return
-
-            data = {"link": link, "title": title}
-
-            self.articles.append(data)
+            for link in response.css("div#republic-dom a"):
+                url = link.css('::attr(href)').get()
+                title = link.css('.font18::text , .font16::text , .lineHeight31px::text').get()
+                if url and title:
+                    yield scrapy.Request(url, callback=self.parse_sitemap_datewise, meta={'url': url, 'title': title})
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while parse sitemap article: {e}"
             )
             LOGGER.error(f"Error while parse sitemap article: {e}")
+
+    def parse_sitemap_datewise(self, response):
+        url = response.meta['url']
+        title = response.meta['title']
+        published_at = response.css('.time-elapsed time::attr(datetime)').get()[:10]
+        published_at = datetime.strptime(published_at, "%Y-%m-%d").date()
+        today = datetime.today().date().strftime('%Y-%m-%d')
+
+        if self.start_date and published_at < self.start_date:
+            return
+        if self.start_date and published_at > self.end_date:
+            return
+
+        if url and title and published_at:
+            data = {
+                'link': url,
+                'title': title,
+                'date': published_at
+            }
+
+            if self.start_date is None and self.end_date is None:
+                if today == published_at:
+                    self.articles.append(data)
+            elif self.start_date and self.end_date:
+                self.articles.append(data)
 
     def parse_article(self, response: str) -> list:
         """
