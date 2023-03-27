@@ -514,7 +514,7 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
     return {
         "publisher": [
             {
-                "name": response.css("article .css-viqvuv::text").geta(),
+                "name": response.css("article .css-viqvuv::text").get(),
             }
         ]
     }
