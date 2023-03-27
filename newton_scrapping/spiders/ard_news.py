@@ -2,6 +2,7 @@ import re
 import scrapy
 import logging
 from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
+from dateutil.parser import parse
 from newton_scrapping import exceptions
 from datetime import datetime,timedelta
 from abc import ABC, abstractmethod
@@ -15,6 +16,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     get_parsed_json,
 )
+import w3lib.html
 
 
 class BaseSpider(ABC):
@@ -63,12 +65,12 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         self.article_url = url
         self.sitemap_json = {}
         self.type = type.lower()
+        self.date_wise = []
 
         create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append(BASE_URL)
-
+            self.start_urls.append("https://www.tagesschau.de/archiv/")
             self.start_date = (
                 datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
@@ -161,11 +163,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             if self.start_date is None and self.end_date is None:
                 for link in response.css("a"):
                     url = link.css("::attr(href)").get()
-                    title = link.css(".teaser-xs__headline::text").get()
+                    title = link.css(".teaser-xs__headline , .hyphenate").get()
                     published_at = link.css(".teaser-xs__date::text").get()
 
                     if url and title and published_at:
-                        published_at = published_at.replace("\n", "").strip()[:10]
+                        title = w3lib.html.remove_tags(title)
                         data = {
                             "link": url,
                             "title": title.replace("\n", "").strip(),
@@ -198,11 +200,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         try:
             for link in response.css("a"):
                 url = link.css("::attr(href)").get()
-                title = link.css(".teaser-xs__headline::text").get()
+                title = link.css(".teaser-xs__headline, .hyphenate").get()
                 published_at = link.css(".teaser-xs__date::text").get()
 
                 if url and title and published_at:
-                    published_at = published_at.replace("\n", "").strip()[:10]
+                    title = w3lib.html.remove_tags(title)
                     data = {
                         "link": url,
                         "title": title.replace("\n", "").strip(),
@@ -220,7 +222,6 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error while filtering date wise: {e}"
             )
             LOGGER.error("Error while filtering date wise: {}".format(e))
-       
 
     def closed(self, reason: any) -> None:
         """
