@@ -111,29 +111,8 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                             }
                             self.articles.append(article)
 
-        if self.type == "article":
-            yield self.parse_article(response)
 
-            for url in sitemap_url:
-             
-                if "article" in url:
-                
-                    sitemap_date = url.split("article")[0][-8:-1]
-                    _date = datetime.strptime(sitemap_date, '%Y-%m')
-               
-                    if self.today_date:
-   
-                        if (self.today_date.year, self.today_date.month) == (_date.year, _date.month):
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap)
-                    else:
-                        if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= \
-                                (self.start_date.year, self.end_date.month):
-                            
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap)
-
-        if self.type == "article":
+        elif self.type == "article":
             yield self.parse_article(response)
 
     def parse_sitemap(self, response):
@@ -243,7 +222,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
-            return articledata_loader.item
+            # return articledata_loader.item
 
         except Exception as exception:
             self.log(

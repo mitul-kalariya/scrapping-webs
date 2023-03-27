@@ -5,33 +5,45 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import ElementClickInterceptedException
+
 from bs4 import BeautifulSoup
 import time
 
 
 def get_video(self, url):
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(url)
     try:
-        time.sleep(10)
+
         disagree_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, '//button[@class="didomi-components-button didomi-button didomi-disagree-button didomi-button-standard standard-button"]'))
         )
         disagree_button.click()
-        time.sleep(5)
-        play_button = WebDriverWait(driver, 10).until(
+
+        play_button = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((By.XPATH, '//div[@role="presentation"]'))
         )
-        play_button.click()
         time.sleep(2)
-        play_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, '//div[@class="ftv-magneto--btn ftv-magneto--focusable-item"]'))
-        )
         play_button.click()
-        time.sleep(5)
+
+        try:
+            play_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, '//div[@class="ftv-magneto--btn ftv-magneto--focusable-item"]'))
+            )
+            play_button.click()
+            
+
+        except ElementClickInterceptedException:
+            # Handle the exception by waiting for any overlay to disappear
+            WebDriverWait(driver, 10).until_not(EC.presence_of_element_located((By.XPATH, '//div[@class="ftv-magneto--btn ftv-magneto--focusable-item"]')))
+            
+            # Try clicking the play button again
+            play_button.click()
+
         iframe_text = driver.find_element(By.XPATH, '//div[@role="dialog"]//div[@role="presentation"]/span')
         text = iframe_text.text
         text = text.split('//')
