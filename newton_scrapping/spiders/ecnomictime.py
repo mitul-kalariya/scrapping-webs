@@ -42,6 +42,7 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
+    @abstractmethod    
     def parse_sitemap_article(self, response: str) -> None:
         pass
 
