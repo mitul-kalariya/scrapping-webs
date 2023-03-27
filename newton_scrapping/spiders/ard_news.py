@@ -1,8 +1,7 @@
-import re
 import scrapy
 import logging
-from newton_scrapping.constants import BASE_URL, TODAYS_DATE, LOGGER
-from dateutil.parser import parse
+import w3lib.html
+from newton_scrapping.constants import LOGGER
 from newton_scrapping import exceptions
 from datetime import datetime,timedelta
 from abc import ABC, abstractmethod
@@ -16,7 +15,6 @@ from newton_scrapping.utils import (
     get_parsed_data,
     get_parsed_json,
 )
-import w3lib.html
 
 
 class BaseSpider(ABC):
@@ -58,6 +56,15 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         Notes:
             This function initializes a web scraper object and sets various properties based on the arguments passed to it. If the type argument is "sitemap", the start and end dates of the sitemap are validated and set. If the type argument is "article", the URL to be scraped is validated and set. A log file is created for the web scraper.
 
+        Raises:
+            InvalidInputException: If a URL is not provided for an "article" type scraper.
+
+        Notes:
+        This function initializes a web scraper object and sets various properties based on the arguments passed to it.
+        If the type argument is "sitemap",
+            the start and end dates of the sitemap are validated and set.
+        If the type argument is "article", the URL to be scraped is validated and set.
+            A log file is created for the web scraper.
         """
         super().__init__(**kwargs)
         self.start_urls = []
@@ -137,21 +144,29 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
 
-            Args:
-                response (scrapy.http.Response): The HTTP response object containing the sitemap page.
+        Args:
+            response (scrapy.http.Response): The HTTP response object containing the sitemap page.
 
-            Yields:
-                scrapy.http.Request: A request object for each link on the sitemap page.
+        Yields:
+            scrapy.http.Request: A request object for each link on the sitemap page.
 
-            Raises:
-                exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
+        Raises:
+            exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
 
         """
         try:
 
             # Get the start and end dates as datetime objects
-            start_date = datetime.strptime(str(self.start_date), '%Y-%m-%d') if self.start_date else None
-            end_date = datetime.strptime(str(self.end_date), '%Y-%m-%d') if self.end_date else None
+            start_date = (
+                datetime.strptime(str(self.start_date), "%Y-%m-%d")
+                if self.start_date
+                else None
+            )
+            end_date = (
+                datetime.strptime(str(self.end_date), "%Y-%m-%d")
+                if self.end_date
+                else None
+            )
 
             # Create a list of dates within the range
             date_wise = []
@@ -177,8 +192,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             elif self.start_date and self.end_date:
                 for i in date_wise:
                     date_wise_url = f"https://www.tagesschau.de/archiv/?datum={i}"
-                    yield scrapy.Request(date_wise_url, callback=self.parse_sitemap_article)
-
+                    yield scrapy.Request(
+                        date_wise_url, callback=self.parse_sitemap_article
+                    )
 
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
@@ -187,15 +203,16 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
 
-            Args:
-                self: The Scrapy spider instance calling this method.
-                response: The response object obtained after making a request to a sitemap URL.
+        Args:
+            self: The Scrapy spider instance calling this method.
+            response: The response object obtained after making a request to a sitemap URL.
 
-            Yields:
-                A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise` method as the callback and the article link and title as metadata.
+        Yields:
+            A Scrapy request for each article URL in the sitemap,
+                with the `parse_sitemap_datewise` method as the callback and the article link and title as metadata.
 
-            Raises:
-                SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+        Raises:
+            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
             for link in response.css("a"):
@@ -211,11 +228,13 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                     }
 
                     self.articles.append(data)
-            pagination = response.css('.paginierung__liste li a::attr(href)').getall()
+            pagination = response.css(".paginierung__liste li a::attr(href)").getall()
             for pagination_wise in pagination:
-                pagination_url = 'https://www.tagesschau.de/archiv/' + pagination_wise
+                pagination_url = "https://www.tagesschau.de/archiv/" + pagination_wise
                 if len(pagination) > 1:
-                    yield scrapy.Request(pagination_url, callback=self.parse_sitemap_article)
+                    yield scrapy.Request(
+                        pagination_url, callback=self.parse_sitemap_article
+                    )
 
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
