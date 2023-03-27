@@ -218,13 +218,11 @@ def get_parsed_data(response):
 
     thumbnail_video = (main_json[1]).get("video").get("embedUrl")
     embedded_video_links.append(thumbnail_video)
-    
 
-
-    # video_links = extract_videos(response)
-    # if video_links:
-    #     for i in video_links.get("videos"):
-    #         embedded_video_links.append(i)
+    video_links = extract_videos(response)
+    if video_links:
+        for i in video_links.get("videos"):
+            embedded_video_links.append(i)
 
     response_data["embed_video_link"] = embedded_video_links
 
