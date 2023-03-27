@@ -40,7 +40,7 @@ Quick example as shown below.
 ```
 from crwsueddeutsche import Crawler
 
-crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+crawler = Crawler(query={"type": "article", "link": "https://example.com/articles/test.html"})
 data = crawler.crawl()
 ```
 The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.

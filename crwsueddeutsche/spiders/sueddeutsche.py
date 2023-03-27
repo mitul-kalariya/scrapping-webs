@@ -67,7 +67,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
     ):
         """init method to take date, type and validating it"""
 
-        super(SueddeutscheSpider).__init__(*args, **kwargs)
+        super(SueddeutscheSpider, self).__init__(*args, **kwargs)
         try:
             self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
