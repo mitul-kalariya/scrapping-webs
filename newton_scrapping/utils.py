@@ -7,6 +7,7 @@ from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
+
 from newton_scrapping.exceptions import (
     InputMissingException,
     InvalidDateException,
@@ -35,7 +36,7 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-    initial_url = "https://www.francetvinfo.fr/sitemap_index.xml"
+    initial_url = "https://www.francetvinfo.fr/sitemap_news.xml"
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -193,7 +194,6 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         article_data["video"] = get_video(self, response.url)
 
     parsed_data_dict["source_country"] = ["France"]
-    print(article_data.get("main").get('author'))
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
     if len([article_data.get("main").get('author')]) == 1:
         if type(article_data.get("main").get('author')) == list:
@@ -238,10 +238,14 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     }]
 
     parsed_data_dict["text"] = [article_data.get("main").get('articleBody')]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image')[0].get('url')]
+
+    for img_data in article_data.get("main").get('image'):
+        if img_data is not None:
+            parsed_data_dict["thumbnail_image"] = [img_data.get('url')]
+            parsed_data_dict["images"] = [{"link":img_data.get('url'),\
+                                    "caption": img_data.get('name')}]
+            break
     parsed_data_dict["title"] = [article_data.get("title")]
-    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')[0].get('url'),\
-                                    "caption": article_data.get("main").get('image')[0].get('name')}]
     parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
     parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')
     parsed_data_dict['embedded_video_link'] = [article_data.get("video")]
