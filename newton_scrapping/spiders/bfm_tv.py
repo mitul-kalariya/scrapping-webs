@@ -1,7 +1,4 @@
-import re
-import json
 import gzip
-import time
 import scrapy
 import requests
 import logging
@@ -9,11 +6,6 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
 from newton_scrapping import exceptions
 from scrapy.utils.project import get_project_settings
@@ -207,9 +199,11 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
                 if self.start_date is None and self.end_date is None:
                     if date_only == TODAYS_DATE:
-                        self.articles.append(data)
+                        if ".html" in link:
+                            self.articles.append(data)
                 else:
-                    self.articles.append(data)
+                    if ".html" in link:
+                        self.articles.append(data)
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {e}"

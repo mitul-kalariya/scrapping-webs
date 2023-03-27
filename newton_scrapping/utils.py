@@ -6,17 +6,12 @@ import re
 import json
 import logging
 import time
-from io import BytesIO
-from bs4 import BeautifulSoup
 from datetime import datetime
-from scrapy.crawler import CrawlerProcess
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, BASE_URL, LOGGER
+from newton_scrapping.constants import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
