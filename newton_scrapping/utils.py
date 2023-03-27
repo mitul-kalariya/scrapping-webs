@@ -285,29 +285,30 @@ def get_embed_video_link(response) -> list:
     driver = webdriver.Chrome(options=options)
     driver.get(response.url)
     time.sleep(5)
-    banner_button = driver.find_element(By.XPATH, "//div[@class='banner-actions-container']//button")
-    if banner_button:
-        banner_button.click()
-        time.sleep(5)
-        video_button = driver.find_elements(
-            By.XPATH,
-            "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']",
-        )
-        if video_button:
-            data = {}
-            videos = []
-            for i in video_button:
-                i.click()
-                time.sleep(5)
-                video = i.find_elements(
-                    By.XPATH,
-                    "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']",
-                )[-1].get_attribute("src")
-                if video:
-                    if "blob:" in video:
-                        continue
-                    else:
-                        videos.append(video)
+    data = {}
+    try:
+        banner_button = driver.find_element(By.XPATH, "//div[@class='banner-actions-container']//button")
+        if banner_button:
+            banner_button.click()
+            time.sleep(5)
+            video_button = driver.find_elements(
+                By.XPATH,
+                "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']",
+            )
+            if video_button:
+                videos = []
+                for i in video_button:
+                    i.click()
+                    time.sleep(5)
+                    video = i.find_elements(By.XPATH,
+                                            "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
+                                            )[-1].get_attribute("src").replace("blob:","")
+                    if video:
+                            videos.append(video)
+                data["videos"] = videos
+    except:
+        LOGGER.error("Video not found in an article")
+    driver.quit()
     return data
 
 
