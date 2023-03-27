@@ -8,7 +8,7 @@ from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from newton_scrapping.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
@@ -36,7 +36,7 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-    initial_url = "https://www.francetvinfo.fr/sitemap_news.xml"
+    initial_url = "https://www.francetvinfo.fr/sitemap_index.xml"
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -193,20 +193,29 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         article_data["video"] = get_video(self, response.url)
 
     parsed_data_dict["source_country"] = ["France"]
+    print(article_data.get("main").get('author'))
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
     if len([article_data.get("main").get('author')]) == 1:
-        parsed_data_dict["author"] = [{
-            "@type": article_data.get("main").get('author').get("@type"),
-            "name": article_data.get("main").get('author').get("name"),
-            "url": article_data.get("main").get('author').get("url")
-            }]
+        if type(article_data.get("main").get('author'))==list:
+            parsed_data_dict["author"] = [{
+                "@type": article_data.get("main").get('author')[0].get("@type"),
+                "name": article_data.get("main").get('author')[0].get("name"),
+                "url": article_data.get("main").get('author')[0].get("url")
+                }]
+        else:
+            if type(article_data.get("main").get('author'))==list:
+                parsed_data_dict["author"] = [{
+                    "@type": article_data.get("main").get('author')[0].get("@type"),
+                    "name": article_data.get("main").get('author')[0].get("name"),
+                    "url": article_data.get("main").get('author')[0].get("url")
+                }]
     else:
         author_list = []
         for i in range(len(article_data.get("main").get('author'))):
             author_list.append({
-                "@type": article_data.get("main").get('author')[0].get("@type"),
-                "name": article_data.get("main").get('author')[0].get("name"),
-                "url": article_data.get("main").get('author')[0].get("url")
+                "@type": article_data.get("main").get('author')[i].get("@type"),
+                "name": article_data.get("main").get('author')[i].get("name"),
+                "url": article_data.get("main").get('author')[i].get("url")
                 })
         parsed_data_dict["author"] = [author_list]
 

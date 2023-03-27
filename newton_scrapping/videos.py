@@ -8,9 +8,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
 
+
 def get_video(self, url):
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(url)
@@ -31,7 +32,7 @@ def get_video(self, url):
         )
         play_button.click()
         time.sleep(5)
-        iframe_text=driver.find_element(By.XPATH, '//div[@role="dialog"]//div[@role="presentation"]/span')
+        iframe_text = driver.find_element(By.XPATH, '//div[@role="dialog"]//div[@role="presentation"]/span')
         text = iframe_text.text
         text = text.split('//')
         text = text[1].split('"')[0]
