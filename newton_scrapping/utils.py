@@ -160,12 +160,10 @@ def get_parsed_data(response):
         main_dict = {}
         pattern = r"[\r\n\t\"]+"
         publisher = get_publisher(response)
-        if publisher:
-            main_dict["publisher"] = publisher
+        main_dict["publisher"] = publisher
 
         headline = response.css("h1.l-article__title::text").getall()
-        if headline:
-            main_dict["title"] = headline
+        main_dict["title"] = headline
 
         main_data = get_main(response)
         author = main_data[0].get("author")
@@ -178,17 +176,14 @@ def get_parsed_data(response):
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
         description = response.css("p.news__heading__top__intro::text").get()
-        if description:
-            main_dict["description"] = [description]
+        main_dict["description"] = [description]
 
         article_text = response.css("p.dropcap-wrapper::text").getall()
-        if article_text:
-            main_dict["text"] = [" ".join(article_text).replace("\n", "")]
+        main_dict["text"] = [" ".join(article_text).replace("\n", "")]
 
         mapper = {"FRA": "France", "fr-FR": "French", "fr": "French"}
         article_lang = response.css("html::attr(lang)").get()
-        if article_lang:
-            main_dict["source_language"] = [mapper.get(article_lang)]
+        main_dict["source_language"] = [mapper.get(article_lang)]
 
         return remove_empty_elements(main_dict)
 
@@ -237,16 +232,16 @@ def get_misc(response) -> list:
 
 def get_publisher(response) -> list:
     """
-            Extracts publisher information from the given response object and returns it as a dictionary.
+    Extracts publisher information from the given response object and returns it as a dictionary.
 
-            Returns:
-            - A dictionary containing information about the publisher.The dictionary has the following keys:
-            ---
-            @id: The unique identifier for the publisher.
-            @type: The type of publisher (in this case, always "NewsMediaOrganization").
-            name: The name of the publisher.
-            logo: Logo of the publisher as an image object
-            """
+    Returns:
+    - A dictionary containing information about the publisher.The dictionary has the following keys:
+    ---
+    @id: The unique identifier for the publisher.
+    @type: The type of publisher (in this case, always "NewsMediaOrganization").
+    name: The name of the publisher.
+    logo: Logo of the publisher as an image object
+    """
     try:
         logo = response.css('head link[rel="icon"]::attr(href)').get()
         img_response = requests.get(logo)
