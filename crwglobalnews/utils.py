@@ -239,7 +239,7 @@ def get_parsed_data(response):
         return remove_empty_elements(main_dict)
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
 
 
 def get_publisher(response):
@@ -271,7 +271,7 @@ def get_publisher(response):
         return [a_dict]
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
 
 
 def get_author(response) -> list:
@@ -309,7 +309,7 @@ def get_author(response) -> list:
             return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
 
 
 def get_thumbnail_image(response) -> list:
@@ -348,7 +348,7 @@ def get_tags(response) -> list:
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching tags: {e}")
 
 
 def get_images(response) -> list:
@@ -377,7 +377,7 @@ def get_images(response) -> list:
             return data
     except BaseException as e:
         LOGGER.error(f"Error: {e}")
-        print(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
 
 
 def get_embed_video_link(response) -> list:
@@ -404,7 +404,7 @@ def get_embed_video_link(response) -> list:
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
 
 
 
