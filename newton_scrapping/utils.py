@@ -212,17 +212,18 @@ def get_parsed_data(response):
     article_publisher = (main_json[1]).get("publisher")
     response_data["publisher"] = [article_publisher]
 
-    article_thumbnail = (main_json[1]).get("image").get("contentUrl")
-    if isinstance(article_thumbnail, list):
-        response_data["thumbnail_image"] = article_thumbnail
+    article_thumbnail = (main_json[1]).get("image")
+    if article_thumbnail:
+        response_data["thumbnail_image"] = [article_thumbnail.get("contentUrl")]
 
-    thumbnail_video = (main_json[1]).get("video").get("embedUrl")
-    embedded_video_links.append(thumbnail_video)
+    thumbnail_video = ((main_json[1]).get("video"))
+    if thumbnail_video:
+        embedded_video_links.append(thumbnail_video.get("embedUrl"))
 
-    video_links = extract_videos(response)
-    if video_links:
-        for i in video_links.get("videos"):
-            embedded_video_links.append(i)
+    # video_links = extract_videos(response)
+    # if video_links:
+    #     for i in video_links.get("videos"):
+    #         embedded_video_links.append(i)
 
     response_data["embed_video_link"] = embedded_video_links
 
@@ -230,7 +231,6 @@ def get_parsed_data(response):
     article_lang = response.css("html::attr(lang)").get()
     response_data["source_language"] = [mapper.get(article_lang)]
 
- 
     return remove_empty_elements(response_data)
 
 
@@ -262,6 +262,8 @@ def extract_videos(response) -> list:
                 except:
                     data["videos"] = [i.get_attribute(
                         "src").replace("blob:", "")]
+    else:
+        pass
     driver.quit()
     return data
 
