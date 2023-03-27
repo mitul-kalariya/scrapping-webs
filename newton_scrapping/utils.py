@@ -94,62 +94,85 @@ def get_raw_response(response):
 
 
 def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
     parsed_json = {}
-    main = get_main(response)
-    if main:
-        parsed_json["main"] = main
+    other_data = []
+    ld_json_data = response.css(
+        'script[type="application/ld+json"]::text').getall()
+    for a_block in ld_json_data:
+        data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            other_data.append(data)
+
+    parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
 
-    return parsed_json
+    return remove_empty_elements(parsed_json)
 
 
 def get_parsed_data(response):
 
     pattern = r"[\r\n\t\"]+"
     main_dict = {}
+    video = []
+    main_data = get_main(response)
 
     # extract author info
-    authors = get_author(response.css("div.copytext-element-wrapper"))
+    authors = [main_data[0].get("author")]
     main_dict["author"] = authors
 
     # extract main headline of article
     title = response.css("span.seitenkopf__headline--text::text").get()
     main_dict["title"] = [title]
 
-    publisher = get_main(response)
-    main_dict["publisher"] = [publisher[0].get("publisher")]
+    main_dict["publisher"] = [main_data[0].get("publisher")]
 
     # extract the date published at
-    published_at = response.css("div.metatextline::text").get()
-    clean_time = re.sub(pattern, "", published_at).strip()
-    main_dict["published_at"] = [clean_time]
-
-    descryption = response.css("p strong::text").get()
-    main_dict["description"] = [re.sub(pattern, "", descryption).strip()]
+    main_dict["published_at"] = [main_data[0].get("datePublished")]
+    main_dict["modified_at"] = [main_data[0].get("dateModified")]
+    main_dict["description"] = [main_data[0].get("description")]
 
     # extract the description or read text of the article
     text = response.css("p.textabsatz::text").getall()
     text = [re.sub(pattern, "", i) for i in text]
-    main_dict["text"] = [" ".join(list(filter(None, text)))]
+    if text:
+        main_dict['text'] = ["".join(list(filter(None, text)))]
 
     # extract the thumbnail image
     thumbnail_image = response.css(
         "picture.ts-picture--topbanner .ts-image::attr(src)"
     ).get()
-    main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
+    if thumbnail_image:
+        main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
 
     # extract video files if any
-    video = get_embed_video_link(response.css("div.copytext__video"))
+    frame_video = get_embed_video_link(response.css("div.copytext__video"))
+    if frame_video:
+        video.extend(frame_video)
+
     main_dict["embed_video_link"] = video
 
     # extract tags associated with article
     tags = response.css("ul.taglist li a::text").getall()
     main_dict["tags"] = tags
 
+    mapper = {'de': "German"}
     article_lang = response.css("html::attr(lang)").get()
-    main_dict["language"] = [article_lang]
+    main_dict["language"] = [mapper.get(article_lang)]
 
     return remove_empty_elements(main_dict)
 
@@ -190,23 +213,6 @@ def get_misc(response):
     except BaseException as e:
         LOGGER.error(f"{e}")
         print(f"Error while getting misc: {e}")
-
-
-def get_author(response) -> list:
-    info = []
-    if response:
-        for child in response:
-            a_dict = {}
-            auth_name = child.css("span.id-card__name::text").get()
-            if auth_name:
-                a_dict["@type"] = "Person"
-                a_dict["name"] = auth_name.strip()
-                link = child.css("a.id-card__twitter-id::attr(href)").get()
-                if link:
-                    a_dict["url"] = link
-                info.append(a_dict)
-
-        return info
 
 
 def get_embed_video_link(response) -> list:
