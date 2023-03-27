@@ -16,6 +16,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     get_parsed_json,
 )
+import w3lib.html
 
 
 class BaseSpider(ABC):
@@ -162,11 +163,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             if self.start_date is None and self.end_date is None:
                 for link in response.css("a"):
                     url = link.css("::attr(href)").get()
-                    title = link.css(".teaser-xs__headline::text").get()
+                    title = link.css(".teaser-xs__headline , .hyphenate").get()
                     published_at = link.css(".teaser-xs__date::text").get()
 
                     if url and title and published_at:
-                        published_at = published_at.replace("\n", "").strip()[:10]
+                        title = w3lib.html.remove_tags(title)
                         data = {
                             "link": url,
                             "title": title.replace("\n", "").strip(),
@@ -203,7 +204,6 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 published_at = link.css(".teaser-xs__date::text").get()
 
                 if url and title and published_at:
-                    published_at = published_at.replace("\n", "").strip()[:10]
                     data = {
                         "link": url,
                         "title": title.replace("\n", "").strip(),
