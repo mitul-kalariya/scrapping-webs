@@ -1,9 +1,8 @@
 import json
 import os
 from datetime import datetime
-from scrapy.http import Response
 from scrapy.loader import ItemLoader
-from newton_scrapping.videos import get_video 
+from newton_scrapping.videos import get_video
 from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -136,7 +135,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type')\
+                       in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
             )
         
     return dict(article_raw_parsed_json_loader.load_item())
@@ -196,14 +196,14 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     print(article_data.get("main").get('author'))
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
     if len([article_data.get("main").get('author')]) == 1:
-        if type(article_data.get("main").get('author'))==list:
+        if type(article_data.get("main").get('author')) == list:
             parsed_data_dict["author"] = [{
                 "@type": article_data.get("main").get('author')[0].get("@type"),
                 "name": article_data.get("main").get('author')[0].get("name"),
                 "url": article_data.get("main").get('author')[0].get("url")
-                }]
+            }]
         else:
-            if type(article_data.get("main").get('author'))==list:
+            if type(article_data.get("main").get('author')) == list:
                 parsed_data_dict["author"] = [{
                     "@type": article_data.get("main").get('author')[0].get("@type"),
                     "name": article_data.get("main").get('author')[0].get("name"),
@@ -240,8 +240,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["text"] = [article_data.get("main").get('articleBody')]
     parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image')[0].get('url')]
     parsed_data_dict["title"] = [article_data.get("title")]
-    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')[0].get('url'), "caption": article_data.get("main").get('image')[0].get('name')}]
-    parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip()!='']
+    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')[0].get('url'),\
+                                    "caption": article_data.get("main").get('image')[0].get('name')}]
+    parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
     parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')
     parsed_data_dict['embedded_video_link'] = [article_data.get("video")]
 

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import scrapy
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
-from scrapy.exceptions import CloseSpider
+
 from newton_scrapping.items import ArticleData
 
 from newton_scrapping.utils import (
