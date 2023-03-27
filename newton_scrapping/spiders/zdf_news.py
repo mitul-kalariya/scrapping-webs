@@ -173,8 +173,8 @@ class ZdfNewsSpider(scrapy.Spider):
 
         for link, pub_date in zip(links, published_date):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            today_date = datetime.today().strftime('%Y-%m-%d')
-            if self.start_date and self.end_date and self.start_date <= published_at <= self.end_date:
+            today_date = datetime.today().date()
+            if self.start_date and self.end_date:
                 yield scrapy.Request(
                     link,
                     callback=self.parse_sitemap_datewise,
