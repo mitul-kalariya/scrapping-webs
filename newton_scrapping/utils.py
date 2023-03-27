@@ -204,14 +204,17 @@ def get_parsed_data(response):
         authors = get_author(response)
         main_dict["author"] = authors
 
-        article_description = get_main(response)
-        main_dict["description"] = [article_description[0].get("description")]
+        main_data = get_main(response)
+        main_dict["description"] = [main_data[0].get("description")]
+        main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
         published_on = response.css(
             "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
         ).get()
         published_on = published_on.strip("Posted ")
         main_dict["published_at"] = [published_on]
+
+       
 
         updated_on = response.css(
             "div.c-byline__datesWrapper > div > div.c-byline__date--modDate > span::text"
