@@ -105,6 +105,7 @@ class ZdfNewsSpider(scrapy.Spider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 self.articles.append(article_data)
+                yield self.articles
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -173,8 +174,8 @@ class ZdfNewsSpider(scrapy.Spider):
 
         for link, pub_date in zip(links, published_date):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            today_date = datetime.today().strftime('%Y-%m-%d')
-            if self.start_date and self.end_date and self.start_date <= published_at <= self.end_date:
+            today_date = datetime.today().date()
+            if self.start_date and self.end_date:
                 yield scrapy.Request(
                     link,
                     callback=self.parse_sitemap_datewise,
@@ -234,6 +235,7 @@ class ZdfNewsSpider(scrapy.Spider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
