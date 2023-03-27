@@ -200,7 +200,6 @@ def get_parsed_data(response):
 
         headline = response.css("h1.l-article__title::text").getall()
         main_dict["title"] = headline
-
         authors = get_author(response)
         main_dict["author"] = authors
 
@@ -224,7 +223,8 @@ def get_parsed_data(response):
         main_dict["tags"] = tags
 
         images = get_images(response)
-        main_dict["images"] = images
+        if images:
+            main_dict["images"] = images
 
         videos = get_embed_video_link(response)
         main_dict["embed_video_link"] = videos
@@ -237,6 +237,7 @@ def get_parsed_data(response):
         main_dict["time_scraped"] = [str(datetime.now())]
 
         return remove_empty_elements(main_dict)
+
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
@@ -430,7 +431,6 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         filename = (
             f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         )
-
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
