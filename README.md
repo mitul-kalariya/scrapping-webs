@@ -1,4 +1,4 @@
-## TimesNowNews Scraper
+## Times Now Scraper
 
 This repo contains the code to scrap all sitemaps (if available) and articles from [times now news](https://www.timesnownews.com/) website and the Tech stacks used are:-
 -  Python 3.10
@@ -6,7 +6,7 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 
 ### Environment Setup 
  
-Create Virtual Environment using Python3 and activate environment. 
+Create a Virtual Environment using Python3 and activate the environment. 
 ```bash
 python3 -m venv venv
 ```
@@ -14,31 +14,29 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### Install required dependencies
-
-Install requirements using requirements.txt file available in main
-```bash
-pip install -r requirements.txt
-```
-
 ### Sitemap file available:- Yes
 
-### Command to fetch Sitemap:-
--  Command to crawl on sitemap from specific date range
-```bash
-scrapy crawl times_now_news -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
+### Package Information
+A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
 ```
-    
--  Command to crawl sitemap for today’s date  
-```bash
-scrapy crawl times_now_news -a type=sitemap
+python setup.py sdist
 ```
-    
-### Command to fetch Articles:-
-[timesnownews_article_url](https://www.timesnownews.com/business-economy/markets/top-stocks-to-buy-sell-today-14th-march-2023-tech-mahindra-rbl-bank-lt-finance-holdings-check-share-price-target-stop-loss-and-other-details-kunal-bothras-cracker-stocks-article-98626158)
-```bash
-scrapy crawl spider_name -a type=article url=timesnownews_article_url
+
+### Installation
+
+Use the command `pip install <path_to_package>`. for example `pip install dist/crwtimesnownews-0.1.tar.gz`
+
+### Usage
+
+You can use the `Crawler` class and its `crawl` method to crawl the data.
+Quick example as shown below.
 ```
+from crwtimesnownews import Crawler
+
+crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+data = crawler.crawl()
+```
+The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
 
 ## Test Cases
 We have used Python's in-built module `unittest`.
