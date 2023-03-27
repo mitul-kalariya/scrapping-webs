@@ -1,5 +1,3 @@
-import pdb
-
 from itemloaders.processors import (
     TakeFirst,
     MapCompose,
@@ -18,8 +16,6 @@ from newton_scrapping.constant import (
 
 def other_filter(values):
     lst_other = []
-    # pdb.set_trace()
-    # print(values)
     if values.get(TYPE) not in LIST_OF_PARSED_JSON_OBJECT:
         lst_other.append(values)
     return lst_other

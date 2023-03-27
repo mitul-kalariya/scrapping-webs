@@ -147,6 +147,15 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
+    """ populates parse data dict 
+
+    Args:
+        response (Response): Response object of article
+        parsed_json_data (dict): parsed json data of article
+
+    Returns:
+        dict: returns parse data dict
+    """
     parsed_data_dict = get_parsed_data_dict()
 
     headline = response.css('#content h1::text').get()
@@ -179,7 +188,15 @@ def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
     return remove_empty_elements(parsed_data_dict)
 
 
-def get_author(main) -> list:
+def get_author(main: dict) -> list:
+    """Get author details from json data
+
+    Args:
+        main (dict): contains author data
+
+    Returns:
+        list: list of a author details
+    """
     author_list = []
     author_dict = {
         TYPE: main.get("author").get(TYPE),
