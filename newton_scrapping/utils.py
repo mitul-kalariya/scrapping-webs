@@ -184,7 +184,7 @@ def get_author(main) -> list:
     author_dict = {
         TYPE: main.get("author").get(TYPE),
         "name": main.get("author").get("name")
-      }
+    }
     author_list.append(author_dict)
     return author_list
 

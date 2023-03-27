@@ -1,11 +1,7 @@
-import os
-import pdb
 from abc import ABC, abstractmethod
 import logging
 import scrapy
-import json
 from datetime import datetime
-from scrapy.selector import Selector
 
 from newton_scrapping.itemLoader import ArticleDataLoader
 from newton_scrapping.items import ArticleData
@@ -68,13 +64,14 @@ class Economist(scrapy.Spider, BaseSpider):
             self.type = type
             self.error_msg_dict = {}
             self.url = url
-            self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
-            self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
+            self.article_url = url
+            self.start_date = start_date
+            self.end_date = end_date
             self.today_date = None
             check_cmd_args(self, self.start_date, self.end_date)
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                    "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
