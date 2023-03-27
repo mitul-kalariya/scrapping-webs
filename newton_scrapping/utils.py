@@ -246,17 +246,20 @@ def extract_videos(response) -> list:
             driver.execute_script(
                 "window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
         time.sleep(3)
-        videos = driver.find_elements(
-            By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
-        if videos:
-            data = {}
-            for i in videos:
-                try:
-                    data["videos"] += [i.get_attribute(
-                        "src").replace("blob:", "")]
-                except:
-                    data["videos"] = [i.get_attribute(
-                        "src").replace("blob:", "")]
+        try:
+            videos = driver.find_elements(
+                By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
+            if videos:
+                data = {}
+                for i in videos:
+                    try:
+                        data["videos"] += [i.get_attribute(
+                            "src").replace("blob:", "")]
+                    except:
+                        data["videos"] = [i.get_attribute(
+                            "src").replace("blob:", "")]
+        except:
+            LOGGER.error("Video not found in this article")
     driver.quit()
     return data
 
