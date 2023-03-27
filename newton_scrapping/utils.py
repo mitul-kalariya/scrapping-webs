@@ -162,10 +162,10 @@ def get_parsed_data(response):
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
 
-        headline = response.css("h1.l-article__title::text").getall()
-        main_dict["title"] = headline
-
         main_data = get_main(response)
+        headline = main_data[0].get("headline")
+        main_dict["title"] = [headline]
+
         author = main_data[0].get("author")
         main_dict["author"] = author
 

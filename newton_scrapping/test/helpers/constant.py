@@ -3,11 +3,11 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://www.mediapart.fr/journal/france/270323/employes-larbins-et-voitures-de-luxe-revelations-sur-un-promoteur-lyonnais",
+        "url": "https://www.mediapart.fr/journal/politique/250323/francois-ruffin-la-masse-le-nombre-c-est-le-seul-chemin-pour-la-victoire",
         "test_data_path": "newton_scrapping/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.mediapart.fr/journal/international/270323/ailleurs-en-europe-des-syndicats-mobilises-parviennent-se-faire-entendre",
+        "url": "https://www.mediapart.fr/journal/economie-et-social/270323/arnaud-rousseau-un-poids-lourd-de-l-agrobusiness-pour-diriger-la-fnsea",
         "test_data_path": "newton_scrapping/test/data/test_article_2.json"
     },
     # {
@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     # }
 ]
 
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://www.mediapart.fr/sitemap_index.xml"
