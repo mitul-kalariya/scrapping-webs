@@ -37,7 +37,7 @@ class BaseSpider(ABC):
     def parse_article(self, response: str) -> list:
         pass
 
-class NTvSpider(scrapy.Spider, BaseSpider):
+class BFMTVSpider(scrapy.Spider, BaseSpider):
     name = "bfm_tv"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
@@ -239,5 +239,5 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
-    process.crawl(NTvSpider)
+    process.crawl(BFMTVSpider)
     process.start()

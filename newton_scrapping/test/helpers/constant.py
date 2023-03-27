@@ -3,17 +3,17 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.bfmtv.com/international/amerique-nord/canada/canada-un-pick-up-fauche-des-pietons-dans-une-ville-du-quebec-au-moins-deux-morts-et-plusieurs-blesses_AD-202303130820.html",
         "test_data_path": "newton_scrapping/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.bfmtv.com/politique/elysee/reforme-des-retraites-emmanuel-macron-estime-avoir-une-majorite-solide-a-l-assemblee-nationale_AN-202303130628.html",
         "test_data_path": "newton_scrapping/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.bfmtv.com/tech/bons-plans/cette-chaise-gaming-est-a-un-prix-qui-va-vous-convaincre_AB-202303110033.html",
         "test_data_path": "newton_scrapping/test/data/test_article_3.json"
     }
 ]
 
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://www.bfmtv.com/sitemap_index_arbo_contenu.xml"
