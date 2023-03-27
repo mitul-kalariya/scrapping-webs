@@ -7,7 +7,7 @@ from newton_scrapping.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-
+from newton_scrapping.constant import SITEMAP_URL
 from newton_scrapping.exceptions import (
     InputMissingException,
     InvalidDateException,
@@ -36,7 +36,6 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-    initial_url = "https://www.francetvinfo.fr/sitemap_news.xml"
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -59,12 +58,12 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
         if self.end_date is not None and self.start_date is not None:
             set_date_range(start_date, end_date)
             validate_date_range()
-            add_start_url(initial_url)
+            add_start_url(SITEMAP_URL)
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
             self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            add_start_url(initial_url)
+            add_start_url(SITEMAP_URL)
 
         elif self.end_date is not None or self.start_date is not None:
             raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
