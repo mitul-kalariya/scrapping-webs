@@ -62,8 +62,8 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
         self.type = type
         self.url = url
         self.article_url = url
-        self.start_date = start_date 
-        self.end_date = end_date 
+        self.start_date = start_date
+        self.end_date = end_date
         self.today_date = None
 
         check_cmd_args(self, self.start_date, self.end_date)
@@ -85,11 +85,11 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
         """
         if self.type == "sitemap":
             article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                     namespaces=self.namespace).getall()
+                                                               namespaces=self.namespace).getall()
             published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
-                                                                     namespaces=self.namespace).getall()
+                                                                  namespaces=self.namespace).getall()
             article_title = Selector(response, type='xml').xpath('//news:title/text()',
-                                                                     namespaces=self.namespace).getall()
+                                                                 namespaces=self.namespace).getall()
 
             for url, date, title in zip(article_url, published_date, article_title):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
@@ -110,28 +110,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                                 "title": title,
                             }
                             self.articles.append(article)
-
-        if self.type == "article":
-            yield self.parse_article(response)
-
-            for url in sitemap_url:
-             
-                if "article" in url:
-                
-                    sitemap_date = url.split("article")[0][-8:-1]
-                    _date = datetime.strptime(sitemap_date, '%Y-%m')
-               
-                    if self.today_date:
-   
-                        if (self.today_date.year, self.today_date.month) == (_date.year, _date.month):
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap)
-                    else:
-                        if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= \
-                                (self.start_date.year, self.end_date.month):
-                            
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap)
 
         if self.type == "article":
             yield self.parse_article(response)
@@ -198,7 +176,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
         #         f"Error occurred while fetching article details from sitemap:- {str(exception)}"
         #     ) from exception
 
-
     def parse_article(self, response):
         """
         parse article and append related data to class's articles variable
@@ -227,10 +204,10 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['VideoObject'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
-                
+
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
-            
+
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -277,4 +254,3 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             raise ExportOutputFileException(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}"
             ) from exception
-
