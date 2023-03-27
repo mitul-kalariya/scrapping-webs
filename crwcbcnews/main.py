@@ -3,12 +3,52 @@ from crwcbcnews.spiders.cbc_news import CbcNewsSpider
 
 
 class Crawler:
+    """
+    A class used to crawl the sitemap and article data.
+    ...
+    Attributes
+    ----------
+    query : dict
+        query dictionary that contains type, link, domain, since and until
+    proxies : str
+        dictionary that contains proxy related information
+    output : int
+        Data returned by crawl method
+    Methods
+    -------
+    crawl()
+        Crawls the sitemap URL and article URL and return final data
+    def yield_output(data)
+        set data to output attribute
+    """
+
     def __init__(self, query={'type': None}, proxies={}):
+        """
+        Args:
+            query (dict): A dict that takes input for crawling the link for one of the below type.\n
+            for sitemap:- {
+                "type": "sitemap", "domain": "https://example.com",\n
+                "since": "2022-03-01", "until": "2022-03-26"\n
+                }
+            for article:- {"type": "article", "link": https://example.com/articles/test.html"}\n
+            for link_feed:- {"type": "link_feed"}. Defaults to {'type': None}.\n
+            proxies (dict, optional): Use:- {
+                "proxyIp": "123.456.789.2", "proxyPort": "3199",\n
+                "proxyUsername": "IgNyTnddr5", "proxyPassword": "123466"\n
+                }. Defaults to {}.
+        """
         self.output = None
         self.query = query
         self.proxies = proxies
 
-    def crawl(self):
+    def crawl(self)-> list[dict]:
+        """Crawls the sitemap URL and article URL and return final data
+        Raises:
+            Exception: Raised exception for unknown Type
+        Returns:
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
+        """
         self.output = None
         process = CrawlerProcess()
         if self.query['type'] == 'article':
