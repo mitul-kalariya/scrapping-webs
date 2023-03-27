@@ -3,7 +3,7 @@ import logging
 import w3lib.html
 from newton_scrapping.constants import LOGGER
 from newton_scrapping import exceptions
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from newton_scrapping.items import ArticleData
@@ -45,16 +45,24 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
         Args:
             type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
-            start_date (str): A string representing the start date of the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
+
+            start_date (str): A string representing the start date of
+            the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
+
             url (str): A string representing the URL of the webpage to be scraped.
-            end_date (str): A string representing the end date of the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
+            end_date (str): A string representing the end date of the sitemap to be scraped.
+            Must be in the format "YYYY-MM-DD".
+
             **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
 
         Raises:
             InvalidInputException: If a URL is not provided for an "article" type scraper.
 
         Notes:
-            This function initializes a web scraper object and sets various properties based on the arguments passed to it. If the type argument is "sitemap", the start and end dates of the sitemap are validated and set. If the type argument is "article", the URL to be scraped is validated and set. A log file is created for the web scraper.
+            This function initializes a web scraper object and sets various properties based on the arguments passed to
+            it. If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
+            If the type argument is "article", the URL to be scraped is validated and set.
+            A log file is created for the web scraper.
 
         Raises:
             InvalidInputException: If a URL is not provided for an "article" type scraper.
