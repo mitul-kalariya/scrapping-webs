@@ -114,7 +114,6 @@ def get_parsed_json(response):
             parsed_json["VideoObject"] = data
         else:
             other_data.append(data)
-    
     parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
@@ -178,7 +177,7 @@ def get_parsed_data(response):
     except BaseException as e:
         LOGGER.error(f"{e}")
 
-    mapper = {"de":"German"}
+    mapper = {"de": "German"}
     article_lang = response.css("html::attr(lang)").get()
     main_dict["source_language"] = [mapper.get(article_lang)]
 
@@ -302,12 +301,12 @@ def get_embed_video_link(response) -> list:
                     time.sleep(5)
                     video = i.find_elements(By.XPATH,
                                             "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
-                                            )[-1].get_attribute("src").replace("blob:","")
+                                            )[-1].get_attribute("src").replace("blob:", "")
                     if video:
                             videos.append(video)
                 data["videos"] = videos
-    except:
-        LOGGER.error("Video not found in an article")
+    except Exception as e:
+        LOGGER.error(f"Video not found in an article {e}")
     driver.quit()
     return data
 

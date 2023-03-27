@@ -105,6 +105,7 @@ class ZdfNewsSpider(scrapy.Spider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 self.articles.append(article_data)
+                yield self.articles
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -234,6 +235,7 @@ class ZdfNewsSpider(scrapy.Spider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
