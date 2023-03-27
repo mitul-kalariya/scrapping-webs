@@ -18,23 +18,37 @@ This repo contains the code to scrap all sitemaps and articles from the_globe_an
 - `pip install -r requirements.txt ` 
 
 
-#### Sitemap file available: - Yes 
+### Sitemap file available:- Yes
 
+### Package Information
+A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
+```
+python setup.py sdist
+```
 
-#### Command to fetch sitemap: - 
+### Installation
 
-- command to crawl on sitemap from specific date range
-- `scrapy crawl the_globe_and_mail-a type=sitemap-a start_date=2023-03-06 -a end_date=2023-03-10`
-- command to crawl sitemap for today’s date
-- `scrapy crawl the_globe_and_mail -a type=sitemap` 
+Use the command `pip install <path_to_package>`. for example `pip install dist/crwglobeandmail-0.1.tar.gz`
 
+### Usage
 
-#### Commands to fetch Articles: - 
+You can use the `Crawler` class and its `crawl` method to crawl the data.
+Quick example as shown below.
+```
+from crwglobeandmail import Crawler
 
-- command to crawl wanted article
-- `scrapy crawl the_globe_and_mail -a type=article -a url={{Article-URL}}` 
+crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+data = crawler.crawl()
+```
+The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
 
-*Note:* Make sure to enter the virtual env before running.
+## Test Cases
+We have used Python's in-built module `unittest`.
+We have covered mainly two test cases.
+1. For Sitemap article links crawler
+2. For Article data CrawlerRun below command to run the test cases.
+- `python -m unittest`
+
 
 ## Test Cases
 We have used Python's in-built module `unittest`. 
