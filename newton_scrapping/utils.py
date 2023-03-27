@@ -337,10 +337,11 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     """
     data_dict = get_author_and_publisher_details(parsed_json_main)
     text = response.css('.__margin-bottom--is-0 p::text , .c-summary__intro::text').getall()
-
+    
+    caption = response.css('.o-element__text::text').get()
     image = {
         "link": response.css('.c-progressive-opener-image__original-image img::attr(src)').get(),
-        "caption": response.css('.o-element__text::text').get().strip()
+        "caption": caption.strip() if caption else None
     }
     video_caption = response.css('.o-element__text--has-no-ellipsis::text').getall()
 
