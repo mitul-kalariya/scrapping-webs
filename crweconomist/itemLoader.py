@@ -36,6 +36,10 @@ def video_object_filter(values):
         return values
 
 
+def misc_filter(values):
+    return [values]
+
+
 class ArticleDataLoader(ItemLoader):
     default_output_processor = TakeFirst()
 
@@ -52,3 +56,4 @@ class ArticleRawParsedJsonLoader(ItemLoader):
     VideoObject_in = MapCompose(video_object_filter)
     other_in = MapCompose(other_filter)
     other_out = Identity()
+    misc_out = MapCompose(misc_filter)

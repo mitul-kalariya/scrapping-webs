@@ -106,7 +106,7 @@
                     ]
                 }
             ],
-            "misc": {
+            "misc": [{
                 "props": {
                     "pageProps": {
                         "readerId": "",
@@ -5621,7 +5621,7 @@
                 "gip": true,
                 "appGip": true,
                 "scriptLoader": []
-            }
+            }]
         },
         "parsed_data": {
             "source_country": [
