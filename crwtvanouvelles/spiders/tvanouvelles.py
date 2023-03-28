@@ -217,7 +217,7 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
             self.articles.append(
                 remove_empty_elements(dict(articledata_loader.load_item()))
             )
-            return self.articles[0]
+            return articledata_loader.item
 
         except Exception as exception:
             self.log(
@@ -244,8 +244,8 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

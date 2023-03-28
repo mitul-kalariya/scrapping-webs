@@ -25,7 +25,7 @@ python setup.py sdist
 
 ### Installation
 
-Use the command `pip install <path_to_package>`. for example `pip install dist/crwindianexpress-0.1.tar.gz`
+Use the command `pip install <path_to_package>`. for example `pip install dist/crwtvanouvelles-0.1.tar.gz`
 
 ### Usage
 

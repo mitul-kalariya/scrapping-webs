@@ -341,7 +341,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
     parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response)
-    return parsed_data_dict
+    return remove_empty_elements(parsed_data_dict)
 
 
 def get_author_details(parsed_data: list, response: str) -> dict:
