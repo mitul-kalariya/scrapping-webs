@@ -1,5 +1,6 @@
 import json
 import os
+import pdb
 from datetime import datetime
 from scrapy.http import Response
 from .exceptions import (
@@ -7,11 +8,12 @@ from .exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
+from w3lib.html import remove_tags
 from newton_scrapping.constant import (
     SITEMAP_URL,
     DATE_FORMAT,
     TYPE,
-    PARSED_DATA_KEYS_LIST
+    PARSED_DATA_KEYS_LIST,
 )
 from newton_scrapping.itemLoader import (
     ArticleRawResponseLoader,
@@ -148,7 +150,9 @@ def get_parsed_data_dict() -> dict:
 
 def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
-
+    published_date = response.css('meta[property="article:published_time"]::attr(content)').get()
+    modified_date = response.css('meta[property="article:modified_time"]::attr(content)').get()
+    print(modified_date)
     img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
     text = response.css('section.content > p::text').getall()
     mapper = {"FRA": "France", "fr-FR": "French"}
@@ -162,15 +166,22 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     article_author_url = response.css('a.author_link::attr(href)').getall()
     main = parsed_json_data.get("main")
     other = parsed_json_data.get("other")
+    # print(main.get('@type') == "LiveBlogPosting")
+    # author = {}
+    # for m in main.get('liveBlogUpdate'):
+    #     author = m.get("author")
+    #     print(m.get("author"))
+    # print(author)
 
     parsed_data_dict["author"] = get_author(main, other, article_author_url)
-
     parsed_data_dict["description"] = [main.get('description')]
-    parsed_data_dict["modified_at"] = [main.get('dateModified')]
-    parsed_data_dict["published_at"] = [main.get('datePublished')]
 
+    parsed_data_dict["modified_at"] = get_modified_at(main, modified_date)  # [main.get('dateModified')]
+    parsed_data_dict["published_at"] = get_published_at(main, published_date)  # [main.get('datePublished')]
     parsed_data_dict["publisher"] = get_publisher(main)
-    parsed_data_dict["text"] = ["".join(text)]
+    pdb.set_trace()
+    parsed_data_dict["text"] = get_text(main, text)  # ["".join(text)]
+    print(parsed_data_dict)
     parsed_data_dict["thumbnail_image"] = [other[1].get('url') + img_url[0][1:]]
 
     parsed_data_dict["title"] = title
@@ -183,6 +194,33 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     return remove_empty_elements(parsed_data_dict)
 
 
+def is_live_blog(main):
+    return main.get(TYPE) == "LiveBlogPosting"
+
+
+def get_text(main, text):
+    if is_live_blog(main):
+        blog_list = main.get("liveBlogUpdate")
+        text_live_blog = list(map(lambda x: remove_tags(x.get("articleBody")), blog_list))
+        return text_live_blog
+    else:
+        return ["".join(text)]
+
+
+def get_published_at(main, published_date):
+    if is_live_blog(main):
+        return [published_date]
+    else:
+        return [main.get('datePublished')]
+
+
+def get_modified_at(main, modified_date):
+    if is_live_blog(main):
+        return [modified_date]
+    else:
+        return [main.get('datePublished')]
+
+
 def get_video(response):
     video_link = response.css('iframe.dailymotion-player::attr(src)').getall()
     if video_link:
@@ -191,16 +229,26 @@ def get_video(response):
 
 def get_author(main, other, article_author_url) -> list:
     author_list = []
+    if is_live_blog(main):
+        for blog in main.get("liveBlogUpdate"):
+            author_dict = get_author_dict(blog)
+            author_list.append(author_dict)
+    else:
+        author_dict = get_author_dict(main.get("author"))
+
+        if article_author_url and len(other) > 1:
+            author_dict["url"] = other[1].get("url") + article_author_url[0][1:]
+
+        author_list.append(author_dict)
+    return [author_list[0]]
+
+
+def get_author_dict(author):
     author_dict = {
-        TYPE: main.get("author")[0].get(TYPE),
-        "name": main.get("author")[0].get("name")
+        TYPE: author.get("author")[0].get(TYPE),
+        "name": author.get("author")[0].get("name")
     }
-
-    if article_author_url and len(other) > 1:
-        author_dict["url"] = other[1].get("url") + article_author_url[0][1:]
-
-    author_list.append(author_dict)
-    return author_list
+    return author_dict
 
 
 def get_publisher(main):

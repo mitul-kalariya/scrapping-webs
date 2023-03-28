@@ -16,6 +16,10 @@ IMAGE_GALLERY = "ImageGallery"
 # Used in itemLoader.py for VideoObject field's output processor
 VIDEO_OBJECT = "VideoObject"
 
+LIVE_BLOG_DATA = "LiveBlogPosting"
+
+NEWS_ARTICLE_LIST = [NEWS_ARTICLE, LIVE_BLOG_DATA]
+
 # Used in itemLoader.py for other field's output processor
 LIST_OF_PARSED_JSON_OBJECT = [NEWS_ARTICLE, IMAGE_GALLERY, VIDEO_OBJECT]
 
