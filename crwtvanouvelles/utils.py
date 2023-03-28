@@ -6,12 +6,12 @@ import os
 
 from scrapy.loader import ItemLoader
 
-from .items import (
+from crwtvanouvelles.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
 
-from .exceptions import (
+from crwtvanouvelles.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
