@@ -61,14 +61,14 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         self.article_url = url
 
         self.ignored_url = [
-            'https://bharat.republicworld.com/',
-            'https://bharat.republicworld.com/shows',
-            'https://bharat.republicworld.com/technology-news',
-            'https://bharat.republicworld.com/sports-news',
-            'https://bharat.republicworld.com/india-news',
-            'https://bharat.republicworld.com/lifestyle',
-            'https://bharat.republicworld.com/entertainment-news',
-            'https://bharat.republicworld.com/world-news',
+            "https://bharat.republicworld.com/",
+            "https://bharat.republicworld.com/shows",
+            "https://bharat.republicworld.com/technology-news",
+            "https://bharat.republicworld.com/sports-news",
+            "https://bharat.republicworld.com/india-news",
+            "https://bharat.republicworld.com/lifestyle",
+            "https://bharat.republicworld.com/entertainment-news",
+            "https://bharat.republicworld.com/world-news",
         ]
         self.pagination = []
 
@@ -77,11 +77,12 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
             self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else TODAYS_DATE
             )
             self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else TODAYS_DATE
             )
+
             validate_sitemap_date_range(start_date, end_date)
 
         if self.type == "article":
@@ -127,9 +128,9 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             response.selector.remove_namespaces()
-            links = response.xpath('//url/loc/text()').getall()
+            links = response.xpath("//url/loc/text()").getall()
             for link in links:
-                if link in self.ignored_url or 'shows' in link:
+                if link in self.ignored_url or "shows" in link:
                     continue
                 else:
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
@@ -152,12 +153,17 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             passes it along as a meta parameter in each request.
         """
         try:
-            pagi = response.css('.page-jump-number~ .page-jump+ .page-jump div a::attr(href)').get()
+            pagi = response.css(
+                ".page-jump-number~ .page-jump+ .page-jump div a::attr(href)"
+            ).get()
             # last_num = int(pagi.split("/")[-1])
             self.start_urls.append(response.request.url)
             for i in range(1, PAGINATION):
-                yield scrapy.Request(response.request.url + "/" + str(i), callback=self.parse_sitemap_by_title_link,
-                                     meta={'index': i})
+                yield scrapy.Request(
+                    response.request.url + "/" + str(i),
+                    callback=self.parse_sitemap_by_title_link,
+                    meta={"index": i},
+                )
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while parse sitemap article: {e}"
@@ -174,10 +180,16 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             for link in response.css("div#republic-dom a"):
-                url = link.css('::attr(href)').get()
-                title = link.css('.font18::text , .font16::text , .lineHeight31px::text').get()
+                url = link.css("::attr(href)").get()
+                title = link.css(
+                    ".font18::text , .font16::text , .lineHeight31px::text"
+                ).get()
                 if url and title:
-                    yield scrapy.Request(url, callback=self.parse_sitemap_datewise, meta={'url': url, 'title': title})
+                    yield scrapy.Request(
+                        url,
+                        callback=self.parse_sitemap_datewise,
+                        meta={"url": url, "title": title},
+                    )
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while parse sitemap article: {e}"
@@ -185,11 +197,11 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             LOGGER.error(f"Error while parse sitemap article: {e}")
 
     def parse_sitemap_datewise(self, response):
-        url = response.meta['url']
-        title = response.meta['title']
-        published_at = response.css('.time-elapsed time::attr(datetime)').get()[:10]
+        url = response.meta["url"]
+        title = response.meta["title"]
+        published_at = response.css(".time-elapsed time::attr(datetime)").get()[:10]
         published_at = datetime.strptime(published_at, "%Y-%m-%d").date()
-        today = datetime.today().strftime('%Y-%m-%d')
+        today = datetime.today().strftime("%Y-%m-%d")
         today = datetime.strptime(today, "%Y-%m-%d").date()
 
         if self.start_date and published_at < self.start_date:
@@ -197,8 +209,8 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         if self.start_date and published_at > self.end_date:
             return
         data = {
-            'link': url,
-            'title': title,
+            "link": url,
+            "title": title,
         }
 
         if url and title and published_at:

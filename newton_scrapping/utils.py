@@ -30,16 +30,14 @@ def validate_sitemap_date_range(start_date, end_date):
         end_date (str): end_date
 
     """
-    start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else TODAYS_DATE
+    )
+    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else TODAYS_DATE
     try:
-        if start_date and not end_date:
+        if (start_date and not end_date) or (not start_date and end_date):
             raise exceptions.InvalidDateException(
-                "end_date must be specified if start_date is provided"
-            )
-        if not start_date and end_date:
-            raise exceptions.InvalidDateException(
-                "start_date must be specified if end_date is provided"
+                "start_date or end_date must be specified"
             )
 
         if start_date and end_date and start_date > end_date:
@@ -47,14 +45,9 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be later than end_date"
             )
 
-        if start_date and end_date and start_date == end_date:
+        if start_date > TODAYS_DATE or end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
-            )
-
-        if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
+                "start_date and end_date should not be greater than today_date"
             )
 
     except exceptions.InvalidDateException as e:
@@ -78,26 +71,31 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
+    try:
+        parsed_json = {}
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") == "ImageGallery":
+                parsed_json["ImageGallery"] = data
+            elif data.get("@type") == "VideoObject":
+                parsed_json["VideoObject"] = data
+            else:
+                other_data.append(data)
 
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+        parsed_json["Other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
 
-    return remove_empty_elements(parsed_json)
+        return remove_empty_elements(parsed_json)
+
+    except BaseException as e:
+        exceptions.ArticleScrappingException(f"Error while parsing json data: {e}")
+        LOGGER.error(f"Error while parsing json data: {e}")
 
 
 def get_main(response):
@@ -115,8 +113,8 @@ def get_main(response):
             data.append(json.loads(block))
         return data
     except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+        LOGGER.error(f"Error while getting misc{e}")
+        exceptions.ArticleScrappingException(f"Error while getting misc {e}")
 
 
 def get_misc(response):
@@ -135,7 +133,7 @@ def get_misc(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+        exceptions.ArticleScrappingException(f"Error while getting misc: {e}")
 
 
 def get_parsed_data(response):
@@ -160,32 +158,40 @@ def get_parsed_data(response):
         - 'text': (list) The list of text paragraphs in the article.
         - 'images': (list) The list of image URLs in the article, if available.
     """
-    main_dict = {}
-    authors = get_author(response)
-    main_dict["author"] = authors
-    last_updated = get_lastupdated(response)
-    main_dict["modified_at"] = [last_updated]
-    published_on = get_published_at(response.css("div.story-wrapper"))
-    main_dict["published_at"] = [published_on]
-    description = response.css("h2.story-description::text").get()
-    main_dict["description"] = [description]
-    publisher = get_publisher(response)
-    main_dict["publisher"] = publisher
-    article_text = response.css("section p::text").getall()
-    main_dict["text"] = [" ".join(article_text)]
-    thumbnail = get_thumbnail_image(response)
-    main_dict["thumbnail_image"] = thumbnail
-    headline = response.css("h1.story-title::text").get().strip()
-    main_dict["title"] = [headline]
-    article_images = get_images(response)
-    main_dict["images"] = article_images
-    video = get_embed_video_link(response)
-    main_dict["embed_video_link"] = video
-    mapper = {"en": "English", "hi_IN": "Hindi"}
-    article_lang = response.css("html::attr(lang)").get()
-    main_dict["source_language"] = [mapper.get(article_lang)]
+    try:
+        main_dict = {}
+        main_data = get_main(response)
+        for e in main_data:
+            print("\n\n\n", e)
+        authors = main_data[1].get("author")
+        main_dict["author"] = authors
+        last_updated = main_data[1].get("dateModified")
+        main_dict["modified_at"] = [last_updated]
+        published_on = main_data[1].get("datePublished")
+        main_dict["published_at"] = [published_on]
+        description = main_data[1].get("description")
+        main_dict["description"] = [description]
+        publisher = main_data[1].get("publisher")
+        main_dict["publisher"] = publisher
+        article_text = response.css("section p::text").getall()
+        main_dict["text"] = [" ".join(article_text)]
+        thumbnail = get_thumbnail_image(response)
+        main_dict["thumbnail_image"] = thumbnail
+        headline = response.css("h1.story-title::text").get().strip()
+        main_dict["title"] = [headline]
+        article_images = get_images(response)
+        main_dict["images"] = article_images
+        video = get_embed_video_link(response)
+        main_dict["embed_video_link"] = video
+        mapper = {"en": "English", "hi_IN": "Hindi"}
+        article_lang = response.css("html::attr(lang)").get()
+        main_dict["source_language"] = [mapper.get(article_lang)]
 
-    return remove_empty_elements(main_dict)
+        return remove_empty_elements(main_dict)
+
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        exceptions.ArticleScrappingException(f"Error while fetching main data: {e}")
 
 
 def get_lastupdated(response) -> str:
@@ -197,9 +203,12 @@ def get_lastupdated(response) -> str:
     Args:
         response: A Scrapy response object representing the web page from which to extract the information.
     """
-    info = response.css("span.time-elapsed")
-    if info:
-        return info.css("time::attr(datetime)").get()
+    try:
+        info = response.css("span.time-elapsed")
+        if info:
+            return info.css("time::attr(datetime)").get()
+    except BaseException as e:
+        LOGGER.error(f"error while getting last updated{e}")
 
 
 def get_published_at(response) -> str:
