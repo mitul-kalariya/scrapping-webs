@@ -1,41 +1,47 @@
-## France-Info-TV Scraper
+# Newton Scrapping
+This is the scrapping project to scrap news from different website.
 
-This repo contains the code to scrap all sitemaps (if available) and articles from [France-tv-info](https://www.francetvinfo.fr/) website and the Tech stacks used are:-
--  Python 3.10
--  Scrapy 
 
-### Environment Setup 
- 
-Create Virtual Environment using Python3 and activate environment. 
-```bash
-python3 -m venv venv
+#### Setup and execution instructions: - 
+
+This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
+- Python 3.10
+- Scrapy
+
+
+#### Environment Setup 
+
+- Create Virtual Environment using Python3 and activate environment.
+- `python3 -m venv venv`
+- `source venv/bin/activate`
+- Install Requirements using requirements.txt file available in a main directory.
+- `pip install -r requirements.txt
+
+### Package Information
+A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
 ```
-```bash
-source venv/bin/activate
+python setup.py sdist
 ```
 
-### Install required dependencies
+### Installation
 
-Install requirements using requirements.txt file available in main
-```bash
-pip install -r requirements.txt
-```
+Use the command `pip install <path_to_package>`. for example `pip install dist/crwindianexpress-0.1.tar.gz`
 
-### Sitemap file available:- Yes
+### Usage
 
-### Command to fetch Sitemap:-
--  Command to crawl on sitemap from specific date range
-```bash
-scrapy crawl francetv-info -a type=sitemap -a start_date=2023-03-11 -a end_date=2023-03-13
+You can use the `Crawler` class and its `crawl` method to crawl the data.
+Quick example as shown below.
 ```
-    
--  Command to crawl sitemap for today’s date  
-```bash
-scrapy crawl francetv-info -a type=sitemap
+from crwindianexpress import Crawler
+
+crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+data = crawler.crawl()
 ```
-    
-### Command to fetch Articles:-
-[francetvinfo_article_url](https://www.francetvinfo.fr/economie/retraite/reforme-des-retraites/retraites-face-aux-elus-de-la-majorite-emmanuel-macron-a-voulu-tracer-les-perspectives-des-annees-qui-viennent-selon-le-depute-renaissance-benjamin-haddad_5724728.html)
-```bash
-scrapy crawl francetv-info -a type=article url=timesnownews_article_url
-```
+The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
+
+## Test Cases
+We have used Python's in-built module `unittest`.
+We have covered mainly two test cases.
+1. For Sitemap article links crawler
+2. For Article data CrawlerRun below command to run the test cases.
+- `python -m unittest`
