@@ -221,29 +221,40 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["description"] = [article_data.get("main").get('description')]
     parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
-    
+    if "publisher" in list(article_data.get("main").keys()):
+        key = "publisher"
+    elif "Publisher" in list(article_data.get("main").keys()):
+        key = "Publisher"
+ 
     parsed_data_dict["publisher"] = [{
-        '@type': article_data.get("main").get('Publisher').get('@type'),
-        'url': article_data.get("main").get('Publisher').get('url'),
+        '@type': article_data.get("main").get(key).get('@type'),
+        'url': article_data.get("main").get(key).get('url'),
         "logo": {
-            "@type": article_data.get("main").get('Publisher').get("logo").get('@type'),
-            "url": article_data.get("main").get('Publisher').get("logo").get('url'),
+            "@type": article_data.get("main").get(key).get("logo").get('@type'),
+            "url": article_data.get("main").get(key).get("logo").get('url'),
             'width': {
                 '@type': "Distance",
-                "name": str(article_data.get("main").get('Publisher').get('logo').get('width').get('value')) + " Px"},
+                "name": str(article_data.get("main").get(key).get('logo').get('width').get('value')) + " Px"},
             'height': {
                 '@type': "Distance",
-                'name': str(article_data.get("main").get('Publisher').get('logo').get('height').get('value')) + " Px"}}
+                'name': str(article_data.get("main").get(key).get('logo').get('height').get('value')) + " Px"}}
     }]
+
 
     parsed_data_dict["text"] = [article_data.get("main").get('articleBody')]
 
-    for img_data in article_data.get("main").get('image'):
-        if img_data is not None:
-            parsed_data_dict["thumbnail_image"] = [img_data.get('url')]
-            parsed_data_dict["images"] = [{"link":img_data.get('url'),\
-                                    "caption": img_data.get('name')}]
-            break
+    if type(article_data.get("main").get('image')) is str:
+        parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image')]
+        parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')}]
+        
+    else:    
+        for img_data in article_data.get("main").get('image'):
+            print(img_data)
+            if img_data is not None:
+                parsed_data_dict["thumbnail_image"] = [img_data.get('url')]
+                parsed_data_dict["images"] = [{"link":img_data.get('url'),\
+                                        "caption": img_data.get('name')}]
+                break
     parsed_data_dict["title"] = [article_data.get("title")]
     parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
     parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')

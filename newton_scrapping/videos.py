@@ -16,7 +16,6 @@ def get_video(self, url):
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(url)
     try:
-
         disagree_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, '//button[@class="didomi-components-button didomi-button didomi-disagree-button didomi-button-standard standard-button"]'))
         )
@@ -34,7 +33,6 @@ def get_video(self, url):
             )
             play_button.click()
             
-
         except ElementClickInterceptedException:
             # Handle the exception by waiting for any overlay to disappear
             WebDriverWait(driver, 10).until_not(EC.presence_of_element_located((By.XPATH, '//div[@class="ftv-magneto--btn ftv-magneto--focusable-item"]')))
