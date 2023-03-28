@@ -104,7 +104,7 @@ class ZdfNewsSpider(scrapy.Spider):
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
-                self.articles.append(article_data)
+                yield article_data
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -133,8 +133,10 @@ class ZdfNewsSpider(scrapy.Spider):
             response_json,
         )
         articledata_loader.add_value("parsed_data", response_data)
+        
+        self.articles.append(dict(articledata_loader.load_item()))
 
-        return dict(articledata_loader.load_item())
+        return articledata_loader.item
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
