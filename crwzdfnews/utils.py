@@ -13,6 +13,8 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from crwzdfnews import exceptions
 from crwzdfnews.constant import TODAYS_DATE, LOGGER
 
@@ -247,7 +249,8 @@ def get_images(response, parsed_json=False) -> list:
 def get_embed_video_link(response) -> list:
     options = Options()
     options.headless = True
-    driver = webdriver.Chrome(options=options)
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
     driver.get(response.url)
     time.sleep(5)
     data = {}
