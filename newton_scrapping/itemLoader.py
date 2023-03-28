@@ -8,9 +8,9 @@ from w3lib.html import remove_tags
 from newton_scrapping.constant import (
     TYPE,
     LIST_OF_PARSED_JSON_OBJECT,
-    NEWS_ARTICLE_LIST,
+    NEWS_ARTICLE,
     IMAGE_GALLERY,
-    VIDEO_OBJECT
+    VIDEO_OBJECT,
 )
 
 
@@ -24,7 +24,7 @@ def other_filter(values):
 
 def main_filter(values):
     for v in values:
-        if v.get(TYPE) in NEWS_ARTICLE_LIST:
+        if v.get(TYPE) in NEWS_ARTICLE:
             return v
 
 

@@ -168,22 +168,22 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     main = parsed_json_data.get("main")
     other = parsed_json_data.get("other")
 
-    parsed_data_dict["author"] = get_author(main, other, article_author_url)
+    parsed_data_dict["author"] = get_author(other[0], other, article_author_url)
     parsed_data_dict["description"] = [main.get('description')]
 
-    parsed_data_dict["modified_at"] = get_modified_at(main, modified_date)
-    parsed_data_dict["published_at"] = get_published_at(main, published_date)
-    parsed_data_dict["publisher"] = get_publisher(main)
+    parsed_data_dict["modified_at"] = get_modified_at(other[0], modified_date)
+    parsed_data_dict["published_at"] = get_published_at(other[0], published_date)
+    parsed_data_dict["publisher"] = get_publisher(other[0])
 
-    parsed_data_dict["text"] = get_text(main, text)
+    parsed_data_dict["text"] = get_text(other[0], text)
 
-    parsed_data_dict["thumbnail_image"] = get_thumbnail_image(main, other,
+    parsed_data_dict["thumbnail_image"] = get_thumbnail_image(other[0], other,
                                                               img_url)
     parsed_data_dict["title"] = title
-    parsed_data_dict["images"] = get_image(main, response)
+    parsed_data_dict["images"] = get_image(other[0], response)
     parsed_data_dict["section"] = "".join(category).split(",")
 
-    parsed_data_dict["tags"] = get_tags(main)
+    parsed_data_dict["tags"] = get_tags(other[0])
     parsed_data_dict['embed_video_link'] = get_video(response)
 
     return remove_empty_elements(parsed_data_dict)
