@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
+from crwindianexpress.constant import BASE_URL, SITEMAP_URL
 
 import scrapy
 
@@ -54,11 +55,11 @@ class BaseSpider(ABC):
         pass
 
 
-class IndianExpressSpider(scrapy.Spider):
+class IndianExpressSpider(scrapy.Spider, BaseSpider):
     """Spider"""
 
     name = "indian_express"
-    start_urls = ["https://indianexpress.com/"]
+    start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
     def __init__(
@@ -86,11 +87,7 @@ class IndianExpressSpider(scrapy.Spider):
             self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            self.start_urls.append(
-                url
-                if self.type == "article"
-                else "https://indianexpress.com/sitemap.xml"
-            )
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
