@@ -2,16 +2,16 @@ import re
 import scrapy
 import logging
 from datetime import datetime
-from newton_scrapping import exceptions
+from crwzdfnews import exceptions
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from newton_scrapping.constant import SITEMAP_URL, LOGGER
+from crwzdfnews.constant import SITEMAP_URL, LOGGER
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
+from crwzdfnews.items import ArticleData
 from abc import ABC, abstractmethod
-from newton_scrapping.utils import (
+from crwzdfnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
     get_raw_response,
@@ -38,7 +38,7 @@ class BaseSpider(ABC):
         pass
 
 
-class ZdfNewsSpider(scrapy.Spider):
+class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
@@ -104,7 +104,8 @@ class ZdfNewsSpider(scrapy.Spider):
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
-                yield article_data
+                self.articles.append(article_data)
+                yield self.articles
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -175,8 +176,8 @@ class ZdfNewsSpider(scrapy.Spider):
 
         for link, pub_date in zip(links, published_date):
             published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            today_date = datetime.today().strftime('%Y-%m-%d')
-            if self.start_date and self.end_date and self.start_date <= published_at <= self.end_date:
+            today_date = datetime.today().date()
+            if self.start_date and self.end_date:
                 yield scrapy.Request(
                     link,
                     callback=self.parse_sitemap_datewise,
@@ -236,6 +237,7 @@ class ZdfNewsSpider(scrapy.Spider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
