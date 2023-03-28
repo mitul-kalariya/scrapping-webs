@@ -1,6 +1,5 @@
 """ General functions """
 from datetime import timedelta, datetime
-import itertools
 import json
 import os
 
@@ -24,6 +23,9 @@ ERROR_MESSAGES = {
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
 language_mapper = {"en": "English"}
+
+# Regex patterns
+SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
 
 
 def sitemap_validations(
@@ -139,14 +141,14 @@ def based_on_scrape_type(
     """
     if scrape_type == "article":
         article_validations(url, scrape_start_date, scrape_end_date)
-        return None, None
+        return None
     if scrape_type == "sitemap":
         scrape_start_date, scrape_end_date = sitemap_validations(
             scrape_start_date, scrape_end_date, url
         )
         date_range_lst = []
         date_range_lst.extend(iter(date_range(scrape_start_date, scrape_end_date)))
-        return scrape_start_date, date_range_lst
+        return date_range_lst
 
     return validate_arg("MISSING_REQUIRED_FIELD", None, "type")
 
@@ -187,12 +189,14 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "misc": [],
     }
     for block in blocks:
-        if "NewsArticle" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
-        elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+        if json.loads(block).get("@graph", None):
+            for sub_block in json.loads(block).get("@graph", [{}]):
+                if "NewsArticle" in sub_block.get("@type", [{}]):
+                    parsed_json_flter_dict["main"] = sub_block
+                elif "ImageGallery" in sub_block.get("@type", [{}]):
+                    parsed_json_flter_dict["ImageGallery"] = sub_block
+                elif "VideoObject" in sub_block.get("@type", [{}]):
+                    parsed_json_flter_dict["VideoObject"] = sub_block
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
@@ -236,7 +240,6 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
-    breakpoint()
     folder_structure = ""
     if scrape_type == "sitemap":
         folder_structure = "Links"
@@ -331,17 +334,13 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
 
     parsed_data_dict |= {
         "source_country": ["Canada"],
-        "source_language": [
-            language_mapper.get(response.css("html::attr(lang)").get())
-        ],
+        "source_language": ["French"],
     }
-    parsed_data_dict |= get_author_details(parsed_json_main.getall(), response)
-    parsed_data_dict |= get_descriptions_date_details(parsed_json_main.getall())
-    parsed_data_dict |= get_publihser_details(parsed_json_main.getall(), response)
-    parsed_data_dict |= get_text_title_section_details(
-        parsed_json_main.getall(), response
-    )
-    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main.getall(), response)
+    parsed_data_dict |= get_author_details(parsed_json_main, response)
+    parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
+    parsed_data_dict |= get_publihser_details(parsed_json_main)
+    parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
+    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response)
     return parsed_data_dict
 
 
@@ -354,29 +353,20 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: author related details
     """
-    return next(
-        (
-            {
-                "author": [
-                    {
-                        "@type": json.loads(block).get("author")[0].get("@type"),
-                        "name": json.loads(block).get("author")[0].get("name"),
-                        "url": json.loads(block)
-                        .get("author")[0]
-                        .get("image", None)
-                        .get("url", None),
-                    }
-                ]
-            }
-            for block in parsed_data
-            if json.loads(block).get("author")
-        ),
+    author_details = []
+    if not parsed_data.get("author"):
+        return author_details.append(
+            {"name": response.css("#detailContent > div.byline > div::text").get()}
+        )
+    author_details.extend(
         {
-            "author": [
-                {"name": response.css("#detailContent > div.byline > div::text").get()}
-            ]
-        },
+            "@type": author.get("@type"),
+            "name": author.get("name"),
+            "url": author.get("url", None),
+        }
+        for author in parsed_data.get("author")
     )
+    return {"author": author_details}
 
 
 def get_descriptions_date_details(parsed_data: list) -> dict:
@@ -387,25 +377,21 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
     Returns:
         dict: description, modified date, published date related details
     """
-    return next(
-        (
-            {
-                "description": [json.loads(block).get("description")],
-                "modified_at": [json.loads(block).get("dateModified")],
-                "published_at": [json.loads(block).get("datePublished")],
-            }
-            for block in parsed_data
-            if "NewsArticle" in json.loads(block).get("@type")
-        ),
-        {
-            "description": None,
-            "modified_at": None,
-            "published_at": None,
-        },
-    )
+    article_data = {
+        "description": None,
+        "modified_at": None,
+        "published_at": None,
+    }
+    if "NewsArticle" in parsed_data.get("@type"):
+        article_data |= {
+            "description": [parsed_data.get("description")],
+            "modified_at": [parsed_data.get("dateModified")],
+            "published_at": [parsed_data.get("datePublished")],
+        }
+    return article_data
 
 
-def get_publihser_details(parsed_data: list, response: str) -> dict:
+def get_publihser_details(parsed_data: list) -> dict:
     """
     Returns publisher details like name, type, id
     Args:
@@ -414,18 +400,18 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: publisher details like name, type, id related details
     """
-    for block in parsed_data:
-        return {
-            "publisher": [
-                {
-                    "@id": response.css("#menuButton::attr(href)")
-                    .get()
-                    .split("/sitemap")[0][2:],
-                    "@type": json.loads(block).get("publisher", {}).get("@type"),
-                    "name": response.css("head > title::text").get().split("|")[1],
-                }
-            ]
-        }
+    publisher_details = []
+    if parsed_data.get("publisher"):
+        publisher_details.extend(
+            {
+                "@id": publisher.get("@id"),
+                "@type": publisher.get("@type"),
+                "name": publisher.get("name"),
+                "logo": publisher.get("logo"),
+            }
+            for publisher in [parsed_data.get("publisher")]
+        )
+    return {"publisher": publisher_details}
 
 
 def get_text_title_section_details(parsed_data: list, response: str) -> dict:
@@ -437,12 +423,11 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: text, title, section details
     """
-    for block in parsed_data:
-        return {
-            "title": [json.loads(block).get("headline")],
-            "text": ["".join(response.css(".story p::text").getall())],
-            "section": [json.loads(block).get("articleSection")],
-        }
+    return {
+        "title": [parsed_data.get("headline")],
+        "text": ["".join(response.css(".story-body>p::text").getall())],
+        "section": response.css("li.breadcrumb_section>a>span::text").getall()[1:],
+    }
 
 
 def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
@@ -454,35 +439,11 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
     Returns:
         dict: thumbnail images, images and video details
     """
-    image_url = response.css(".storyWrapper .placeholder img::attr(src)").getall()
-    image_caption = [
-        caption.strip()
-        for caption in response.css("figcaption::text").getall()
-        if caption.strip()
-    ]
-    image_caption = [
-        caption_one + caption_two
-        for caption_one, caption_two in zip(image_caption[::2], image_caption[1::2])
-    ]
-    video_caption = None
-    video_url = None
-    thumbnail_url = None
-    for block in parsed_data:
-        if json.loads(block).get("video", None):
-            video_caption = (
-                json.loads(block).get("video", None)[0].get("alternativeHeadline", None)
-            )
-            video_url = json.loads(block).get("video", None)[0].get("contentUrl", None)
-        if json.loads(block).get("thumbnailUrl", None):
-            thumbnail_url = json.loads(block).get("thumbnailUrl")
+    video = None
+    if video_url := response.css(".videoInline .video-js::attr(data-video-id)").get():
+        video = f"https://www.tvanouvelles.ca/videos/{video_url}"
 
     return {
-        "images": [
-            {"link": img, "caption": cap}
-            for img, cap in itertools.zip_longest(
-                image_url, image_caption, fillvalue=None
-            )
-        ],
-        "video": [{"link": video_url, "caption": video_caption}],
-        "thumbnail_image": [thumbnail_url],
+        "images": [{"link": parsed_data.get("image")}],
+        "video": [{"link": video}],
     }

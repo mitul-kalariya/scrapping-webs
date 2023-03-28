@@ -8,12 +8,12 @@ import scrapy
 
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
+from newton_scrapping.constant import BASE_URL, SITEMAP_URL
 from scrapy.loader import ItemLoader
 
 from newton_scrapping.items import ArticleData
 from newton_scrapping.utils import (
     based_on_scrape_type,
-    date_range,
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
@@ -61,7 +61,7 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of TVA News site"""
 
     name = "tvanouvelles"
-    start_urls = ["http://www.tvanouvelles.ca/"]
+    start_urls = [BASE_URL]
     namespace = {"sitemap": "https://www.sitemaps.org/schemas/sitemap/0.9"}
     namespace_news = {"sitemap": "https://www.google.com/schemas/sitemap-news/0.9"}
 
@@ -85,16 +85,11 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
                 datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
 
-            self.current_date, self.date_range_lst = based_on_scrape_type(
+            self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            if self.current_date:
-                self.scrape_start_date = self.scrape_end_date = self.current_date
-            self.start_urls.append(
-                url
-                if self.type == "article"
-                else "https://www.tvanouvelles.ca/news.xml"
-            )
+
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -176,7 +171,6 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            print("response===============", response.url)
             if title := response.css(".story-title h1::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
@@ -207,8 +201,6 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
 
-            parsed_json_main = response.css('script[type="application/ld+json"]::text')
-
             parsed_json_data = get_parsed_json(response)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -217,7 +209,8 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_main)
+                "parsed_data",
+                get_parsed_data(response, parsed_json_data.get("main", [{}])),
             )
 
             self.articles.append(
