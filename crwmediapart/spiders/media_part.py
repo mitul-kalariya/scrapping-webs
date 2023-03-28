@@ -5,7 +5,6 @@ from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from crwmediapart import exceptions
 from crwmediapart.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
-from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -237,7 +236,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
         try:
 
-            export_data_to_json_file(self.type, self.articles, self.name)
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
