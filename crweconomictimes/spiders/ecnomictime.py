@@ -6,16 +6,16 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
-from newton_scrapping.items import ArticleData
+from crweconomictimes.items import ArticleData
 
-from newton_scrapping.utils import (
+from crweconomictimes.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
     export_data_to_json_file
 )
-from newton_scrapping.exceptions import (
+from crweconomictimes.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -62,6 +62,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 ):
         try:
             super(EconomicTimes, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -259,6 +260,8 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:

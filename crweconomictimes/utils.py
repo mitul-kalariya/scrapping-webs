@@ -3,12 +3,12 @@ import os
 from datetime import datetime
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
-from newton_scrapping.constant import SITEMAP_URL
-from newton_scrapping.items import (
+from crweconomictimes.constant import SITEMAP_URL
+from crweconomictimes.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from newton_scrapping.exceptions import (
+from crweconomictimes.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
