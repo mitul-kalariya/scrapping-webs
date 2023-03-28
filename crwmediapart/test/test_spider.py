@@ -1,12 +1,11 @@
 import logging
 import unittest
 
-from newton_scrapping.spiders.media_part import MediaPartSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
+from crwmediapart.spiders.media_part import MediaPartSpider
+from crwmediapart.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwmediapart.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
-#TODO: Update below path here
-from crwindianexpress import Crawler
+from crwmediapart import Crawler
 
 # Creating an object
 logger = logging.getLogger()
