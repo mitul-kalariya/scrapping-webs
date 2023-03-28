@@ -1,2 +1,1 @@
-#TODO: Update the path below
-from crwsueddeutsche.main import Crawler
+from crwbfmtv.main import Crawler
