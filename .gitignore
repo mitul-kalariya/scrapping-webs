@@ -136,11 +136,11 @@ logs.log
 # VS Code
 .vscode
 
+#PyCharm
+.idea
+
 *.zip
 
 # Output Data
 Article/
 Links/
-
-# Test Cases
-test/
