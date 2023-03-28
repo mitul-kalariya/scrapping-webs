@@ -17,6 +17,29 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 - Install Requirements using requirements.txt file available in a main directory.
 - `pip install -r requirements.txt
 
+
+
+
+
+## Rthk News 
+
+#### Sitemap file available: - Yes 
+
+
+#### Command to fetch sitemap: - 
+
+- command to crawl on sitemap from specific date range
+- `scrapy crawl rthk_news-a type=sitemap-a start_date=2023-03-06 -a end_date=2023-03-10`
+- command to crawl sitemap for today’s date
+- `scrapy crawl rthk_news -a type=sitemap` 
+
+
+#### Commands to fetch Articles: - 
+
+- command to crawl wanted article
+- `scrapy crawl rthk_news -a type=article -a url={{Article-URL}}` 
+
+
 ### Package Information
 A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
 ```
