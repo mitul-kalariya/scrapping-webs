@@ -176,7 +176,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
-            # return articledata_loader.item
+            return articledata_loader.item
 
         except Exception as exception:
             self.log(

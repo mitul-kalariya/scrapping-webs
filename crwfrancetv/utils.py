@@ -256,7 +256,11 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
 
                 break
 
-    parsed_data_dict["title"] = [article_data.get("title")]
+    if not article_data.get("title") or article_data.get("title") == '':
+        parsed_data_dict["title"] = [article_data.get("main").get("headline")]
+    else:
+        parsed_data_dict["title"] = [article_data.get("title")]
+
     parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
     parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')
     parsed_data_dict['embedded_video_link'] = [article_data.get("video")]
