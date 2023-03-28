@@ -57,7 +57,7 @@ class BaseSpider(ABC):
 
 
 class WeltSpider(scrapy.Spider, BaseSpider):
-    """Spider class to scrap sitemap and articles of Globe and Mail online (EN) site"""
+    """Spider class to scrap sitemap and articles of Welt site"""
 
     name = "welt"
     start_urls = ["http://www.welt.de/"]
