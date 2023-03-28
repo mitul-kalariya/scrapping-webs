@@ -61,6 +61,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
         super().__init__(**kwargs)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -224,6 +225,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         in the filename.
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:

@@ -150,10 +150,9 @@ def get_parsed_data(response):
     modified_on = main_data[1].get("dateModified")
     main_dict["modified_at"] = [modified_on]
 
-    author = response.css("div.author-wrap div span::text").get()
+    author = main_data[1].get("author")
     if author:
-        author = re.sub(pattern, "", author).strip()
-        main_dict["author"] = [{"@type": "Person", "name": author}]
+        main_dict["author"] = [author]
 
     publisher = main_data[1].get("publisher")
     main_dict["publisher"] = [publisher]
