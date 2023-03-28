@@ -175,11 +175,12 @@ def get_parsed_data(response):
         main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
-        description = response.css("p.news__heading__top__intro::text").get()
+        description = main_dict["modified_at"] = main_data[0].get("description")
         main_dict["description"] = [description]
 
         article_text = response.css("p.dropcap-wrapper::text").getall()
-        main_dict["text"] = [" ".join(article_text).replace("\n", "")]
+        if article_text:
+            main_dict["text"] = [" ".join(article_text).replace("\n", "")]
 
         mapper = {"FRA": "France", "fr-FR": "French", "fr": "French"}
         article_lang = response.css("html::attr(lang)").get()
