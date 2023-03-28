@@ -9,7 +9,7 @@ from PIL import Image
 import logging
 from datetime import datetime
 from crwhk01 import exceptions
-from crwhk01.constant import TODAYS_DATE, LOGGER
+from crwhk01.constant import TODAYS_DATE, LOGGER, BASE_URL
 
 
 def create_log_file():
@@ -77,23 +77,25 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     parsed_json = {}
-    # other_data = []
-    # ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    # for a_block in ld_json_data:
-    #     data = json.loads(a_block)
-    #     if data.get("@type") == "NewsArticle":
-    #         parsed_json["main"] = data
-    #     elif data.get("@type") == "ImageGallery":
-    #         parsed_json["ImageGallery"] = data
-    #     elif data.get("@type") == "VideoObject":
-    #         parsed_json["VideoObject"] = data
-    #     else:
-    #         other_data.append(data)
-    #
-    # parsed_json["Other"] = other_data
-    # misc = get_misc(response)
-    # if misc:
-    #     parsed_json["misc"] = misc
+    other_data = []
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+    ld_json_list = json.loads(ld_json_data)
+
+    for data in ld_json_list:
+        # data = json.loads(a_block)
+        if data.get("@type") == "NewsArticle":
+            parsed_json["main"] = data
+        elif data.get("@type") == "ImageGallery":
+            parsed_json["ImageGallery"] = data
+        elif data.get("@type") == "VideoObject":
+            parsed_json["VideoObject"] = data
+        else:
+            other_data.append(data)
+    
+    parsed_json["Other"] = other_data
+    misc = get_misc(response)
+    if misc:
+        parsed_json["misc"] = misc
 
     return remove_empty_elements(parsed_json)
 
@@ -159,27 +161,30 @@ def get_parsed_data(response):
     main_dict = {}
     authors = get_author(response)
     main_dict["author"] = authors
+
+    # main_data = get_main(response)
+    # main_dict["description"] = [main_data[0].get()]
+
     last_updated = get_lastupdated(response)
     main_dict["modified_at"] = [last_updated]
     published_on = get_published_at(response)
     main_dict["published_at"] = [published_on]
-    # description = response.css("h2.story-description::text").get()
-    # main_dict["description"] = [description]
-    # publisher = get_publisher(response)
-    # main_dict["publisher"] = publisher
+    description = response.css(".break-words::text").get()
+    main_dict["description"] = [description]
+    publisher = get_publisher(response)
+    main_dict["publisher"] = publisher
     # article_text = response.css("section p::text").getall()
     # main_dict["text"] = [" ".join(article_text)]
     # thumbnail = get_thumbnail_image(response)
     # main_dict["thumbnail_image"] = thumbnail
-    # headline = response.css("h1.story-title::text").get().strip()
-    # main_dict["title"] = [headline]
+    headline = response.css("#articleTitle::text").get().strip()
+    main_dict["title"] = [headline]
     # article_images = get_images(response)
     # main_dict["images"] = article_images
     # video = get_embed_video_link(response)
     # main_dict["embed_video_link"] = video
-    # mapper = {"en": "English", "hi_IN": "Hindi"}
-    # article_lang = response.css("html::attr(lang)").get()
-    # main_dict["source_language"] = [mapper.get(article_lang)]
+    article_lang = response.css("html::attr(lang)").get()
+    main_dict["source_language"] = [article_lang]
 
     return remove_empty_elements(main_dict)
 
@@ -277,18 +282,19 @@ def get_publisher(response) -> list:
         - "@type": The type of publisher (in this case, always "NewsMediaOrganization").
         - "name": The name of the publisher.
     """
-    logo = response.css('link[rel="icon"]::attr(href)').getall()[2]
-    img_response = requests.get(logo)
-    width, height = Image.open(BytesIO(img_response.content)).size
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    json_data =  json.loads(ld_json_data[0])
+    publisher_data = json_data[0].get('publisher')
+
     a_dict = {
-        "@id": "bharat.republicworld.com",
-        "@type": "NewsMediaOrganization",
-        "name": "Bharat republic word",
+        "@id": "hk01.com",
+        "@type": publisher_data.get('@type'),
+        "name": "hk01",
         "logo": {
-            "@type": "ImageObject",
-            "url": logo,
-            "width": {"@type": "Distance", "name": str(width) + " px"},
-            "height": {"@type": "Distance", "name": str(height) + " px"},
+            "@type": publisher_data.get('logo').get("@type"),
+            "url":BASE_URL + publisher_data.get('logo').get('url'),
+            "width": {"@type": "Distance", "name": str(publisher_data.get('logo').get("width")) + " px"},
+            "height": {"@type": "Distance", "name": str(publisher_data.get('logo').get("height")) + " px"},
         },
     }
     return [a_dict]
