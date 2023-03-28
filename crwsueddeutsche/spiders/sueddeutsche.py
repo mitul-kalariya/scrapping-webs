@@ -83,11 +83,10 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
                 datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
 
-            self.current_date, self.date_range_lst = based_on_scrape_type(
+            self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            if self.current_date:
-                self.scrape_start_date = self.scrape_end_date = self.current_date
+
             self.start_urls.append(
                 url if self.type == "article" else "https://www.sueddeutsche.de/archiv"
             )
