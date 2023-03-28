@@ -3,17 +3,17 @@ import logging
 import scrapy
 from datetime import datetime
 
-from newton_scrapping.itemLoader import ArticleDataLoader
-from newton_scrapping.items import ArticleData
+from crweconomist.itemLoader import ArticleDataLoader
+from crweconomist.items import ArticleData
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
-from newton_scrapping.exceptions import (
+from crweconomist.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
-from newton_scrapping.utils import (
+from crweconomist.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
@@ -59,6 +59,7 @@ class Economist(scrapy.Spider, BaseSpider):
     def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
         try:
             super(Economist, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -95,7 +96,7 @@ class Economist(scrapy.Spider, BaseSpider):
                 )
         if self.type == "article":
             try:
-                yield scrapy.Request(self.url, callback=self.parse_article)
+                yield self.parse_article(response)
             except Exception as exception:
                 self.log(
                     f"Error occurred while parsing article url. {str(exception)}",
@@ -189,10 +190,12 @@ class Economist(scrapy.Spider, BaseSpider):
 
     def closed(self, reason):
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

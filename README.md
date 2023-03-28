@@ -25,14 +25,14 @@ python setup.py sdist
 
 ### Installation
 
-Use the command `pip install <path_to_package>`. for example `pip install dist/crwindianexpress-0.1.tar.gz`
+Use the command `pip install <path_to_package>`. for example `pip install dist/crweconomist-0.1.tar.gz`
 
 ### Usage
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 ```
-from crwindianexpress import Crawler
+from crweconomist import Crawler
 
 # For Article
 crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})

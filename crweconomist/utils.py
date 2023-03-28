@@ -7,17 +7,17 @@ from .exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
-from newton_scrapping.constant import (
+from crweconomist.constant import (
     SITEMAP_URL,
     DATE_FORMAT,
     TYPE,
     PARSED_DATA_KEYS_LIST
 )
-from newton_scrapping.itemLoader import (
+from crweconomist.itemLoader import (
     ArticleRawResponseLoader,
     ArticleRawParsedJsonLoader
 )
-from newton_scrapping.items import (
+from crweconomist.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )

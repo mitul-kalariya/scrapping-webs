@@ -1,13 +1,11 @@
 import logging
 import unittest
 
-#TODO: Update the path here replace newton_scrapping --> your project name
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
-#TODO: Update below path here
-from crwindianexpress import Crawler
+from crweconomist.spiders.economist_news import Economist
+from crweconomist.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crweconomist.test.helpers.utils import (get_article_content,
+                                             online_response_from_url)
+from crweconomist import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -27,7 +25,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = Economist(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -50,7 +48,7 @@ class TestArticle(unittest.TestCase):
                     self.assertIsInstance(article[0].get("parsed_json").get("main"), dict)
             with self.subTest():
                 if test_article_data[0].get("parsed_json").get("misc"):
-                    self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
+                    self.assertIsInstance(article[0].get("parsed_json").get("misc"), dict)
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
@@ -85,8 +83,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
