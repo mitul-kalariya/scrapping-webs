@@ -2,13 +2,13 @@ import json
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from newton_scrapping.videos import get_video
-from newton_scrapping.items import (
+from crwfrancetv.videos import get_video
+from crwfrancetv.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from newton_scrapping.constant import SITEMAP_URL
-from newton_scrapping.exceptions import (
+from crwfrancetv.constant import SITEMAP_URL
+from crwfrancetv.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
@@ -131,14 +131,15 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         elif key == "VideoObject":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data).get('video') for data in value.getall()[:1] if json.loads(data).get('video') and json.loads(data).get('video').get("@type") == "VideoObject"]
+                key, [json.loads(data).get('video') for data in value.getall()[:1] if
+                      json.loads(data).get('video') and json.loads(data).get('video').get("@type") == "VideoObject"]
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type')\
-                       in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') \
+                      in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
             )
-        
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -215,35 +216,46 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
                 "@type": article_data.get("main").get('author')[i].get("@type"),
                 "name": article_data.get("main").get('author')[i].get("name"),
                 "url": article_data.get("main").get('author')[i].get("url")
-                })
+            })
         parsed_data_dict["author"] = [author_list]
 
     parsed_data_dict["description"] = [article_data.get("main").get('description')]
     parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
-    
-    parsed_data_dict["publisher"] = [{
-        '@type': article_data.get("main").get('Publisher').get('@type'),
-        'url': article_data.get("main").get('Publisher').get('url'),
-        "logo": {
-            "@type": article_data.get("main").get('Publisher').get("logo").get('@type'),
-            "url": article_data.get("main").get('Publisher').get("logo").get('url'),
-            'width': {
-                '@type': "Distance",
-                "name": str(article_data.get("main").get('Publisher').get('logo').get('width').get('value')) + " Px"},
-            'height': {
-                '@type': "Distance",
-                'name': str(article_data.get("main").get('Publisher').get('logo').get('height').get('value')) + " Px"}}
-    }]
+
+    if "publisher" in list(article_data.get("main").keys()):
+        key = "publisher"
+    elif "Publisher" in list(article_data.get("main").keys()):
+        key = "Publisher"
+
+    parsed_data_dict["publisher"] = [
+        {
+            '@type': article_data.get("main").get(key).get('@type'),
+            'url': article_data.get("main").get(key).get('url'),
+            "logo": {
+                "@type": article_data.get("main").get(key).get("logo").get('@type'),
+                "url": article_data.get("main").get(key).get("logo").get('url'),
+                'width': {'@type': "Distance",
+                          "name": str(article_data.get("main").get(key).get('logo').get('width').get('value')) + " Px"},
+                'height': {'@type': "Distance", 'name': str(
+                    article_data.get("main").get(key).get('logo').get('height').get('value')) + " Px"}}}]
 
     parsed_data_dict["text"] = [article_data.get("main").get('articleBody')]
 
-    for img_data in article_data.get("main").get('image'):
-        if img_data is not None:
-            parsed_data_dict["thumbnail_image"] = [img_data.get('url')]
-            parsed_data_dict["images"] = [{"link":img_data.get('url'),\
-                                    "caption": img_data.get('name')}]
-            break
+    if type(article_data.get("main").get('image')) is str:
+        parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image')]
+        parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')}]
+
+    else:
+        for img_data in article_data.get("main").get('image'):
+            if img_data is not None:
+                parsed_data_dict["thumbnail_image"] = [img_data.get('url')]
+
+                parsed_data_dict["images"] = [{"link": img_data.get('url'),
+                                               "caption": img_data.get('name')}]
+
+                break
+
     parsed_data_dict["title"] = [article_data.get("title")]
     parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
     parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')
