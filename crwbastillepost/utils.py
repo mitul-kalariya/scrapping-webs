@@ -11,6 +11,7 @@ from PIL import Image
 from datetime import datetime
 from crwbastillepost import exceptions
 from crwbastillepost.constant import TODAYS_DATE, LOGGER
+import itertools
 
 
 def create_log_file():
@@ -21,6 +22,7 @@ def create_log_file():
         filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
 
 def validate_sitemap_date_range(start_date, end_date):
     start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
@@ -54,6 +56,7 @@ def validate_sitemap_date_range(start_date, end_date):
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {e}")
 
+
 def remove_empty_elements(parsed_data_dict):
     """
     Recursively remove empty lists, empty dicts, or None elements from a dictionary.
@@ -63,6 +66,7 @@ def remove_empty_elements(parsed_data_dict):
     :rtype: dict
     """
 
+    # breakpoint()
     def empty(value):
         return value is None or value == {} or value == []
 
@@ -85,6 +89,27 @@ def remove_empty_elements(parsed_data_dict):
         }
     return data_dict
 
+
+def get_main(response):
+    """
+    returns a list of main data available in the article from application/ld+json
+    Parameters:
+        response:
+    Returns:
+        main data
+    """
+    breakpoint()
+    try:
+        data = []
+        misc = response.css('script[type="application/ld+json"]::text').getall()
+        for block in misc:
+            data.append(json.loads(block))
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        print(f"Error while getting main: {e}")
+
+
 def get_misc(response):
     """
     returns a list of misc data available in the article from application/json
@@ -103,6 +128,7 @@ def get_misc(response):
         LOGGER.error(f"{e}")
         print(f"Error while getting misc: {e}")
 
+
 def get_raw_response(response):
     """
     Raw response data generated from given response and selector
@@ -117,7 +143,7 @@ def get_raw_response(response):
 
     raw_resopnse = {
         "content_type": response.headers.get("Content-Type").decode("utf-8"),
-                "content": response.text,
+        "content": response.text,
     }
     return raw_resopnse
 
@@ -130,6 +156,7 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
+    breakpoint()
     parsed_json = {}
     other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
@@ -143,14 +170,13 @@ def get_parsed_json(response):
             parsed_json["VideoObject"] = data
         else:
             other_data.append(data)
-    
+
     parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
 
     return remove_empty_elements(parsed_json)
-
 
 
 def get_parsed_data(response):
@@ -169,16 +195,17 @@ def get_parsed_data(response):
          - 'text': (list) The list of text paragraphs in the article.
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
+    breakpoint()
     try:
         main_dict = {}
         pattern = r"[\r\n\t\"]+"
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
 
-        article_label = response.css("div#article-label a::text").get()
-        main_dict["category"] = [re.sub(pattern, "", article_label).strip()]
+        # article_label = response.css("div#article-label a::text").get()
+        # main_dict["category"] = [re.sub(pattern, "", article_label).strip()]
 
-        headline = response.css("h1.l-article__title::text").getall()
+        headline = response.css("h1.cat-theme-color::text").getall()
         main_dict["title"] = headline
         authors = get_author(response)
         main_dict["author"] = authors
@@ -186,11 +213,13 @@ def get_parsed_data(response):
         main_data = get_main(response)
         main_dict["description"] = [main_data[0].get("description")]
 
-        published_on = response.css(
-            "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
-        ).get()
-        published_on = published_on.strip("Posted ")
-        main_dict["published_at"] = [published_on]
+        # published_on = response.css(
+        #     "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
+        # ).get()
+        # published_on = published_on.strip("Posted ")
+        # main_dict["published_at"] = [published_on]
+
+        main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
         thumbnail_image = get_thumbnail_image(response)
@@ -213,7 +242,7 @@ def get_parsed_data(response):
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
-        main_dict["source_country"] = ["Canada"]
+        main_dict["source_country"] = ["China"]
         main_dict["time_scraped"] = [str(datetime.now())]
 
         return remove_empty_elements(main_dict)
@@ -221,7 +250,6 @@ def get_parsed_data(response):
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
-
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -286,307 +314,6 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-# def get_parsed_data(response: str, parsed_json_main: list) -> dict:
-#     """
-#      Parsed data response from generated data using given response and selector
-
-#     Args:
-#         response: provided response
-#         parsed_json_main: A list of dictionary with applications/+ld data
-
-#     Returns:
-#         Dictionary with Parsed json response from generated data
-#     """
-#     parsed_data_dict = get_parsed_data_dict()
-
-#     parsed_data_dict |= get_country_details(parsed_json_main.getall())
-#     parsed_data_dict |= get_language_details(parsed_json_main.getall(), response)
-#     parsed_data_dict |= get_author_details(parsed_json_main.getall(), response)
-#     parsed_data_dict |= get_descriptions_date_details(
-#         parsed_json_main.getall(), response
-#     )
-#     parsed_data_dict |= get_publihser_details(parsed_json_main.getall(), response)
-#     parsed_data_dict |= get_text_title_section_details(
-#         parsed_json_main.getall(), response
-#     )
-#     parsed_data_dict |= get_thumbnail_image_video(parsed_json_main.getall(), response)
-#     return parsed_data_dict
-
-
-# def get_country_details(parsed_data: list) -> dict:
-#     """
-#     Return country related details
-#     Args:
-#         parsed_data: response of application/ld+json data
-#     Returns:
-#         dict: country related details
-#     """
-#     return next(
-#         (
-#             {
-#                 "source_country": [
-#                     json.loads(block).get("address", None).get("addressRegion", None)
-#                 ]
-#             }
-#             for block in parsed_data
-#             if json.loads(block).get("address", None)
-#         ),
-#         {"source_country": ["China"]},
-#     )
-
-
-# def get_language_details(parsed_data: list, response: str) -> dict:
-#     """
-#     Return language related details
-#     Args:
-#         parsed_data: response of application/ld+json data
-#         response: provided response
-#     Returns:
-#         dict: language related details
-#     """
-#     return next(
-#         (
-#             {
-#                 "source_language": [
-#                     json.loads(block)
-#                     .get("contactPoint", None)
-#                     .get("availableLanguage", None)
-#                 ]
-#             }
-#             for block in parsed_data
-#             if json.loads(block).get("contactPoint", None)
-#         ),
-#         {"source_language": [response.css("html::attr(lang)").get()]},
-#     )
-
-
-# def get_author_details(parsed_data: list, response: str) -> dict:
-#     """
-#     Return author related details
-#     Args:
-#         parsed_data: response of application/ld+json data
-#         response: provided response
-#     Returns:
-#         dict: author related details
-#     """
-#     # breakpoint()
-#     # for block in parsed_data:
-#     #     if "NewsArticle" in json.loads(block).get("@type", [{}]):
-#     #         var = {
-#     #             "author": [
-#     #                 {
-#     #                     "@type": json.loads(block).get("author", [{}]).get("@type"),
-#     #                     "name": json.loads(block).get("author", [{}]).get("name"),
-#     #                     "url": json.loads(block)
-#     #                     .get("author", [{}])
-#     #                     .get("url", None),
-#     #                 }
-#     #             ]
-#     #         }
-#     # return var
-#     #         type = json.loads(i).get("author", [{}]).get("@type")
-#     #         name = json.loads(i).get("author", [{}]).get("name")
-#     #         url = json.loads(i)
-#     #         return type, name, url
-#     #     else:
-#     #         name =  response.css("#storycenterbyline>div>a::text").get()
-#     #         url =  response.css("#storycenterbyline>div>a::attr(href)").get()
-#     #         return name, url
-
-#     return next(
-#         (
-#             {
-#                 "author": [
-#                     {
-#                         "@type": json.loads(block).get("author", [{}]).get("@type"),
-#                         "name": json.loads(block).get("author", [{}]).get("name"),
-#                         "url": json.loads(block)
-#                         .get("author", [{}])
-#                         .get("url", None),
-#                     }
-#                 ]
-#             }
-#             for block in parsed_data
-#             if "NewsArticle" in json.loads(block).get("@type", [{}])
-#         ),
-#         {
-#             "author": [
-#                 {
-#                     "name": response.css("#storycenterbyline>div>a::text").get(),
-#                     "url": response.css("#storycenterbyline>div>a::attr(href)").get(),
-#                 }
-#             ]
-#         },
-#     )
-
-
-# def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
-#     """
-#     Returns description, modified date, published date details
-#     Args:
-#         parsed_data: response of application/ld+json data
-#     Returns:
-#         dict: description, modified date, published date related details
-#     """
-#     return next(
-#         (
-#             {
-#                 "description": [json.loads(block).get("description")],
-#                 "modified_at": [json.loads(block).get("dateModified")],
-#                 "published_at": [json.loads(block).get("datePublished")],
-#             }
-#             for block in parsed_data
-#             if "NewsArticle" in json.loads(block).get("@type")
-#         ),
-#         {
-#             "description": response.css("h2.synopsis::text").getall(),
-#             "modified_at": response.css("div.editor-date-logo div span::text").getall()
-#                            or response.css("span.updated-date::attr(content)").getall(),
-#             "published_at": response.css("div.ie-first-publish span::text").getall(),
-#         },
-#     )
-
-
-# def get_publihser_details(parsed_data: list, response: str) -> dict:
-#     """
-#     Returns publisher details like name, type, id
-#     Args:
-#         parsed_data: response of application/ld+json data
-#         response: provided response
-#     Returns:
-#         dict: publisher details like name, type, id related details
-#     """
-#     for block in parsed_data:
-#         # breakpoint()
-#         if "NewsArticle" in json.loads(block).get("@type"):
-#             return {
-#                 "publisher": [
-#                     {
-#                         "@id": json.loads(block)
-#                         .get("publisher", None)
-#                         .get("url", None),
-#                         "@type": json.loads(block)
-#                         .get("publisher", None)
-#                         .get("@type", None),
-#                         "name": response.css(
-#                             "#wrapper div.main-header__logo img::attr(title)"
-#                         ).get(),
-#                         "logo": {
-#                             "type": "ImageObject",
-#                             "url": response.css(
-#                                 "#wrapper div.main-header__logo img::attr(src)"
-#                             ).get(),
-#                             "width": {
-#                                 "type": "Distance",
-#                                 "name": response.css(
-#                                     "#wrapper div.main-header__logo img::attr(width)"
-#                                     ).get() + "px"if response.css(
-#                                     "#wrapper div.main-header__logo img::attr(width)"
-#                                 ).get() else None
-
-#                             },
-#                             # "height": {
-#                             #     "type": "Distance",
-#                             #     "name": response.css(
-#                             #         "#wrapper div.main-header__logo img::attr(height)"
-#                             #     , None).get()
-#                             #             + "px",
-#                             # },
-#                         },
-#                     }
-#                 ]
-#             }
-#     return {
-#         "publisher": [
-#             {
-#                 "name": response.css(
-#                     "#wrapper div.main-header__logo img::attr(title)"
-#                 ).get(),
-#                 "logo": {
-#                     "type": "ImageObject",
-#                     "url": response.css(
-#                         "#wrapper div.main-header__logo img::attr(src)"
-#                     ).get(),
-#                     "width": {
-#                         "type": "Distance",
-#                         "name": response.css(
-#                             "#wrapper div.main-header__logo img::attr(width)"
-#                         ).get()
-#                                 + "px",
-#                     },
-#                     # "height": {
-#                     #     "type": "Distance",
-#                     #     "name": response.css(
-#                     #         "#wrapper div.main-header__logo img::attr(height)"
-#                     #     ).get()
-#                     #             + "px",
-#                     # },
-#                 },
-#             }
-#         ]
-#     }
-
-
-# def get_text_title_section_details(parsed_data: list, response: str) -> dict:
-#     """
-#     Returns text, title, section details
-#     Args:
-#         parsed_data: response of application/ld+json data
-#         response: provided response
-#     Returns:
-#         dict: text, title, section details
-#     """
-#     breakpoint()
-#     for block in parsed_data:
-#         if "NewsArticle" in json.loads(block).get("@type"):
-#             return {
-#                 # "title": response.css("h1.cat-theme-color::text").getall(),
-#                 # "text": ["".join(json.loads(block).get("articleBody", []))],
-#                 # "section": response.css(".single-article p::text").getall(),
-
-#                 "title": response.css("h1.cat-theme-color::text").getall(),
-#                 "text": response.css(".single-article p::text").getall(),
-#                 "section": json.loads(block).get("articleSection"),
-#             }
-#     return {
-#         "title": response.css("h1.cat-theme-color::text").getall(),
-#         "section": response.css(".single-article p::text").getall(),
-#     }
-
-
-# def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
-#     """
-#     Returns thumbnail images, images and video details
-#     Args:
-#         parsed_data: response of application/ld+json data
-#         response: provided response
-#     Returns:
-#         dict: thumbnail images, images and video details
-#     """
-#     thumbnail_url = None
-#     breakpoint()
-#     for block in parsed_data:
-#         if json.loads(block).get("thumbnailUrl", None):
-#             thumbnail_url = json.loads(block).get("thumbnailUrl")
-
-#     return {
-#         "images": [
-#             {"link": img, "caption": cap}
-#             for img, cap in itertools.zip_longest(
-#                 response.css(".wp-caption a::attr(href)").getall(),
-#                 response.css(".wp-caption-text::text").getall()
-#                 + response.css("span.custom-caption::text").getall(),
-#                 fillvalue=None,
-#             )
-#         ],
-#         "video": [
-#             {
-#                 "link": response.css("span.embed-youtube iframe::attr(src)").getall(),
-#             }
-#         ],
-#         "thumbnail_image": [thumbnail_url],
-#     }
-
 def get_publisher(response):
     """
     Extracts publisher information from the given response object and returns it as a dictionary.
@@ -628,30 +355,51 @@ def get_author(response) -> list:
     Returns:
         A list of dictionaries, where each dictionary contains information about one author.
     """
+    breakpoint()
     try:
-        info = response.css("div#article-byline")
-        pattern = r"[\r\n\t\"]+"
-        data = []
-        if info:
-            for i in info:
-                temp_dict = {}
-                temp_dict["@type"] = "Person"
-                name = i.css("div.c-byline__attribution span a::text").get()
-                if name:
-                    name = re.sub(pattern, "", name).strip()
-                    temp_dict["name"] = name.strip("By")
-
-                else:
-                    temp_dict["name"] = "Staff"
-
-                link = i.css("div.c-byline__attribution span a::attr(href)").get()
-                if link:
-                    temp_dict["url"] = link
-                """while reviewing if you feel that this data can be useful please uncomment it
-                    it states from which organization the author is"""
-
-                data.append(temp_dict)
+        parsed_data = response.css('script[type="application/ld+json"]::text').getall()
+        if parsed_data:
+            for block in parsed_data:
+                if "NewsArticle" in json.loads(block).get("@type", [{}]):
+                    data = []
+                    var = {
+                        "author": [
+                            {
+                                "@type": json.loads(block).get("author", [{}]).get("@type"),
+                                "name": json.loads(block).get("author", [{}]).get("name"),
+                                "url": json.loads(block)
+                                .get("author", [{}])
+                                .get("url", None),
+                            }
+                        ]
+                    }
+                    data.append(var)
             return data
+
+    # try:
+    #     info = response.css("div#article-byline")
+    #     pattern = r"[\r\n\t\"]+"
+    #     data = []
+    #     if info:
+    #         for i in info:
+    #             temp_dict = {}
+    #             temp_dict["@type"] = "Person"
+    #             name = i.css("div.c-byline__attribution span a::text").get()
+    #             if name:
+    #                 name = re.sub(pattern, "", name).strip()
+    #                 temp_dict["name"] = name.strip("By")
+    #
+    #             else:
+    #                 temp_dict["name"] = "Staff"
+    #
+    #             link = i.css("div.c-byline__attribution span a::attr(href)").get()
+    #             if link:
+    #                 temp_dict["url"] = link
+    #             """while reviewing if you feel that this data can be useful please uncomment it
+    #                 it states from which organization the author is"""
+    #
+    #             data.append(temp_dict)
+    #         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
@@ -664,9 +412,10 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
+    breakpoint()
     image = get_main(response)
     thumbnail_image = []
-    thumbnail_image.append(image[0].get("thumbnailUrl"))
+    thumbnail_image.append(image[0].get("image").get("url"))
     return thumbnail_image
 
 
@@ -704,22 +453,41 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
-        images = response.css("figure.c-figure--alignnone")
-        pattern = r"[\r\n\t]+"
+        breakpoint()
         data = []
-        if images:
-            for image in images:
-                temp_dict = {}
-                link = image.css("img::attr(data-src)").get()
-                caption = image.css(
-                    "figcaption.c-figure__caption.c-caption span::text"
-                ).get()
-                if link:
-                    temp_dict["url"] = link
-                    if caption:
-                        temp_dict["caption"] = re.sub(pattern, "", caption).strip()
-                    data.append(temp_dict)
-            return data
+        temp_dict = {
+            "images": [
+                {"link": img, "caption": cap}
+                for img, cap in itertools.zip_longest(
+                    response.css(".wp-caption a::attr(href)").getall(),
+                    response.css(".wp-caption-text::text").getall()
+                    + response.css("span.custom-caption::text").getall(),
+                    fillvalue=None,
+                )
+            ]
+        }
+        data.append(temp_dict)
+        return data
+
+        # parsed_data = response.css('script[type="application/ld+json"]::text').getall()
+        # if parsed_data:
+        #     for block in parsed_data:
+        # images = response.css("figure.c-figure--alignnone")
+        # pattern = r"[\r\n\t]+"
+        # data = []
+        # if images:
+        #     for image in images:
+        #         temp_dict = {}
+        #         link = image.css("img::attr(data-src)").get()
+        #         caption = image.css(
+        #             "figcaption.c-figure__caption.c-caption span::text"
+        #         ).get()
+        #         if link:
+        #             temp_dict["url"] = link
+        #             if caption:
+        #                 temp_dict["caption"] = re.sub(pattern, "", caption).strip()
+        #             data.append(temp_dict)
+        #     return data
     except BaseException as e:
         LOGGER.error(f"Error: {e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
@@ -750,4 +518,3 @@ def get_embed_video_link(response) -> list:
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
-
