@@ -3,14 +3,14 @@ import logging
 from datetime import datetime
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from newton_scrapping import exceptions
-from newton_scrapping.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
+from crwmediapart import exceptions
+from crwmediapart.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
+from crwmediapart.items import ArticleData
+from crwmediapart.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
                                     get_raw_response, get_parsed_data, get_parsed_json, )
 
 
@@ -50,6 +50,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             url (str): The URL of the article to scrape in article mode.
         """
         super().__init__(**kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -235,16 +236,11 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
+                export_data_to_json_file(self.type, self.articles, self.name)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             self.log(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(MediaPartSpider)
-    process.start()
+            raise exceptions.ExportOutputFileException(f"Error occurred while closing the crawler {str(exception)} - {reason}")
