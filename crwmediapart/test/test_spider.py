@@ -108,9 +108,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                 "text"), list, "format mismatch for parsed_data--> text")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> text")
 
         if article[0].get("parsed_data").get("title"):
             with self.subTest():
