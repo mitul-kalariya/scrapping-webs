@@ -93,9 +93,9 @@ def get_parsed_json(response):
 
         return remove_empty_elements(parsed_json)
 
-    except BaseException as e:
-        exceptions.ArticleScrappingException(f"Error while parsing json data: {e}")
-        LOGGER.error(f"Error while parsing json data: {e}")
+    except BaseException as exception:
+        exceptions.ArticleScrappingException(f"Error while parsing json data: {exception}")
+        LOGGER.error(f"Error while parsing json data: {exception}")
 
 
 def get_main(response):
@@ -245,13 +245,13 @@ def get_author(response) -> list:
     pattern = r"[\r\n\t\"]+"
     data = []
     if info:
-        for i in info:
+        for block in info:
             temp_dict = {}
             temp_dict["@type"] = "Person"
             temp_dict["name"] = re.sub(
-                pattern, "", i.css("div a span::text").get()
+                pattern, "", block.css("div a span::text").get()
             ).strip()
-            temp_dict["url"] = i.css("div a::attr(href)").get()
+            temp_dict["url"] = block.css("div a::attr(href)").get()
             data.append(temp_dict)
         return data
 
@@ -269,13 +269,13 @@ def get_thumbnail_image(response) -> list:
     mod_info = response.css(".storypicture img.width100")
     data = []
     if info:
-        for i in info:
-            image = i.css("div.gallery-item-img-wrapper img::attr(src)").get()
+        for block in info:
+            image = block.css("div.gallery-item-img-wrapper img::attr(src)").get()
             if image:
                 data.append(image)
     elif mod_info:
-        for i in mod_info:
-            image = i.css("img::attr(src)").get()
+        for block in mod_info:
+            image = block.css("img::attr(src)").get()
             if image:
                 data.append(image)
     return data
@@ -288,8 +288,8 @@ def get_embed_video_link(response) -> list:
     info = response.css("div.videoWrapper")
     data = []
     if info:
-        for i in info:
-            js = i.css("script").get()
+        for block in info:
+            js = block.css("script").get()
             request_link = re.findall(r"playlist\s*:\s*'(\S+)'", js)[0]
             response = requests.get(request_link)
             link = response.json().get("playlist")[0].get("sources")[1].get("file")
