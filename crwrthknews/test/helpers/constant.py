@@ -15,4 +15,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwrthknews/test/data/test_article_3.json"
     }
 ]
+
 SITEMAP_URL = "https://news.rthk.hk/rthk/en/news-archive.htm"
