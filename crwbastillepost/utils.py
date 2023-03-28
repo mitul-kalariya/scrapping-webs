@@ -171,7 +171,7 @@ def get_parsed_data(response):
     """
     try:
         main_dict = {}
-        # pattern = r"[\r\n\t\"]+"
+        pattern = r"[\r\n\t\"]+"
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
 
@@ -586,3 +586,168 @@ def get_parsed_data_dict() -> dict:
 #         ],
 #         "thumbnail_image": [thumbnail_url],
 #     }
+
+def get_publisher(response):
+    """
+    Extracts publisher information from the given response object and returns it as a dictionary.
+    Returns:
+    - A dictionary containing information about the publisher.The dictionary has the following keys:
+    ---
+    @id: The unique identifier for the publisher.
+    @type: The type of publisher (in this case, always "NewsMediaOrganization").
+    name: The name of the publisher.
+    logo: Logo of the publisher as an image object
+    """
+    try:
+        logo = response.css('head link[rel="icon"]::attr(href)').get()
+        img_response = requests.get(logo)
+        width, height = Image.open(BytesIO(img_response.content)).size
+        a_dict = {
+            "@id": "globalnews.ca",
+            "@type": "NewsMediaOrganization",
+            "name": "Global NEWS",
+            "logo": {
+                "@type": "ImageObject",
+                "url": logo,
+                "width": {"@type": "Distance", "name": str(width) + " px"},
+                "height": {"@type": "Distance", "name": str(height) + " px"},
+            },
+        }
+        return [a_dict]
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
+
+
+def get_author(response) -> list:
+    """
+    The get_author function extracts information about the author(s)
+    of an article from the given response object and returns it in the form of a list of dictionaries.
+    Parameters:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+    Returns:
+        A list of dictionaries, where each dictionary contains information about one author.
+    """
+    try:
+        info = response.css("div#article-byline")
+        pattern = r"[\r\n\t\"]+"
+        data = []
+        if info:
+            for i in info:
+                temp_dict = {}
+                temp_dict["@type"] = "Person"
+                name = i.css("div.c-byline__attribution span a::text").get()
+                if name:
+                    name = re.sub(pattern, "", name).strip()
+                    temp_dict["name"] = name.strip("By")
+
+                else:
+                    temp_dict["name"] = "Staff"
+
+                link = i.css("div.c-byline__attribution span a::attr(href)").get()
+                if link:
+                    temp_dict["url"] = link
+                """while reviewing if you feel that this data can be useful please uncomment it
+                    it states from which organization the author is"""
+
+                data.append(temp_dict)
+            return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
+
+
+def get_thumbnail_image(response) -> list:
+    """extracting thumbnail image from application+ld/json data in main function
+    Args:
+        response (obj): page_object
+    Returns:
+        list: list of thumbnail images
+    """
+    image = get_main(response)
+    thumbnail_image = []
+    thumbnail_image.append(image[0].get("thumbnailUrl"))
+    return thumbnail_image
+
+
+def get_tags(response) -> list:
+    """
+    Extracts lables associated to the news article in form of a list of dictionary
+    containing name of the tag and the corrosponding link to the tag
+    Parameters:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+    Returns:
+        a list of dictionary with link and name combination
+    """
+    try:
+        info = response.css("div.c-tags__body a")
+        data = []
+        for i in info:
+            temp_dict = {}
+            temp_dict["tag"] = i.css("a::text").get()
+            temp_dict["url"] = i.css("a::attr(href)").get()
+            if temp_dict["url"] == "#":
+                pass
+            else:
+                data.append(temp_dict)
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching tags: {e}")
+
+
+def get_images(response) -> list:
+    """extracting image links from provided response
+    Args:
+        response (_type_): html page object
+    Returns:
+        list: list of images inside the article
+    """
+    try:
+        images = response.css("figure.c-figure--alignnone")
+        pattern = r"[\r\n\t]+"
+        data = []
+        if images:
+            for image in images:
+                temp_dict = {}
+                link = image.css("img::attr(data-src)").get()
+                caption = image.css(
+                    "figcaption.c-figure__caption.c-caption span::text"
+                ).get()
+                if link:
+                    temp_dict["url"] = link
+                    if caption:
+                        temp_dict["caption"] = re.sub(pattern, "", caption).strip()
+                    data.append(temp_dict)
+            return data
+    except BaseException as e:
+        LOGGER.error(f"Error: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
+
+
+def get_embed_video_link(response) -> list:
+    """
+    extracting all the videos available from article
+    parameters:
+        response: html response
+    returns:
+        a list of dictionary containing object type link and decryption
+    """
+    try:
+        data = []
+        thumbnail_video = response.css("figure.l-article__featured")
+        for video in thumbnail_video:
+            link = video.css(".c-video::attr(data-displayinline)").get()
+            if link:
+                data.append(link)
+
+        videos = response.css("div.c-video.c-videoPlay")
+        for video in videos:
+            link = video.css("div::attr(data-displayinline)").get()
+            if link:
+                data.append(link)
+        return data
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
+

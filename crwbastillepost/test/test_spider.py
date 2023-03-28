@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from crwbastillepost.spiders.indian_express import IndianExpressSpider
+from crwbastillepost.spiders.bastille_post import BastillePostSpider
 from crwbastillepost.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwbastillepost.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
@@ -24,7 +24,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = BastillePostSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -237,7 +237,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.spider = BastillePostSpider(type=self.type)
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
