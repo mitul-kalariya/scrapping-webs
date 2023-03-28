@@ -124,9 +124,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
                 ".department-overview-title a::attr(href)"
             ).getall()
             for category in categories:
-                for single_date in date_range(
-                    self.scrape_start_date, self.scrape_end_date
-                ):
+                for single_date in self.date_range_lst:
                     try:
                         self.logger.debug("Parse function called on %s", response.url)
                         yield scrapy.Request(
