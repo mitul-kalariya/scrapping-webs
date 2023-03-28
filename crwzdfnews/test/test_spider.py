@@ -207,9 +207,6 @@ class TestArticle(unittest.TestCase):
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                   list, "format mismatch for parsed_data--> images")
             self._test_image_format(article)
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> images")
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():
@@ -218,9 +215,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                   list, "format mismatch for parsed_data--> section")
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -229,17 +223,14 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
                                   list, "format mismatch for parsed_data--> tags")
-#         else:
-#             with self.subTest():
-#                 raise AssertionError("missing object:- parsed_data--> tags")
-#
-# #
-#
+
+
+
 # class TestSitemap(unittest.TestCase):
 #     def setUp(self):
 #         self.type = "sitemap"
-#         self.crawler = Crawler(query={"type": "article", "domain": SITEMAP_URL})
-#
+#         self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+
 #     def _test_sitemap_article_format(self):
 #         # Testing the sitemap article object
 #         for article in self.article_urls:
@@ -247,7 +238,7 @@ class TestArticle(unittest.TestCase):
 #                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
 #             with self.subTest():
 #                 self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
-#
+
 #     def _test_sitemap_results(self):
 #         with self.subTest():
 #             self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
@@ -256,7 +247,7 @@ class TestArticle(unittest.TestCase):
 #         with self.subTest():
 #             self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
 #         self._test_sitemap_article_format()
-#
+
 #     def test_parse(self):
 #         self.article_urls = self.crawler.crawl()
 #         self._test_sitemap_results()
