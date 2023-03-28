@@ -2,16 +2,17 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.francetvinfo.fr/economie/emploi/metiers/armee-et-securite/economie-de-guerre-emmanuel-macron-va-demander-aux-industriels-une-prise-de-risque-accrue-lors-d-un-mini-sommet-sur-l-armement-a-l-elysee_5737193.html",
+        "url": "https://www.francetvinfo.fr/societe/justice/soupcons-de-fraude-fiscale-geante-des-perquisitions-en-cours-dans-cinq-banques-en-france_5737457.html",
         "test_data_path": "crwfrancetv/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.francetvinfo.fr/economie/retraite/reforme-des-retraites/manifestations-contre-la-reforme-des-retraites-un-dispositif-policier-inedit_5737217.html",
+        "url": "https://www.francetvinfo.fr/culture/arts-expos/peinture/j-ai-tout-de-suite-eu-des-battements-de-coeur-decouvert-dans-une-maison-familiale-un-immense-tableau-de-brueghel-vendu-aux-encheres-a-paris_5737232.html",
         "test_data_path": "crwfrancetv/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.francetvinfo.fr/replay-radio/le-vrai-du-faux/le-vrai-du-faux-les-mega-bassines-auront-elles-des-effets-positifs-sur-les-nappes-phreatiques-comme-l-assure-le-ministre-de-la-transition-ecologique_5710022.html",
+        "url": "https://www.francetvinfo.fr/replay-radio/bientot-chez-vous/au-japon-les-petits-cadeaux-faits-aux-centenaires-par-les-mairies-ne-font-pas-que-des-heureux_5709611.html",
         "test_data_path": "crwfrancetv/test/data/test_article_3.json"
     }
 ]
+
 SITEMAP_URL = "https://www.francetvinfo.fr/sitemap_news.xml"

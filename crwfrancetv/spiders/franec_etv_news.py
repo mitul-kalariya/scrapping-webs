@@ -112,6 +112,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                             "link": url,
                             "title": title,
                         }
+                        print(article)
                         self.articles.append(article)
 
             else:
@@ -121,6 +122,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                             "link": url,
                             "title": title,
                         }
+                        print(article)
                         self.articles.append(article)
 
     def parse_sitemap_article(self, response):
@@ -202,8 +204,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

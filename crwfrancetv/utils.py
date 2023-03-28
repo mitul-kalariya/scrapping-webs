@@ -195,6 +195,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
 
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
+    # breakpoint()
     if len([article_data.get("main").get('author')]) == 1:
         if type(article_data.get("main").get('author')) == list:
             parsed_data_dict["author"] = [{
@@ -203,11 +204,11 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
                 "url": article_data.get("main").get('author')[0].get("url")
             }]
         else:
-            if type(article_data.get("main").get('author')) == list:
+            if type(article_data.get("main").get('author')) == dict:
                 parsed_data_dict["author"] = [{
-                    "@type": article_data.get("main").get('author')[0].get("@type"),
-                    "name": article_data.get("main").get('author')[0].get("name"),
-                    "url": article_data.get("main").get('author')[0].get("url")
+                    "@type": article_data.get("main").get('author').get("@type"),
+                    "name": article_data.get("main").get('author').get("name"),
+                    "url": article_data.get("main").get('author').get("url")
                 }]
     else:
         author_list = []
