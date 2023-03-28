@@ -8,13 +8,15 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 BOT_NAME = "crworientaldaily"
+# REFERER_ENABLED =False
 
 SPIDER_MODULES = ["crworientaldaily.spiders"]
 NEWSPIDER_MODULE = "crworientaldaily.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "crworientaldaily (+http://www.yourdomain.com)"
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+# "crworientaldaily (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True

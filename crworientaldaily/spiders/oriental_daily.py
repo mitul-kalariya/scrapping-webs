@@ -126,7 +126,7 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
                 f"Unable to scrape due to getting this status code {response.status}"
             )
         self.logger.info("Parse function called on %s", response.url)
-        if "googlenews.xml" in response.url:
+        if "sitemap.xml" in response.url:
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
         else:
             yield self.parse_article(response)
@@ -172,7 +172,7 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if title := response.css("h1.article-title::text").get():
+            if title := response.css("h1.title::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
@@ -210,7 +210,7 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
+                "parsed_data", get_parsed_data(response)
             )
 
             self.articles.append(
@@ -243,8 +243,8 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

@@ -323,7 +323,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list) -> dict:
+def get_parsed_data(response: str) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -334,7 +334,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
-    data_dict = get_author_and_publisher_details(parsed_json_main)
+    
     text = response.css("p.c-article-body__text::text").getall()
     image = {
         "link": data_dict.get("image_url"),
@@ -368,48 +368,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     return parsed_data_dict
 
 
-def get_author_and_publisher_details(block: dict) -> dict:
-    """
-    get author and publisher details
-    Args:
-        blocks: json/+ld data
-    Returns:
-        str : author and publisher details
-    """
-    data_dict = {
-        "description": block.get("description"),
-        "modified_at": block.get("dateModified"),
-        "published_at": block.get("datePublished"),
-        "publisher_id": block.get("publisher", {}).get("@id"),
-        "publisher_type": block.get("publisher", {}).get("@type"),
-        "publisher_name": block.get("publisher", {}).get("name"),
-        "logo_type": block.get("publisher", {}).get("logo", {}).get("@type"),
-        "logo_url": block.get("publisher", {}).get("logo", {}).get("url"),
-        "logo_width": block.get("publisher", {}).get("logo", {}).get("width"),
-        "logo_height": block.get("publisher", {}).get("logo", {}).get("height"),
-        "title": block.get("headline", {}),
-        "image_url": block.get("image", {}).get("url"),
-        "image_caption": block.get("image", {}).get("description"),
-        "thumbnail_image": block.get("thumbnailUrl"),
-        "headline": block.get("headline"),
-    }
-    data_dict["author"] = []
-    if block.get("author"):
-        for author in block.get("author"):
-            data_dict["author"].append({
-                "@type": author.get("@type"),
-                "name": author.get("name"),
-                "url": author.get("url")
-            })
-    else:
-        data_dict.get("author", []).append({
-            "name": block.get("author"),
-            "@type": block.get("@type")
-        })
-    return data_dict
-
-
-def get_publisher_detail(response: str, data_dict: dict) -> dict:
+def get_publisher_detail(response: str) -> dict:
     """generate publisher detail and return dict
 
     Args:
