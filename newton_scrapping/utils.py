@@ -31,7 +31,7 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-    
+
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -189,7 +189,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
                 "name": str(article_data.get("main")['publisher']['logo']['width']) + " Px"},
             'height': {'@type': "Distance",
                 'name': str(
-                    article_data.get("main")['publisher']['logo']['height']) + " Px"}}    
+                    article_data.get("main")['publisher']['logo']['height']) + " Px"}}
             }
     ]
     parsed_data_dict["text"] = [article_data.get("main").get("articleBody")]
