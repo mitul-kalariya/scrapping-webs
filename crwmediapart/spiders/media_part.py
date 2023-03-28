@@ -236,9 +236,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+
+            export_data_to_json_file(self.type, self.articles, self.name)
             if self.output_callback is not None:
                 self.output_callback(self.articles)
-                export_data_to_json_file(self.type, self.articles, self.name)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
         except Exception as exception:
