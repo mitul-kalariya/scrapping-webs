@@ -2,7 +2,7 @@ import scrapy
 import logging
 from dateutil import parser
 from datetime import datetime
-from newton_scrapping.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
+from newton_scrapping.constant import SITEMAP_URL, TODAYS_DATE, LOGGER, PAGINATION
 from newton_scrapping import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -153,9 +153,9 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             pagi = response.css('.page-jump-number~ .page-jump+ .page-jump div a::attr(href)').get()
-            last_num = int(pagi.split("/")[-1])
+            # last_num = int(pagi.split("/")[-1])
             self.start_urls.append(response.request.url)
-            for i in range(1, last_num):
+            for i in range(1, PAGINATION):
                 yield scrapy.Request(response.request.url + "/" + str(i), callback=self.parse_sitemap_by_title_link,
                                      meta={'index': i})
         except BaseException as e:
@@ -189,25 +189,25 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         title = response.meta['title']
         published_at = response.css('.time-elapsed time::attr(datetime)').get()[:10]
         published_at = datetime.strptime(published_at, "%Y-%m-%d").date()
-        today = datetime.today().date().strftime('%Y-%m-%d')
+        today = datetime.today().strftime('%Y-%m-%d')
+        today = datetime.strptime(today, "%Y-%m-%d").date()
 
         if self.start_date and published_at < self.start_date:
             return
         if self.start_date and published_at > self.end_date:
             return
+        data = {
+            'link': url,
+            'title': title,
+        }
 
         if url and title and published_at:
-            data = {
-                'link': url,
-                'title': title,
-                'date': published_at
-            }
-
             if self.start_date is None and self.end_date is None:
                 if today == published_at:
                     self.articles.append(data)
-            elif self.start_date and self.end_date:
-                self.articles.append(data)
+            else:
+                if self.start_date and self.end_date:
+                    self.articles.append(data)
 
     def parse_article(self, response: str) -> list:
         """
