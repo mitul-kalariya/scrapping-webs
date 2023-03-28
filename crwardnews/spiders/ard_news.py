@@ -1,13 +1,13 @@
 import scrapy
 import logging
 import w3lib.html
-from newton_scrapping.constant import LOGGER, SITEMAP_URL
-from newton_scrapping import exceptions
+from crwardnews.constant import LOGGER, SITEMAP_URL
+from crwardnews import exceptions
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwardnews.items import ArticleData
+from crwardnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -39,7 +39,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     name = "ard_news"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
 
@@ -74,7 +74,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         If the type argument is "article", the URL to be scraped is validated and set.
             A log file is created for the web scraper.
         """
-        super().__init__(**kwargs)
+        super(ArdNewsSpider, self).__init__(*args, **kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -118,8 +119,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
         elif self.type == "article":
-            article_data = self.parse_article(response)
-            self.articles.append(article_data)
+            yield self.parse_article(response)
+
 
     def parse_article(self, response) -> list:
         """
@@ -147,7 +148,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         )
         articledata_loader.add_value("parsed_data", response_data)
 
-        return dict(articledata_loader.load_item())
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -262,10 +264,12 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

@@ -6,8 +6,8 @@ import re
 import json
 import logging
 from datetime import datetime
-from newton_scrapping import exceptions
-from newton_scrapping.constant import TODAYS_DATE, BASE_URL, LOGGER
+from crwardnews import exceptions
+from crwardnews.constant import TODAYS_DATE, BASE_URL, LOGGER
 
 
 def create_log_file():
