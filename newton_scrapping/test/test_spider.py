@@ -1,10 +1,13 @@
 import logging
 import unittest
 
+#TODO: Update the path here replace newton_scrapping --> your project name
 from newton_scrapping.spiders.indian_express import IndianExpressSpider
 from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from newton_scrapping.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
+#TODO: Update below path here
+from crwindianexpress import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -160,6 +163,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("author"),
                                   list, "format mismatch for parsed_data--> author")
+            self._test_author_format(article)
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> author")
@@ -204,6 +208,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                   list, "format mismatch for parsed_data--> images")
+            self._test_image_format(article)
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> images")
@@ -230,8 +235,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> tags")
 
-        self._test_image_format(article)
-        self._test_author_format(article)
 
 
 class TestSitemap(unittest.TestCase):
