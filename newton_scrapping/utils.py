@@ -2,6 +2,8 @@ import json
 import os
 import pdb
 from datetime import datetime
+from urllib.parse import urlparse
+
 from scrapy.http import Response
 from .exceptions import (
     InputMissingException,
@@ -152,7 +154,6 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     published_date = response.css('meta[property="article:published_time"]::attr(content)').get()
     modified_date = response.css('meta[property="article:modified_time"]::attr(content)').get()
-    print(modified_date)
     img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
     text = response.css('section.content > p::text').getall()
     mapper = {"FRA": "France", "fr-FR": "French"}
@@ -166,29 +167,23 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     article_author_url = response.css('a.author_link::attr(href)').getall()
     main = parsed_json_data.get("main")
     other = parsed_json_data.get("other")
-    # print(main.get('@type') == "LiveBlogPosting")
-    # author = {}
-    # for m in main.get('liveBlogUpdate'):
-    #     author = m.get("author")
-    #     print(m.get("author"))
-    # print(author)
 
     parsed_data_dict["author"] = get_author(main, other, article_author_url)
     parsed_data_dict["description"] = [main.get('description')]
 
-    parsed_data_dict["modified_at"] = get_modified_at(main, modified_date)  # [main.get('dateModified')]
-    parsed_data_dict["published_at"] = get_published_at(main, published_date)  # [main.get('datePublished')]
+    parsed_data_dict["modified_at"] = get_modified_at(main, modified_date)
+    parsed_data_dict["published_at"] = get_published_at(main, published_date)
     parsed_data_dict["publisher"] = get_publisher(main)
-    pdb.set_trace()
-    parsed_data_dict["text"] = get_text(main, text)  # ["".join(text)]
-    print(parsed_data_dict)
-    parsed_data_dict["thumbnail_image"] = [other[1].get('url') + img_url[0][1:]]
 
+    parsed_data_dict["text"] = get_text(main, text)
+
+    parsed_data_dict["thumbnail_image"] = get_thumbnail_image(main, other,
+                                                              img_url)
     parsed_data_dict["title"] = title
-    parsed_data_dict["images"] = get_image(other, response)
+    parsed_data_dict["images"] = get_image(main, response)
     parsed_data_dict["section"] = "".join(category).split(",")
 
-    parsed_data_dict["tags"] = main.get("keywords")
+    parsed_data_dict["tags"] = get_tags(main)
     parsed_data_dict['embed_video_link'] = get_video(response)
 
     return remove_empty_elements(parsed_data_dict)
@@ -196,6 +191,20 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
 
 def is_live_blog(main):
     return main.get(TYPE) == "LiveBlogPosting"
+
+
+def get_thumbnail_image(main, other, img_url):
+    if is_live_blog(main):
+        return main.get("thumbnailUrl")
+    else:
+        return [other[1].get('url') + img_url[0][1:]]
+
+
+def get_tags(main):
+    if is_live_blog(main):
+        return None
+    else:
+        return main.get("keywords")
 
 
 def get_text(main, text):
@@ -273,14 +282,27 @@ def get_publisher(main):
     return publisher_list
 
 
-def get_image(other, response):
-    img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
-    img_caption = response.css('div.width_full >figure > figcaption > span::text').getall()
-    img_dict = {
-        "link": other[1].get("url") + img_url[0][1:],
-        "caption": img_caption[0],
-    }
+def get_image(main, response):
+    if is_live_blog(main):
+        img_url = main.get("image").get("url")
+        img_dict = {
+            "link": img_url
+        }
+    else:
+        leparisien_main_domain = get_domain(response)
+        img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
+        img_caption = response.css('div.width_full >figure > figcaption > span::text').getall()
+        img_dict = {
+            "link": leparisien_main_domain + img_url[0][1:],
+            "caption": img_caption[0],
+        }
     return [img_dict]
+
+
+def get_domain(response):
+    parsed_uri = urlparse(response.url)
+    domain = '{uri.scheme}://{uri.netloc}'.format(uri=parsed_uri)
+    return domain
 
 
 def remove_empty_elements(parsed_data_dict: dict) -> dict:
