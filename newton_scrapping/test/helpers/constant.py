@@ -1,6 +1,6 @@
 """list of article/sitemap URLs for testing"""
 
-# Update below dictionary to add or remove new articles to test
+#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.bfmtv.com/international/amerique-nord/canada/canada-un-pick-up-fauche-des-pietons-dans-une-ville-du-quebec-au-moins-deux-morts-et-plusieurs-blesses_AD-202303130820.html",
