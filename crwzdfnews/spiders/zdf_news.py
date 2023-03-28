@@ -60,7 +60,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
-        super().__init__(**kwargs)
+        super(ZdfNewsSpider, self).__init__(**kwargs)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -103,9 +104,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
-                article_data = self.parse_article(response)
-                self.articles.append(article_data)
-                yield self.articles
+                yield self.parse_article(response)
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -134,8 +133,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             response_json,
         )
         articledata_loader.add_value("parsed_data", response_data)
-
-        return dict(articledata_loader.load_item())
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -223,16 +222,18 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         in the filename.
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+                f"Error occurred while closing crawler:{str(exception)} - {reason}"
             )
             self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
+                f"Error occurred while losing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
 
