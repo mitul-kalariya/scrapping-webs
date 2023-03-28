@@ -238,15 +238,9 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         try:
             if self.output_callback is not None:
                 self.output_callback(self.articles)
+                export_data_to_json_file(self.type, self.articles, self.name)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
         except Exception as exception:
             self.log(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
             raise exceptions.ExportOutputFileException(f"Error occurred while closing the crawler {str(exception)} - {reason}")
-            
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(MediaPartSpider)
-    process.start()
