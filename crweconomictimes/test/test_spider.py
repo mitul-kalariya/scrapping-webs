@@ -56,8 +56,13 @@ class TestArticle(unittest.TestCase):
         # Testing parsed_data object
         
         with self.subTest():
-            self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
-                             test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
+            test_data_author = test_article_data[0].get("parsed_data").get("author")
+            if test_data_author and isinstance(test_data_author[0],list):
+                self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
+                                test_article_data[0].get("parsed_data").get("author")[0][0], "author mismatch in parsed_data")
+            elif test_data_author and isinstance(test_data_author[0],dict):
+                self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
+                                test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("published_at"),
                          test_article_data[0].get("parsed_data").get("published_at"),

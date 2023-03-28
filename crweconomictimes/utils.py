@@ -175,7 +175,11 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["source_country"] = ["India"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    parsed_data_dict["author"] = [article_data.get("main").get('author')]
+    author = article_data.get("main").get('author')
+    if author and isinstance(author, list):
+        parsed_data_dict["author"] = author
+    if author and isinstance(author, dict):
+        parsed_data_dict["author"] = [author]
     parsed_data_dict["description"] = [article_data.get("main").get('description')]
     parsed_data_dict["modified_at"] = [article_data.get("main")['dateModified']]
     parsed_data_dict["published_at"] = [article_data.get("main")['datePublished']]
@@ -194,7 +198,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     ]
     parsed_data_dict["text"] = [article_data.get("main").get("articleBody")]
     parsed_data_dict["thumbnail_image"] = [article_data.get("img_url")]
-    parsed_data_dict["title"] = article_data.get('main').get('headline')
+    parsed_data_dict["title"] = [article_data.get('main').get('headline')]
     parsed_data_dict["images"] = [{"link": article_data.get("main").get('image').get('url')}]
     parsed_data_dict["section"] = [article_data.get('main').get('articleSection')]
     parsed_data_dict["tags"] = article_data.get('main').get('keywords')
