@@ -175,7 +175,7 @@ def get_parsed_data(response):
         main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
-        description = main_dict["modified_at"] = main_data[0].get("description")
+        description = main_data[0].get("description")
         main_dict["description"] = [description]
 
         article_text = response.css("p.dropcap-wrapper::text").getall()
