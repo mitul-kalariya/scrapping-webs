@@ -77,23 +77,23 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
-
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+    # other_data = []
+    # ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    # for a_block in ld_json_data:
+    #     data = json.loads(a_block)
+    #     if data.get("@type") == "NewsArticle":
+    #         parsed_json["main"] = data
+    #     elif data.get("@type") == "ImageGallery":
+    #         parsed_json["ImageGallery"] = data
+    #     elif data.get("@type") == "VideoObject":
+    #         parsed_json["VideoObject"] = data
+    #     else:
+    #         other_data.append(data)
+    #
+    # parsed_json["Other"] = other_data
+    # misc = get_misc(response)
+    # if misc:
+    #     parsed_json["misc"] = misc
 
     return remove_empty_elements(parsed_json)
 
@@ -161,25 +161,25 @@ def get_parsed_data(response):
     main_dict["author"] = authors
     last_updated = get_lastupdated(response)
     main_dict["modified_at"] = [last_updated]
-    published_on = get_published_at(response.css("div.story-wrapper"))
+    published_on = get_published_at(response)
     main_dict["published_at"] = [published_on]
-    description = response.css("h2.story-description::text").get()
-    main_dict["description"] = [description]
-    publisher = get_publisher(response)
-    main_dict["publisher"] = publisher
-    article_text = response.css("section p::text").getall()
-    main_dict["text"] = [" ".join(article_text)]
-    thumbnail = get_thumbnail_image(response)
-    main_dict["thumbnail_image"] = thumbnail
-    headline = response.css("h1.story-title::text").get().strip()
-    main_dict["title"] = [headline]
-    article_images = get_images(response)
-    main_dict["images"] = article_images
-    video = get_embed_video_link(response)
-    main_dict["embed_video_link"] = video
-    mapper = {"en": "English", "hi_IN": "Hindi"}
-    article_lang = response.css("html::attr(lang)").get()
-    main_dict["source_language"] = [mapper.get(article_lang)]
+    # description = response.css("h2.story-description::text").get()
+    # main_dict["description"] = [description]
+    # publisher = get_publisher(response)
+    # main_dict["publisher"] = publisher
+    # article_text = response.css("section p::text").getall()
+    # main_dict["text"] = [" ".join(article_text)]
+    # thumbnail = get_thumbnail_image(response)
+    # main_dict["thumbnail_image"] = thumbnail
+    # headline = response.css("h1.story-title::text").get().strip()
+    # main_dict["title"] = [headline]
+    # article_images = get_images(response)
+    # main_dict["images"] = article_images
+    # video = get_embed_video_link(response)
+    # main_dict["embed_video_link"] = video
+    # mapper = {"en": "English", "hi_IN": "Hindi"}
+    # article_lang = response.css("html::attr(lang)").get()
+    # main_dict["source_language"] = [mapper.get(article_lang)]
 
     return remove_empty_elements(main_dict)
 
@@ -192,7 +192,7 @@ def get_lastupdated(response) -> str:
     Args:
         response: A Scrapy response object representing the web page from which to extract the information.
     """
-    info = response.css("span.time-elapsed")
+    info = response.css(".inline+ span time")
     if info:
         return info.css("time::attr(datetime)").get()
 
@@ -204,13 +204,10 @@ def get_published_at(response) -> str:
     Returns:
         str: datetime of published date
     """
-    info = response.xpath('//div[@class ="padtop10 padbtm10"]')
-    info_eng = response.css("div.padtop20")
+    info = response.css('.inline time')
 
     if info:
         return info.css("time::attr(datetime)").get()
-    elif info_eng:
-        return info_eng.css("time::attr(datetime)").get()
 
 
 def get_author(response) -> list:
@@ -222,19 +219,12 @@ def get_author(response) -> list:
     Returns:
         A list of dictionaries, where each dictionary contains information about one author.
     """
-    info = response.css("div.author")
-    pattern = r"[\r\n\t\"]+"
     data = []
-    if info:
-        for i in info:
-            temp_dict = {}
-            temp_dict["@type"] = "Person"
-            temp_dict["name"] = re.sub(
-                pattern, "", i.css("div a span::text").get()
-            ).strip()
-            temp_dict["url"] = i.css("div a::attr(href)").get()
-            data.append(temp_dict)
-        return data
+    temp_dict = {}
+    temp_dict["@type"] = "Person"
+    temp_dict["name"] = response.css('.mb-0\.5 .whitespace-nowrap+ .flex::text').get()
+    data.append(temp_dict)
+    return data
 
 
 def get_thumbnail_image(response) -> list:
