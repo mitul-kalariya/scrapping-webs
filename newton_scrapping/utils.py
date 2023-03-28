@@ -5,13 +5,14 @@ import os
 import re
 import json
 import logging
-import time
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from newton_scrapping import exceptions
 from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
@@ -64,7 +65,8 @@ def validate_sitemap_date_range(start_date, end_date):
 
 def remove_empty_elements(parsed_data_dict):
     """
-    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
+    Recursively remove empty lists,
+    empty dicts, or None elements from a dictionary.
     :param d: Input dictionary.
     :type d: dict
     :return: Dictionary with all empty lists, and empty dictionaries removed.
@@ -234,21 +236,19 @@ def extract_videos(response) -> list:
     options.headless = True
     driver = webdriver.Chrome(options=options)
     driver.get(response.url)
-    time.sleep(3)
     data = {}
     try:
         banner_button = driver.find_element(
             By.XPATH, "//div[@class='multiple didomi-buttons didomi-popup-notice-buttons']//button[2]")
         if banner_button:
             banner_button.click()
-            time.sleep(2)
             scroll = driver.find_elements(By.XPATH, "//p")
             for i in scroll:
                 driver.execute_script(
                     "window.scrollTo(" + str(i.location["x"]) + ", " + str(i.location["y"]) + ")")
-            time.sleep(3)
-            videos = driver.find_elements(
-                By.XPATH, "//div[@class='video_block']//video-js//video[@class='vjs-tech']")
+            videos = WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located((By.XPATH,
+                                                "//div[@class='video_block']//video-js//video[@class='vjs-tech']")))
             if videos:
                 for i in videos:
                     try:

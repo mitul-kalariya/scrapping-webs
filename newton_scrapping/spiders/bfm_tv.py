@@ -4,7 +4,7 @@ import requests
 import logging
 from io import BytesIO
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from scrapy.crawler import CrawlerProcess
 from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
 from newton_scrapping import exceptions
@@ -143,35 +143,37 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                     },
             ):
                 for link in sitemap.getall():
-                    r = requests.get(link, stream=True)
-                    g = gzip.GzipFile(fileobj=BytesIO(r.content))
-                    content = g.read()
-                    soup = BeautifulSoup(content, "html.parser")
+                    days_back_date = TODAYS_DATE  - timedelta(days=30)
+                    if link.split("/")[-1].split(".")[0] > days_back_date.strftime('%Y-%m-%d'):
+                        r = requests.get(link, stream=True)
+                        g = gzip.GzipFile(fileobj=BytesIO(r.content))
+                        content = g.read()
+                        soup = BeautifulSoup(content, "html.parser")
 
-                    loc = soup.find_all("loc")
-                    lastmod = soup.find_all("lastmod")
+                        loc = soup.find_all("loc")
+                        lastmod = soup.find_all("lastmod")
+                        self.count += 1
+                        for particular_link, published_date in zip(loc, lastmod):
+                            link = particular_link.text
+                            published_at = published_date.text
+                            date_only = datetime.strptime(
+                                published_at[:10], "%Y-%m-%d"
+                            ).date()
 
-                    for particular_link, published_date in zip(loc, lastmod):
-                        link = particular_link.text
-                        published_at = published_date.text
-                        date_only = datetime.strptime(
-                            published_at[:10], "%Y-%m-%d"
-                        ).date()
-
-                        if self.start_date and date_only < self.start_date:
-                            continue
-                        if self.end_date and date_only > self.end_date:
-                            continue
-
-                        if self.start_date is None and self.end_date is None:
-                            if date_only != TODAYS_DATE:
+                            if self.start_date and date_only < self.start_date:
+                                continue
+                            if self.end_date and date_only > self.end_date:
                                 continue
 
-                        yield scrapy.Request(
-                            link,
-                            callback=self.parse_sitemap_article,
-                            meta={"published_at": published_at},
-                        )
+                            if self.start_date is None and self.end_date is None:
+                                if date_only != TODAYS_DATE:
+                                    continue
+                            yield scrapy.Request(
+                                link,
+                                callback=self.parse_sitemap_article,
+                                meta={"published_at": published_at},
+                            )
+                    
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
