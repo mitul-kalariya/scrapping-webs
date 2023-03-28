@@ -143,14 +143,14 @@ def based_on_scrape_type(
     """
     if scrape_type == "article":
         article_validations(url, scrape_start_date, scrape_end_date)
-        return None, None
+        return None
     if scrape_type == "sitemap":
         scrape_start_date, scrape_end_date = sitemap_validations(
             scrape_start_date, scrape_end_date, url
         )
         date_range_lst = []
         date_range_lst.extend(iter(date_range(scrape_start_date, scrape_end_date)))
-        return scrape_start_date, date_range_lst
+        return date_range_lst
 
     return validate_arg("MISSING_REQUIRED_FIELD", None, "type")
 

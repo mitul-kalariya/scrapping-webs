@@ -13,10 +13,8 @@ from scrapy.loader import ItemLoader
 from crwindianexpress.items import ArticleData
 from crwindianexpress.utils import (
     based_on_scrape_type,
-    date_range,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -71,7 +69,7 @@ class IndianExpressSpider(scrapy.Spider):
         super(IndianExpressSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -85,11 +83,9 @@ class IndianExpressSpider(scrapy.Spider):
                 datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
 
-            self.current_date, self.date_range_lst = based_on_scrape_type(
+            self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            if self.current_date:
-                self.scrape_start_date = self.scrape_end_date = self.current_date
             self.start_urls.append(
                 url
                 if self.type == "article"
@@ -126,7 +122,7 @@ class IndianExpressSpider(scrapy.Spider):
             )
 
         if "sitemap.xml" in response.url:
-            for single_date in date_range(self.scrape_start_date, self.scrape_end_date):
+            for single_date in self.date_range_lst:
                 try:
                     self.logger.debug("Parse function called on %s", response.url)
                     yield scrapy.Request(
