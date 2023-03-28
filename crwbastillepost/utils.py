@@ -98,7 +98,6 @@ def get_main(response):
     Returns:
         main data
     """
-    breakpoint()
     try:
         data = []
         misc = response.css('script[type="application/ld+json"]::text').getall()
@@ -156,7 +155,6 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    breakpoint()
     parsed_json = {}
     other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
@@ -195,7 +193,6 @@ def get_parsed_data(response):
          - 'text': (list) The list of text paragraphs in the article.
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
-    breakpoint()
     try:
         main_dict = {}
         pattern = r"[\r\n\t\"]+"
@@ -355,7 +352,6 @@ def get_author(response) -> list:
     Returns:
         A list of dictionaries, where each dictionary contains information about one author.
     """
-    breakpoint()
     try:
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         if parsed_data:
@@ -412,7 +408,6 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    breakpoint()
     image = get_main(response)
     thumbnail_image = []
     thumbnail_image.append(image[0].get("image").get("url"))
@@ -453,7 +448,6 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
-        breakpoint()
         data = []
         temp_dict = {
             "images": [
