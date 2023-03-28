@@ -4,10 +4,10 @@ import requests
 import logging
 from io import BytesIO
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from newton_scrapping.constant import BASE_URL, SITEMAP_URL, LOGGER
+from newton_scrapping.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
 from newton_scrapping import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -102,7 +102,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as e:
-            print(f"Error occurring while parsing sitemap {e} in parse function")
             self.logger.error(
                 f"Error occurring while parsing sitemap {e} in parse function"
             )
@@ -114,33 +113,35 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
             ):
                 for link in sitemap.getall():
-                    r = requests.get(link, stream=True)
-                    g = gzip.GzipFile(fileobj=BytesIO(r.content))
-                    content = g.read()
-                    soup = BeautifulSoup(content, "html.parser")
+                    days_back_date = TODAYS_DATE  - timedelta(days=30)
+                    if link.split("/")[-1].split(".")[0][8:] + "-0" > days_back_date.strftime('%Y-%m-%d'):
+                        r = requests.get(link, stream=True)
+                        g = gzip.GzipFile(fileobj=BytesIO(r.content))
+                        content = g.read()
+                        soup = BeautifulSoup(content, "html.parser")
 
-                    loc = soup.find_all("loc")
-                    lastmod = soup.find_all("lastmod")
+                        loc = soup.find_all("loc")
+                        lastmod = soup.find_all("lastmod")
 
-                    for particular_link, published_date in zip(loc, lastmod):
-                        if "thema" in particular_link:
-                            continue
-                        link = particular_link.text
-                        published_at = published_date.text
-                        date_only = datetime.strptime(
-                            published_at[:10], "%Y-%m-%d"
-                        ).date()
+                        for particular_link, published_date in zip(loc, lastmod):
+                            if "thema" in particular_link:
+                                continue
+                            link = particular_link.text
+                            published_at = published_date.text
+                            date_only = datetime.strptime(
+                                published_at[:10], "%Y-%m-%d"
+                            ).date()
 
-                        if self.start_date and date_only < self.start_date:
-                            continue
-                        if self.end_date and date_only > self.end_date:
-                            continue
+                            if self.start_date and date_only < self.start_date:
+                                continue
+                            if self.end_date and date_only > self.end_date:
+                                continue
 
-                        yield scrapy.Request(
-                            link,
-                            callback=self.parse_sitemap_article,
-                            meta={"published_at": published_at},
-                        )
+                            yield scrapy.Request(
+                                link,
+                                callback=self.parse_sitemap_article,
+                                meta={"published_at": published_at},
+                            )
         except BaseException as e:
             LOGGER.error(f"Error while parsing sitemap: {e}")
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -174,9 +175,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             else:
                 self.articles.append(data)
         except BaseException as e:
-            print(
-                f"Error occurring while extracting link, title {e} in make_sitemap function"
-            )
             self.logger.error(
                 f"Error occurring while extracting link, title {e} in make_sitemap function"
             )
