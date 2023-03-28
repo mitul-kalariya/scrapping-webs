@@ -134,8 +134,9 @@ def get_parsed_data(response):
 
     pattern = r"[\r\n\t\</h2>\<h2>]+"
     main_dict = {}
+    main_data = get_main(response)
 
-    topline = response.css("span.news-overline::text").get()
+    topline = main_data[0].get("description")
     main_dict["description"] = [topline]
 
     title = response.css("h2#main-content").get()
@@ -143,15 +144,18 @@ def get_parsed_data(response):
         title = re.sub(pattern, "", title.split("</span>")[2]).strip()
         main_dict["title"] = [title]
 
-    published_on = response.css("dd.postdate time::text").get()
+    published_on = main_data[1].get("datePublished")
     main_dict["published_at"] = [published_on]
+
+    modified_on = main_data[1].get("dateModified")
+    main_dict["modified_at"] = [modified_on]
 
     author = response.css("div.author-wrap div span::text").get()
     if author:
         author = re.sub(pattern, "", author).strip()
         main_dict["author"] = [{"@type": "Person", "name": author}]
 
-    publisher = get_publisher(response)
+    publisher = main_data[1].get("publisher")
     main_dict["publisher"] = [publisher]
 
     display_text = response.css("p::text").getall()
@@ -185,7 +189,6 @@ def get_parsed_data(response):
     main_dict["embed_video_link"] = video.get("videos")
 
     return remove_empty_elements(main_dict)
-
 
 def get_main(response):
     """
@@ -221,42 +224,6 @@ def get_misc(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-
-
-def get_publisher(response):
-    """
-    Extracts publisher information from the given response object and returns it as a dictionary.
-
-    Returns:
-    - A dictionary containing information about the publisher.The dictionary has the following keys:
-    ---
-    @id: The unique identifier for the publisher.
-    @type: The type of publisher (in this case, always "NewsMediaOrganization").
-    name: The name of the publisher.
-    logo: Logo of the publisher as an image object
-    """
-    try:
-        misc_resp = get_misc(response)
-        publisher = misc_resp[0].get("publisher")
-        logo_url = publisher.get("logo").get("url")
-        img_response = requests.get(logo_url)
-        width, height = Image.open(BytesIO(img_response.content)).size
-        a_dict = {
-            "@id": "zdf.de",
-            "@type": "NewsMediaOrganization",
-            "name": "Zweites Deutsches Fernsehen",
-            "logo": {
-                "@type": "ImageObject",
-                "url": logo_url,
-                "width": {"@type": "Distance", "name": str(width) + " px"},
-                "height": {"@type": "Distance", "name": str(height) + " px"},
-            },
-        }
-
-        return a_dict
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-
 
 def get_images(response, parsed_json=False) -> list:
     images = response.css("figure.content-image")
