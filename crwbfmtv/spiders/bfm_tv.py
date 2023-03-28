@@ -6,13 +6,13 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
-from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
-from newton_scrapping import exceptions
+from crwbfmtv.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
+from crwbfmtv import exceptions
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwbfmtv.items import ArticleData
+from crwbfmtv.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,

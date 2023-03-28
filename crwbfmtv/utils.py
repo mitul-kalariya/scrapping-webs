@@ -10,8 +10,8 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from newton_scrapping import exceptions
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from crwbfmtv import exceptions
+from crwbfmtv.constants import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
