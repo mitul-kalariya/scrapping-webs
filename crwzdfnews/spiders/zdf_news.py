@@ -2,16 +2,16 @@ import re
 import scrapy
 import logging
 from datetime import datetime
-from newton_scrapping import exceptions
+from crwzdfnews import exceptions
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from newton_scrapping.constant import SITEMAP_URL, LOGGER
+from crwzdfnews.constant import SITEMAP_URL, LOGGER
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
+from crwzdfnews.items import ArticleData
 from abc import ABC, abstractmethod
-from newton_scrapping.utils import (
+from crwzdfnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
     get_raw_response,
@@ -38,7 +38,7 @@ class BaseSpider(ABC):
         pass
 
 
-class ZdfNewsSpider(scrapy.Spider):
+class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):

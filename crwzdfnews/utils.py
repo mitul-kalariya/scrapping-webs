@@ -13,8 +13,8 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from newton_scrapping import exceptions
-from newton_scrapping.constant import TODAYS_DATE, LOGGER
+from crwzdfnews import exceptions
+from crwzdfnews.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
