@@ -6,13 +6,13 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from scrapy.crawler import CrawlerProcess
-from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
-from newton_scrapping import exceptions
+from crwbfmtv.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
+from crwbfmtv import exceptions
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwbfmtv.items import ArticleData
+from crwbfmtv.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -40,7 +40,7 @@ class BaseSpider(ABC):
 class BFMTVSpider(scrapy.Spider, BaseSpider):
     name = "bfm_tv"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args ,**kwargs):
         """
         Initializes a web scraper object with the given parameters.
 
@@ -56,7 +56,8 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
         InvalidDateRange: If the start_date is later than the end_date.
         Exception: If no URL is provided when type is "article".
         """
-        super().__init__(**kwargs)
+        super(BFMTVSpider,self).__init__(*args,**kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.type = type.lower()
@@ -98,8 +99,8 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             elif self.type == "article":
-                article_data = self.parse_article(response)
-                yield article_data
+                yield self.parse_article(response)
+                
 
         except BaseException as e:
             print(f"Error while parse function: {e}")
@@ -224,6 +225,8 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:

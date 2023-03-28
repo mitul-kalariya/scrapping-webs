@@ -9,10 +9,10 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from newton_scrapping import exceptions
+from crwbfmtv import exceptions
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from newton_scrapping.constants import TODAYS_DATE, LOGGER
+from crwbfmtv.constant import TODAYS_DATE, LOGGER
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
