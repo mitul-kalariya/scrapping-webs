@@ -226,31 +226,31 @@ class TestArticle(unittest.TestCase):
 
 
 
-# class TestSitemap(unittest.TestCase):
-#     def setUp(self):
-#         self.type = "sitemap"
-#         self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+class TestSitemap(unittest.TestCase):
+    def setUp(self):
+        self.type = "sitemap"
+        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
 
-#     def _test_sitemap_article_format(self):
-#         # Testing the sitemap article object
-#         for article in self.article_urls:
-#             with self.subTest():
-#                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-#             with self.subTest():
-#                 self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
+    def _test_sitemap_article_format(self):
+        # Testing the sitemap article object
+        for article in self.article_urls:
+            with self.subTest():
+                self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
+            with self.subTest():
+                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
-#     def _test_sitemap_results(self):
-#         with self.subTest():
-#             self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
-#         with self.subTest():
-#             self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
-#         with self.subTest():
-#             self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
-#         self._test_sitemap_article_format()
+    def _test_sitemap_results(self):
+        with self.subTest():
+            self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
+        with self.subTest():
+            self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
+        with self.subTest():
+            self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
+        self._test_sitemap_article_format()
 
-#     def test_parse(self):
-#         self.article_urls = self.crawler.crawl()
-#         self._test_sitemap_results()
+    def test_parse(self):
+        self.article_urls = self.crawler.crawl()
+        self._test_sitemap_results()
 
 if __name__ == "__main__":
     unittest.main()
