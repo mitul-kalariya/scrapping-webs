@@ -67,6 +67,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
             self.type = type
             self.article_url = url
             self.url = url
+            self.error_msg_dict = {}
             self.start_date = start_date
             self.end_date = end_date
             self.today_date = None
