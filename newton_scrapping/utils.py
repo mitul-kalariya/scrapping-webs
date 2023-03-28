@@ -147,7 +147,7 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
-    """ populates parse data dict 
+    """ populates parse data dict
 
     Args:
         response (Response): Response object of article
