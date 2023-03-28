@@ -6,13 +6,13 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
-from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
-from newton_scrapping import exceptions
+from crwhk01.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
+from crwhk01 import exceptions
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwhk01.items import ArticleData
+from crwhk01.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -38,7 +38,7 @@ class BaseSpider(ABC):
         pass
 
 class NTvSpider(scrapy.Spider, BaseSpider):
-    name = "bfm_tv"
+    name = "hk01"
 
     def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
@@ -100,7 +100,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         except BaseException as e:
             print(f"Error while parse function: {e}")
             LOGGER.error(f"Error while parse function: {e}")
-    
+
 
     def parse_article(self, response) -> list:
         """
@@ -130,74 +130,39 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response):
         try:
-            for sitemap in response.xpath(
-                    "//sitemap:loc/text()",
-                    namespaces={
-                        "sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"
-                    },
-            ):
-                for link in sitemap.getall():
-                    r = requests.get(link, stream=True)
-                    g = gzip.GzipFile(fileobj=BytesIO(r.content))
-                    content = g.read()
-                    soup = BeautifulSoup(content, "html.parser")
-
-                    loc = soup.find_all("loc")
-                    lastmod = soup.find_all("lastmod")
-
-                    for particular_link, published_date in zip(loc, lastmod):
-                        link = particular_link.text
-                        published_at = published_date.text
-                        date_only = datetime.strptime(
-                            published_at[:10], "%Y-%m-%d"
-                        ).date()
-
-                        if self.start_date and date_only < self.start_date:
-                            continue
-                        if self.end_date and date_only > self.end_date:
-                            continue
-
-                        if self.start_date is None and self.end_date is None:
-                            if date_only != TODAYS_DATE:
-                                continue
-
-                        yield scrapy.Request(
-                            link,
-                            callback=self.parse_sitemap_article,
-                            meta={"published_at": published_at},
-                        )
+            namespaces = {'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+            for url in response.xpath('//xmlns:url', namespaces=namespaces):
+                link = url.xpath('xmlns:loc/text()', namespaces=namespaces).get()
+                yield scrapy.Request(link, self.parse_sitemap_article)
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
-            
+
     def parse_sitemap_article(self, response):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
         try:
-            published_date = response.meta["published_at"][:10]
-            date_only = datetime.strptime(published_date, "%Y-%m-%d").date()
+            link = response.url
+            title = response.css('#articleTitle::text').get()
+            published_at = response.css('.inline time::attr(datetime)').get()
+            date_only = datetime.strptime(published_at[:10], "%Y-%m-%d").date()
 
             if self.start_date and date_only < self.start_date:
                 return
             if self.end_date and date_only > self.end_date:
                 return
-            link = response.url
-            title = response.css("#contain_title::text").get()
 
-            if title:
+            if link and title and published_at:
                 data = {
-                    "link": link,
-                    "title": title,
+                    'link': link,
+                    'title': title,
                 }
-
                 if self.start_date is None and self.end_date is None:
-                    if date_only == TODAYS_DATE:
-                        if ".html" in link:
-                            self.articles.append(data)
-                else:
-                    if ".html" in link:
+                    if TODAYS_DATE == date_only:
                         self.articles.append(data)
+                elif self.start_date and self.end_date:
+                    self.articles.append(data)
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {e}"
