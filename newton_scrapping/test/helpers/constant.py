@@ -1,6 +1,6 @@
 """list of article/sitemap URLs for testing"""
 
-# Update below dictionary to add or remove new articles to test
+#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.mediapart.fr/journal/politique/250323/francois-ruffin-la-masse-le-nombre-c-est-le-seul-chemin-pour-la-victoire",
