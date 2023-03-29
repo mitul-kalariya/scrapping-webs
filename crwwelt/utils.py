@@ -371,7 +371,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "section": [data_dict.get("category")]
 
     }
-    return parsed_data_dict
+    return remove_empty_elements(parsed_data_dict)
 
 
 def get_author_and_publisher_details(block: dict) -> dict:

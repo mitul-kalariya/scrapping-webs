@@ -6,7 +6,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwwelt/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.welt.de/regionales/nrw/article244546000/Elf-Maschinenpistolen-bei-Kontrolle-auf-A44-entdeckt.html",
+        "url": "https://www.welt.de/finanzen/boerse/article244547726/Deutsche-Post-Aktie-Kurs-erholt-sich-Deutsche-Post-gleichauf-mit-Dax.html",
         "test_data_path": "crwwelt/test/data/test_article_2.json"
     },
     {

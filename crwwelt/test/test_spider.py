@@ -80,6 +80,7 @@ class TestArticle(unittest.TestCase):
         # Testing the image object inside parsed_data
         article_images = article[0].get("parsed_data").get("images")
         if article_images:
+            # TODO : Image URL is not fetched properly
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
