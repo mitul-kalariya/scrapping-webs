@@ -2,7 +2,6 @@
 # utils.py
 
 import os
-import re
 import json
 import logging
 import requests
@@ -66,7 +65,6 @@ def remove_empty_elements(parsed_data_dict):
     :rtype: dict
     """
 
-    # breakpoint()
     def empty(value):
         return value is None or value == {} or value == []
 
@@ -199,8 +197,6 @@ def get_parsed_data(response):
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
 
-        # article_label = response.css("div#article-label a::text").get()
-        # main_dict["category"] = [re.sub(pattern, "", article_label).strip()]
 
         headline = response.css("h1.cat-theme-color::text").getall()
         main_dict["title"] = headline
@@ -210,11 +206,6 @@ def get_parsed_data(response):
         main_data = get_main(response)
         main_dict["description"] = [main_data[0].get("description")]
 
-        # published_on = response.css(
-        #     "div.c-byline__datesWrapper > div > div.c-byline__date--pubDate > span::text"
-        # ).get()
-        # published_on = published_on.strip("Posted ")
-        # main_dict["published_at"] = [published_on]
 
         main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
@@ -234,7 +225,6 @@ def get_parsed_data(response):
 
         videos = get_embed_video_link(response)
         main_dict["embed_video_link"] = videos
-
         mapper = {"en-US": "English"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
@@ -281,7 +271,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -359,15 +349,15 @@ def get_author(response) -> list:
                 if "NewsArticle" in json.loads(block).get("@type", [{}]):
                     data = []
                     var = {
-                        "author": [
-                            {
+                        # "author": [
+                        #     {
                                 "@type": json.loads(block).get("author", [{}]).get("@type"),
                                 "name": json.loads(block).get("author", [{}]).get("name"),
                                 "url": json.loads(block)
                                 .get("author", [{}])
                                 .get("url", None),
-                            }
-                        ]
+                            # }
+                        # ]
                     }
                     data.append(var)
             return data

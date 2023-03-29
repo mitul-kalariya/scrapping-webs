@@ -3,6 +3,10 @@
 import scrapy
 import logging
 from datetime import datetime
+
+# from cssselect import Selector
+from scrapy.http import XmlResponse
+from scrapy.selector import Selector
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from crwbastillepost import exceptions
@@ -130,12 +134,13 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            # breakpoint()
-            for article_url in (
-                    response.css("item link::text").getall()
-            ):
-                # breakpoint()
-                yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
+            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xml_selector = Selector(xmlresponse)
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+                for link in sitemap.getall():
+                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -144,7 +149,6 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             raise exceptions.SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-        print("before this-----------------")
 
 
 
@@ -159,7 +163,6 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # breakpoint()
             if title := response.css("h1.cat-theme-color::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
@@ -171,7 +174,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             raise exceptions.SitemapArticleScrappingException(
                 f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
-        print("in thiss-------------")
+
 
 
     def parse_article(self, response: str) -> None:
