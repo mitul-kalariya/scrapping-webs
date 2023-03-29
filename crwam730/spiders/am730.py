@@ -5,7 +5,7 @@ import scrapy
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-#from crwam730.items import ArticleData
+from crwam730.items import ArticleData
 
 from crwam730.utils import (
     check_cmd_args,
@@ -139,7 +139,46 @@ class Am730(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        pass
+        try:
+            raw_response_dict = {
+                "content_type": response.headers.get("Content-Type").decode("utf-8"),
+                "content": response.text,
+            }
+            raw_response = get_raw_response(response, raw_response_dict)
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            articledata_loader.add_value("raw_response", raw_response)
+            parsed_json_dict = {}
+            parsed_json_main = response.css('script[type="application/ld+json"]::text')
+            parsed_json_misc = response.css('script[type="application/json"]::text')
+            if parsed_json_main:
+                parsed_json_dict["main"] = parsed_json_main
+                parsed_json_dict['ImageGallery'] = parsed_json_main
+                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['other'] = parsed_json_main
+            if parsed_json_misc:
+                parsed_json_dict["misc"] = parsed_json_misc
+            parsed_json_data = get_parsed_json(response, parsed_json_dict)
+            if parsed_json_data:
+                articledata_loader.add_value(
+                    "parsed_json",
+                    parsed_json_data,
+                )
+            articledata_loader.add_value(
+                "parsed_data", get_parsed_data(self, response, parsed_json_dict)
+            )
+            
+
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+        
+        except Exception as exception:
+            self.log(
+                f"Error occurred while fetching article details:- {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            ) from exception
 
     def closed(self, reason: any) -> None:
         """
@@ -157,7 +196,6 @@ class Am730(scrapy.Spider, BaseSpider):
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
-                breakpoint()
                 export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:

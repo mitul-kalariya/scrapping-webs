@@ -1,12 +1,11 @@
 import json
 import os
 from datetime import datetime
-# from scrapy.loader import ItemLoader
-# from crwfrancetv.videos import get_video
-# from crwfrancetv.items import (
-#     ArticleRawResponse,
-#     ArticleRawParsedJson,
-# )
+from scrapy.loader import ItemLoader
+from crwam730.items import (
+    ArticleRawResponse,
+    ArticleRawParsedJson,
+)
 from crwam730.constant import SITEMAP_URL
 from crwam730.exception import (
     InputMissingException,
@@ -122,7 +121,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsMediaOrganization"]
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
@@ -182,16 +181,17 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     article_data = dict(article_raw_parsed_json_loader.load_item())
     mapper = {"FRA": "France", "fr": "French"}
-    article_data["title"] = response.css('h1.c-title ::text').get()
+    article_data["title"] = response.css('.article__head-title').get()
+    breakpoint()
     article_data["section"] = response.css('li.breadcrumb__item a::text').getall()
-    selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
-    article_data["json_data"] = [json.loads(data) for data in selector]
+    # selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
+    # article_data["json_data"] = [json.loads(data) for data in selector]
     language = response.css("html::attr(lang)").get()
-    article_data["language"] = mapper.get(language)
-    article_data["country"] = mapper.get("FRA")
+    article_data["source_language"] = mapper.get(language)
+    article_data["source_country"] = mapper.get("FRA")
 
-    if article_data.get("main").get('video'):
-        article_data["video"] = get_video(self, response.url)
+    # if article_data.get("main").get('video'):
+    #     article_data["video"] = get_video(self, response.url)
 
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
@@ -220,9 +220,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
             })
         parsed_data_dict["author"] = [author_list]
 
-    parsed_data_dict["description"] = [article_data.get("main").get('description')]
+    parsed_data_dict["description"] = response.css('meta[name="description"]::attr(content)').get()
     parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
-    parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
+    parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').get()
 
     if "publisher" in list(article_data.get("main").keys()):
         key = "publisher"
@@ -241,7 +241,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
                 'height': {'@type': "Distance", 'name': str(
                     article_data.get("main").get(key).get('logo').get('height').get('value')) + " Px"}}}]
 
-    parsed_data_dict["text"] = [article_data.get("main").get('articleBody')]
+    parsed_data_dict["text"] = response.css('p::text').getall()
 
     if type(article_data.get("main").get('image')) is str:
         parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image')]
@@ -262,8 +262,8 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     else:
         parsed_data_dict["title"] = [article_data.get("title")]
 
-    parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
-    parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')
+    parsed_data_dict["section"] = response.css('.badge::text').get()
+    parsed_data_dict["tags"] =  response.css('.hashtags a::text').getall()
     parsed_data_dict['embedded_video_link'] = [article_data.get("video")]
 
     return remove_empty_elements(parsed_data_dict)
@@ -333,4 +333,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
