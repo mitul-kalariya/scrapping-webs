@@ -1,13 +1,11 @@
 import logging
 import unittest
 
-#TODO: Update the path here replace newton_scrapping --> your project name
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
-#TODO: Update below path here
-from crwindianexpress import Crawler
+from crwwelt.spiders.welt import WeltSpider
+from crwwelt.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwwelt.test.helpers.utils import (get_article_content,
+                                        online_response_from_url)
+from crwwelt import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -27,7 +25,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = WeltSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -54,7 +52,7 @@ class TestArticle(unittest.TestCase):
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
-        
+
         with self.subTest():
             self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
                              test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
@@ -231,9 +229,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
                                   list, "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
 
 
 

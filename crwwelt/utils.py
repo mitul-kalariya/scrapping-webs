@@ -5,11 +5,11 @@ import os
 
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import (
+from crwwelt.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwwelt.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,

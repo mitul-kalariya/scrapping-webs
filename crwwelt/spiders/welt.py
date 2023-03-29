@@ -10,8 +10,8 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwwelt.items import ArticleData
+from crwwelt.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
@@ -19,7 +19,7 @@ from newton_scrapping.utils import (
     get_parsed_data,
     remove_empty_elements,
 )
-from newton_scrapping.exceptions import (
+from crwwelt.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -246,8 +246,8 @@ class WeltSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
