@@ -191,9 +191,10 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         tag_list = response.css('nav.ccmcss_breadcrumb div a span::text').getall()
 
     parsed_data_dict = get_parsed_data_dict()
-    if article_data.get("main")[0].get('@type') == "NewsArticle":
+
+    if article_data.get("main")[0].get('@type') in ["NewsArticle", "Article"] :
         index = 0
-    elif article_data.get("main")[1].get('@type') == "NewsArticle":
+    elif article_data.get("main")[1].get('@type') in ["NewsArticle", "Article"]:
         index = 1
 
     parsed_data_dict["author"] = [
@@ -207,10 +208,13 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["modified_at"] = [article_data.get("main")[index].get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main")[index].get('datePublished')]
     parsed_data_dict["publisher"] = [{
+        '@id': article_data.get("main")[index].get('publisher').get('url').split('/')[2],
         '@type': article_data.get("main")[index].get('publisher').get('@type'),
         "name": article_data.get("main")[index].get('publisher').get('name'),
-        'url': article_data.get("main")[index].get('publisher').get('url'),
+
         "logo":{
+            "@type": article_data.get("main")[index].get('publisher').get('logo').get("@type"),
+            "url": article_data.get("main")[index].get('publisher').get('logo').get("url"),
             'width': {'@type': "Distance",
                       "name": str(article_data.get("main")[index]['publisher']['logo']['width']) + " Px"},
             'height': {'@type': "Distance",
@@ -223,7 +227,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
                                    "caption": article_data.get('main')[index].get('image').get('name')}]
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    parsed_data_dict['section'] = tag_list[1]
+    parsed_data_dict['section'] = [tag_list[1]]
     parsed_data_dict['tags'] = tag_list
 
     return remove_empty_elements(parsed_data_dict)

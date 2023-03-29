@@ -69,7 +69,6 @@ class Linternaute(scrapy.Spider, BaseSpider):
 
         check_cmd_args(self, self.start_date, self.end_date)
 
-
     def parse(self, response):
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
@@ -88,7 +87,7 @@ class Linternaute(scrapy.Spider, BaseSpider):
 
             mod_date = Selector(response, type='xml')\
                 .xpath('//sitemap:lastmod/text()',
-                        namespaces=self.namespace).getall()
+                       namespaces=self.namespace).getall()
             try:
                 for url, date in zip(site_map_url, mod_date):
                     _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
@@ -102,6 +101,7 @@ class Linternaute(scrapy.Spider, BaseSpider):
                         if self.today_date == _date:
                             yield scrapy.Request(
                                 url, callback=self.parse_sitemap)
+
             except Exception as e:
                 self.logger.exception(f"Error in parse_sitemap:- {e}")
         elif self.type == "article":
@@ -132,14 +132,15 @@ class Linternaute(scrapy.Spider, BaseSpider):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
                     if _date == self.today_date:
-                        yield scrapy.Request(
-                            url, callback=self.parse_sitemap_article)
+                        if "ville" not in url and "television" not in url and "account" not in url:
+                            yield scrapy.Request(
+                                url, callback=self.parse_sitemap_article)
                 else:
                     
                     if self.start_date <= _date <= self.end_date:
-
-                        yield scrapy.Request(
-                            url, callback=self.parse_sitemap_article)
+                        if "ville" not in url and "television" not in url and "account" not in url:
+                            yield scrapy.Request(
+                                url, callback=self.parse_sitemap_article)
                         
         except Exception as exception:
             self.log(
@@ -159,8 +160,9 @@ class Linternaute(scrapy.Spider, BaseSpider):
         try:
             # Extract the article title from the response
             title = response.css('div.entry h1::text').get()
+            type_of_news = response.css('header.cp_diapo-header').get()
             # If the title exists, add the article information to the list of articles
-            if title:
+            if title and not type_of_news:
                 article = {
                     "link": response.url,
                     "title": title
