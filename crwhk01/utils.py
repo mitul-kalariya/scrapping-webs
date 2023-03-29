@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+
 from crwhk01 import exceptions
 from crwhk01.constant import BASE_URL, LOGGER, TODAYS_DATE
 
@@ -54,9 +55,9 @@ def validate_sitemap_date_range(since, until):
             )
 
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.error(f"Error in __init__: {str(exception)}", exc_info=True)
+        raise exceptions.InvalidDateException(f"Error in __init__: {str(exception)}")
 
 
 def get_raw_response(response):
@@ -113,9 +114,9 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+    except BaseException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting main: {str(exception)}")
 
 
 def get_misc(response):
@@ -132,9 +133,9 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+    except BaseException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting misc: {str(exception)}")
 
 
 def get_parsed_data(response):
@@ -306,24 +307,43 @@ def get_publisher(response) -> list:
     return [a_dict]
 
 
-def get_images(response) -> list:
+def get_images(response, parsed_json=False) -> list:
+    breakpoint()
     """
     Extracts all the images present in the web page.
     Returns:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    info = response.css("#article-content-section .cursor-pointer")
-    data = []
-    if info:
-        for i in info:
-            temp_dict = {}
-            image = i.css("div.embedimgblock img::attr(src)").get()
-            if image:
-                temp_dict["link"] = image
-            data.append(temp_dict)
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    driver.get(response.url)
+    
+    try:
+        images =  driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
+        data = []
+        if images:
+            for image in images:
+                print("++++++++++++++++++++++++++++++", image)
+                temp_dict = {}
+                link = [image.get_attribute("src").replace("blob:", "")]
+                # caption = image.css("figcaption small::text").get()
+                if parsed_json:
+                    if link:
+                        temp_dict["@type"] = "ImageObject"
+                        temp_dict["link"] = link
+                else:
+                    if link:
+                        temp_dict["link"] = link
+                        # if caption:
+                        #     temp_dict["caption"] = caption
+                data.append(temp_dict)
+            return data
+    except:
+        LOGGER.error("Video not found in this article")
+    driver.quit()
     return data
-
 
 def remove_empty_elements(parsed_data_dict):
     """
