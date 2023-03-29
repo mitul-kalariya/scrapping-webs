@@ -2,7 +2,7 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://orientaldaily.on.cc/content/%E8%A6%81%E6%B8%AF%E8%A6%81%E8%81%9E/odn-20230329-0329_00174_002/%E5%88%86%E4%BA%AB%E5%88%A9%E6%BD%A4%E6%AD%B8%E5%85%A5%E7%AE%97%E5%BC%8F--%E6%96%B0%E5%88%B6%E5%B0%91%E9%80%BE%E5%84%84%E5%84%AA%E6%83%A0/",
         "test_data_path": "crworientaldaily/test/data/test_article_1.json"
     },
     {

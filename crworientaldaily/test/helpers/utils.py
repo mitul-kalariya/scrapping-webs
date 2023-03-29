@@ -12,10 +12,10 @@ def online_response_from_url(url: str) -> TextResponse:
     Returns:
         TextResponse: Converted Response object
     """
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
+    request = Request(url=url, headers=headers)
 
-    request = Request(url=url)
-
-    raw_response = requests.get(url)
+    raw_response = requests.get(url, headers=headers)
 
     response = TextResponse(url=url, request=request, headers=raw_response.headers,
                             body=raw_response.text, encoding='utf-8')

@@ -61,6 +61,9 @@ class Crawler:
             if self.query.get('since') and self.query.get('until'):
                 spider_args['start_date'] = self.query['since']
                 spider_args['end_date'] = self.query['until']
+            process_settings = process.settings
+            process_settings['USER_AGENT'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+            process.settings = process_settings
         else:
             raise Exception('Invalid Type')
 
