@@ -10,8 +10,9 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from crwglobeandmail.items import ArticleData
-from crwglobeandmail.utils import (
+from crwnationalpost.items import ArticleData
+from crwnationalpost.utils import (
+    date_range,
     validate,
     get_raw_response,
     get_parsed_json,
@@ -19,7 +20,7 @@ from crwglobeandmail.utils import (
     get_parsed_data,
     remove_empty_elements,
 )
-from crwglobeandmail.exceptions import (
+from crwnationalpost.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
@@ -56,11 +57,11 @@ class BaseSpider(ABC):
         pass
 
 
-class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
+class NationalPostSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of Globe and Mail online (EN) site"""
 
-    name = "the_globe_and_mail"
-    start_urls = ["http://www.theglobeandmail.com/"]
+    name = "national_post"
+    start_urls = ["https://nationalpost.com/"]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
     def __init__(
@@ -68,7 +69,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
     ):
         """init method to take date, type and validating it"""
 
-        super(TheGlobeAndMailSpider, self).__init__(*args, **kwargs)
+        super(NationalPostSpider, self).__init__(*args, **kwargs)
 
         try:
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -93,7 +94,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
             self.start_urls.append(
                 url
                 if self.type == "article"
-                else "https://www.theglobeandmail.com/web-sitemap.xml"
+                else "https://nationalpost.com/sitemap.xml"
             )
 
         except Exception as exception:
@@ -125,11 +126,24 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
                 f"Unable to scrape due to getting this status code {response.status}"
             )
         self.logger.info("Parse function called on %s", response.url)
-        if "web-sitemap.xml" in response.url:
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
+        if "sitemap.xml" in response.url:
+            for single_date in date_range(self.scrape_start_date, self.scrape_end_date):
+                try:
+                    self.logger.debug("Parse function called on %s", response.url)
+                    yield scrapy.Request(
+                        f"https://nationalpost.com/sitemap-story.xml?y={single_date.year}"
+                        + f"&m={single_date.month}&d={single_date.day}",
+                        callback=self.parse_sitemap,
+                    )
+                except Exception as exception:
+                    self.log(
+                        f"Error occurred while iterating sitemap url. {str(exception)}",
+                        level=logging.ERROR,
+                    )
         else:
             yield self.parse_article(response)
 
+            
     def parse_sitemap(self, response: str) -> None:
         """
         parse sitemap from sitemap url and callback parser to parse title and link
@@ -171,7 +185,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if title := response.css("h1.c-primary-title::text").get():
+            if title := response.css("h1.article-title::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
@@ -242,8 +256,8 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

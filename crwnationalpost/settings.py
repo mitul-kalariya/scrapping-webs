@@ -1,4 +1,4 @@
-# Scrapy settings for crwglobeandmail project
+# Scrapy settings for newton_scrapping project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,14 +7,15 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "crwglobeandmail"
+BOT_NAME = "crwnationalpost"
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+SPIDER_MODULES = ["crwnationalpost.spiders"]
+NEWSPIDER_MODULE = "crwnationalpost.spiders"
 
-SPIDER_MODULES = ["crwglobeandmail.spiders"]
-NEWSPIDER_MODULE = "crwglobeandmail.spiders"
-
+REFERER_ENABLED = False
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "crwglobeandmail (+http://www.yourdomain.com)"
+#USER_AGENT = "newton_scrapping (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -45,13 +46,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "crwglobeandmail.middlewares.NewtonScrappingSpiderMiddleware": 543,
+#    "newton_scrapping.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "crwglobeandmail.middlewares.NewtonScrappingDownloaderMiddleware": 543,
+#    "newton_scrapping.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +64,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "crwglobeandmail.pipelines.NewtonScrappingPipeline": 300,
+#    "newton_scrapping.pipelines.NewtonScrappingPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)

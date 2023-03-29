@@ -1,3 +1,4 @@
+"""Utility Functions"""
 """ General functions """
 from datetime import timedelta, datetime
 import json
@@ -5,7 +6,7 @@ import os
 
 from scrapy.loader import ItemLoader
 
-from crwglobeandmail.items import (
+from crwnationalpost.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
@@ -335,10 +336,10 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         Dictionary with Parsed json response from generated data
     """
     data_dict = get_author_and_publisher_details(parsed_json_main)
-    text = response.css("p.c-article-body__text::text").getall()
+    text = response.css("section.article-content__content-group > p::text").getall()
     image = {
         "link": data_dict.get("image_url"),
-        "caption": data_dict.get("image_caption")
+        "caption": response.css("#main-content > article > header > div > figure > picture > img::attr(alt)").get()
     }
 
     caption = response.css(".c-text span::text").getall()
@@ -360,7 +361,9 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     parsed_data_dict |= {
         "title": [data_dict.get("title")],
         "text": [" ".join(text)],
-        "thumbnail_image": [data_dict.get("thumbnail_image")]
+        "section": [data_dict.get("section")],
+        "thumbnail_image": [data_dict.get("thumbnail_image")],
+        
     }
     parsed_data_dict |= {
         "images": [image] or [{"link": image, "caption": caption}],
@@ -392,6 +395,8 @@ def get_author_and_publisher_details(block: dict) -> dict:
         "image_caption": block.get("image", {}).get("description"),
         "thumbnail_image": block.get("thumbnailUrl"),
         "headline": block.get("headline"),
+        "section": block.get("articleSection"),
+        "tags": block.get("keywords")
     }
     data_dict["author"] = []
     if block.get("author"):
@@ -420,18 +425,11 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
         dict: details of publisher to pass to json
     """
     return [{
-            "@id": data_dict.get("publisher_id", "www.theglobeandmail.com"),
+            
             "@type": data_dict.get("publisher_type"),
             "name": data_dict.get("publisher_name"),
             "logo": {
                 "type": data_dict.get("logo_type", "ImageObject"),
                 "url": data_dict.get("logo_url"),
-                "width": {
-                    "@type": "Distance",
-                    "name": f"{data_dict.get('logo_width')} px"
-                } if data_dict.get("logo_width") else None,
-                "height": {
-                    "@type": "Distance",
-                    "name": f"{data_dict.get('logo_height')} px"
-                } if data_dict.get("logo_width") else None
+                
             }}]

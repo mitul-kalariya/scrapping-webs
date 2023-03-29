@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
-from crwglobeandmail.spiders.the_globe_and_mail import TheGlobeAndMailSpider
-
+#TODO: Change path and spider name here
+from crwnationalpost.spiders.national_post import NationalPostSpider
 
 class Crawler:
     """
@@ -62,6 +62,10 @@ class Crawler:
             if self.query.get('since') and self.query.get('until'):
                 spider_args['start_date'] = self.query['since']
                 spider_args['end_date'] = self.query['until']
+            process_settings = process.settings
+            process_settings["DOWNLOAD_DELAY"]= 0.25
+            process_settings["REFERER_ENABLED"] = False
+            process.settings = process_settings
         else:
             raise Exception('Invalid Type')
 
@@ -75,7 +79,8 @@ class Crawler:
             process_settings['HTTP_PROXY_PASS'] = self.proxies['proxyPassword']
             process.settings = process_settings
 
-        process.crawl(TheGlobeAndMailSpider, **spider_args)
+        #TODO: Replace the Spider name after importing
+        process.crawl(NationalPostSpider, **spider_args)
         process.start()
         return self.output
 
