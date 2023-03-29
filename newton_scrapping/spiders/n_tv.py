@@ -131,8 +131,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                             date_only = datetime.strptime(
                                 published_at[:10], "%Y-%m-%d"
                             ).date()
-
-                            if not self.start_date and not self.end_date:
+                            if self.start_date is None and  self.end_date is None:
                                 if TODAYS_DATE == date_only:
                                     yield scrapy.Request(
                                     link,
@@ -145,12 +144,12 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                                     continue
                                 if self.end_date and date_only > self.end_date:
                                     continue
-
-                                yield scrapy.Request(
-                                    link,
-                                    callback=self.parse_sitemap_article,
-                                    meta={"published_at": published_at},
-                                )
+                                if self.start_date and self.end_date:
+                                    yield scrapy.Request(
+                                        link,
+                                        callback=self.parse_sitemap_article,
+                                        meta={"published_at": published_at},
+                                    )
         except BaseException as e:
             LOGGER.error(f"Error while parsing sitemap: {e}")
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -161,7 +160,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             published_date = response.meta["published_at"][:10]
-            date_only = datetime.strptime(published_date, "%Y-%m-%d").date()
+            date_only = datetime.strptime(
+                                published_date, "%Y-%m-%d"
+                            ).date()
 
             if self.start_date and date_only < self.start_date:
                 return
@@ -179,7 +180,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 if self.start_date is None and self.end_date is None:
                     today_date = datetime.today().strftime("%Y-%m-%d")
                     today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
-                    if date_only == today_date:
+                    if date_only == TODAYS_DATE:
                         self.articles.append(data)
                 else:
                     self.articles.append(data)
