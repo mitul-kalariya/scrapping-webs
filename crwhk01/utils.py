@@ -1,15 +1,22 @@
 # Utility/helper functions
 # utils.py
+import json
+import logging
 import os
 import re
-import json
-import requests
-from io import BytesIO
-from PIL import Image
-import logging
 from datetime import datetime
+from io import BytesIO
+
+import requests
+from PIL import Image
+from scrapy.selector import Selector
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+
 from crwhk01 import exceptions
-from crwhk01.constant import TODAYS_DATE, LOGGER, BASE_URL
+from crwhk01.constant import BASE_URL, LOGGER, TODAYS_DATE
 
 
 def create_log_file():
@@ -22,38 +29,30 @@ def create_log_file():
     )
 
 
-def validate_sitemap_date_range(start_date, end_date):
+def validate_sitemap_date_range(since, until):
     """validated date range given by user
     Args:
         start_date (str): start_date
         end_date (str): end_date
     """
-    start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    since = (datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE)
+    until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
     try:
-        if start_date and not end_date:
+        if (since and not until) or (not since and until):
             raise exceptions.InvalidDateException(
-                "end_date must be specified if start_date is provided"
-            )
-        if not start_date and end_date:
-            raise exceptions.InvalidDateException(
-                "start_date must be specified if end_date is provided"
+                "start_date or end_date must be specified"
             )
 
-        if start_date and end_date and start_date > end_date:
+        if since and until and since > until:
             raise exceptions.InvalidDateException(
                 "start_date should not be later than end_date"
             )
 
-        if start_date and end_date and start_date == end_date:
+        if since > TODAYS_DATE or until > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
+                "start_date and end_date should not be greater than today_date"
             )
 
-        if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
-            )
 
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
@@ -173,14 +172,14 @@ def get_parsed_data(response):
     main_dict["description"] = [description]
     publisher = get_publisher(response)
     main_dict["publisher"] = publisher
-    # article_text = response.css("section p::text").getall()
-    # main_dict["text"] = [" ".join(article_text)]
-    # thumbnail = get_thumbnail_image(response)
-    # main_dict["thumbnail_image"] = thumbnail
+    article_text = response.css("#article-content-section strong::text , #article-content-section .md\:mb-8::text, #article-content-section .break-words::text").getall()
+    main_dict["text"] = [" ".join(article_text)]
+    thumbnail = get_thumbnail_image(response)
+    main_dict["thumbnail_image"] = thumbnail
     headline = response.css("#articleTitle::text").get().strip()
     main_dict["title"] = [headline]
-    # article_images = get_images(response)
-    # main_dict["images"] = article_images
+    article_images = get_images(response)
+    main_dict["images"] = article_images
     # video = get_embed_video_link(response)
     # main_dict["embed_video_link"] = video
     article_lang = response.css("html::attr(lang)").get()
@@ -234,25 +233,32 @@ def get_author(response) -> list:
 
 def get_thumbnail_image(response) -> list:
     """
-    The function extract_thumbnail extracts information about the thumbnail image(s) associated with a webpage,
+    Extracts information about the thumbnail image(s) associated with a webpage,
     including its link, width, and height, and returns the information as a list of dictionaries.
     Returns:
         A list of dictionaries, with each dictionary containing information about an image.
             If no images are found, an empty list is returned.
     """
-    info = response.css("div.gallery-item")
-    mod_info = response.css(".storypicture img.width100")
-    data = []
-    if info:
-        for i in info:
-            image = i.css("div.gallery-item-img-wrapper img::attr(src)").get()
-            if image:
-                data.append(image)
-    elif mod_info:
-        for i in mod_info:
-            image = i.css("img::attr(src)").get()
-            if image:
-                data.append(image)
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    driver.get(response.url)
+
+    data = {}
+    try:
+        thumbnails = driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
+
+        if thumbnails:
+            for i in thumbnails:
+                try:
+                    return [i.get_attribute(
+                        "src").replace("blob:", "")]
+                except:
+                    return [i.get_attribute(
+                        "src").replace("blob:", "")]
+    except:
+        LOGGER.error("Video not found in this article")
+    driver.quit()
     return data
 
 
@@ -270,7 +276,7 @@ def get_embed_video_link(response) -> list:
             link = response.json().get("playlist")[0].get("sources")[1].get("file")
             temp_dict = {"link": link}
             data.append(temp_dict)
-    return data
+    return data 
 
 
 def get_publisher(response) -> list:
@@ -307,7 +313,7 @@ def get_images(response) -> list:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    info = response.css("div.embedpicture")
+    info = response.css("#article-content-section .cursor-pointer")
     data = []
     if info:
         for i in info:
@@ -377,4 +383,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii = False)
