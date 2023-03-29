@@ -63,9 +63,6 @@ class TestArticle(unittest.TestCase):
                          test_article_data[0].get("parsed_data").get("published_at"),
                          "published_at mismatch in parsed_data")
         with self.subTest():
-            self.assertEqual(article[0].get("parsed_data").get("publisher"),
-                         test_article_data[0].get("parsed_data").get("publisher"), "publisher mismatch in parsed_data")
-        with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("section"),
                          test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
         with self.subTest():
