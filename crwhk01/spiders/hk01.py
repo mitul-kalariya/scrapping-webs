@@ -38,21 +38,21 @@ class BaseSpider(ABC):
     def parse_article(self, response: str) -> list:
         pass
 
-class NTvSpider(scrapy.Spider, BaseSpider):
+class HK01Spider(scrapy.Spider, BaseSpider):
     name = "hk01"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, type=None, since=None,  until=None, url=None ,**kwargs):
         """
         Initializes a web scraper object with the given parameters.
         Parameters:
         type (str): The type of scraping to be performed. Either "sitemap" or "article".
-        start_date (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
+        sinde (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
         url (str): The URL of the article to be scraped. Required if type is "article".
-        end_date (str): The end date of the time period to be scraped, in the format "YYYY-MM-DD".
+        until (str): The end date of the time period to be scraped, in the format "YYYY-MM-DD".
         **kwargs: Additional keyword arguments to be passed to the superclass constructor.
         Raises:
-        ValueError: If the start_date and/or end_date are invalid.
-        InvalidDateRange: If the start_date is later than the end_date.
+        ValueError: If the since date and/or until date are invalid.
+        InvalidDateRange: If the since is later than the until date.
         Exception: If no URL is provided when type is "article".
         """
         super().__init__(**kwargs)
@@ -68,13 +68,13 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         if self.type == "sitemap":
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
-                self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                self.since = (
+                    datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
                 )
-                self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                self.until = (
+                    datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
                 )
-                validate_sitemap_date_range(start_date, end_date)
+                validate_sitemap_date_range(since, until)
         elif self.type == "article":
             if url:
                 self.start_urls.append(url)
@@ -98,9 +98,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            print(f"Error while parse function: {e}")
-            LOGGER.error(f"Error while parse function: {e}")
+        except BaseException as exception:
+            print(f"Error while parse function: {str(exception)}")
+            LOGGER.error(f"Error while parse function: {str(exception)}")
 
 
     def parse_article(self, response) -> list:
@@ -135,9 +135,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             for url in response.xpath('//xmlns:url', namespaces=namespaces):
                 link = url.xpath('xmlns:loc/text()', namespaces=namespaces).get()
                 yield scrapy.Request(link, self.parse_sitemap_article)
-        except BaseException as e:
-            LOGGER.error("Error while parsing sitemap: {}".format(e))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {str(exception)}")
 
     def parse_sitemap_article(self, response):
         """
@@ -149,9 +149,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             published_at = response.css('.inline time::attr(datetime)').get()
             date_only = datetime.strptime(published_at[:10], "%Y-%m-%d").date()
 
-            if self.start_date and date_only < self.start_date:
+            if self.since and date_only < self.until:
                 return
-            if self.end_date and date_only > self.end_date:
+            if self.until and date_only > self.until:
                 return
 
             if link and title and published_at:
@@ -159,16 +159,16 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                     'link': link,
                     'title': title,
                 }
-                if self.start_date is None and self.end_date is None:
+                if self.since is None and self.until is None:
                     if TODAYS_DATE == date_only:
                         self.articles.append(data)
-                elif self.start_date and self.end_date:
+                elif self.since and self.until:
                     self.articles.append(data)
-        except BaseException as e:
+        except BaseException as exception:
             exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {e}"
+                f"Error while filtering date wise: {str(exception)}"
             )
-            LOGGER.error(f"Error while filtering date wise: {e}")
+            LOGGER.error(f"Error while filtering date wise: {str(exception)}")
 
 
     def closed(self, reason: any) -> None:
@@ -199,5 +199,5 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
-    process.crawl(NTvSpider)
+    process.crawl(HK01Spider)
     process.start()
