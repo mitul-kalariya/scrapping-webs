@@ -5,7 +5,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 from scrapy.http import Response
-from .exceptions import (
+from crwleparisien.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,

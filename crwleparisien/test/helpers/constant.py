@@ -5,15 +5,15 @@ TEST_ARTICLES = [
     {
         "url": "https://www.leparisien.fr/faits-divers/il-a-gagne-ma-confiance-nordine-s-lescroc-des-coeurs-qui-a-soutire-au-moins-43000-euros-a-ses-victimes-28-03-2023-YQV22USD2NBWLEOTOQEOVLIGFQ.php",
         "test_data_path": "crwleparisien/test/data/test_article_1.json"
+    },
+    {
+        "url": "https://www.leparisien.fr/environnement/insectes-avec-le-rechauffement-climatique-les-pollinisateurs-ont-le-bourdon-29-03-2023-OXR4DH7M2BD3VBOLBTCILKZJ7Y.php",
+        "test_data_path": "crwleparisien/test/data/test_article_2.json"
+    },
+    {
+        "url": "https://www.leparisien.fr/sports/football/rennes-fin-de-saison-pour-adrien-truffert-vers-un-forfait-pour-leuro-espoirs-29-03-2023-EDKP5MPZXBAHBC22JUZ37ZGZSE.php",
+        "test_data_path": "crwleparisien/test/data/test_article_3.json"
     }
-    # {
-    #     "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
-    #     "test_data_path": "crwleparisien/test/data/test_article_2.json"
-    # },
-    # {
-    #     "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
-    #     "test_data_path": "crwleparisien/test/data/test_article_3.json"
-    # }
 ]
 
 SITEMAP_URL = "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap/?from=0&outputType=xml&_website=leparisien"
