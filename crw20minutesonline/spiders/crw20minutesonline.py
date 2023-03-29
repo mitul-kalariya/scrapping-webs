@@ -8,10 +8,10 @@ import scrapy
 
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
-from crw20minutesonline.constant import BASE_URL, SITEMAP_URL
 from scrapy.loader import ItemLoader
+from crw20minutesonline.constant import (BASE_URL, SITEMAP_URL)
 
-from crw20minutesonline.items import ArticleData
+from crw20minutesonline.items import (ArticleData)
 from crw20minutesonline.utils import (
     based_on_scrape_type,
     date_in_date_range,
@@ -58,7 +58,7 @@ class BaseSpider(ABC):
 
 
 class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
-    """Spider class to scrap sitemap and articles of TVA News site"""
+    """Spider class to scrap sitemap and articles of 20 minutes online News site"""
 
     name = "20_minutes"
     start_urls = [BASE_URL]
@@ -208,10 +208,14 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                     "parsed_json",
                     parsed_json_data,
                 )
-            # articledata_loader.add_value(
-            #     "parsed_data",
-            #     get_parsed_data(response, parsed_json_data.get("main", [{}])),
-            # )
+            articledata_loader.add_value(
+                "parsed_data",
+                get_parsed_data(
+                    response,
+                    parsed_json_data.get("main", [{}]),
+                    parsed_json_data.get("VideoObject"),
+                ),
+            )
 
             self.articles.append(
                 remove_empty_elements(dict(articledata_loader.load_item()))
