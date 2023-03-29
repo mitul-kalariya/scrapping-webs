@@ -5,7 +5,7 @@ from itemloaders.processors import (
 )
 from scrapy.loader import ItemLoader
 from w3lib.html import remove_tags
-from newton_scrapping.constant import (
+from crwleparisien.constant import (
     TYPE,
     LIST_OF_PARSED_JSON_OBJECT,
     NEWS_ARTICLE,

@@ -11,17 +11,17 @@ from .exceptions import (
     InvalidArgumentException,
 )
 from w3lib.html import remove_tags
-from newton_scrapping.constant import (
+from crwleparisien.constant import (
     SITEMAP_URL,
     DATE_FORMAT,
     TYPE,
     PARSED_DATA_KEYS_LIST,
 )
-from newton_scrapping.itemLoader import (
+from crwleparisien.itemLoader import (
     ArticleRawResponseLoader,
     ArticleRawParsedJsonLoader
 )
-from newton_scrapping.items import (
+from crwleparisien.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )

@@ -1,20 +1,20 @@
 import logging
 from abc import ABC, abstractmethod
-from newton_scrapping.itemLoader import ArticleDataLoader
+from crwleparisien.itemLoader import ArticleDataLoader
 import scrapy
 
 from datetime import datetime
-from newton_scrapping.items import ArticleData
+from crwleparisien.items import ArticleData
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 
-from newton_scrapping.exceptions import (
+from crwleparisien.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
-from newton_scrapping.utils import (
+from crwleparisien.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
@@ -60,6 +60,7 @@ class LeParisien(scrapy.Spider, BaseSpider):
     def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
         try:
             super(LeParisien, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -242,6 +243,8 @@ class LeParisien(scrapy.Spider, BaseSpider):
             :param reason: the reason for the spider's closure
             """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
