@@ -121,7 +121,19 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 f"Unable to scrape due to getting this status code {response.status}"
             )
 
-        if "news.xml" in response.url:
+        if "archives/" in response.url:
+            for single_date in self.date_range_lst:
+                try:
+                    self.logger.debug("Parse function called on %s", response.url)
+                    yield scrapy.Request(
+                        f"https://www.20minutes.fr/archives/{single_date.year}/{single_date.month}-{single_date.day}",
+                        callback=self.parse_sitemap,
+                    )
+                except Exception as exception:
+                    self.log(
+                        f"Error occurred while iterating sitemap url. {str(exception)}",
+                        level=logging.ERROR,
+                    )
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
         else:
             yield self.parse_article(response)
@@ -136,30 +148,17 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        for link, date in zip(
-            Selector(response, type="xml")
-            .xpath("//sitemap:loc/text()", namespaces=self.namespace)
-            .getall(),
-            Selector(response, type="xml")
-            .xpath("//sitemap:publication_date/text()", namespaces=self.namespace_news)
-            .getall(),
-        ):
-            try:
-                date_datetime_obj = datetime.strptime(
-                    date.strip()[:-6], "%Y-%m-%dT%H:%M:%S"
-                )
-                if date_in_date_range(date_datetime_obj, self.date_range_lst):
-                    yield scrapy.Request(
-                        link.strip(), callback=self.parse_sitemap_article
-                    )
-            except Exception as exception:  # pylint: disable=broad-except
-                self.log(
-                    f"Error occurred while fetching sitemap:- {str(exception)}",
-                    level=logging.ERROR,
-                )
-                raise SitemapScrappingException(
-                    f"Error occurred while fetching sitemap:- {str(exception)}"
-                ) from exception
+        try:
+            for url in response.css("ul.spreadlist>li>a::attr(href)").getall():
+                yield scrapy.Request(BASE_URL + url[1:], callback=self.parse_sitemap_article)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while fetching sitemap:- {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
         """
@@ -172,7 +171,7 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if title := response.css(".story-title h1::text").get():
+            if title := response.css("h1.nodeheader-title::text").get().replace("\xa0",""):
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
@@ -209,10 +208,10 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                     "parsed_json",
                     parsed_json_data,
                 )
-            articledata_loader.add_value(
-                "parsed_data",
-                get_parsed_data(response, parsed_json_data.get("main", [{}])),
-            )
+            # articledata_loader.add_value(
+            #     "parsed_data",
+            #     get_parsed_data(response, parsed_json_data.get("main", [{}])),
+            # )
 
             self.articles.append(
                 remove_empty_elements(dict(articledata_loader.load_item()))
@@ -244,8 +243,8 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

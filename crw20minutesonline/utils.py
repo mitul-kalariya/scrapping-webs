@@ -41,6 +41,7 @@ def sitemap_validations(
         date: return current date if user not passed any date parameter
     """
     if scrape_start_date and scrape_end_date:
+        validate_arg(InvalidDateException, scrape_start_date <= datetime.now().date() and scrape_end_date <= datetime.now().date())
         validate_arg(InvalidDateException, not scrape_start_date > scrape_end_date)
         validate_arg(
             InvalidDateException,
@@ -105,7 +106,7 @@ def date_in_date_range(published_date, date_range_lst):
     return published_date.date() in date_range_lst
 
 
-def validate_arg(param_name, param_value, custom_msg=None) -> None:
+def validate_arg(param_name, param_value, custom_msg="") -> None:
     """
     Validate the param.
 
@@ -189,14 +190,12 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "misc": [],
     }
     for block in blocks:
-        if json.loads(block).get("@graph", None):
-            for sub_block in json.loads(block).get("@graph", [{}]):
-                if "NewsArticle" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["main"] = sub_block
-                elif "ImageGallery" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["ImageGallery"] = sub_block
-                elif "VideoObject" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["VideoObject"] = sub_block
+        if "NewsArticle" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = json.loads(block)
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
