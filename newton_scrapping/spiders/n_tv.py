@@ -113,6 +113,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 namespaces={"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"},
             ):
                 for link in sitemap.getall():
+                    if link == "https://www.n-tv.de/sitemap/sitemap-sections.xml.gz":
+                        continue
                     days_back_date = TODAYS_DATE  - timedelta(days=30)
                     if link.split("/")[-1].split(".")[0][8:] + "-0" > days_back_date.strftime('%Y-%m-%d'):
                         r = requests.get(link, stream=True)
@@ -124,24 +126,31 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                         lastmod = soup.find_all("lastmod")
 
                         for particular_link, published_date in zip(loc, lastmod):
-                            if "thema" in particular_link:
-                                continue
                             link = particular_link.text
                             published_at = published_date.text
                             date_only = datetime.strptime(
                                 published_at[:10], "%Y-%m-%d"
                             ).date()
 
-                            if self.start_date and date_only < self.start_date:
-                                continue
-                            if self.end_date and date_only > self.end_date:
-                                continue
+                            if not self.start_date and not self.end_date:
+                                if TODAYS_DATE == date_only:
+                                    yield scrapy.Request(
+                                    link,
+                                    callback=self.parse_sitemap_article,
+                                    meta={"published_at": published_at},
+                                )
+                                    
+                            else:
+                                if self.start_date and date_only < self.start_date:
+                                    continue
+                                if self.end_date and date_only > self.end_date:
+                                    continue
 
-                            yield scrapy.Request(
-                                link,
-                                callback=self.parse_sitemap_article,
-                                meta={"published_at": published_at},
-                            )
+                                yield scrapy.Request(
+                                    link,
+                                    callback=self.parse_sitemap_article,
+                                    meta={"published_at": published_at},
+                                )
         except BaseException as e:
             LOGGER.error(f"Error while parsing sitemap: {e}")
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -161,19 +170,19 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
             link = response.url
             title = response.css(".article__headline::text").get()
+            if link and title:
+                data = {
+                    "link": link,
+                    "title": title,
+                }
 
-            data = {
-                "link": link,
-                "title": title,
-            }
-
-            if self.start_date is None and self.end_date is None:
-                today_date = datetime.today().strftime("%Y-%m-%d")
-                today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
-                if date_only == today_date:
+                if self.start_date is None and self.end_date is None:
+                    today_date = datetime.today().strftime("%Y-%m-%d")
+                    today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
+                    if date_only == today_date:
+                        self.articles.append(data)
+                else:
                     self.articles.append(data)
-            else:
-                self.articles.append(data)
         except BaseException as e:
             self.logger.error(
                 f"Error occurring while extracting link, title {e} in make_sitemap function"
