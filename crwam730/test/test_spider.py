@@ -2,9 +2,9 @@ import logging
 import unittest
 
 #TODO: Update the path here replace newton_scrapping --> your project name
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
+from crwam730.spiders.indian_express import IndianExpressSpider
+from crwam730.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwam730.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
 #TODO: Update below path here
 from crwindianexpress import Crawler
