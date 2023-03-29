@@ -8,10 +8,10 @@ import scrapy
 
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
-from crw20minutesonline.constant import BASE_URL, SITEMAP_URL
 from scrapy.loader import ItemLoader
+from crw20minutesonline.constant import (BASE_URL, SITEMAP_URL)
 
-from crw20minutesonline.items import ArticleData
+from crw20minutesonline.items import (ArticleData)
 from crw20minutesonline.utils import (
     based_on_scrape_type,
     date_in_date_range,
@@ -58,7 +58,7 @@ class BaseSpider(ABC):
 
 
 class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
-    """Spider class to scrap sitemap and articles of TVA News site"""
+    """Spider class to scrap sitemap and articles of 20 minutes online News site"""
 
     name = "20_minutes"
     start_urls = [BASE_URL]
@@ -211,7 +211,11 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 )
             articledata_loader.add_value(
                 "parsed_data",
-                get_parsed_data(response, parsed_json_data.get("main", [{}])),
+                get_parsed_data(
+                    response,
+                    parsed_json_data.get("main", [{}]),
+                    parsed_json_data.get("VideoObject"),
+                ),
             )
 
             self.articles.append(
@@ -244,8 +248,8 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

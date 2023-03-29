@@ -3,7 +3,6 @@ from datetime import timedelta, datetime
 import json
 import os
 
-
 from scrapy.loader import ItemLoader
 
 from crw20minutesonline.items import (
@@ -22,7 +21,7 @@ ERROR_MESSAGES = {
     "InvalidDateException": "Please provide valid date.",
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
-language_mapper = {"en": "English"}
+language_mapper = {"en": "English", "fr": "French"}
 
 # Regex patterns
 SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
@@ -189,14 +188,14 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "misc": [],
     }
     for block in blocks:
-        if json.loads(block).get("@graph", None):
-            for sub_block in json.loads(block).get("@graph", [{}]):
-                if "NewsArticle" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["main"] = sub_block
-                elif "ImageGallery" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["ImageGallery"] = sub_block
-                elif "VideoObject" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["VideoObject"] = sub_block
+        if "LiveBlogPosting" in json.loads(block).get(
+            "@type", [{}]
+        ) or "NewsArticle" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = json.loads(block)
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
@@ -319,7 +318,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list) -> dict:
+def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -333,14 +332,18 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     parsed_data_dict = get_parsed_data_dict()
 
     parsed_data_dict |= {
-        "source_country": ["Canada"],
-        "source_language": ["French"],
+        "source_country": ["France"],
+        "source_language": [
+            language_mapper.get(response.css("html::attr(lang)").get(), None)
+        ],
     }
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
-    parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
-    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response)
+    parsed_data_dict |= get_text_title_section_details(parsed_json_main)
+    parsed_data_dict |= get_thumbnail_image_video(
+        parsed_json_main,video_object
+    )
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -354,6 +357,12 @@ def get_author_details(parsed_data: list, response: str) -> dict:
         dict: author related details
     """
     author_details = []
+    author_data = (
+        parsed_data.get("author")
+        if isinstance(parsed_data.get("author"), list)
+        else [parsed_data.get("author")]
+    )
+
     if not parsed_data.get("author"):
         return author_details.append(
             {"name": response.css("#detailContent > div.byline > div::text").get()}
@@ -364,7 +373,7 @@ def get_author_details(parsed_data: list, response: str) -> dict:
             "name": author.get("name"),
             "url": author.get("url", None),
         }
-        for author in parsed_data.get("author")
+        for author in author_data
     )
     return {"author": author_details}
 
@@ -382,7 +391,9 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
         "modified_at": None,
         "published_at": None,
     }
-    if "NewsArticle" in parsed_data.get("@type"):
+    if "NewsArticle" in parsed_data.get(
+        "@type"
+    ) or "LiveBlogPosting" in parsed_data.get("@type"):
         article_data |= {
             "description": [parsed_data.get("description")],
             "modified_at": [parsed_data.get("dateModified")],
@@ -407,14 +418,22 @@ def get_publihser_details(parsed_data: list) -> dict:
                 "@id": publisher.get("@id"),
                 "@type": publisher.get("@type"),
                 "name": publisher.get("name"),
-                "logo": publisher.get("logo"),
+                "logo": {
+                    "url": parsed_data.get("publisher").get("logo").get("url"),
+                    "width": str(parsed_data.get("publisher").get("logo").get("width"))
+                    + " px",
+                    "height": str(
+                        parsed_data.get("publisher").get("logo").get("height")
+                    )
+                    + " px",
+                },
             }
             for publisher in [parsed_data.get("publisher")]
         )
     return {"publisher": publisher_details}
 
 
-def get_text_title_section_details(parsed_data: list, response: str) -> dict:
+def get_text_title_section_details(parsed_data: list) -> dict:
     """
     Returns text, title, section details
     Args:
@@ -425,12 +444,14 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     return {
         "title": [parsed_data.get("headline")],
-        "text": ["".join(response.css(".story-body>p::text").getall())],
-        "section": response.css("li.breadcrumb_section>a>span::text").getall()[1:],
+        "text": [parsed_data.get("articlebody")],
+        "section": [parsed_data.get("articleSection")],
     }
 
 
-def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
+def get_thumbnail_image_video(
+    parsed_data: list, video_object: dict
+) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -440,10 +461,10 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
         dict: thumbnail images, images and video details
     """
     video = None
-    if video_url := response.css(".videoInline .video-js::attr(data-video-id)").get():
-        video = f"https://www.tvanouvelles.ca/videos/{video_url}"
+    if video_url := video_object.get("embedUrl"):
+        video = video_url
 
     return {
         "images": [{"link": parsed_data.get("image")}],
-        "video": [{"link": video}],
+        "video": [{"link": video, "caption": video_object.get("description")}],
     }
