@@ -115,8 +115,10 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 for link in sitemap.getall():
                     if link == "https://www.n-tv.de/sitemap/sitemap-sections.xml.gz":
                         continue
-                    days_back_date = TODAYS_DATE  - timedelta(days=30)
-                    if link.split("/")[-1].split(".")[0][8:] + "-0" > days_back_date.strftime('%Y-%m-%d'):
+                    days_back_date = TODAYS_DATE - timedelta(days=30)
+                    if link.split("/")[-1].split(".")[0][
+                        8:
+                    ] + "-0" > days_back_date.strftime("%Y-%m-%d"):
                         r = requests.get(link, stream=True)
                         g = gzip.GzipFile(fileobj=BytesIO(r.content))
                         content = g.read()
@@ -131,14 +133,14 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                             date_only = datetime.strptime(
                                 published_at[:10], "%Y-%m-%d"
                             ).date()
-                            if self.start_date is None and  self.end_date is None:
+                            if self.start_date is None and self.end_date is None:
                                 if TODAYS_DATE == date_only:
                                     yield scrapy.Request(
-                                    link,
-                                    callback=self.parse_sitemap_article,
-                                    meta={"published_at": published_at},
-                                )
-                                    
+                                        link,
+                                        callback=self.parse_sitemap_article,
+                                        meta={"published_at": published_at},
+                                    )
+
                             else:
                                 if self.start_date and date_only < self.start_date:
                                     continue
@@ -160,9 +162,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             published_date = response.meta["published_at"][:10]
-            date_only = datetime.strptime(
-                                published_date, "%Y-%m-%d"
-                            ).date()
+            date_only = datetime.strptime(published_date, "%Y-%m-%d").date()
 
             if self.start_date and date_only < self.start_date:
                 return

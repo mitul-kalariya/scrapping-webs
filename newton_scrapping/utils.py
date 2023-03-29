@@ -125,7 +125,6 @@ def get_parsed_json(response):
     return remove_empty_elements(parsed_json)
 
 
-
 def get_parsed_data(response):
     response_data = {}
     pattern = r"[\r\n\t\"]+"
@@ -134,7 +133,7 @@ def get_parsed_data(response):
     response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
     article_author = get_main(response)
-    response_data['author'] =  article_author[0].get('author')
+    response_data['author'] = article_author[0].get('author')
 
     article_published = response.css("span.article__date::text").get()
     response_data["published_at"] = [article_published]
@@ -165,7 +164,7 @@ def get_parsed_data(response):
 
     article_tags = response.css("section.article__tags ul li a::text").getall()
     response_data["tags"] = article_tags
-    mapper = {"de":"German"}
+    mapper = {"de": "German"}
     article_lang = response.css("html::attr(lang)").get()
     response_data["source_language"] = [mapper.get(article_lang)]
 
@@ -210,7 +209,7 @@ def get_misc(response):
         raise exceptions.ArticleScrappingException(f"Error while getting misc: {e}")
 
 
-def get_thumbnail(response)->list:
+def get_thumbnail(response) -> list:
     """extract thumbnail info from article
 
     Returns:
