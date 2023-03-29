@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.20minutes.fr/faits_divers/4030229-20230329-montauban-trois-personnes-blessees-dont-grievement-hopital-homme-arme-couteau",
         "test_data_path": "crw20minutesonline/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.20minutes.fr/faits_divers/4030157-20230329-bretagne-journaliste-morgan-large-victime-nouvelle-tentative-sabotage",
         "test_data_path": "crw20minutesonline/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.20minutes.fr/faits_divers/4030177-20230329-niece-gerald-darmanin-placee-garde-vue-consultation-illegale-fichiers-police",
         "test_data_path": "crw20minutesonline/test/data/test_article_3.json"
     }
 ]

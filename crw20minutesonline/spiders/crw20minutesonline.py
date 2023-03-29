@@ -7,14 +7,12 @@ from abc import ABC, abstractmethod
 import scrapy
 
 from scrapy.exceptions import CloseSpider
-from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
-from crw20minutesonline.constant import (BASE_URL, SITEMAP_URL)
+from crw20minutesonline.constant import BASE_URL, SITEMAP_URL
 
-from crw20minutesonline.items import (ArticleData)
+from crw20minutesonline.items import ArticleData
 from crw20minutesonline.utils import (
     based_on_scrape_type,
-    date_in_date_range,
     get_raw_response,
     get_parsed_json,
     export_data_to_json_file,
@@ -126,7 +124,8 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 try:
                     self.logger.debug("Parse function called on %s", response.url)
                     yield scrapy.Request(
-                        f"https://www.20minutes.fr/archives/{single_date.year}/{single_date.month}-{single_date.day}",
+                        f"https://www.20minutes.fr/archives/{single_date.year}/"
+                        f"{single_date.month}-{single_date.day}",
                         callback=self.parse_sitemap,
                     )
                 except Exception as exception:
@@ -150,7 +149,9 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
         """
         try:
             for url in response.css("ul.spreadlist>li>a::attr(href)").getall():
-                yield scrapy.Request(BASE_URL + url[1:], callback=self.parse_sitemap_article)
+                yield scrapy.Request(
+                    BASE_URL + url[1:], callback=self.parse_sitemap_article
+                )
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -171,7 +172,11 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if title := response.css("h1.nodeheader-title::text").get().replace("\xa0",""):
+            if (
+                title := response.css("h1.nodeheader-title::text")
+                .get()
+                .replace("\xa0", "")
+            ):
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:

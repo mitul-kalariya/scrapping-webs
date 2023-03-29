@@ -40,7 +40,11 @@ def sitemap_validations(
         date: return current date if user not passed any date parameter
     """
     if scrape_start_date and scrape_end_date:
-        validate_arg(InvalidDateException, scrape_start_date <= datetime.now().date() and scrape_end_date <= datetime.now().date())
+        validate_arg(
+            InvalidDateException,
+            scrape_start_date <= datetime.now().date()
+            and scrape_end_date <= datetime.now().date(),
+        )
         validate_arg(InvalidDateException, not scrape_start_date > scrape_end_date)
         validate_arg(
             InvalidDateException,
@@ -342,9 +346,7 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main)
-    parsed_data_dict |= get_thumbnail_image_video(
-        parsed_json_main,video_object
-    )
+    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, video_object)
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -447,25 +449,27 @@ def get_text_title_section_details(parsed_data: list) -> dict:
         "title": [parsed_data.get("headline")],
         "text": [parsed_data.get("articlebody")],
         "section": [parsed_data.get("articleSection")],
+        "tags": parsed_data.get("keywords", []),
     }
 
 
-def get_thumbnail_image_video(
-    parsed_data: list, video_object: dict
-) -> dict:
+def get_thumbnail_image_video(parsed_data: list, video_object: dict) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
+        video_object: response of VideoObject data
         parsed_data: response of application/ld+json data
-        response: provided response
     Returns:
         dict: thumbnail images, images and video details
     """
     video = None
-    if video_url := video_object.get("embedUrl"):
-        video = video_url
+    description = None
+    if video_object:
+        if video_url := video_object.get("embedUrl"):
+            video = video_url
+        description = video_object.get("description")
 
     return {
-        "images": [{"link": parsed_data.get("image")}],
-        "video": [{"link": video, "caption": video_object.get("description")}],
+        "images": [{"link": parsed_data.get("image", {}).get("url")}],
+        "video": [{"link": video, "caption": description}],
     }
