@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
-#TODO: Change path and spider name here
 from crwlinternaute.spiders.linternaute import Linternaute
+
 
 class Crawler:
     """
@@ -75,7 +75,6 @@ class Crawler:
             process_settings['HTTP_PROXY_PASS'] = self.proxies['proxyPassword']
             process.settings = process_settings
 
-        #TODO: Replace the Spider name after importing
         process.crawl(Linternaute, **spider_args)
         process.start()
         return self.output

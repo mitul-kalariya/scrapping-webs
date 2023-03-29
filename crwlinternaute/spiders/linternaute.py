@@ -49,6 +49,7 @@ class BaseSpider(ABC):
     def parse_article(self, response: str) -> list:
         pass
 
+
 class Linternaute(scrapy.Spider, BaseSpider):
     name = "linternaute"
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9','news': "http://www.google.com/schemas/sitemap-news/0.9"}
@@ -58,6 +59,7 @@ class Linternaute(scrapy.Spider, BaseSpider):
         end_date=None, url=None, *args, **kwargs
                 ):
         super(Linternaute, self).__init__(*args, **kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.type = type
@@ -244,12 +246,11 @@ class Linternaute(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

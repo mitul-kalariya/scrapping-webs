@@ -34,7 +34,16 @@ Quick example as shown below.
 ```
 from crwindianexpress import Crawler
 
+# For Article
 crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+data = crawler.crawl()
+
+# For Sitemap
+crawler = Crawler(query={"type": "sitemap", "domain": "https://example.com", "since": "2022-03-01", "until": "2022-03-26"})
+data = crawler.crawl()
+
+# For Link Feed
+crawler = Crawler(query={"type": "link_feed"})
 data = crawler.crawl()
 ```
 The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
