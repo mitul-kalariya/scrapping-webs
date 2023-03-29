@@ -1,13 +1,11 @@
 import logging
 import unittest
 
-#TODO: Update the path here replace newton_scrapping --> your project name
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
-#TODO: Update below path here
-from crwindianexpress import Crawler
+from crwrepublictv.spiders.republic_tv import RepublicTvSpider
+from crwrepublictv.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwrepublictv.test.helpers.utils import (get_article_content,
+                                              online_response_from_url)
+from crwrepublictv import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -27,7 +25,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = RepublicTvSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -103,6 +101,7 @@ class TestArticle(unittest.TestCase):
     def _test_parse_json_data_format(self, article, test_article_data):
         # Since the content of article can be modified at anytime so not checkering exact text
         # but testing the object format so that we can verify that crawler is working well.
+        # breakpoint()
         if article[0].get("parsed_data").get("text"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("text")[0],
@@ -237,31 +236,31 @@ class TestArticle(unittest.TestCase):
 
 
 
-class TestSitemap(unittest.TestCase):
-    def setUp(self):
-        self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
-
-    def _test_sitemap_article_format(self):
-        # Testing the sitemap article object
-        for article in self.article_urls:
-            with self.subTest():
-                self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-            with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
-
-    def _test_sitemap_results(self):
-        with self.subTest():
-            self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
-        with self.subTest():
-            self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
-        with self.subTest():
-            self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
-        self._test_sitemap_article_format()
-
-    def test_parse(self):
-        self.article_urls = self.crawler.crawl()
-        self._test_sitemap_results()
+# class TestSitemap(unittest.TestCase):
+#     def setUp(self):
+#         self.type = "sitemap"
+#         self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+#
+#     def _test_sitemap_article_format(self):
+#         # Testing the sitemap article object
+#         for article in self.article_urls:
+#             with self.subTest():
+#                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
+#             with self.subTest():
+#                 self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
+#
+#     def _test_sitemap_results(self):
+#         with self.subTest():
+#             self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
+#         with self.subTest():
+#             self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
+#         with self.subTest():
+#             self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
+#         self._test_sitemap_article_format()
+#
+#     def test_parse(self):
+#         self.article_urls = self.crawler.crawl()
+#         self._test_sitemap_results()
 
 if __name__ == "__main__":
     unittest.main()

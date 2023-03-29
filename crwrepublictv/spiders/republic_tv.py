@@ -2,12 +2,12 @@ import scrapy
 import logging
 from dateutil import parser
 from datetime import datetime
-from newton_scrapping.constant import SITEMAP_URL, TODAYS_DATE, LOGGER, PAGINATION
-from newton_scrapping import exceptions
+from crwrepublictv.constant import SITEMAP_URL, TODAYS_DATE, LOGGER, PAGINATION
+from crwrepublictv import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwrepublictv.items import ArticleData
+from crwrepublictv.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -54,6 +54,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         Exception: If no URL is provided when type is "article".
         """
         super().__init__(**kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.articles_url = url
@@ -262,6 +263,9 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
+
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
