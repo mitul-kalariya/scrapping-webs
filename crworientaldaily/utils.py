@@ -14,6 +14,7 @@ from .exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
+from .constant import BASE_URL
 
 ERROR_MESSAGES = {
     "InputMissingException": "{} field is required.",
@@ -21,7 +22,7 @@ ERROR_MESSAGES = {
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
 
-language_mapper = {"en": "English", "en-ca": "English (Canada)"}
+language_mapper = {"en": "English", "zh-hk": "Chinese"}
 
 
 def sitemap_validations(
@@ -46,7 +47,7 @@ def sitemap_validations(
         validate_arg(
             InputMissingException,
             not (scrape_start_date or scrape_end_date),
-            "start_date and end_date",
+            "since and until",
         )
         scrape_start_date = scrape_end_date = datetime.now().date()
 
@@ -75,7 +76,7 @@ def article_validations(
     validate_arg(
         InvalidArgumentException,
         not (scrape_start_date or scrape_end_date),
-        "start_date and end_date argument is not required for article.",
+        "since and until argument is not required for article.",
     )
 
 
@@ -261,7 +262,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -334,36 +335,36 @@ def get_parsed_data(response: str) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
-    
-    text = response.css("p.c-article-body__text::text").getall()
-    image = {
-        "link": data_dict.get("image_url"),
-        "caption": data_dict.get("image_caption")
-    }
 
-    caption = response.css(".c-text span::text").getall()
+    text = " ".join(response.css("div.paragraph div.content::text").getall())
+    images = []
+    for image in response.css("figure"):
+        image_link = image.css("img::attr(src)").get()
+        images.append({
+            "link": image_link if "oriental" in image_link else "https://orientaldaily.on.cc/" + image_link,
+            "caption": image.css("figcaption.photoCaption::text").get()
+        })
+    article_date = response.xpath("//meta[@name='articleDate']/@content").extract()
+    article_date_datetime = datetime.strptime(article_date[0], "%Y%m%d") if article_date else None
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
-        "source_country": ["Canada"],
+        "source_country": ["China"],
         "source_language": [language_mapper.get(
             response.css("html::attr(lang)").get().lower(),
             response.css("html::attr(lang)").get()
         )],
     }
 
-    parsed_data_dict |= {"author": data_dict.get("author")}
-    parsed_data_dict |= {"description": [data_dict.get("description")]}
-    parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
-    parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
-    parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
+    parsed_data_dict |= {"description": response.xpath("//meta[@name='description']/@content").extract()}
+    parsed_data_dict |= {"published_at": [article_date_datetime.isoformat() if article_date_datetime else None]}
+    parsed_data_dict |= {"publisher": get_publisher_detail(response)}
     parsed_data_dict |= {
-        "title": [data_dict.get("title")],
-        "text": [" ".join(text)],
-        "thumbnail_image": [data_dict.get("thumbnail_image")]
+        "title": response.css("title::text").getall(),
+        "text": [text]
     }
     parsed_data_dict |= {
-        "images": [image] or [{"link": image, "caption": caption}],
+        "images": images,
     }
     return parsed_data_dict
 
@@ -378,19 +379,14 @@ def get_publisher_detail(response: str) -> dict:
     Returns:
         dict: details of publisher to pass to json
     """
+    publisher_name = response.xpath("//meta[@name='publisher']/@content").extract()
+    logo = response.css("img.logo::attr(src)").getall()
+    if not (publisher_name and logo):
+        return None
     return [{
-            "@id": data_dict.get("publisher_id", "www.theglobeandmail.com"),
-            "@type": data_dict.get("publisher_type"),
-            "name": data_dict.get("publisher_name"),
+            "@id": BASE_URL,
+            "name": publisher_name[0],
             "logo": {
-                "type": data_dict.get("logo_type", "ImageObject"),
-                "url": data_dict.get("logo_url"),
-                "width": {
-                    "@type": "Distance",
-                    "name": f"{data_dict.get('logo_width')} px"
-                } if data_dict.get("logo_width") else None,
-                "height": {
-                    "@type": "Distance",
-                    "name": f"{data_dict.get('logo_height')} px"
-                } if data_dict.get("logo_width") else None
+                "type": "ImageObject",
+                "url": BASE_URL + logo[0],
             }}]

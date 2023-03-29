@@ -66,7 +66,7 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
     news_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+        self, *args, type=None, url=None, since=None, until=None, **kwargs
     ):
         """init method to take date, type and validating it"""
 
@@ -81,10 +81,10 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
             self.error_msg_dict = {}
             self.type = type
             self.scrape_start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                datetime.strptime(since, "%Y-%m-%d").date() if since else None
             )
             self.scrape_end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                datetime.strptime(until, "%Y-%m-%d").date() if until else None
             )
 
             self.date_range_lst = validate(
@@ -99,11 +99,11 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, start_date and end_date args. "
+                "Error occurred while taking type, url, since and until args. "
                 + str(exception)
             )
             self.log(
-                "Error occurred while taking type, url, start_date and end_date args. "
+                "Error occurred while taking type, url, since and until args. "
                 + str(exception),
                 level=logging.ERROR,
             )
@@ -143,7 +143,10 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
         """
         for url, date in zip(
             Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-            Selector(response, type="xml").xpath("//sitemap:publication_date/text()", namespaces=self.news_namespace).getall(),
+            Selector(response, type="xml").xpath(
+                "//sitemap:publication_date/text()",
+                namespaces=self.news_namespace
+            ).getall(),
         ):
             try:
                 date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
