@@ -319,7 +319,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
                 (key, remove_empty_elements(value))
                 for key, value in parsed_data_dict.items()
             )
-            if not empty(value)
+            if not empty(value) or key == "parsed_json"
         }
     return data_dict
 

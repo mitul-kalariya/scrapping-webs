@@ -17,6 +17,7 @@ class TestArticle(unittest.TestCase):
         article = [article for article in articles]
         test_article_data = get_article_content(test_data_path)
         self._test_raw_response(article, test_article_data)
+        self._test_parse_json(article, test_article_data)
         self._test_parse_json_with_test_data(article, test_article_data)
         self._test_parse_json_data_format(article, test_article_data)
 
