@@ -264,13 +264,11 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}",
+                f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
             raise ExportOutputFileException(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+                f"Error occurred while closing crawler:- {str(exception)} - {reason}"
             ) from exception

@@ -62,6 +62,10 @@ class Crawler:
             if self.query.get('since') and self.query.get('until'):
                 spider_args['start_date'] = self.query['since']
                 spider_args['end_date'] = self.query['until']
+            process_settings = process.settings
+            process_settings["DOWNLOAD_DELAY"]= 0.25
+            process_settings["REFERER_ENABLED"] = False
+            process.settings = process_settings
         else:
             raise Exception('Invalid Type')
 
