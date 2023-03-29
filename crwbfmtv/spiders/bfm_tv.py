@@ -1,26 +1,18 @@
-import re
-import json
 import gzip
-import time
 import scrapy
 import requests
 import logging
 from io import BytesIO
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from scrapy.crawler import CrawlerProcess
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from newton_scrapping.constants import SITEMAP_URL, TODAYS_DATE, LOGGER
-from newton_scrapping import exceptions
+from crwbfmtv.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
+from crwbfmtv import exceptions
 from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwbfmtv.items import ArticleData
+from crwbfmtv.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -45,10 +37,10 @@ class BaseSpider(ABC):
     def parse_article(self, response: str) -> list:
         pass
 
-class NTvSpider(scrapy.Spider, BaseSpider):
+class BFMTVSpider(scrapy.Spider, BaseSpider):
     name = "bfm_tv"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args ,**kwargs):
         """
         Initializes a web scraper object with the given parameters.
 
@@ -64,7 +56,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         InvalidDateRange: If the start_date is later than the end_date.
         Exception: If no URL is provided when type is "article".
         """
-        super().__init__(**kwargs)
+        super(BFMTVSpider,self).__init__(*args,**kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.type = type.lower()
@@ -106,8 +99,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             elif self.type == "article":
-                article_data = self.parse_article(response)
-                yield article_data
+                yield self.parse_article(response)
+                
 
         except BaseException as e:
             print(f"Error while parse function: {e}")
@@ -151,35 +144,36 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                     },
             ):
                 for link in sitemap.getall():
-                    r = requests.get(link, stream=True)
-                    g = gzip.GzipFile(fileobj=BytesIO(r.content))
-                    content = g.read()
-                    soup = BeautifulSoup(content, "html.parser")
+                    days_back_date = TODAYS_DATE  - timedelta(days=30)
+                    if link.split("/")[-1].split(".")[0] > days_back_date.strftime('%Y-%m-%d'):
+                        r = requests.get(link, stream=True)
+                        g = gzip.GzipFile(fileobj=BytesIO(r.content))
+                        content = g.read()
+                        soup = BeautifulSoup(content, "html.parser")
 
-                    loc = soup.find_all("loc")
-                    lastmod = soup.find_all("lastmod")
+                        loc = soup.find_all("loc")
+                        lastmod = soup.find_all("lastmod")
+                        for particular_link, published_date in zip(loc, lastmod):
+                            link = particular_link.text
+                            published_at = published_date.text
+                            date_only = datetime.strptime(
+                                published_at[:10], "%Y-%m-%d"
+                            ).date()
 
-                    for particular_link, published_date in zip(loc, lastmod):
-                        link = particular_link.text
-                        published_at = published_date.text
-                        date_only = datetime.strptime(
-                            published_at[:10], "%Y-%m-%d"
-                        ).date()
-
-                        if self.start_date and date_only < self.start_date:
-                            continue
-                        if self.end_date and date_only > self.end_date:
-                            continue
-
-                        if self.start_date is None and self.end_date is None:
-                            if date_only != TODAYS_DATE:
+                            if self.start_date and date_only < self.start_date:
+                                continue
+                            if self.end_date and date_only > self.end_date:
                                 continue
 
-                        yield scrapy.Request(
-                            link,
-                            callback=self.parse_sitemap_article,
-                            meta={"published_at": published_at},
-                        )
+                            if self.start_date is None and self.end_date is None:
+                                if date_only != TODAYS_DATE:
+                                    continue
+                            yield scrapy.Request(
+                                link,
+                                callback=self.parse_sitemap_article,
+                                meta={"published_at": published_at},
+                            )
+                    
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
@@ -207,9 +201,11 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
                 if self.start_date is None and self.end_date is None:
                     if date_only == TODAYS_DATE:
-                        self.articles.append(data)
+                        if ".html" in link:
+                            self.articles.append(data)
                 else:
-                    self.articles.append(data)
+                    if ".html" in link:
+                        self.articles.append(data)
         except BaseException as e:
             exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {e}"
@@ -229,10 +225,12 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
@@ -245,5 +243,5 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
-    process.crawl(NTvSpider)
+    process.crawl(BFMTVSpider)
     process.start()
