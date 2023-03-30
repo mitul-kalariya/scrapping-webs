@@ -182,7 +182,6 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    # parsed_data_dict["author"] = [response.css('meta[name="author"]::attr(content)').get()]
     parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
     parsed_data_dict["modified_at"] = []  # Not available
     parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
