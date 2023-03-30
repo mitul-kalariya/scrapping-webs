@@ -1,6 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from crwwelt.spiders.welt import WeltSpider
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
