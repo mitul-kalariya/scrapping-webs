@@ -18,6 +18,7 @@ from crwhuffpost.utils import (
     export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
+    get_closest_past_monday,
 )
 from crwhuffpost.exceptions import (
     SitemapScrappingException,
@@ -29,7 +30,7 @@ from crwhuffpost.constant import SITEMAP_URL, BASE_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     filename="logs.log",
     filemode="a",
@@ -88,11 +89,7 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
             self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            self.start_urls.append(
-                url
-                if self.type == "article"
-                else SITEMAP_URL
-            )
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -124,11 +121,17 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
             )
 
         if "index.xml" in response.url:
-            for single_date in self.date_range_lst:
+            dates = []
+            for date in self.date_range_lst:
+                example_date = datetime.strptime(date, "%Y-%m-%d")
+                dates.append(example_date)
+
+            closest_past_mondays = get_closest_past_monday(dates)
+            for single_date in closest_past_mondays:
                 try:
                     self.logger.debug("Parse function called on %s", response.url)
                     yield scrapy.Request(
-                        f"https://www.huffingtonpost.fr/sitemaps/articles/{single_date}.xml",
+                        f"https://www.huffingtonpost.fr/sitemaps/articles/{single_date.date()}.xml",
                         callback=self.parse_sitemap,
                     )
                 except Exception as exception:
@@ -176,9 +179,21 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if title := response.css("h1.article-title::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
+            published_date = (
+                response.css("time.article-metas span::text")
+                .get()
+                .split(" ")[0]
+                .replace("/", "-")
+            )
+            published_date = str(datetime.strptime(published_date, "%d-%m-%Y")).split(
+                " ", maxsplit=1
+            )[0]
+
+            if published_date in self.date_range_lst:
+                if title := response.css("h1.article-title::text").get():
+                    data = {"link": response.url, "title": title}
+                    self.articles.append(data)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching article details from sitemap:- {str(exception)}",
@@ -251,8 +266,6 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing the crawler {str(exception)}",

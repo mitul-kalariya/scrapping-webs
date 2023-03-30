@@ -91,8 +91,8 @@ def date_range(start_date: datetime, end_date: datetime) -> None:
     Returns:
         Value of parameter
     """
-    for date in range(int((end_date - start_date).days) + 1):
-        yield (start_date + timedelta(date)).strftime("%Y-%m-%d")
+    for date_count in range(int((end_date - start_date).days) + 1):
+        yield (start_date + timedelta(date_count)).strftime("%Y-%m-%d")
 
 
 def date_in_date_range(published_date: datetime, date_range_lst: list) -> bool:
@@ -154,6 +154,25 @@ def based_on_scrape_type(
         return date_range_lst
 
     return validate_arg("MISSING_REQUIRED_FIELD", None, "type")
+
+
+def get_closest_past_monday(dates):
+    """
+    return true if date is last monday
+
+    Args:
+        date (datetime): past monday exists or not in date.
+    Returns:
+        Value of parameter
+    """
+    result = []
+    for single_date in dates:
+        past_monday = single_date - timedelta(days=single_date.weekday())
+        if past_monday > single_date:
+            past_monday -= timedelta(days=7)
+        if past_monday not in result:
+            result.append(past_monday)
+    return result
 
 
 def get_raw_response(response: str, selector_and_key: dict) -> dict:
@@ -479,7 +498,7 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
         return {
             "title": [parsed_data.get("headline")],
             "text": ["".join(response.css("div.article-content p::text").extract())],
-            "section": [parsed_data.get('articleSection')],
+            "section": [parsed_data.get("articleSection")],
             "tags": [parsed_data.get("keywords")],
         }
     return {
