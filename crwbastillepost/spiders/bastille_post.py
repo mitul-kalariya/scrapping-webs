@@ -1,12 +1,7 @@
-
-
 import scrapy
 import logging
+from lxml import etree
 from datetime import datetime
-
-# from cssselect import Selector
-from scrapy.http import XmlResponse
-from scrapy.selector import Selector
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from crwbastillepost import exceptions
@@ -44,7 +39,9 @@ class BaseSpider(ABC):
 class BastillePostSpider(scrapy.Spider, BaseSpider):
     name = "bastille_post"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -66,7 +63,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
 
         super(BastillePostSpider, self).__init__(*args, **kwargs)
 
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -92,7 +89,6 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 LOGGER.error("Error while")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
-
     def parse(self, response: str, **kwargs) -> None:
         """
         differentiate sitemap and article and redirect its callback to different parser
@@ -107,40 +103,59 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
 
         try:
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                LOGGER.info("Parse function called on %s", response.url)
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
-                self.articles.append(article_data)
-                yield self.articles
+                yield article_data
 
         except BaseException as e:
-            print(f"Error: {e}")
             self.logger.error(f"{e}")
-
 
     def parse_sitemap(self, response: str) -> None:
         """
-        parse sitemap from sitemap url and callback parser to parse title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
 
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            root = etree.fromstring(response.body)
+            urls = root.xpath(
+                "//xmlns:loc/text()",
+                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+            )
 
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            titles = root.xpath(
+                "//news:title/text()",
+                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+            )
+            last_modified_date = root.xpath(
+                "//xmlns:lastmod/text()",
+                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+            )
+            for url, title, last_modified_date in zip(urls, titles, last_modified_date):
+                modified_at = datetime.strptime(
+                    last_modified_date[:10], "%Y-%m-%d"
+                ).date()
+                if self.start_date and modified_at < self.start_date:
+                    continue
+                if self.start_date and modified_at > self.end_date:
+                    continue
+
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == modified_at:
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
+                        self.articles.append(data)
+                else:
+                    data = {
+                        "link": url,
+                        "title": title,
+                    }
+                    self.articles.append(data)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -150,34 +165,10 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
 
-
-
     def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.cat-theme-color::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
-
-
-    def parse_article(self, response: str) -> None:
+    def parse_article(self, response: str) -> list:
         """
         parse article and append related data to class's articles variable
         Args:
@@ -191,37 +182,15 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             articledata_loader.add_value("raw_response", raw_response)
-
             response_json = get_parsed_json(response)
             articledata_loader.add_value(
                 "parsed_json",
                 response_json,
             )
-
             response_data = get_parsed_data(response)
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
-
-
-            # parsed_json_main = response.css('script[type="application/ld+json"]::text')
-            # parsed_json_data = get_parsed_json(response)
-            # articledata_loader.add_value("raw_response", raw_response)
-
-
-            # if parsed_json_data:
-            #     articledata_loader.add_value(
-            #         "parsed_json",
-            #         parsed_json_data,
-            #     )
-            # articledata_loader.add_value(
-            #     "parsed_data", get_parsed_data(response, parsed_json_main)
-            # )
-
-            # self.articles.append(
-            #     remove_empty_elements(dict(articledata_loader.load_item()))
-            # )
-
             return articledata_loader.item
 
         except Exception as exception:
@@ -233,7 +202,6 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception
-
 
     def closed(self, reason: any) -> None:
         """
@@ -248,12 +216,11 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
         try:
             # if self.output_callback is not None:
             #     self.output_callback(self.articles)
-
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-                
+
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

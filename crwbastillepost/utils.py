@@ -1,6 +1,4 @@
-# Utility/helper functions
-# utils.py
-
+""" General functions """
 import os
 import json
 import logging
@@ -24,7 +22,9 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
@@ -41,12 +41,12 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be later than end_date"
             )
 
-        if start_date and end_date and start_date == end_date:
+        if start_date and end_date and start_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
+                "start_date should not be greater than today_date"
             )
 
-        if start_date and end_date and start_date > TODAYS_DATE:
+        if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
@@ -104,7 +104,6 @@ def get_main(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
 
 
 def get_misc(response):
@@ -123,7 +122,6 @@ def get_misc(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
 
 
 def get_raw_response(response):
@@ -193,19 +191,17 @@ def get_parsed_data(response):
     """
     try:
         main_dict = {}
-        pattern = r"[\r\n\t\"]+"
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
 
-
         headline = response.css("h1.cat-theme-color::text").getall()
         main_dict["title"] = headline
+
         authors = get_author(response)
         main_dict["author"] = authors
 
         main_data = get_main(response)
         main_dict["description"] = [main_data[0].get("description")]
-
 
         main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
@@ -216,19 +212,14 @@ def get_parsed_data(response):
         article_text = response.css("p::text").getall()
         main_dict["text"] = [" ".join(article_text)]
 
-        tags = get_tags(response)
-        main_dict["tags"] = tags
-
         images = get_images(response)
         if images:
             main_dict["images"] = images
 
-        videos = get_embed_video_link(response)
+        videos = response.css("video source::attr(src)").getall()
         main_dict["embed_video_link"] = videos
-        mapper = {"en-US": "English"}
-        article_lang = response.css("html::attr(lang)").get()
-        main_dict["source_language"] = [mapper.get(article_lang)]
 
+        main_dict["source_language"] = ["Chinese"]
         main_dict["source_country"] = ["China"]
         main_dict["time_scraped"] = [str(datetime.now())]
 
@@ -236,7 +227,9 @@ def get_parsed_data(response):
 
     except BaseException as e:
         LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching parsed_data data: {e}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -272,33 +265,6 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
         json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
-def get_parsed_data_dict() -> dict:
-    """
-    Return base data dictionary
-
-    Args:
-    None
-
-    Returns:
-        dict: Return base data dictionary
-    """
-    return {
-        "source_country": None,
-        "source_language": None,
-        "author": [{"@type": None, "name": None, "url": None}],
-        "description": None,
-        "modified_at": None,
-        "published_at": None,
-        "publisher": None,
-        "text": None,
-        "thumbnail_image": None,
-        "title": None,
-        "images": None,
-        "section": None,
-        "video": None,
-    }
 
 
 def get_publisher(response):
@@ -349,43 +315,13 @@ def get_author(response) -> list:
                 if "NewsArticle" in json.loads(block).get("@type", [{}]):
                     data = []
                     var = {
-                        # "author": [
-                        #     {
-                                "@type": json.loads(block).get("author", [{}]).get("@type"),
-                                "name": json.loads(block).get("author", [{}]).get("name"),
-                                "url": json.loads(block)
-                                .get("author", [{}])
-                                .get("url", None),
-                            # }
-                        # ]
+                        "@type": json.loads(block).get("author", [{}]).get("@type"),
+                        "name": json.loads(block).get("author", [{}]).get("name"),
+                        "url": json.loads(block).get("author", [{}]).get("url", None),
                     }
                     data.append(var)
             return data
 
-    # try:
-    #     info = response.css("div#article-byline")
-    #     pattern = r"[\r\n\t\"]+"
-    #     data = []
-    #     if info:
-    #         for i in info:
-    #             temp_dict = {}
-    #             temp_dict["@type"] = "Person"
-    #             name = i.css("div.c-byline__attribution span a::text").get()
-    #             if name:
-    #                 name = re.sub(pattern, "", name).strip()
-    #                 temp_dict["name"] = name.strip("By")
-    #
-    #             else:
-    #                 temp_dict["name"] = "Staff"
-    #
-    #             link = i.css("div.c-byline__attribution span a::attr(href)").get()
-    #             if link:
-    #                 temp_dict["url"] = link
-    #             """while reviewing if you feel that this data can be useful please uncomment it
-    #                 it states from which organization the author is"""
-    #
-    #             data.append(temp_dict)
-    #         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
@@ -404,32 +340,6 @@ def get_thumbnail_image(response) -> list:
     return thumbnail_image
 
 
-def get_tags(response) -> list:
-    """
-    Extracts lables associated to the news article in form of a list of dictionary
-    containing name of the tag and the corrosponding link to the tag
-    Parameters:
-        response (scrapy.http.Response): The response object containing the HTML of the article page.
-    Returns:
-        a list of dictionary with link and name combination
-    """
-    try:
-        info = response.css("div.c-tags__body a")
-        data = []
-        for i in info:
-            temp_dict = {}
-            temp_dict["tag"] = i.css("a::text").get()
-            temp_dict["url"] = i.css("a::attr(href)").get()
-            if temp_dict["url"] == "#":
-                pass
-            else:
-                data.append(temp_dict)
-        return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching tags: {e}")
-
-
 def get_images(response) -> list:
     """extracting image links from provided response
     Args:
@@ -438,7 +348,6 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
-        data = []
         temp_dict = {
             "images": [
                 {"link": img, "caption": cap}
@@ -450,55 +359,8 @@ def get_images(response) -> list:
                 )
             ]
         }
-        data.append(temp_dict)
-        return data
+        return temp_dict.get("images")
 
-        # parsed_data = response.css('script[type="application/ld+json"]::text').getall()
-        # if parsed_data:
-        #     for block in parsed_data:
-        # images = response.css("figure.c-figure--alignnone")
-        # pattern = r"[\r\n\t]+"
-        # data = []
-        # if images:
-        #     for image in images:
-        #         temp_dict = {}
-        #         link = image.css("img::attr(data-src)").get()
-        #         caption = image.css(
-        #             "figcaption.c-figure__caption.c-caption span::text"
-        #         ).get()
-        #         if link:
-        #             temp_dict["url"] = link
-        #             if caption:
-        #                 temp_dict["caption"] = re.sub(pattern, "", caption).strip()
-        #             data.append(temp_dict)
-        #     return data
     except BaseException as e:
         LOGGER.error(f"Error: {e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
-
-
-def get_embed_video_link(response) -> list:
-    """
-    extracting all the videos available from article
-    parameters:
-        response: html response
-    returns:
-        a list of dictionary containing object type link and decryption
-    """
-    try:
-        data = []
-        thumbnail_video = response.css("figure.l-article__featured")
-        for video in thumbnail_video:
-            link = video.css(".c-video::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
-
-        videos = response.css("div.c-video.c-videoPlay")
-        for video in videos:
-            link = video.css("div::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
-        return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
