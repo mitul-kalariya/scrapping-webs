@@ -3,18 +3,11 @@
 import json
 import logging
 import os
-import re
 from datetime import datetime
-from io import BytesIO
 
-import requests
-from PIL import Image
-from scrapy.selector import Selector
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-
 
 from crwhk01 import exceptions
 from crwhk01.constant import BASE_URL, LOGGER, TODAYS_DATE
@@ -22,10 +15,8 @@ from crwhk01.constant import BASE_URL, LOGGER, TODAYS_DATE
 
 def create_log_file():
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -53,19 +44,21 @@ def validate_sitemap_date_range(since, until):
             raise exceptions.InvalidDateException(
                 "start_date and end_date should not be greater than today_date"
             )
-
-
     except exceptions.InvalidDateException as exception:
         LOGGER.error(f"Error in __init__: {str(exception)}", exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {str(exception)}")
 
 
 def get_raw_response(response):
-    raw_resopnse = {
-        "content_type": "text/html; charset=utf-8",
-        "content": response.css("html").get(),
-    }
-    return raw_resopnse
+    try:
+        raw_resopnse = {
+            "content_type": "text/html; charset=utf-8",
+            "content": response.css("html").get(),
+        }
+        return raw_resopnse
+    except BaseException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting raw response: {str(exception)}")
 
 
 def get_parsed_json(response):
@@ -76,28 +69,31 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-    ld_json_list = json.loads(ld_json_data)
+    try:
+        parsed_json = {}
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+        ld_json_list = json.loads(ld_json_data)
 
-    for data in ld_json_list:
-        # data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
-    
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+        for data in ld_json_list:
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") == "ImageGallery":
+                parsed_json["ImageGallery"] = data
+            elif data.get("@type") == "VideoObject":
+                parsed_json["VideoObject"] = data
+            else:
+                other_data.append(data)
+        
+        parsed_json["Other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
 
-    return remove_empty_elements(parsed_json)
+        return remove_empty_elements(parsed_json)
+    except BaseException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting parsed json: {str(exception)}")
 
 
 def get_main(response):
@@ -162,9 +158,6 @@ def get_parsed_data(response):
     authors = get_author(response)
     main_dict["author"] = authors
 
-    # main_data = get_main(response)
-    # main_dict["description"] = [main_data[0].get()]
-
     last_updated = get_lastupdated(response)
     main_dict["modified_at"] = [last_updated]
     published_on = get_published_at(response)
@@ -181,8 +174,8 @@ def get_parsed_data(response):
     main_dict["title"] = [headline]
     article_images = get_images(response)
     main_dict["images"] = article_images
-    # video = get_embed_video_link(response)
-    # main_dict["embed_video_link"] = video
+    video = get_embed_video_link(response)
+    main_dict["embed_video_link"] = video
     article_lang = response.css("html::attr(lang)").get()
     main_dict["source_language"] = [article_lang]
 
@@ -250,15 +243,16 @@ def get_thumbnail_image(response) -> list:
         thumbnails = driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
 
         if thumbnails:
-            for i in thumbnails:
+            for thumb in thumbnails:
                 try:
-                    return [i.get_attribute(
+                    return [thumb.get_attribute(
                         "src").replace("blob:", "")]
                 except:
-                    return [i.get_attribute(
+                    return [thumb.get_attribute(
                         "src").replace("blob:", "")]
-    except:
-        LOGGER.error("Video not found in this article")
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting thumbnail image: {str(exception)}")
     driver.quit()
     return data
 
@@ -267,17 +261,25 @@ def get_embed_video_link(response) -> list:
     """
     A list of video objects containing information about the videos on the webpage.
     """
-    info = response.css("div.videoWrapper")
-    data = []
-    if info:
-        for i in info:
-            js = i.css("script").get()
-            request_link = re.findall(r"playlist\s*:\s*'(\S+)'", js)[0]
-            response = requests.get(request_link)
-            link = response.json().get("playlist")[0].get("sources")[1].get("file")
-            temp_dict = {"link": link}
-            data.append(temp_dict)
-    return data 
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    driver.get(response.url)
+
+    try:
+        embed_videos = driver.find_elements(By.XPATH, '//div[@class="article-grid__top-media-section"]//video')
+        data = []
+        if embed_videos:
+            for video in embed_videos:
+                link = video.get_attribute(
+                            "src").replace("blob:", "")
+                temp_dict = {"link": link}
+                data.append(temp_dict)
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting embed video: {str(exception)}")
+    driver.quit()
+    return data
 
 
 def get_publisher(response) -> list:
@@ -289,26 +291,29 @@ def get_publisher(response) -> list:
         - "@type": The type of publisher (in this case, always "NewsMediaOrganization").
         - "name": The name of the publisher.
     """
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    json_data =  json.loads(ld_json_data[0])
-    publisher_data = json_data[0].get('publisher')
+    try:
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        json_data =  json.loads(ld_json_data[0])
+        publisher_data = json_data[0].get('publisher')
 
-    a_dict = {
-        "@id": "hk01.com",
-        "@type": publisher_data.get('@type'),
-        "name": "hk01",
-        "logo": {
-            "@type": publisher_data.get('logo').get("@type"),
-            "url":BASE_URL + publisher_data.get('logo').get('url'),
-            "width": {"@type": "Distance", "name": str(publisher_data.get('logo').get("width")) + " px"},
-            "height": {"@type": "Distance", "name": str(publisher_data.get('logo').get("height")) + " px"},
-        },
-    }
-    return [a_dict]
+        a_dict = {
+            "@id": "hk01.com",
+            "@type": publisher_data.get('@type'),
+            "name": "hk01",
+            "logo": {
+                "@type": publisher_data.get('logo').get("@type"),
+                "url":BASE_URL + publisher_data.get('logo').get('url'),
+                "width": {"@type": "Distance", "name": str(publisher_data.get('logo').get("width")) + " px"},
+                "height": {"@type": "Distance", "name": str(publisher_data.get('logo').get("height")) + " px"},
+            },
+        }
+        return [a_dict]
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting publisher details: {str(exception)}")
 
 
 def get_images(response, parsed_json=False) -> list:
-    breakpoint()
     """
     Extracts all the images present in the web page.
     Returns:
@@ -321,27 +326,30 @@ def get_images(response, parsed_json=False) -> list:
     driver.get(response.url)
     
     try:
-        images =  driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
+        scroll = driver.find_elements(By.XPATH, "//p")
+        last_p_tag = scroll[-1]
+        driver.execute_script(
+            "window.scrollTo(" + str(last_p_tag.location["x"]) + ", " + str(last_p_tag.location["y"]) + ")")
+        import time
+        time.sleep(3)
+        images = driver.find_elements(By.XPATH, '//*[@id="article-content-section"]//div/div/img')
         data = []
+
         if images:
             for image in images:
-                print("++++++++++++++++++++++++++++++", image)
                 temp_dict = {}
-                link = [image.get_attribute("src").replace("blob:", "")]
-                # caption = image.css("figcaption small::text").get()
-                if parsed_json:
-                    if link:
-                        temp_dict["@type"] = "ImageObject"
-                        temp_dict["link"] = link
-                else:
-                    if link:
-                        temp_dict["link"] = link
-                        # if caption:
-                        #     temp_dict["caption"] = caption
+                link = image.get_attribute("src").replace("blob:", "")
+                caption = image.get_attribute("alt").replace("blob:", "")
+
+                if link:
+                    temp_dict["link"] = link
+                    if caption:
+                        temp_dict["caption"] = caption
                 data.append(temp_dict)
             return data
-    except:
-        LOGGER.error("Video not found in this article")
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article images: {str(exception)}")
     driver.quit()
     return data
 

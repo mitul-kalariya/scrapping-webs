@@ -1,12 +1,10 @@
 import logging
 import unittest
 
+from crwhk01 import Crawler
 from crwhk01.spiders.hk01 import HK01Spider
 from crwhk01.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwhk01.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
-#TODO: Update below path here
-from crwhk01 import Crawler
+from crwhk01.test.helpers.utils import get_article_content, online_response_from_url
 
 # Creating an object
 logger = logging.getLogger()

@@ -4,8 +4,8 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 import scrapy
-from scrapy import Item, Field
-from itemloaders.processors import TakeFirst, MapCompose
+from itemloaders.processors import MapCompose, TakeFirst
+from scrapy import Field, Item
 from w3lib.html import remove_tags
 
 
@@ -22,9 +22,7 @@ class ArticleData(Item):
 
 
 class ArticleRawResponse(Item):
-    content_type = Field(
-        input_processor=MapCompose(remove_tags), output_processor=TakeFirst()
-    )
+    content_type = Field(input_processor=MapCompose(remove_tags), output_processor=TakeFirst())
     content = Field(output_processor=TakeFirst())
 
 
