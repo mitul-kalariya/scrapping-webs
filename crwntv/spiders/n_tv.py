@@ -59,6 +59,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         Exception: If no URL is provided when type is "article".
         """
         super().__init__(**kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.type = type.lower()
@@ -230,16 +231,18 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
             self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
+                f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
 
