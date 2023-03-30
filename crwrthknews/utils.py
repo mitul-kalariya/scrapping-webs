@@ -8,7 +8,7 @@ import os
 from scrapy.loader import ItemLoader
 
 from crwrthknews.items import ArticleRawResponse, ArticleRawParsedJson
-from .exceptions import (
+from crwrthknews.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
