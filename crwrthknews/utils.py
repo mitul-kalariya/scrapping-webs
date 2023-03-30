@@ -162,17 +162,43 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
     )
     for key, value in selector_and_key.items():
         article_raw_response_loader.add_value(key, value)
-    return dict(article_raw_response_loader.load_item())
+    return remove_empty_elements(dict(article_raw_response_loader.load_item()))
 
 
-def get_parsed_json(response: str, selector_and_key: dict) -> dict:
+def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
      Parsed json response from generated data using given response and selector
+    Args:
+        blocks: application/ld+json data list
+        misc: misc data list
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
+    parsed_json_flter_dict = {
+        "main": None,
+        "ImageGallery": None,
+        "VideoObject": None,
+        "Other": [],
+        "misc": [],
+    }
+    for block in blocks:
+        if "NewsArticle" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+        else:
+            parsed_json_flter_dict["Other"].append(json.loads(block))
+    parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
+    return parsed_json_flter_dict
 
+
+def get_parsed_json(response) -> dict:
+    """
+     Parsed json response from generated data using given response and selector
     Args:
         response: provided response
-        selector_and_key: A dictionary with key and selector
-
     Returns:
         Dictionary with Parsed json response from generated data
     """
@@ -180,10 +206,12 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
         item=ArticleRawParsedJson(), response=response
     )
 
-    for key, value in selector_and_key.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
+    for key, value in get_parsed_json_filter(
+        response.css('script[type="application/ld+json"]::text').getall(),
+        response.css('script[type="application/json"]::text').getall(),
+    ).items():
+        article_raw_parsed_json_loader.add_value(key, value)
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -365,7 +393,7 @@ def get_article_json(response: str) -> dict:
         parsed_data["images"] = [get_image_json(response)]
 
     parsed_data["text"] = [" ".join(description)]
-    return parsed_data
+    return remove_empty_elements(parsed_data)
 
 
 def get_image_json(response: str) -> dict:

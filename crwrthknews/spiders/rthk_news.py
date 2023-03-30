@@ -15,8 +15,8 @@ from crwrthknews.utils import (
     based_on_scrape_type,
     date_in_date_range,
     get_raw_response,
-    export_data_to_json_file,
-    remove_empty_elements,
+    get_parsed_json,
+    # export_data_to_json_file,
     get_article_json,
 )
 from crwrthknews.exceptions import (
@@ -211,11 +211,12 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
             }
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader.add_value("raw_response", raw_response)
+
+            parsed_json_data = get_parsed_json(response)
+            articledata_loader.add_value("parsed_json", parsed_json_data)
             data = get_article_json(response)
             articledata_loader.add_value("parsed_data", data)
-            self.articles.append(
-                remove_empty_elements(dict(articledata_loader.load_item()))
-            )
+            self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 
         except Exception as exception:
@@ -243,8 +244,8 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
