@@ -132,7 +132,6 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 "//xmlns:loc/text()",
                 namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
             )
-
             titles = root.xpath(
                 "//news:title/text()",
                 namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
@@ -222,12 +221,12 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             exceptions.ExportOutputFileException(
