@@ -1,10 +1,13 @@
 import scrapy
 import logging
-import w3lib.html
-from crwnippon.constant import LOGGER, SITEMAP_URL
+from crwnippon.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
 from crwnippon import exceptions
-from datetime import datetime, timedelta
+from datetime import datetime
 from abc import ABC, abstractmethod
+from scrapy.http import XmlResponse
+from scrapy.selector import Selector
+from scrapy.utils.project import get_project_settings
+from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
 from crwnippon.items import ArticleData
 from crwnippon.utils import (
@@ -34,23 +37,23 @@ class BaseSpider(ABC):
         pass
 
 
-class ArdNewsSpider(scrapy.Spider, BaseSpider):
+class NipponNews(scrapy.Spider, BaseSpider):
     # Assigning spider name
-    name = "ard_news"
+    name = "nippon"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args, **kwargs):
+    def __init__(self, type=None, url=None, since=None, until=None, *args, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
 
         Args:
             type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
 
-            start_date (str): A string representing the start date of
+            since (str): A string representing the start date of
             the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
 
             url (str): A string representing the URL of the webpage to be scraped.
-            end_date (str): A string representing the end date of the sitemap to be scraped.
+            until (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
 
             **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
@@ -74,27 +77,24 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         If the type argument is "article", the URL to be scraped is validated and set.
             A log file is created for the web scraper.
         """
-        super(ArdNewsSpider, self).__init__(*args, **kwargs)
+        super(NipponNews, self).__init__(*args, **kwargs)
         self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
-        self.sitemap_json = {}
         self.type = type.lower()
-        self.date_wise = []
 
         create_log_file()
 
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+            self.since = (
+                datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
             )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+            self.until = (
+                datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
             )
-            validate_sitemap_date_range(start_date, end_date)
-
+            validate_sitemap_date_range(since, until)
         if self.type == "article":
             if url:
                 self.start_urls.append(url)
@@ -113,7 +113,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
         if self.type == "sitemap":
-            if self.start_date and self.end_date:
+            if self.since and self.until:
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             else:
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -152,105 +152,69 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         return articledata_loader.item
 
     def parse_sitemap(self, response):
-        """Parses a sitemap page and extracts links and titles for further processing.
-
-        Args:
-            response (scrapy.http.Response): The HTTP response object containing the sitemap page.
-
-        Yields:
-            scrapy.http.Request: A request object for each link on the sitemap page.
-
-        Raises:
-            exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
-
+        """
+        Function to parse a sitemap response by date
+        Returns:
+            Yields scrapy.Request objects for each link found in the sitemap.
+        Description:
+        This function takes in a scrapy response object and parses it by date to extract the sitemap links.
+        For each sitemap link found, it yields a scrapy.Request object to the parse_sitemap function.
         """
         try:
+            # Create an XmlResponse object from the response
+            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            # Create a Selector object from the XmlResponse
+            xml_selector = Selector(xmlresponse)
+            # Define the XML namespaces used in the sitemap
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            # Loop through each sitemap URL in the XML response
+            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
+            published_date = xml_selector.xpath("///xmlns:lastmod/text()", namespaces=xml_namespaces).getall()
 
-            # Get the start and end dates as datetime objects
-            start_date = (
-                datetime.strptime(str(self.start_date), "%Y-%m-%d")
-                if self.start_date
-                else None
-            )
-            end_date = (
-                datetime.strptime(str(self.end_date), "%Y-%m-%d")
-                if self.end_date
-                else None
-            )
+            for link, pub_date in zip(links, published_date):
+                if link and pub_date:
+                    published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
-            # Create a list of dates within the range
-            date_wise = []
-            if start_date and end_date:
-                while start_date <= end_date:
-                    date_wise.append(start_date.date())
-                    start_date += timedelta(days=1)
+                    if self.since and published_at < self.since:
+                        return
 
-            if self.start_date is None and self.end_date is None:
-                for link in response.css("a"):
-                    url = link.css("::attr(href)").get()
-                    title = link.css(".teaser-xs__headline , .hyphenate").get()
-                    published_at = link.css(".teaser-xs__date::text").get()
+                    if self.since and published_at > self.until:
+                        return
 
-                    if url and title and published_at:
-                        title = w3lib.html.remove_tags(title)
-                        data = {
-                            "link": url,
-                            "title": title.replace("\n", "").strip(),
-                        }
+                    if self.since is None and self.until is None:
+                        if TODAYS_DATE == published_at:
+                            yield scrapy.Request(link, callback=self.parse_sitemap_article, meta={'link': link, 'pub_date': published_at})
+                    else:
+                        if self.since and self.until:
+                            yield scrapy.Request(link, callback=self.parse_sitemap_article, meta={'link': link, 'pub_date': published_at})
 
-                        self.articles.append(data)
-            elif self.start_date and self.end_date:
-                for i in date_wise:
-                    date_wise_url = f"https://www.tagesschau.de/archiv/?datum={i}"
-                    yield scrapy.Request(
-                        date_wise_url, callback=self.parse_sitemap_article
-                    )
-
+        # If there's any error during the above process, log it and print
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap_article(self, response):
-        """Extracts article titles and links from the response object and yields a Scrapy request for each article.
-
-        Args:
-            self: The Scrapy spider instance calling this method.
-            response: The response object obtained after making a request to a sitemap URL.
-
+        """
+        This function takes in a response object and parses the sitemap.
+        It extracts the links and published dates from the response object
+        and uses them to make requests to other pages.
         Yields:
-            A Scrapy request for each article URL in the sitemap,
-                with the `parse_sitemap_datewise` method as the callback and the article link and title as metadata.
-
-        Raises:
-            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+            scrapy.Request: A request object with the link and published date as metadata.
+            The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
         """
         try:
-            for link in response.css("a"):
-                url = link.css("::attr(href)").get()
-                title = link.css(".teaser-xs__headline, .hyphenate").get()
-                published_at = link.css(".teaser-xs__date::text").get()
+            url = response.meta['link']
+            title = response.css('.c-h1::text').get()
 
-                if url and title and published_at:
-                    title = w3lib.html.remove_tags(title)
-                    data = {
-                        "link": url,
-                        "title": title.replace("\n", "").strip(),
-                    }
-
-                    self.articles.append(data)
-            pagination = response.css(".paginierung__liste li a::attr(href)").getall()
-            for pagination_wise in pagination:
-                pagination_url = "https://www.tagesschau.de/archiv/" + pagination_wise
-                if len(pagination) > 1:
-                    yield scrapy.Request(
-                        pagination_url, callback=self.parse_sitemap_article
-                    )
+            data = {
+                "link": url,
+                "title": title,
+            }
+            self.articles.append(data)
 
         except BaseException as e:
-            exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {e}"
-            )
-            LOGGER.error("Error while filtering date wise: {}".format(e))
+            LOGGER.error(f"Error while parsing sitemap article: {e}")
+            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
     def closed(self, reason: any) -> None:
         """
@@ -268,8 +232,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
@@ -278,3 +242,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
+
+if __name__ == "__main__":
+    process = CrawlerProcess(get_project_settings())
+    process.crawl(NipponNews)
+    process.start()

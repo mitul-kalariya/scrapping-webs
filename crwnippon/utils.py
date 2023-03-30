@@ -6,8 +6,8 @@ import re
 import json
 import logging
 from datetime import datetime
-from crwardnews import exceptions
-from crwardnews.constant import TODAYS_DATE, BASE_URL, LOGGER
+from crwnippon import exceptions
+from crwnippon.constant import TODAYS_DATE, BASE_URL, LOGGER
 
 
 def create_log_file():
@@ -20,32 +20,30 @@ def create_log_file():
     )
 
 
-def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+def validate_sitemap_date_range(since, until):
+    since = (
+        datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
+    )
+    until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
     try:
-        if start_date and not end_date:
+        if (since and not until) or (not since and until):
             raise exceptions.InvalidDateException(
-                "end_date must be specified if start_date is provided"
-            )
-        if not start_date and end_date:
-            raise exceptions.InvalidDateException(
-                "start_date must be specified if end_date is provided"
+                "since or until must be specified"
             )
 
-        if start_date and end_date and start_date > end_date:
+        if since and until and since > until:
             raise exceptions.InvalidDateException(
-                "start_date should not be later than end_date"
+                "since should not be later than until"
             )
 
-        if start_date and end_date and start_date == end_date:
+        if since > TODAYS_DATE or until > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
+                "since and until should not be greater than today_date"
             )
 
-        if start_date and end_date and start_date > TODAYS_DATE:
+        if since and until and since > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
+                "since should not be greater than today_date"
             )
 
     except exceptions.InvalidDateException as e:
@@ -252,4 +250,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii = False)
