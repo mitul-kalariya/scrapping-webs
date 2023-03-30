@@ -83,4 +83,3 @@ class Crawler:
 
         process.crawl(Crw20MinutesOnline, **spider_args)
         process.start()
-        return self.output
