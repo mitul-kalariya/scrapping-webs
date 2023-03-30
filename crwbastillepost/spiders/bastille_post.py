@@ -223,10 +223,10 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+                f"Error occurred while closing crawler"
             )
             self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
+                f"Error occurred while closing crawler",
                 level=logging.ERROR,
             )
 
