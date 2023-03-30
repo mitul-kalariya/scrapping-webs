@@ -61,14 +61,13 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
     name = "sankei"
     start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-    news_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
         self, *args, type=None, url=None, since=None, until=None, **kwargs
     ):
         """init method to take date, type and validating it"""
 
-        super(OrientalDailySpider, self).__init__(*args, **kwargs)
+        super(SankeiSpider, self).__init__(*args, **kwargs)
 
         try:
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -124,7 +123,7 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
                 f"Unable to scrape due to getting this status code {response.status}"
             )
         self.logger.info("Parse function called on %s", response.url)
-        if "sitemap.xml" in response.url:
+        if "sitemap" in response.url:
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
         else:
             yield self.parse_article(response)
@@ -142,8 +141,8 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
         for url, date in zip(
             Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
             Selector(response, type="xml").xpath(
-                "//sitemap:publication_date/text()",
-                namespaces=self.news_namespace
+                "//sitemap:lastmod/text()",
+                namespaces=self.namespace
             ).getall(),
         ):
             try:
@@ -173,7 +172,7 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if title := response.css("h1.title::text").get():
+            if title := response.css("h1.article-headline::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
@@ -211,7 +210,7 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response)
+                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
             )
 
             self.articles.append(

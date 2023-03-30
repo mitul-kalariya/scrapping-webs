@@ -22,7 +22,7 @@ ERROR_MESSAGES = {
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
 
-language_mapper = {"en": "English", "zh-hk": "Chinese"}
+language_mapper = {"en": "English", "ja": "Japanese"}
 
 
 def sitemap_validations(
@@ -193,15 +193,15 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "Other": [],
         "misc": [],
     }
-    for block in blocks:
-        if "NewsArticle" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
-        elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+    for block in json.loads(blocks[0]):
+        if "NewsArticle" in block.get("@type", [{}]):
+            parsed_json_flter_dict["main"] = block
+        elif "ImageGallery" in block.get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = block
+        elif "VideoObject" in block.get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = block
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["Other"].append(block)
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
@@ -324,7 +324,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str) -> dict:
+def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -335,21 +335,15 @@ def get_parsed_data(response: str) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
-
+    data_dict = get_all_details_of_block(parsed_json_main)
     text = " ".join(response.css("div.paragraph div.content::text").getall())
-    images = []
-    for image in response.css("figure"):
-        image_link = image.css("img::attr(src)").get()
-        images.append({
-            "link": image_link if "oriental" in image_link else "https://orientaldaily.on.cc/" + image_link,
-            "caption": image.css("figcaption.photoCaption::text").get()
-        })
     article_date = response.xpath("//meta[@name='articleDate']/@content").extract()
     article_date_datetime = datetime.strptime(article_date[0], "%Y%m%d") if article_date else None
+    images = get_formated_images(response, parsed_json_main)
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
-        "source_country": ["China"],
+        "source_country": ["Japan"],
         "source_language": [language_mapper.get(
             response.css("html::attr(lang)").get().lower(),
             response.css("html::attr(lang)").get()
@@ -358,7 +352,7 @@ def get_parsed_data(response: str) -> dict:
 
     parsed_data_dict |= {"description": response.xpath("//meta[@name='description']/@content").extract()}
     parsed_data_dict |= {"published_at": [article_date_datetime.isoformat() if article_date_datetime else None]}
-    parsed_data_dict |= {"publisher": get_publisher_detail(response)}
+    parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
     parsed_data_dict |= {
         "title": response.css("title::text").getall(),
         "text": [text]
@@ -369,7 +363,75 @@ def get_parsed_data(response: str) -> dict:
     return parsed_data_dict
 
 
-def get_publisher_detail(response: str) -> dict:
+def get_all_details_of_block(block: dict) -> dict:
+    """
+    get author and publisher details
+    Args:
+        blocks: json/+ld data
+    Returns:
+        str : author and publisher details
+    """
+    data_dict = {
+        "description": block.get("description"),
+        "modified_at": block.get("dateModified"),
+        "published_at": block.get("datePublished"),
+        "publisher_id": block.get("publisher", {}).get("url"),
+        "publisher_type": block.get("publisher", {}).get("@type"),
+        "publisher_name": block.get("publisher", {}).get("name"),
+        "logo_type": block.get("publisher", {}).get("logo", {}).get("@type"),
+        "logo_url": block.get("publisher", {}).get("logo", {}).get("url"),
+        "logo_width": block.get("publisher", {}).get("logo", {}).get("width"),
+        "logo_height": block.get("publisher", {}).get("logo", {}).get("height"),
+        "title": block.get("headline", {}),
+        # "image_url": block.get("image", {}).get("url"),
+        # "image_caption": block.get("image", {}).get("description"),
+        "thumbnail_image": block.get("thumbnailUrl"),
+        "headline": block.get("headline"),
+    }
+    data_dict["author"] = []
+    if block.get("author"):
+        data_dict["author"].append({
+            "@type": block.get("author").get("@type"),
+            "name": block.get("author").get("name")
+        })
+    return data_dict
+
+def get_formated_images(response, block) -> str:
+    """return image url from response
+
+    Args:
+        response : response object of scrapy
+
+    Returns:
+        str: return link of image
+    """
+    formated_images = []
+    # for image in block.get("image", []):
+    #     formated_images.append({
+    #         "link": image.get("url"),
+    #         "caption": None,
+    #     })
+    for link, caption in zip(
+        response.css('figure.article-image a::attr(href)').getall(),
+        response.css('figure.article-image figcaption::text').getall()
+    ):
+        formated_images.append({
+            "link": link,
+            "caption": caption,
+        })
+    # images = []
+    # for image in response.css("figure"):
+    #     image_link = image.css("img::attr(src)").get()
+    #     images.append({
+    #         "link": image_link if "oriental" in image_link else "https://orientaldaily.on.cc/" + image_link,
+    #         "caption": image.css("figcaption.photoCaption::text").get()
+    #     })
+    # imageurl = response.css(".inline-image::attr(src)").getall()
+    # for img in imageurl:
+    #     image = img if "https://www.ctvnews.ca/" in img else f"https://www.ctvnews.ca/{img}"
+    return formated_images
+
+def get_publisher_detail(response: str, data_dict: dict) -> dict:
     """generate publisher detail and return dict
 
     Args:
@@ -379,14 +441,19 @@ def get_publisher_detail(response: str) -> dict:
     Returns:
         dict: details of publisher to pass to json
     """
-    publisher_name = response.xpath("//meta[@name='publisher']/@content").extract()
-    logo = response.css("img.logo::attr(src)").getall()
-    if not (publisher_name and logo):
-        return None
     return [{
-            "@id": BASE_URL,
-            "name": publisher_name[0],
+            "@id": data_dict.get("publisher_id", ""),
+            "@type": data_dict.get("publisher_type"),
+            "name": data_dict.get("publisher_name"),
             "logo": {
-                "type": "ImageObject",
-                "url": BASE_URL + logo[0],
+                "type": data_dict.get("logo_type", "ImageObject"),
+                "url": data_dict.get("logo_url"),
+                "width": {
+                    "@type": "Distance",
+                    "name": f"{data_dict.get('logo_width')} px"
+                } if data_dict.get("logo_width") else None,
+                "height": {
+                    "@type": "Distance",
+                    "name": f"{data_dict.get('logo_height')} px"
+                } if data_dict.get("logo_width") else None
             }}]
