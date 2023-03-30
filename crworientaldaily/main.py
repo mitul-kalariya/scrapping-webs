@@ -1,6 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from crworientaldaily.spiders.oriental_daily import OrientalDailySpider
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -42,7 +43,7 @@ class Crawler:
         self.query = query
         self.proxies = proxies
 
-    def crawl(self)-> list[dict]:
+    def crawl(self) -> list[dict]:
         """Crawls the sitemap URL and article URL and return final data
 
         Raises:
@@ -54,6 +55,11 @@ class Crawler:
         """
         self.output = None
         process = CrawlerProcess()
+        process_settings = process.settings
+        process_settings[
+            'USER_AGENT'
+        ] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+        process.settings = process_settings
         if self.query['type'] == 'article':
             spider_args = {'type': 'article', 'url': self.query.get('link'), 'args': {'callback': self.yield_output}}
         elif self.query['type'] == 'sitemap' or self.query['type'] == 'link_feed':
@@ -61,9 +67,6 @@ class Crawler:
             if self.query.get('since') and self.query.get('until'):
                 spider_args['start_date'] = self.query['since']
                 spider_args['end_date'] = self.query['until']
-            process_settings = process.settings
-            process_settings['USER_AGENT'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-            process.settings = process_settings
         else:
             raise Exception('Invalid Type')
 
