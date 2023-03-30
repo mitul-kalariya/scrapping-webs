@@ -1,7 +1,5 @@
-from datetime import datetime
-import logging
+"""constants"""
 
-TODAYS_DATE = datetime.today().date()
-SITEMAP_URL = "https://www.n-tv.de/sitemap.xml"
-BASE_URL = 'https://www.n-tv.de/'
-LOGGER = logging.getLogger()
+SITEMAP_URL = ""
+# In case when sitemap, RSS feed or archive is not available.
+BASE_URL = ""

@@ -134,5 +134,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-#log file
-logs.log
+# VS Code
+.vscode
+
+#PyCharm
+.idea
+
+*.zip
+
+# Output Data
+Article/
+Links/

@@ -1,55 +1,100 @@
-# Newton Scrapping
-This is the scrapping project to scrap news from different website.
-
+# {ScrapperName} Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
+This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
 
-#### Environment Setup 
+#### Environment Setup
 
-- Create Virtual Environment using Python3 and activate environment.
+- Create a Virtual Environment using Python3 and activate the environment.
 - `python3 -m venv venv`
 - `source venv/bin/activate`
-- Install Requirements using requirements.txt file available in a main directory.
-- `pip install -r requirements.txt
-# Newton Scrapping
-This is the scrapping project to scrap news from different website.
 
+*Note:* Make sure to activate the virtual environment before executing code or installing the package.
 
-#### Setup and execution instructions: - 
+### Installation
 
-This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
-- Python 3.10
-- Scrapy
+Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
+### Usage
 
+You can use the `Crawler` class and its `crawl` method to crawl the data.
+Quick example as shown below.
+```
+# To fetch all the article links
 
-#### Environment Setup 
+from {package_name} import Crawler
 
-- Create Virtual Environment using Python3 and activate environment.
-- `python3 -m venv venv`
-- `source venv/bin/activate`
-- Install Requirements using requirements.txt file available in a main directory.
-- `pip install -r requirements.txt `
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
 
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "{BASE_URL}",
+        "since": "2023-02-25",
+        "until": "2023-03-26"
+    },
+    proxies=proxies
+)
 
-#### Sitemap file available: - Yes
+data = crawler.crawl()
+```
+```
+# To fetch all the article links from today's date only
 
+from {package_name} import Crawler
 
-#### Command to fetch sitemap: - 
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
 
-- command to crawl on sitemap from specific date range
-- `scrapy crawl n_tv -a type=sitemap -a start_date=2023-03-14 -a end_date=2023-03-21`
-- command to crawl sitemap for today’s date
-- `scrapy crawl n_tv -a type=sitemap`
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "{BASE_URL}"
+    },
+    proxies=proxies
+)
 
+data = crawler.crawl()
+```
 
-#### Commands to fetch Articles: - 
+```
+#  To fetch the specific article details
 
-- command to crawl wanted article
-- `scrapy crawl n_tv -a type=article -a url={{Article-URL}}`
+from {package_name} import Crawler
 
-*Note:* Make sure to enter the virtual env before running.
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "article",
+        "link": {Sample article URL from test case}
+    },
+    proxies=proxies
+)
+
+data = crawler.crawl()
+```
+
+## Test Cases
+We have used Python's in-built module `unittest`.
+We have covered mainly two test cases.
+1. For Sitemap article links crawler
+2. For Article data CrawlerRun below command to run the test cases.
+- `python -m unittest`
