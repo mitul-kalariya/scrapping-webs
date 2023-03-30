@@ -1,8 +1,8 @@
-# {ScrapperName} Scrapping
+# oriental_daily Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from "https://orientaldaily.on.cc/" website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crworientaldaily import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://orientaldaily.on.cc/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crworientaldaily import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://orientaldaily.on.cc/"
     },
     proxies=proxies
 )
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crworientaldaily import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://orientaldaily.on.cc/content/%E8%A6%81%E6%B8%AF%E8%A6%81%E8%81%9E/odn-20230329-0329_00174_002/%E5%88%86%E4%BA%AB%E5%88%A9%E6%BD%A4%E6%AD%B8%E5%85%A5%E7%AE%97%E5%BC%8F--%E6%96%B0%E5%88%B6%E5%B0%91%E9%80%BE%E5%84%84%E5%84%AA%E6%83%A0/"
     },
     proxies=proxies
 )
