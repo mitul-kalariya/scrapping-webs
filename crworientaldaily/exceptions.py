@@ -45,7 +45,7 @@ class ArticleScrappingException(Exception):
 class ExportOutputFileException(Exception):
     """Raise when exception arise while exporting output file"""
 
-    # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
+    # Use ExportOutputFileException(f"Error occurred while closing crawler:- {str(e)}")
     pass
 
 

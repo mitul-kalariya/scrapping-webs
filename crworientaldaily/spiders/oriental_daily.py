@@ -248,9 +248,9 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
             #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}",
+                f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
             raise ExportOutputFileException(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+                f"Error occurred while closing crawler:- {str(exception)} - {reason}"
             ) from exception

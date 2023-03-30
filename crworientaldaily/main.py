@@ -50,8 +50,8 @@ class Crawler:
             Exception: Raised exception for unknown Type
 
         Returns:
-            list[dict]: list of dictionary of the article data or article links 
-            as per expected_article.json or expected_sitemap.json 
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
         """
         self.output = None
         process = CrawlerProcess()
