@@ -11,11 +11,9 @@ class NewsTVB(scrapy.Spider):
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
-    def __init__(
-        self, type=None, start_date=None,
-        end_date=None, url=None, *args, **kwargs
-                ):
+    def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
         super(NewsTVB, self).__init__(*args, **kwargs)
+        self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
         self.type = type
@@ -107,17 +105,22 @@ class NewsTVB(scrapy.Spider):
             the current date and time.
             :param reason: the reason for the spider's closure
             """
+        if self.output_callback is not None:
+            self.output_callback(self.articles)
+
         if self.type == "sitemap":
             if not os.path.isdir('Links'):
                 os.makedirs('Links')
             filename = os.path.join(
                 'Links', f'{self.name}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                 )
+
         elif self.type == "article":
             if not os.path.isdir('Article'):
                 os.makedirs('Article')
             filename = os.path.join(
                 'Article', f'{self.name}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                 )
+
         with open(f'{filename}.json', 'w') as f:
             json.dump(self.articles, f, indent=4)

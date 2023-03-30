@@ -10,6 +10,8 @@ from selenium.common.exceptions import NoSuchElementException
 
 logging.basicConfig(filename='selenium.log', level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(message)s')
 logger = logging.getLogger(__name__)
+
+
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
        Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
@@ -66,6 +68,7 @@ def get_article_data(response: Response) -> dict:
        """
     sel = Selenium()
     sel.visit(response.url)
+    # breakpoint()
 
     article_data = {}
     # article_data["title"] = response.css('div.newsEntryContainer h1::text').get()
