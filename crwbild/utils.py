@@ -28,7 +28,7 @@ SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
 
 
 def sitemap_validations(
-    scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
+        scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
     Validate the sitemap arguments
@@ -66,7 +66,7 @@ def sitemap_validations(
 
 
 def article_validations(
-    article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
+        article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
 ) -> None:
     """
     Validate the article arguments
@@ -127,7 +127,7 @@ def validate_arg(param_name, param_value, custom_msg="") -> None:
 
 
 def based_on_scrape_type(
-    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+        scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
 ) -> datetime:
     """
     check scrape type and based on the type pass it to the validated function,
@@ -194,7 +194,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     }
     for block in blocks:
         if "LiveBlogPosting" in json.loads(block).get(
-            "@type", [{}]
+                "@type", [{}]
         ) or "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
         elif "ImageGallery" in json.loads(block).get("@type", [{}]):
@@ -221,8 +221,8 @@ def get_parsed_json(response) -> dict:
     )
 
     for key, value in get_parsed_json_filter(
-        response.css('script[type="application/ld+json"]::text').getall(),
-        response.css('script[type="application/json"]::text').getall(),
+            response.css('script[type="application/ld+json"]::text').getall(),
+            response.css('script[type="application/json"]::text').getall(),
     ).items():
         article_raw_parsed_json_loader.add_value(key, value)
 
@@ -396,7 +396,7 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
         "published_at": None,
     }
     if "NewsArticle" in parsed_data.get(
-        "@type"
+            "@type"
     ) or "LiveBlogPosting" in parsed_data.get("@type"):
         article_data |= {
             "description": [parsed_data.get("description")],
@@ -425,11 +425,11 @@ def get_publihser_details(parsed_data: list) -> dict:
                 "logo": {
                     "url": parsed_data.get("publisher").get("logo").get("url"),
                     "width": str(parsed_data.get("publisher").get("logo").get("width"))
-                    + " px",
+                             + " px",
                     "height": str(
                         parsed_data.get("publisher").get("logo").get("height")
                     )
-                    + " px",
+                              + " px",
                 },
             }
             for publisher in [parsed_data.get("publisher")]
@@ -456,7 +456,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
 
 
 def get_thumbnail_image_video(
-    parsed_data: list, video_object: dict, response: str
+        parsed_data: list, video_object: dict, response: str
 ) -> dict:
     """
     Returns thumbnail images, images and video details
@@ -474,12 +474,16 @@ def get_thumbnail_image_video(
             video = video_url
         description = video_object.get("description")
 
+    images = []
+    for link, caption in zip(response.css(".article-body>figure img::attr(data-src)").getall(),
+                             response.css(".article-body>figure>figcaption p::text").getall()):
+        images.append({"link": link, "caption": caption})
+
+    for link, caption in zip(response.css("article>figure img::attr(src)").getall(),
+                             response.css("article>figure p::text").getall()):
+        images.append({"link": link, "caption": caption})
+
     return {
-        "images": [
-            {
-                "link": parsed_data.get("image", {})[0].get("url"),
-                "caption": response.css("figcaption.fig__caption p::text").get(),
-            }
-        ],
+        "images": images,
         "video": [{"link": video, "caption": description}],
     }
