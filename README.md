@@ -1,4 +1,4 @@
-# oriental_daily Scrapping
+# Oriental Daily News (CH) Scrapping
 
 #### Setup and execution instructions: - 
 
