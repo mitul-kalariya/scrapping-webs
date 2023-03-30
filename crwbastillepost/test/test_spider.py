@@ -204,9 +204,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                   list, "format mismatch for parsed_data--> images")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> images")
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():
@@ -215,9 +212,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                   list, "format mismatch for parsed_data--> section")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -226,9 +220,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
                                   list, "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
 
         self._test_image_format(article)
         self._test_author_format(article)

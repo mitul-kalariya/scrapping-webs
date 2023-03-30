@@ -3,15 +3,15 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://www.bastillepost.com/hongkong/article/12543349-%e5%90%88%e7%94%9f%e5%89%b5%e5%b1%95%e5%8e%bb%e5%b9%b4%e6%a0%b8%e5%bf%83%e5%88%a9%e6%bd%a4%e9%99%8d77-%e5%8d%81%e9%80%81%e4%ba%8c%e6%b4%be%e7%b4%85%e8%82%a1",
+        "url": "https://www.bastillepost.com/hongkong/article/12544844-%e6%94%b6%e5%b8%82%e9%80%9f%e9%81%9e%ef%bd%9c%e6%81%92%e6%8c%87%e6%94%b6%e5%8d%87116%e9%bb%9e-%e9%9b%b6%e8%b7%91%e5%bd%8812-%e4%b8%ad%e7%9f%b3%e6%b2%b9%e9%a3%868-%e5%9c%8b%e5%a3%bd%e9%80%86%e5%b8%82",
         "test_data_path": "crwbastillepost/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.bastillepost.com/hongkong/article/12542905-%e7%92%b0%e4%bf%9d%e7%bd%b2%e7%a8%b1%e5%a2%9e%e5%8a%a0%e8%86%a0%e8%a2%8b%e5%be%b5%e8%b2%bb%e5%be%8c%e6%b4%be%e7%99%bc%e9%87%8f%e8%bc%83%e5%8e%bb%e5%b9%b4%e5%90%8c%e6%9c%9f%e4%b8%8b%e8%b7%8c%e9%80%be6",
+        "url": "https://www.bastillepost.com/hongkong/article/12542990-%e6%81%92%e6%8c%87%e5%8d%8a%e6%97%a5%e6%94%b6%e8%b7%8c138%e9%bb%9e-%e6%b1%bd%e8%bb%8a%e8%82%a1%e9%80%86%e5%b8%82%e5%a4%a7%e5%8d%87-%e9%9b%b6%e8%b7%91%e5%8d%879-%e4%b8%ad%e5%a4%a9%e6%b9%96%e5%8d%97",
         "test_data_path": "crwbastillepost/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.bastillepost.com/hongkong/article/12541086-%e8%bc%b8%e5%85%a5%e5%a4%96%e5%8b%9e%ef%bd%9c%e5%b7%a5%e8%81%af%e6%9c%83%e5%8b%a2%e5%bc%b1%e5%85%a7%e9%83%a8%e6%8e%a2%e8%a8%8e%e3%80%8c%e9%ac%86%e5%8f%a3%e3%80%8d-%e6%86%82%e6%b8%af%e6%89%93%e5%b7%a5",
+        "url": "https://www.bastillepost.com/hongkong/article/12544011-%e3%80%8a%e5%95%86%e5%a0%b1%e3%80%8b%e5%bb%a3%e5%91%8a%e9%83%a8%e5%89%8d%e5%8a%a9%e7%90%86%e7%b8%bd%e7%b6%93%e7%90%86%e5%8f%8a2%e4%b8%8b%e5%b1%ac%e6%b6%89%e8%b2%aa-%e8%a2%ab%e5%bb%89%e7%bd%b2%e8%b5%b7",
         "test_data_path": "crwbastillepost/test/data/test_article_3.json"
     }
 ]
