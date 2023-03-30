@@ -11,7 +11,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwntv/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.n-tv.de/ticker/Zahl-der-Schutzsuchenden-in-Deutschland-steigt-auf-ueber-drei-Millionen-article24022199.html",
+        "url": "https://www.n-tv.de/politik/Lawrow-will-Sitzung-im-UN-Sicherheitsrat-leiten-article24023842.html",
         "test_data_path": "crwntv/test/data/test_article_3.json"
     }
 ]
