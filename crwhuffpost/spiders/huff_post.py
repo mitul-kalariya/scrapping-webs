@@ -236,7 +236,7 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception
 
-    def closed(self) -> None:
+    def closed(self, reason: any) -> None:
         """
         store all scrapped data into json file with given date in filename
         Args:
@@ -255,6 +255,6 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occurred while writing json file{str(exception)}",
+                f"Error occurred while closing the crawler {str(exception)}",
                 level=logging.ERROR,
             )

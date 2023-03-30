@@ -236,7 +236,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL, "since": "2023-03-27", "until": "2023-03-27"})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
