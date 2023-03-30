@@ -15,7 +15,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-
 from crwhk01 import exceptions
 from crwhk01.constant import BASE_URL, LOGGER, TODAYS_DATE
 
@@ -257,8 +256,9 @@ def get_thumbnail_image(response) -> list:
                 except:
                     return [i.get_attribute(
                         "src").replace("blob:", "")]
-    except:
-        LOGGER.error("Video not found in this article")
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting thumbnail image: {str(exception)}")
     driver.quit()
     return data
 
@@ -308,7 +308,6 @@ def get_publisher(response) -> list:
 
 
 def get_images(response, parsed_json=False) -> list:
-    breakpoint()
     """
     Extracts all the images present in the web page.
     Returns:
@@ -321,23 +320,29 @@ def get_images(response, parsed_json=False) -> list:
     driver.get(response.url)
     
     try:
-        images =  driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
+        # images =  driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
+        # images = driver.find_elements(By.XPATH, "//div[@class='f1oxu5xj']//img")
+
+        caption_images = driver.find_elements(By.XPATH, "//div[@class='pd3ie03']")
+        images = driver.find_elements(By.XPATH, "//div[@class='f1oxu5xj']//img")
+
         data = []
+        breakpoint()
         if images:
             for image in images:
-                print("++++++++++++++++++++++++++++++", image)
                 temp_dict = {}
-                link = [image.get_attribute("src").replace("blob:", "")]
-                # caption = image.css("figcaption small::text").get()
-                if parsed_json:
-                    if link:
-                        temp_dict["@type"] = "ImageObject"
-                        temp_dict["link"] = link
-                else:
-                    if link:
-                        temp_dict["link"] = link
-                        # if caption:
-                        #     temp_dict["caption"] = caption
+                link = image.get_attribute("src").replace("blob:", "")
+                caption = image.css("#article-content-section .text-black-40::text").get()
+                # if parsed_json:
+                #     if link:
+                #         temp_dict["@type"] = "ImageObject"
+                #         temp_dict["link"] = link[0]
+                # else:
+                if link:
+                    temp_dict["@type"] = "ImageObject"
+                    temp_dict["link"] = link
+                    if caption:
+                        temp_dict["caption"] = caption
                 data.append(temp_dict)
             return data
     except:

@@ -1,6 +1,6 @@
 """list of article/sitemap URLs for testing"""
 
-# Update below dictionary to add or remove new articles to test
+#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
@@ -15,5 +15,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwhk01/test/data/test_article_3.json"
     }
 ]
-
+#TODO:Update below sitemap URL
 SITEMAP_URL = "https://indianexpress.com/sitemap.xml"

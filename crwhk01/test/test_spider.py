@@ -1,10 +1,12 @@
 import logging
 import unittest
 
-from crwhk01.spiders.indian_express import IndianExpressSpider
+from crwhk01.spiders.hk01 import HK01Spider
 from crwhk01.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwhk01.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
+#TODO: Update below path here
+from crwhk01 import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -24,7 +26,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = HK01Spider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -160,6 +162,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("author"),
                                   list, "format mismatch for parsed_data--> author")
+            self._test_author_format(article)
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> author")
@@ -204,6 +207,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                   list, "format mismatch for parsed_data--> images")
+            self._test_image_format(article)
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> images")
@@ -230,40 +234,33 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> tags")
 
-        self._test_image_format(article)
-        self._test_author_format(article)
 
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.spider = IndianExpressSpider(type=self.type)
+        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
-        for article in self.spider.articles:
+        for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
             with self.subTest():
                 self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
-    def _test_sitemap_results(self, sitemap_urls):
-        for sitemap_url in sitemap_urls:
-            article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
-            for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
-                self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
+    def _test_sitemap_results(self):
         with self.subTest():
-            self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
+            self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
         with self.subTest():
-            self.assertIsInstance(self.spider.articles, list, "Sitemap Article format mismatch")
+            self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
         with self.subTest():
-            self.assertIsInstance(self.spider.articles[0], dict, "Sitemap Article format mismatch")
+            self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
         self._test_sitemap_article_format()
 
     def test_parse(self):
-        sitemap_urls = self.spider.parse(online_response_from_url(SITEMAP_URL))
-        self._test_sitemap_results(sitemap_urls)
-
+        self.article_urls = self.crawler.crawl()
+        self._test_sitemap_results()
 
 if __name__ == "__main__":
     unittest.main()
