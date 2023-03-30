@@ -21,7 +21,7 @@ ERROR_MESSAGES = {
     "InvalidDateException": "Please provide valid date.",
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
-language_mapper = {"en": "English", "fr": "French"}
+language_mapper = {"en": "English", "fr": "French", "de": "German"}
 
 # Regex patterns
 SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
@@ -335,7 +335,6 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
         Dictionary with Parsed json response from generated data
     """
     parsed_data_dict = get_parsed_data_dict()
-
     parsed_data_dict |= {
         "source_country": ["France"],
         "source_language": [
@@ -345,8 +344,10 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
-    parsed_data_dict |= get_text_title_section_details(parsed_json_main)
-    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, video_object)
+    parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
+    parsed_data_dict |= get_thumbnail_image_video(
+        parsed_json_main, video_object, response
+    )
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -436,7 +437,7 @@ def get_publihser_details(parsed_data: list) -> dict:
     return {"publisher": publisher_details}
 
 
-def get_text_title_section_details(parsed_data: list) -> dict:
+def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     Returns text, title, section details
     Args:
@@ -445,15 +446,18 @@ def get_text_title_section_details(parsed_data: list) -> dict:
     Returns:
         dict: text, title, section details
     """
+
     return {
         "title": [parsed_data.get("headline")],
-        "text": [parsed_data.get("articlebody")],
+        "text": ["".join(response.css("div.article-body p::text").getall())],
         "section": [parsed_data.get("articleSection")],
         "tags": parsed_data.get("keywords", []),
     }
 
 
-def get_thumbnail_image_video(parsed_data: list, video_object: dict) -> dict:
+def get_thumbnail_image_video(
+    parsed_data: list, video_object: dict, response: str
+) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -462,6 +466,7 @@ def get_thumbnail_image_video(parsed_data: list, video_object: dict) -> dict:
     Returns:
         dict: thumbnail images, images and video details
     """
+
     video = None
     description = None
     if video_object:
@@ -470,6 +475,11 @@ def get_thumbnail_image_video(parsed_data: list, video_object: dict) -> dict:
         description = video_object.get("description")
 
     return {
-        "images": [{"link": parsed_data.get("image", {}).get("url")}],
+        "images": [
+            {
+                "link": parsed_data.get("image", {})[0].get("url"),
+                "caption": response.css("figcaption.fig__caption p::text").get(),
+            }
+        ],
         "video": [{"link": video, "caption": description}],
     }
