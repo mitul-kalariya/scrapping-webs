@@ -279,21 +279,12 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-        logo = response.css('head link[rel="icon"]::attr(href)').get()
-        img_response = requests.get(logo)
-        width, height = Image.open(BytesIO(img_response.content)).size
-        a_dict = {
-            "@id": "globalnews.ca",
-            "@type": "NewsMediaOrganization",
-            "name": "Global NEWS",
-            "logo": {
-                "@type": "ImageObject",
-                "url": logo,
-                "width": {"@type": "Distance", "name": str(width) + " px"},
-                "height": {"@type": "Distance", "name": str(height) + " px"},
-            },
-        }
-        return [a_dict]
+        response = response.css('script[type="application/ld+json"]::text').getall()
+        json_loads = json.loads(response[0])
+        data = []
+        publisher = json_loads.get("publisher")
+        data.append(publisher)
+        return data
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
