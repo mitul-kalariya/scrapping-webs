@@ -48,5 +48,4 @@ class ServiceUnavailableException(Exception):
 
 class URLNotFoundException(Exception):
     """Rise when getting 404 status code"""
-
     pass

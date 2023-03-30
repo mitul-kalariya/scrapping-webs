@@ -12,11 +12,11 @@ from crwam730.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
+    # export_data_to_json_file
 )
 from crwam730.exception import (
-    SitemapScrappingException,
-    SitemapArticleScrappingException,
+    # SitemapScrappingException,
+    # SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -120,7 +120,7 @@ class Am730(scrapy.Spider, BaseSpider):
                         }
                         print(article)
                         self.articles.append(article)
-        
+
     def parse_sitemap_article(self, response):
         """
            Parse article information from a given sitemap URL.
@@ -168,7 +168,7 @@ class Am730(scrapy.Spider, BaseSpider):
             )
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
-        
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching article details:- {str(exception)}",
@@ -204,4 +204,3 @@ class Am730(scrapy.Spider, BaseSpider):
             raise ExportOutputFileException(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}"
             ) from exception
-        

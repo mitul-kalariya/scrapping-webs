@@ -121,7 +121,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsMediaOrganization"]
+                key, [json.loads(data) for data in value.getall()
+                      if json.loads(data).get('@type') == "NewsMediaOrganization"]
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
@@ -135,7 +136,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') \
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type')
                       in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
             )
 
@@ -181,12 +182,12 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    #parsed_data_dict["author"] = [response.css('meta[name="author"]::attr(content)').get()]
+    # parsed_data_dict["author"] = [response.css('meta[name="author"]::attr(content)').get()]
     parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
     parsed_data_dict["modified_at"] = []  # Not available
     parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
     parsed_data_dict["source_country"] = ["China"]
-    parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').get()
+    parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').getall()
     parsed_data_dict["publisher"] = [{
         "@id": "https://www.am730.com.hk",
         "@type": article_data.get("main").get("@type"),
@@ -202,10 +203,10 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["thumbnail_image"] = [response.css(".picset-img::attr('data-src')").get()]
     parsed_data_dict["title"] = [response.css('.article__head-title::text').get()]
     parsed_data_dict["images"] = []
-    for img_data in response.css(".picset-img"):
+    for img_data in response.css(".picsolo-img"):
         parsed_data_dict["images"].append({'link': img_data.css("::attr('data-src')").get(),
                                            'caption': response.css('.picsolo-descr::text').get()})
-    parsed_data_dict["section"] = response.css('.article__head-unit a::text').getall() ##########
+    parsed_data_dict["section"] = response.css('.article__head-unit a::text').getall()
     parsed_data_dict["tags"] = response.css('.hashtags a::text').getall()
     parsed_data_dict["embed_video_link"] = []
     return remove_empty_elements(parsed_data_dict)
