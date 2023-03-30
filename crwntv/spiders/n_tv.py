@@ -7,12 +7,12 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from newton_scrapping.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
-from newton_scrapping import exceptions
+from crwntv.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
+from crwntv import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
-from newton_scrapping.items import ArticleData
-from newton_scrapping.utils import (
+from crwntv.items import ArticleData
+from crwntv.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
