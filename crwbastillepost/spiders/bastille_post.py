@@ -103,8 +103,16 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
 
         try:
             if self.type == "sitemap":
-                LOGGER.info("Parse function called on %s", response.url)
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                try:
+                    root = etree.fromstring(response.body)
+                    links = root.xpath(
+                        "//xmlns:loc/text()",
+                        namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+                        )
+                    for link in links:
+                        yield scrapy.Request(link, callback=self.parse_sitemap)
+                except BaseException as e:
+                    LOGGER.info(e)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
