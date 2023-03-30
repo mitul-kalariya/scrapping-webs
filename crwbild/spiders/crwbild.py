@@ -58,7 +58,7 @@ class BaseSpider(ABC):
 class BildSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of 20 minutes online News site"""
 
-    name = "20_minutes"
+    name = "bild"
     start_urls = [BASE_URL]
     namespace = {"sitemap": "https://www.sitemaps.org/schemas/sitemap/0.9"}
     namespace_news = {"sitemap": "https://www.google.com/schemas/sitemap-news/0.9"}
