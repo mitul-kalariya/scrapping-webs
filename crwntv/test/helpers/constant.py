@@ -3,15 +3,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.n-tv.de/sport/Desolate-Lage-im-Eisschnelllauf-Claudia-Pechsteins-Partner-Matthias-Grosse-will-Verantwortliche-zur-Rechenschaft-ziehen-article23966594.html",
         "test_data_path": "crwntv/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.n-tv.de/politik/Russland-nimmt-US-Reporter-fest-article24022389.html",
         "test_data_path": "crwntv/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.n-tv.de/ticker/Zahl-der-Schutzsuchenden-in-Deutschland-steigt-auf-ueber-drei-Millionen-article24022199.html",
         "test_data_path": "crwntv/test/data/test_article_3.json"
     }
 ]

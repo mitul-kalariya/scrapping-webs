@@ -231,12 +231,12 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"

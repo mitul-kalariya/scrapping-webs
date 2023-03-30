@@ -133,7 +133,7 @@ def get_parsed_data(response):
     response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
     article_author = get_main(response)
-    response_data['author'] = article_author[0].get('author')
+    response_data['author'] = [article_author[0].get('author')]
 
     article_published = response.css("span.article__date::text").get()
     response_data["published_at"] = [article_published]
