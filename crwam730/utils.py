@@ -179,93 +179,35 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     parsed_data_dict = get_parsed_data_dict()
+    mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    mapper = {"FRA": "France", "fr": "French"}
-    article_data["title"] = response.css('.article__head-title').get()
-    breakpoint()
-    article_data["section"] = response.css('li.breadcrumb__item a::text').getall()
-    # selector = response.xpath('//script[@type="application/ld+json"]/text()').getall()
-    # article_data["json_data"] = [json.loads(data) for data in selector]
-    language = response.css("html::attr(lang)").get()
-    article_data["source_language"] = mapper.get(language)
-    article_data["source_country"] = mapper.get("FRA")
-
-    # if article_data.get("main").get('video'):
-    #     article_data["video"] = get_video(self, response.url)
-
-    parsed_data_dict["source_country"] = ["France"]
-    parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    # breakpoint()
-    if len([article_data.get("main").get('author')]) == 1:
-        if type(article_data.get("main").get('author')) == list:
-            parsed_data_dict["author"] = [{
-                "@type": article_data.get("main").get('author')[0].get("@type"),
-                "name": article_data.get("main").get('author')[0].get("name"),
-                "url": article_data.get("main").get('author')[0].get("url")
-            }]
-        else:
-            if type(article_data.get("main").get('author')) == dict:
-                parsed_data_dict["author"] = [{
-                    "@type": article_data.get("main").get('author').get("@type"),
-                    "name": article_data.get("main").get('author').get("name"),
-                    "url": article_data.get("main").get('author').get("url")
-                }]
-    else:
-        author_list = []
-        for i in range(len(article_data.get("main").get('author'))):
-            author_list.append({
-                "@type": article_data.get("main").get('author')[i].get("@type"),
-                "name": article_data.get("main").get('author')[i].get("name"),
-                "url": article_data.get("main").get('author')[i].get("url")
-            })
-        parsed_data_dict["author"] = [author_list]
-
-    parsed_data_dict["description"] = response.css('meta[name="description"]::attr(content)').get()
-    parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
+    #parsed_data_dict["author"] = [response.css('meta[name="author"]::attr(content)').get()]
+    parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
+    parsed_data_dict["modified_at"] = []  # Not available
+    parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
+    parsed_data_dict["source_country"] = ["China"]
     parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').get()
-
-    if "publisher" in list(article_data.get("main").keys()):
-        key = "publisher"
-    elif "Publisher" in list(article_data.get("main").keys()):
-        key = "Publisher"
-
-    parsed_data_dict["publisher"] = [
-        {
-            '@type': article_data.get("main").get(key).get('@type'),
-            'url': article_data.get("main").get(key).get('url'),
-            "logo": {
-                "@type": article_data.get("main").get(key).get("logo").get('@type'),
-                "url": article_data.get("main").get(key).get("logo").get('url'),
-                'width': {'@type': "Distance",
-                          "name": str(article_data.get("main").get(key).get('logo').get('width').get('value')) + " Px"},
-                'height': {'@type': "Distance", 'name': str(
-                    article_data.get("main").get(key).get('logo').get('height').get('value')) + " Px"}}}]
-
+    parsed_data_dict["publisher"] = [{
+        "@id": "https://www.am730.com.hk",
+        "@type": article_data.get("main").get("@type"),
+        "name": article_data.get("main").get("name"),
+        "logo": {
+            "@type": "ImageObject",
+            "url": response.css('link[rel="apple-touch-icon"]::attr(href)').get(),  # search:apple-touch-icon
+            "width": {},  # Filed not available
+            "height": {}  # Filed not available
+        }
+    }]
     parsed_data_dict["text"] = response.css('p::text').getall()
-
-    if type(article_data.get("main").get('image')) is str:
-        parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image')]
-        parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')}]
-
-    else:
-        for img_data in article_data.get("main").get('image'):
-            if img_data is not None:
-                parsed_data_dict["thumbnail_image"] = [img_data.get('url')]
-
-                parsed_data_dict["images"] = [{"link": img_data.get('url'),
-                                               "caption": img_data.get('name')}]
-
-                break
-
-    if not article_data.get("title") or article_data.get("title") == '':
-        parsed_data_dict["title"] = [article_data.get("main").get("headline")]
-    else:
-        parsed_data_dict["title"] = [article_data.get("title")]
-
-    parsed_data_dict["section"] = response.css('.badge::text').get()
-    parsed_data_dict["tags"] =  response.css('.hashtags a::text').getall()
-    parsed_data_dict['embedded_video_link'] = [article_data.get("video")]
-
+    parsed_data_dict["thumbnail_image"] = [response.css(".picset-img::attr('data-src')").get()]
+    parsed_data_dict["title"] = [response.css('.article__head-title::text').get()]
+    parsed_data_dict["images"] = []
+    for img_data in response.css(".picset-img"):
+        parsed_data_dict["images"].append({'link': img_data.css("::attr('data-src')").get(),
+                                           'caption': response.css('.picsolo-descr::text').get()})
+    parsed_data_dict["section"] = response.css('.article__head-unit a::text').getall() ##########
+    parsed_data_dict["tags"] = response.css('.hashtags a::text').getall()
+    parsed_data_dict["embed_video_link"] = []
     return remove_empty_elements(parsed_data_dict)
 
 
