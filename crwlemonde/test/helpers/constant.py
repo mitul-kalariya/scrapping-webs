@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.lemonde.fr/sciences/article/2023/03/29/daniel-roche-penseur-des-sciences-des-lumieres_6167417_1650684.html",
@@ -44,5 +43,5 @@ TEST_ARTICLES = [
     }
     
 ]
-#TODO:Update below sitemap URL
+
 SITEMAP_URL = "https://www.lemonde.fr/sitemap_index.xml"

@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
-#TODO: Change path and spider name here
 from crwlemonde.spiders.lemonade import LemonadeNews
+
 
 class Crawler:
     """
@@ -50,8 +50,8 @@ class Crawler:
             Exception: Raised exception for unknown Type
 
         Returns:
-            list[dict]: list of dictionary of the article data or article links 
-            as per expected_article.json or expected_sitemap.json 
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
         """
         self.output = None
         process = CrawlerProcess()
@@ -80,7 +80,6 @@ class Crawler:
             process_settings['HTTP_PROXY_PASS'] = self.proxies['proxyPassword']
             process.settings = process_settings
 
-        #TODO: Replace the Spider name after importing
         process.crawl(LemonadeNews, **spider_args)
         process.start()
         return self.output

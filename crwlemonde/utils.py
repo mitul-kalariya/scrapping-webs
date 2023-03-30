@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from scrapy.http import Response
 from scrapy.loader import ItemLoader
 from crwlemonde.constant import SITEMAP_URL
 from crwlemonde.items import (
@@ -13,6 +12,7 @@ from crwlemonde.exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
+
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
@@ -31,7 +31,6 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -127,8 +126,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in\
-                selector_and_key.keys()  and json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in
+                      selector_and_key.keys() and json.loads(data).get('@type') != "NewsArticle"]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())

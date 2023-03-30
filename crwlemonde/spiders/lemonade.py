@@ -17,7 +17,6 @@ from crwlemonde.utils import (
 )
 from crwlemonde.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -42,7 +41,7 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
-    @abstractmethod    
+    @abstractmethod
     def parse_sitemap_article(self, response: str) -> None:
         pass
 
@@ -54,12 +53,13 @@ class BaseSpider(ABC):
 class LemonadeNews(scrapy.Spider, BaseSpider):
     name = "lemonade"
 
-    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9', 'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
+    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
+                 'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
 
     def __init__(
         self, type=None, start_date=None,
         end_date=None, url=None, *args, **kwargs
-                ):
+    ):
         try:
             super(LemonadeNews, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -99,26 +99,26 @@ class LemonadeNews(scrapy.Spider, BaseSpider):
         if response.status != 200:
             raise CloseSpider(
                 f"Unable to scrape due to getting this status code {response.status}"
-            )    
+            )
         if self.type == "sitemap":
             try:
                 sitemap_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                        namespaces=self.namespace).getall()
-                
-                sitemap_last_mod_dates = Selector(
-                    response, type='xml').xpath('//sitemap:lastmod/text()',
-                    namespaces=self.namespace).getall()
-               
-                for site_map_url, last_mod_date in zip(sitemap_urls[::-1], sitemap_last_mod_dates[::-1]):   
+                                                                    namespaces=self.namespace).getall()
+
+                sitemap_last_mod_dates = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
+                                                                              namespaces=self.namespace).getall()
+
+                for site_map_url, last_mod_date in zip(sitemap_urls[::-1], sitemap_last_mod_dates[::-1]):
                     if "article" in site_map_url:
                         _date = datetime.strptime(last_mod_date.split("T")[0], '%Y-%m-%d')
-                        
+
                         if self.today_date:
                             if (self.today_date.year, self.today_date.month) == (_date.year, _date.month):
                                 yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
 
                         else:
-                            if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= (self.end_date.year, self.end_date.month):
+                            if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <=\
+                               (self.end_date.year, self.end_date.month):
                                 yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
@@ -262,8 +262,7 @@ class LemonadeNews(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            if self.articles:
-                export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
