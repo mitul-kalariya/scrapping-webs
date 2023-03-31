@@ -9,12 +9,12 @@ from crwsankei.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwsankei.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
 )
-from .constant import BASE_URL
+from crwsankei.constant import BASE_URL
 
 ERROR_MESSAGES = {
     "InputMissingException": "{} field is required.",
