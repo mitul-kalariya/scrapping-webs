@@ -67,8 +67,16 @@ class HK01Spider(scrapy.Spider, BaseSpider):
         if self.type == "sitemap":
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
-                self.since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
-                self.until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
+                self.since = (
+                    datetime.strptime(since, "%Y-%m-%d").date()
+                    if since
+                    else TODAYS_DATE
+                )
+                self.until = (
+                    datetime.strptime(until, "%Y-%m-%d").date()
+                    if until
+                    else TODAYS_DATE
+                )
                 validate_sitemap_date_range(since, until)
         elif self.type == "article":
             if url:
@@ -131,7 +139,9 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(link, self.parse_sitemap_article)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {str(exception)}")
+            exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
+            )
 
     def parse_sitemap_article(self, response):
         """
@@ -159,7 +169,9 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 elif self.since and self.until:
                     self.articles.append(data)
         except BaseException as exception:
-            exceptions.SitemapArticleScrappingException(f"Error while filtering date wise: {str(exception)}")
+            exceptions.SitemapArticleScrappingException(
+                f"Error while filtering date wise: {str(exception)}"
+            )
             LOGGER.error(f"Error while filtering date wise: {str(exception)}")
 
     def closed(self, reason: any) -> None:
@@ -179,10 +191,11 @@ class HK01Spider(scrapy.Spider, BaseSpider):
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
-                # TODO: Remove/replace this line
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(f"Error occurred while closing crawler{str(exception)} - {reason}")
+            exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
+            )
             self.log(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,

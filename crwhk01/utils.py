@@ -4,7 +4,6 @@ import json
 import logging
 import os
 from datetime import datetime
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -27,7 +26,7 @@ def validate_sitemap_date_range(since, until):
         start_date (str): start_date
         end_date (str): end_date
     """
-    since = (datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE)
+    since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
     until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
     try:
         if (since and not until) or (not since and until):
@@ -72,7 +71,9 @@ def get_parsed_json(response):
     try:
         parsed_json = {}
         other_data = []
-        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+        ld_json_data = response.css(
+            'script[type="application/ld+json"]::text'
+        ).getall()[0]
         ld_json_list = json.loads(ld_json_data)
 
         for data in ld_json_list:
@@ -84,7 +85,7 @@ def get_parsed_json(response):
                 parsed_json["VideoObject"] = data
             else:
                 other_data.append(data)
-        
+
         parsed_json["Other"] = other_data
         misc = get_misc(response)
         if misc:
@@ -166,7 +167,9 @@ def get_parsed_data(response):
     main_dict["description"] = [description]
     publisher = get_publisher(response)
     main_dict["publisher"] = publisher
-    article_text = response.css("#article-content-section strong::text , #article-content-section .md\:mb-8::text, #article-content-section .break-words::text").getall()
+    article_text = response.css(
+        "#article-content-section strong::text , #article-content-section .md\:mb-8::text, #article-content-section .break-words::text"
+    ).getall()
     main_dict["text"] = [" ".join(article_text)]
     thumbnail = get_thumbnail_image(response)
     main_dict["thumbnail_image"] = thumbnail
@@ -179,7 +182,7 @@ def get_parsed_data(response):
     article_lang = response.css("html::attr(lang)").get()
     main_dict["source_language"] = [article_lang]
     main_dict["tags"] = get_tags(response)
-    main_dict["section"] = get_sections(response)
+    main_dict["section"] = get_section(response)
 
     return remove_empty_elements(main_dict)
 
@@ -209,7 +212,7 @@ def get_published_at(response) -> str:
         str: datetime of published date
     """
     try:
-        info = response.css('.inline time')
+        info = response.css(".inline time")
 
         if info:
             return info.css("time::attr(datetime)").get()
@@ -231,7 +234,9 @@ def get_author(response) -> list:
         data = []
         temp_dict = {}
         temp_dict["@type"] = "Person"
-        temp_dict["name"] = response.css('.mb-0\.5 .whitespace-nowrap+ .flex::text').get()
+        temp_dict["name"] = response.css(
+            ".mb-0\.5 .whitespace-nowrap+ .flex::text"
+        ).get()
         data.append(temp_dict)
         return data
     except exceptions.ArticleScrappingException as exception:
@@ -254,16 +259,16 @@ def get_thumbnail_image(response) -> list:
 
     data = {}
     try:
-        thumbnails = driver.find_elements(By.XPATH, "//div[@class='article-grid__top-media-section']//img")
+        thumbnails = driver.find_elements(
+            By.XPATH, "//div[@class='article-grid__top-media-section']//img"
+        )
 
         if thumbnails:
             for thumb in thumbnails:
                 try:
-                    return [thumb.get_attribute(
-                        "src").replace("blob:", "")]
+                    return [thumb.get_attribute("src").replace("blob:", "")]
                 except:
-                    return [thumb.get_attribute(
-                        "src").replace("blob:", "")]
+                    return [thumb.get_attribute("src").replace("blob:", "")]
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting thumbnail image: {str(exception)}")
@@ -281,12 +286,13 @@ def get_embed_video_link(response) -> list:
     driver.get(response.url)
 
     try:
-        embed_videos = driver.find_elements(By.XPATH, '//div[@class="article-grid__top-media-section"]//video')
+        embed_videos = driver.find_elements(
+            By.XPATH, '//div[@class="article-grid__top-media-section"]//video'
+        )
         data = []
         if embed_videos:
             for video in embed_videos:
-                link = video.get_attribute(
-                            "src").replace("blob:", "")
+                link = video.get_attribute("src").replace("blob:", "")
                 temp_dict = {"link": link}
                 data.append(temp_dict)
     except exceptions.ArticleScrappingException as exception:
@@ -307,18 +313,24 @@ def get_publisher(response) -> list:
     """
     try:
         ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-        json_data =  json.loads(ld_json_data[0])
-        publisher_data = json_data[0].get('publisher')
+        json_data = json.loads(ld_json_data[0])
+        publisher_data = json_data[0].get("publisher")
 
         a_dict = {
             "@id": "hk01.com",
-            "@type": publisher_data.get('@type'),
+            "@type": publisher_data.get("@type"),
             "name": "hk01",
             "logo": {
-                "@type": publisher_data.get('logo').get("@type"),
-                "url":BASE_URL + publisher_data.get('logo').get('url'),
-                "width": {"@type": "Distance", "name": str(publisher_data.get('logo').get("width")) + " px"},
-                "height": {"@type": "Distance", "name": str(publisher_data.get('logo').get("height")) + " px"},
+                "@type": publisher_data.get("logo").get("@type"),
+                "url": BASE_URL + publisher_data.get("logo").get("url"),
+                "width": {
+                    "@type": "Distance",
+                    "name": str(publisher_data.get("logo").get("width")) + " px",
+                },
+                "height": {
+                    "@type": "Distance",
+                    "name": str(publisher_data.get("logo").get("height")) + " px",
+                },
             },
         }
         return [a_dict]
@@ -338,18 +350,25 @@ def get_images(response, parsed_json=False) -> list:
     options.headless = True
     driver = webdriver.Chrome(options=options)
     driver.get(response.url)
-    
+
     try:
         scroll = driver.find_elements(By.XPATH, "//p")
         last_p_tag = scroll[-1]
         driver.execute_script(
-            "window.scrollTo(" + str(last_p_tag.location["x"]) + ", " + str(last_p_tag.location["y"]) + ")")
+            "window.scrollTo("
+            + str(last_p_tag.location["x"])
+            + ", "
+            + str(last_p_tag.location["y"])
+            + ")"
+        )
         # TODO: Check after removing sleep
         import time
-        time.sleep(3)
-        images = driver.find_elements(By.XPATH, '//*[@id="article-content-section"]//div/div/img')
-        data = []
 
+        time.sleep(1)
+        images = driver.find_elements(
+            By.XPATH, '//*[@id="article-content-section"]//div/div/img'
+        )
+        data = []
         if images:
             for image in images:
                 temp_dict = {}
@@ -379,14 +398,16 @@ def get_tags(response) -> list:
         list: List of tags
     """
     try:
-        tags = response.css('#web-isa-article-wrapper-0 .place-self-center::text').getall()
+        tags = response.css(
+            "#web-isa-article-wrapper-0 .place-self-center::text"
+        ).getall()
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting article tags: {str(exception)}")
 
 
-def get_sections(response) -> list:
+def get_section(response) -> list:
     """Extract all the sections/sub sections available for the article
 
     Args:
@@ -396,7 +417,9 @@ def get_sections(response) -> list:
         list: List of sections
     """
     try:
-        sections = response.css("#web-isa-article-wrapper-0 .md\:mt-0 li a::text").getall()
+        sections = response.css(
+            "#web-isa-article-wrapper-0 .md\:mt-0 li a::text"
+        ).getall()
         return sections
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -461,4 +484,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii = False)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
