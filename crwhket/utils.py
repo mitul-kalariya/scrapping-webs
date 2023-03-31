@@ -2,6 +2,7 @@
 from datetime import timedelta, datetime
 import json
 import os
+import re
 
 from scrapy.loader import ItemLoader
 
@@ -9,12 +10,12 @@ from crwhket.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwhket.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
 )
-from .constant import BASE_URL
+from crwhket.constant import BASE_URL, SPACE_REMOVER_PATTERN
 
 ERROR_MESSAGES = {
     "InputMissingException": "{} field is required.",
@@ -193,15 +194,16 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "Other": [],
         "misc": [],
     }
-    for block in json.loads(blocks[0]):
-        if "NewsArticle" in block.get("@type", [{}]):
-            parsed_json_flter_dict["main"] = block
-        elif "ImageGallery" in block.get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = block
-        elif "VideoObject" in block.get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = block
+    for block in blocks:
+        block_dict = json.loads(block)
+        if "NewsArticle" in block_dict.get("@type", [{}]):
+            parsed_json_flter_dict["main"] = block_dict
+        elif "ImageGallery" in block_dict.get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = block_dict
+        elif "VideoObject" in block_dict.get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = block_dict
         else:
-            parsed_json_flter_dict["Other"].append(block)
+            parsed_json_flter_dict["Other"].append(block_dict)
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
@@ -336,7 +338,8 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
         Dictionary with Parsed json response from generated data
     """
     data_dict = get_all_details_of_block(parsed_json_main)
-    text = " ".join(response.css("p.article-text::text").getall())
+    text = " ".join(response.css("div.article-detail p::text").getall())
+    space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
     if not text:
         text = " ".join(response.css("div.paragraph div.content::text").getall())
     article_date = response.css("div.article-meta-upper time::attr(datetime)").get()
@@ -345,9 +348,9 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
-        "source_country": ["Japan"],
+        "source_country": ["China"],
         "source_language": [language_mapper.get(
-            response.css("html::attr(lang)").get().lower(),
+            response.css("html::attr(lang)").get("").lower(),
             response.css("html::attr(lang)").get()
         )],
     }
@@ -362,9 +365,10 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
     parsed_data_dict |= {
         "title": [data_dict.get("title")] if data_dict.get("title")
         else response.css("title::text").getall(),
-        "text": [text],
+        "text": [space_removed_text],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
-        "section": response.css("li.article-header-section-list-item a::text").getall()
+        "section": response.css("li.article-header-section-list-item a::text").getall(),
+        "tags": data_dict.get("tags")
     }
     parsed_data_dict |= {
         "images": images,
@@ -394,6 +398,7 @@ def get_all_details_of_block(block: dict) -> dict:
         "title": block.get("headline", {}),
         "thumbnail_image": block.get("thumbnailUrl"),
         "headline": block.get("headline"),
+        "tags": block.get("keywords"),
     }
     data_dict["author"] = []
     if block.get("author"):
