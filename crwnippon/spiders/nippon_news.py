@@ -41,7 +41,7 @@ class BaseSpider(ABC):
 
 class NipponNews(scrapy.Spider, BaseSpider):
     # Assigning spider name
-    name = "nippon"
+    name = "nippon_news"
 
     # Initializing the spider class with site_url and category parameters
     def __init__(self, type=None, url=None, since=None, until=None, *args, **kwargs):
