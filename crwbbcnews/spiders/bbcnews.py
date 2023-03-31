@@ -100,7 +100,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
                                 self.articles.append(article)
 
                         elif self.today_date.date() == article_date:
-                            url = BASE_URL + group_type['locators']['assetUri'] + '.json'
+                            url = BASE_URL + group_type['locators']['assetUri']
                             article = {
                                 "link": url,
                                 "title": group_type['headlines']['headline']
@@ -153,7 +153,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
                 "content": response.text,
             }
             raw_response = get_raw_response(response, raw_response_dict)
-            articledata_loader = ItemLoader(item=ArticleData(), response=response.json())
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
             parsed_json_dict = {}
 
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
@@ -168,17 +168,10 @@ class BBCNews(scrapy.Spider, BaseSpider):
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
-            parsed_json_data = get_parsed_json(response, parsed_json_dict)
-
             articledata_loader.add_value("raw_response", raw_response)
-            if parsed_json_data:
-                articledata_loader.add_value(
-                    "parsed_json",
-                    parsed_json_data,
-                )
             articledata_loader.add_value("parsed_json", dict())
             articledata_loader.add_value(
-                "parsed_data", get_data_from_json(response.json())
+                "parsed_data", get_data_from_json(response)
             )
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item

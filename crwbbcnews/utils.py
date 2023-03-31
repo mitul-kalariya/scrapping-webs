@@ -1,6 +1,7 @@
 """Utility Functions"""
 import os
 import json
+import requests
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwbbcnews.constant import SITEMAP_URL
@@ -245,6 +246,8 @@ def get_data_from_json(response):
     """
     Get data from output response
     """
+    url = response.url
+    response = requests.get(f'{url}.json').json()
     parsed_json = {}
     raw_text = ''
     images, tags, topics = [], [], []
