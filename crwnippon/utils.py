@@ -27,15 +27,11 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(since, until):
-    since = (
-        datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
-    )
+    since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
     until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
     try:
         if (since and not until) or (not since and until):
-            raise exceptions.InvalidDateException(
-                "since or until must be specified"
-            )
+            raise exceptions.InvalidDateException("since or until must be specified")
 
         if since and until and since > until:
             raise exceptions.InvalidDateException(
@@ -112,8 +108,7 @@ def get_parsed_json(response):
     try:
         parsed_json = {}
         other_data = []
-        ld_json_data = response.css(
-            'script[type="application/ld+json"]::text').getall()
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in ld_json_data:
             data = json.loads(a_block)
             if data.get("@type") == "NewsArticle":
@@ -153,44 +148,33 @@ def get_parsed_data(response):
 
         # extract the date published at
         published_time_meta = response.css('meta[property="article:published_time"]')
-        published_time = published_time_meta.attrib['content']
+        published_time = published_time_meta.attrib["content"]
         main_dict["published_at"] = [published_time]
         published_time_meta = response.css('meta[property="article:modified_time"]')
-        published_time = published_time_meta.attrib['content']
+        published_time = published_time_meta.attrib["content"]
         main_dict["modified_at"] = [published_time]
-        description = response.css('.c-read::text').get()
+        description = response.css(".c-read::text").get()
         if description:
             main_dict["description"] = [re.sub(pattern, "", description)]
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
-        # extract the description or read text of the article
-        text = response.css(".editArea h2::text , .editArea p::text , .editArea font::text").getall()
-        # text = [re.sub(pattern, "", i) for i in text]
+        text = response.css(
+            ".editArea h2::text , .editArea p::text , .editArea font::text"
+        ).getall()
         if text:
-            main_dict['text'] = ["".join(list(filter(None, text)))]
-
-        # extract the thumbnail image
-        thumbnail_image = response.css(
-            ".c-detailmv::attr(src)"
-        ).get()
+            main_dict["text"] = ["".join(list(filter(None, text)))]
+        thumbnail_image = response.css(".c-detailmv::attr(src)").get()
         if thumbnail_image:
             main_dict["thumbnail_image"] = [BASE_URL[:-4] + thumbnail_image]
         article_images = get_images(response)
         main_dict["images"] = article_images
-
-        # extract video files if any
         frame_video = get_embed_video_link(response)
         main_dict["embed_video_link"] = frame_video
-
-        # extract tags associated with article
-        # tags = response.css("ul.taglist li a::text").getall()
-        # main_dict["tags"] = tags
         tags = get_tags(response)
-        main_dict['tags'] = tags
-        mapper = {'ja': "Japan"}
+        main_dict["tags"] = tags
+        mapper = {"ja": "Japan"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
-
         main_dict["section"] = get_section(response)
 
         return remove_empty_elements(main_dict)
@@ -240,7 +224,7 @@ def get_misc(response):
 def get_embed_video_link(response) -> list:
     try:
         info = []
-        videos = response.css('p.video iframe::attr(src)').getall()
+        videos = response.css("p.video iframe::attr(src)").getall()
         for video in videos:
             if video:
                 info.append(video)
@@ -268,10 +252,10 @@ def get_author(response) -> list:
         temp_dict = {}
         author_link = driver.find_elements(By.XPATH, '//a[@class="is-ttl"]')
         author_meta = response.css('meta[name="cXenseParse:author"]')
-        author = author_meta.attrib['content']
+        author = author_meta.attrib["content"]
         temp_dict["@type"] = "Person"
         temp_dict["name"] = author
-        temp_dict["link"] = author_link[0].get_attribute('href')
+        temp_dict["link"] = author_link[0].get_attribute("href")
 
         data.append(temp_dict)
         return data
@@ -284,7 +268,7 @@ def get_tags(response) -> list:
     try:
         data = []
         pattern = r"[\r\n\t\"]+"
-        news_tags = response.css('.c-keywords a::text').getall()
+        news_tags = response.css(".c-keywords a::text").getall()
         for tag in news_tags:
             data.append(tag)
         return data
@@ -321,15 +305,15 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         data = []
-        images = response.css('.fancybox img::attr(src), .copy_ng::attr(src)').getall()
-        caption = response.css('.fancybox img::attr(alt), .copy_ng::attr(alt)').getall()
+        images = response.css(".fancybox img::attr(src), .copy_ng::attr(src)").getall()
+        caption = response.css(".fancybox img::attr(alt), .copy_ng::attr(alt)").getall()
         if images:
             for image, caption in zip(images, caption):
                 temp_dict = {}
                 if image:
                     temp_dict["link"] = BASE_URL[:-4] + image
                     if caption:
-                        temp_dict['caption'] = caption
+                        temp_dict["caption"] = caption
                 data.append(temp_dict)
             return data
     except exceptions.URLNotFoundException as exception:
@@ -353,7 +337,7 @@ def get_publisher(response) -> list:
         width, height = Image.open(BytesIO(img_response.content)).size
         a_dict = {
             "@id": "nippon.com",
-            "@type": 'Organization',
+            "@type": "Organization",
             "name": "nippon",
             "logo": {
                 "@type": "ImageObject",

@@ -18,7 +18,7 @@ from crwnippon.utils import (
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
-    validate_sitemap_date_range
+    validate_sitemap_date_range,
 )
 
 
@@ -80,7 +80,7 @@ class NipponNews(scrapy.Spider, BaseSpider):
             A log file is created for the web scraper.
         """
         super(NipponNews, self).__init__(*args, **kwargs)
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -173,14 +173,20 @@ class NipponNews(scrapy.Spider, BaseSpider):
         """
         try:
             # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             # Create a Selector object from the XmlResponse
             xml_selector = Selector(xmlresponse)
             # Define the XML namespaces used in the sitemap
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             # Loop through each sitemap URL in the XML response
-            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
-            published_date = xml_selector.xpath("///xmlns:lastmod/text()", namespaces=xml_namespaces).getall()
+            links = xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ).getall()
+            published_date = xml_selector.xpath(
+                "///xmlns:lastmod/text()", namespaces=xml_namespaces
+            ).getall()
 
             for link, pub_date in zip(links, published_date):
                 if link and pub_date:
@@ -194,10 +200,18 @@ class NipponNews(scrapy.Spider, BaseSpider):
 
                     if self.since is None and self.until is None:
                         if TODAYS_DATE == published_at:
-                            yield scrapy.Request(link, callback=self.parse_sitemap_article, meta={'link': link, 'pub_date': published_at})
+                            yield scrapy.Request(
+                                link,
+                                callback=self.parse_sitemap_article,
+                                meta={"link": link, "pub_date": published_at},
+                            )
                     else:
                         if self.since and self.until:
-                            yield scrapy.Request(link, callback=self.parse_sitemap_article, meta={'link': link, 'pub_date': published_at})
+                            yield scrapy.Request(
+                                link,
+                                callback=self.parse_sitemap_article,
+                                meta={"link": link, "pub_date": published_at},
+                            )
 
         # If there's any error during the above process, log it and print
         except exceptions.SitemapScrappingException as exception:
@@ -214,8 +228,8 @@ class NipponNews(scrapy.Spider, BaseSpider):
             The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
         """
         try:
-            url = response.meta['link']
-            title = response.css('.c-h1::text').get()
+            url = response.meta["link"]
+            title = response.css(".c-h1::text").get()
 
             data = {
                 "link": url,
@@ -225,7 +239,9 @@ class NipponNews(scrapy.Spider, BaseSpider):
 
         except exceptions.SitemapScrappingException as exception:
             LOGGER.error(f"Error while parsing sitemap article: {str(exception)}")
-            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {str(exception)}")
+            exceptions.SitemapArticleScrappingException(
+                f"Error while parsing sitemap article: {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
