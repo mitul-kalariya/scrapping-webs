@@ -2,6 +2,7 @@ from scrapy.crawler import CrawlerProcess
 from crwbbcnews.spiders.bbcnews import BBCNews
 
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -43,15 +44,15 @@ class Crawler:
         self.query = query
         self.proxies = proxies
 
-    def crawl(self)-> list[dict]:
+    def crawl(self) -> list[dict]:
         """Crawls the sitemap URL and article URL and return final data
 
         Raises:
             Exception: Raised exception for unknown Type
 
         Returns:
-            list[dict]: list of dictionary of the article data or article links 
-            as per expected_article.json or expected_sitemap.json 
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
         """
         self.output = None
         process = CrawlerProcess()
@@ -62,6 +63,11 @@ class Crawler:
             if self.query.get('since') and self.query.get('until'):
                 spider_args['start_date'] = self.query['since']
                 spider_args['end_date'] = self.query['until']
+            process_settings = process.settings
+            process_settings["DOWNLOAD_DELAY"] = 0.25
+            process_settings["REFERER_ENABLED"] = False
+            process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+            process.settings = process_settings
         else:
             raise Exception('Invalid Type')
 
