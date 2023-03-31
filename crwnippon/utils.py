@@ -1,27 +1,27 @@
 # Utility/helper functions
 # utils.py
 
-import os
-import re
 import json
 import logging
+import os
+import re
+from datetime import datetime
+from io import BytesIO
+
 import requests
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from io import BytesIO
-from PIL import Image
-from datetime import datetime
+
 from crwnippon import exceptions
-from crwnippon.constant import TODAYS_DATE, BASE_URL, LOGGER
+from crwnippon.constant import BASE_URL, LOGGER, TODAYS_DATE
 
 
 def create_log_file():
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -99,6 +99,7 @@ def get_raw_response(response):
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting raw response: {str(exception)}")
+
 
 def get_parsed_json(response):
     # """
@@ -190,6 +191,8 @@ def get_parsed_data(response):
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
+        main_dict["section"] = get_section(response)
+
         return remove_empty_elements(main_dict)
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -246,6 +249,7 @@ def get_embed_video_link(response) -> list:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting embed video link: {str(exception)}")
 
+
 def get_author(response) -> list:
     """
     The extract_author function extracts information about the author(s)
@@ -267,13 +271,14 @@ def get_author(response) -> list:
         author = author_meta.attrib['content']
         temp_dict["@type"] = "Person"
         temp_dict["name"] = author
-        temp_dict["link"] =  author_link[0].get_attribute('href')
+        temp_dict["link"] = author_link[0].get_attribute('href')
 
         data.append(temp_dict)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting author information: {str(exception)}")
+
 
 def get_tags(response) -> list:
     try:
@@ -286,6 +291,26 @@ def get_tags(response) -> list:
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting news tags: {str(exception)}")
+
+
+def get_section(response) -> list:
+    """Extract section (category) of the article
+
+    Args:
+        response (object): web page data
+
+    Returns:
+        list: list of sections
+    """
+    try:
+        sections = response.css("meta[name='cXenseParse:ncf-category']")
+        section_list = [section.attrib["content"] for section in sections]
+        if len(section_list) > 0:
+            return section_list
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article sections: {str(exception)}")
+
 
 def get_images(response, parsed_json=False) -> list:
     """
@@ -310,6 +335,7 @@ def get_images(response, parsed_json=False) -> list:
     except exceptions.URLNotFoundException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting news content images: {str(exception)}")
+
 
 def get_publisher(response) -> list:
     """
@@ -367,4 +393,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii = False)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)

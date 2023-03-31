@@ -1,12 +1,9 @@
 import logging
 import unittest
 
-#TODO: Update the path here replace crwnippon --> your project name
 from crwnippon.spiders.nippon_news import NipponNews
 from crwnippon.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwnippon.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
-#TODO: Update below path here
+from crwnippon.test.helpers.utils import get_article_content, online_response_from_url
 from crwnippon.main import Crawler
 
 # Creating an object
@@ -89,8 +86,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data

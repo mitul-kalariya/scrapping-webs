@@ -1,22 +1,24 @@
-import scrapy
 import logging
-from crwnippon.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
-from crwnippon import exceptions
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
+
+import scrapy
+from scrapy.crawler import CrawlerProcess
 from scrapy.http import XmlResponse
+from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
 from scrapy.utils.project import get_project_settings
-from scrapy.crawler import CrawlerProcess
-from scrapy.loader import ItemLoader
+
+from crwnippon import exceptions
+from crwnippon.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwnippon.items import ArticleData
 from crwnippon.utils import (
     create_log_file,
-    validate_sitemap_date_range,
     export_data_to_json_file,
-    get_raw_response,
     get_parsed_data,
     get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range
 )
 
 
@@ -125,7 +127,6 @@ class NipponNews(scrapy.Spider, BaseSpider):
         except exceptions.InvalidInputException as exception:
             LOGGER.error(f"{str(exception)}")
             print(f"Error while callign the parse function: {str(exception)}")
-
 
     def parse_article(self, response) -> list:
         """
@@ -246,12 +247,13 @@ class NipponNews(scrapy.Spider, BaseSpider):
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
             self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
+                f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
