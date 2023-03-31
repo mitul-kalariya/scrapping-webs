@@ -6,8 +6,6 @@ from crwbastillepost.spiders.bastille_post import BastillePostSpider
 from crwbastillepost.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwbastillepost.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
-# TODO: Update below path here
-from crwindianexpress import Crawler
 
 # Creating an object
 logger = logging.getLogger()
