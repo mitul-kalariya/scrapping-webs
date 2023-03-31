@@ -4,7 +4,7 @@ import unittest
 from crwntv.spiders.n_tv import NTvSpider
 from crwntv.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwntv.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+                                       online_response_from_url)
 from crwntv import Crawler
 
 # Creating an object
@@ -221,7 +221,7 @@ class TestArticle(unittest.TestCase):
                                       str, "format mismatch for parsed_data--> section")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
-                                  list, "format mismatch for parsed_data--> section")
+                                      list, "format mismatch for parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():

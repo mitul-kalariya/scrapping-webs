@@ -1,1 +1,1 @@
-from crwntv.main import Crawler # noqa: F401
+from crwntv.main import Crawler  # noqa: F401

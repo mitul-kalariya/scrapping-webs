@@ -107,7 +107,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 f"Error occurring while parsing sitemap {e} in parse function"
             )
 
-    def parse_sitemap(self, response):
+    def parse_sitemap(self, response):  # noqa: C901
         try:
             for sitemap in response.xpath(
                 "//sitemap:loc/text()",
@@ -235,8 +235,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"
