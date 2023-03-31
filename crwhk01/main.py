@@ -55,13 +55,18 @@ class Crawler:
         """
         self.output = None
         process = CrawlerProcess()
-        if self.query["type"] == "article":
-            spider_args = {"type": "article", "url": self.query.get("link"), "args": {"callback": self.yield_output}}
-        elif self.query["type"] == "sitemap" or self.query["type"] == "link_feed":
-            spider_args = {"type": "sitemap", "args": {"callback": self.yield_output}}
-            if self.query.get("since") and self.query.get("until"):
-                spider_args["start_date"] = self.query["since"]
-                spider_args["end_date"] = self.query["until"]
+        if self.query['type'] == 'article':
+            spider_args = {'type': 'article', 'url': self.query.get('link'), 'args': {'callback': self.yield_output}}
+        elif self.query['type'] == 'sitemap' or self.query['type'] == 'link_feed':
+            spider_args = {'type': 'sitemap', 'args': {'callback': self.yield_output}}
+            if self.query.get('since') and self.query.get('until'):
+                spider_args['start_date'] = self.query['since']
+                spider_args['end_date'] = self.query['until']
+            process_settings = process.settings
+            process_settings["DOWNLOAD_DELAY"] = 0.25
+            process_settings["REFERER_ENABLED"] = False
+            process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+            process.settings = process_settings
         else:
             raise Exception("Invalid Type")
 

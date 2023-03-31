@@ -178,6 +178,8 @@ def get_parsed_data(response):
     main_dict["embed_video_link"] = video
     article_lang = response.css("html::attr(lang)").get()
     main_dict["source_language"] = [article_lang]
+    main_dict["tags"] = get_tags(response)
+    main_dict["section"] = get_sections(response)
 
     return remove_empty_elements(main_dict)
 
@@ -190,9 +192,13 @@ def get_lastupdated(response) -> str:
     Args:
         response: A Scrapy response object representing the web page from which to extract the information.
     """
-    info = response.css(".inline+ span time")
-    if info:
-        return info.css("time::attr(datetime)").get()
+    try:
+        info = response.css(".inline+ span time")
+        if info:
+            return info.css("time::attr(datetime)").get()
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting last updated date: {str(exception)}")
 
 
 def get_published_at(response) -> str:
@@ -202,10 +208,14 @@ def get_published_at(response) -> str:
     Returns:
         str: datetime of published date
     """
-    info = response.css('.inline time')
+    try:
+        info = response.css('.inline time')
 
-    if info:
-        return info.css("time::attr(datetime)").get()
+        if info:
+            return info.css("time::attr(datetime)").get()
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting published date: {str(exception)}")
 
 
 def get_author(response) -> list:
@@ -217,12 +227,16 @@ def get_author(response) -> list:
     Returns:
         A list of dictionaries, where each dictionary contains information about one author.
     """
-    data = []
-    temp_dict = {}
-    temp_dict["@type"] = "Person"
-    temp_dict["name"] = response.css('.mb-0\.5 .whitespace-nowrap+ .flex::text').get()
-    data.append(temp_dict)
-    return data
+    try:
+        data = []
+        temp_dict = {}
+        temp_dict["@type"] = "Person"
+        temp_dict["name"] = response.css('.mb-0\.5 .whitespace-nowrap+ .flex::text').get()
+        data.append(temp_dict)
+        return data
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting author details: {str(exception)}")
 
 
 def get_thumbnail_image(response) -> list:
@@ -240,7 +254,7 @@ def get_thumbnail_image(response) -> list:
 
     data = {}
     try:
-        thumbnails = driver.find_elements(By.XPATH, '//*[(@id = "web-isa-article-wrapper-0")]//*[contains(concat( " ", @class, " " ), concat( " ", "i155s3o3", " " )) and contains(concat( " ", @class, " " ), concat( " ", "cursor-pointer", " " ))]')
+        thumbnails = driver.find_elements(By.XPATH, "//div[@class='article-grid__top-media-section']//img")
 
         if thumbnails:
             for thumb in thumbnails:
@@ -330,6 +344,7 @@ def get_images(response, parsed_json=False) -> list:
         last_p_tag = scroll[-1]
         driver.execute_script(
             "window.scrollTo(" + str(last_p_tag.location["x"]) + ", " + str(last_p_tag.location["y"]) + ")")
+        # TODO: Check after removing sleep
         import time
         time.sleep(3)
         images = driver.find_elements(By.XPATH, '//*[@id="article-content-section"]//div/div/img')
@@ -352,6 +367,41 @@ def get_images(response, parsed_json=False) -> list:
         print(f"Error while getting article images: {str(exception)}")
     driver.quit()
     return data
+
+
+def get_tags(response) -> list:
+    """Extract all the tags available for the article
+
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+
+    Returns:
+        list: List of tags
+    """
+    try:
+        tags = response.css('#web-isa-article-wrapper-0 .place-self-center::text').getall()
+        return tags
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article tags: {str(exception)}")
+
+
+def get_sections(response) -> list:
+    """Extract all the sections/sub sections available for the article
+
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+
+    Returns:
+        list: List of sections
+    """
+    try:
+        sections = response.css("#web-isa-article-wrapper-0 .md\:mt-0 li a::text").getall()
+        return sections
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article sections: {str(exception)}")
+
 
 def remove_empty_elements(parsed_data_dict):
     """
