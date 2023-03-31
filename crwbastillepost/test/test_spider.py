@@ -241,7 +241,7 @@ class TestSitemap(unittest.TestCase):
     def _test_sitemap_results(self, sitemap_urls):
         for sitemap_url in sitemap_urls:
             article_urls = self.spider.parse_sitemap(online_response_from_url(sitemap_url.url))
-            for article_url in list(article_urls)[:1]:  # Fetching only first article for testing
+            for article_url in article_urls:  
                 self.spider.parse_sitemap_article(online_response_from_url(article_url.url))
         with self.subTest():
             self.assertGreater(len(self.spider.articles), 0, "Crawler did not fetched single article form sitemap")
