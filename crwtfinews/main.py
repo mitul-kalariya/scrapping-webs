@@ -2,6 +2,7 @@ from scrapy.crawler import CrawlerProcess
 from crwtfinews.spiders.tfi_news_online import TfiNewsSpider
 
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -58,6 +59,11 @@ class Crawler:
             if self.query.get('since') and self.query.get('until'):
                 spider_args['start_date'] = self.query['since']
                 spider_args['end_date'] = self.query['until']
+            process_settings = process.settings
+            process_settings["DOWNLOAD_DELAY"] = 0.25
+            process_settings["REFERER_ENABLED"] = False
+            process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+            process.settings = process_settings
         else:
             raise Exception('Invalid Type')
 
