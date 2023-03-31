@@ -286,6 +286,7 @@ def get_parsed_data_dict() -> dict:
         "text": None,
         "thumbnail_image": None,
         "title": None,
+        "alternative_title": None,
         "images": None,
         "section": None,
         "video": None,
@@ -324,7 +325,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -> dict:
+def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -346,9 +347,7 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
-    parsed_data_dict |= get_thumbnail_image_video(
-        parsed_json_main, video_object, response
-    )
+    parsed_data_dict |= get_thumbnail_image_video(response)
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -447,18 +446,23 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: text, title, section details
     """
-
     return {
-        "title": [parsed_data.get("headline")],
+        "title": response.css(
+            "article h1.article-title span.article-title__headline::text"
+        ).getall(),
+        "alternative_title": response.css(
+            "article h1.article-title span.article-title__kicker::text"
+        ).getall(),
         "text": ["".join(response.css("div.article-body p::text").getall())],
-        "section": [parsed_data.get("articleSection")],
+        "section": response.selector.css(
+            ".subnav__list li a::text,.subnav__list li span::text"
+        ).getall()[:-1],
         "tags": parsed_data.get("keywords", "").split(", "),
     }
 
 
-def get_thumbnail_image_video(
-        parsed_data: list, video_object: dict, response: str
-) -> dict:
+def get_thumbnail_image_video(response: str
+                              ) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -468,24 +472,32 @@ def get_thumbnail_image_video(
         dict: thumbnail images, images and video details
     """
 
-    video = None
-    description = None
-    if video_object:
-        if video_url := video_object.get("embedUrl"):
-            video = video_url
-        description = video_object.get("description")
+    videos = []
+    for link, caption in zip_longest(
+            response.css(
+                " article > div.article-body > figure:nth-child(8) > div > a::attr(href)"
+            ).getall(),
+            response.css(
+                " article > div.article-body > figure:nth-child(8) > div "
+                + "> a>figure>figcaption>div>span::text"
+            ).getall(),
+    ):
+        videos.append({"link": link, "caption": caption})
 
     images = []
-    for link, caption in zip(response.css(".article-body>figure img::attr(data-src)").getall(),
-                             response.css(".article-body>figure>figcaption p::text").getall()):
+    for link, caption in zip(
+            response.css(".article-body>figure img::attr(data-src)").getall(),
+            response.css(".article-body>figure>figcaption p::text").getall(),
+    ):
         images.append({"link": link, "caption": caption})
 
-    for link, caption in zip_longest(response.css("article>figure img::attr(src)").getall(),
-                                     response.css("article>figure p::text").getall()):
+    for link, caption in zip_longest(
+            response.css("article>figure img::attr(src)").getall(),
+            response.css("article>figure p::text").getall(),
+    ):
         images.append({"link": link, "caption": caption})
-    breakpoint()
 
     return {
         "images": images,
-        "video": [{"link": video, "caption": description}],
+        "video": videos,
     }

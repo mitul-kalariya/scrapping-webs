@@ -23,15 +23,13 @@ from crwbild.exceptions import (
     SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
-    ExportOutputFileException,
+    CrawlerClosingException
 )
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -90,8 +88,8 @@ class BildSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, start_date and end_date args. "
-                + str(exception)
+                    "Error occurred while taking type, url, start_date and end_date args. "
+                    + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. "
@@ -160,9 +158,6 @@ class BildSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
 
-    # response.css("article>a:not([href^='/video'])::attr(href)").get()
-    # response.css("article>a:not([href^='/video'])::attr(href)").getall()
-
     def parse_sitemap_article(self, response: str) -> None:
         """
         parse sitemap article and scrap title and link
@@ -174,7 +169,7 @@ class BildSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if (title := response.css("h1 > span.article-title__headline::text").get()):
+            if title := response.css("h1 > span.article-title__headline::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
@@ -216,7 +211,6 @@ class BildSpider(scrapy.Spider, BaseSpider):
                 get_parsed_data(
                     response,
                     parsed_json_data.get("main", [{}]),
-                    parsed_json_data.get("VideoObject"),
                 ),
             )
 
@@ -250,13 +244,11 @@ class BildSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}",
+                f"Error occurred while closing crawler REASON:- {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+            raise CrawlerClosingException(
+                f"Error occurred while closing crawler REASON:- {reason}"
             ) from exception

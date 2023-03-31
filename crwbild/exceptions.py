@@ -63,3 +63,8 @@ class URLNotFoundException(Exception):
     # Use URLNotFoundException(f"Given {url} not found for website {website_name}
     # with status code{response.status_code}")
     pass
+
+
+class CrawlerClosingException(Exception):
+    """Rise when getting error while closing crawler status code"""
+    pass
