@@ -1,4 +1,4 @@
-"""Spider to scrap Oriental Daily News (CH) news website"""
+"""Spider to scrap Sankei News (JP) news website"""
 
 import logging
 from datetime import datetime
@@ -16,7 +16,7 @@ from crwsankei.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
+    # export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -56,7 +56,7 @@ class BaseSpider(ABC):
 
 
 class SankeiSpider(scrapy.Spider, BaseSpider):
-    """Spider class to scrap sitemap and articles of CNews online (FR) site"""
+    """Spider class to scrap sitemap and articles of Sankei News (JP) site"""
 
     name = "sankei"
     start_urls = [BASE_URL]
@@ -243,8 +243,8 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

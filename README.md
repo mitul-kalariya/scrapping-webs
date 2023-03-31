@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": #TODO {Sample article URL from test case}
+        "link": "https://www.sankei.com/article/20230331-D5BZ37LIINLKLC7WJCEH3Y5X4M/"
     },
     proxies=proxies
 )

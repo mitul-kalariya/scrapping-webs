@@ -1,1 +1,1 @@
-from crwsankei.main import Crawler # noqa: F401
+from crwsankei.main import Crawler  # noqa: F401

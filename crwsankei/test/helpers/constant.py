@@ -1,18 +1,42 @@
 """list of article/sitemap URLs for testing"""
 
-#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.sankei.com/article/20230331-D5BZ37LIINLKLC7WJCEH3Y5X4M/",
         "test_data_path": "crwsankei/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.sankei.com/article/20230331-47FGLJYK2ZO2NJSST4VRXZIORY/",
         "test_data_path": "crwsankei/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.sankei.com/article/20230331-XPEK4OROONPPRHYNZ62QPXUGE4/",
         "test_data_path": "crwsankei/test/data/test_article_3.json"
+    },
+    {
+        "url": "https://www.sankei.com/article/20230331-Q255MMMVQNI4PAYKWZDIETJNNQ/",
+        "test_data_path": "crwsankei/test/data/test_article_4.json"
+    },
+    {
+        "url": "https://www.sankei.com/article/20230331-A7DCHCX5PNI6BHT3VAYCMXNJTU/",
+        "test_data_path": "crwsankei/test/data/test_article_5.json"
+    },
+    {
+        "url": "https://www.sankei.com/article/20230331-27UKRWUDBJIZ7ECY26TOCP4H4A/",
+        "test_data_path": "crwsankei/test/data/test_article_6.json"
+    },
+    {
+        "url": "https://www.sankei.com/article/20230331-B4MBE3VEDFLAPCQ7F7COUG42O4/",
+        "test_data_path": "crwsankei/test/data/test_article_7.json"
+    },
+    {
+        "url": "https://www.sankei.com/article/20230331-WSYWB7LCYFPAZJDRNYYNCWVHYE/",
+        "test_data_path": "crwsankei/test/data/test_article_8.json"
+    },
+    {
+        "url": "https://www.sankei.com/article/20230331-5UFWJJCHKZPJTOZTTBOX6KKDKY/",
+        "test_data_path": "crwsankei/test/data/test_article_9.json"
     }
 ]
+
 SITEMAP_URL = "https://feed.etf.sankei.com/global/sitemap"

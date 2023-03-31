@@ -336,9 +336,11 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
         Dictionary with Parsed json response from generated data
     """
     data_dict = get_all_details_of_block(parsed_json_main)
-    text = " ".join(response.css("div.paragraph div.content::text").getall())
-    article_date = response.xpath("//meta[@name='articleDate']/@content").extract()
-    article_date_datetime = datetime.strptime(article_date[0], "%Y%m%d") if article_date else None
+    text = " ".join(response.css("p.article-text::text").getall())
+    if not text:
+        text = " ".join(response.css("div.paragraph div.content::text").getall())
+    article_date = response.css("div.article-meta-upper time::attr(datetime)").get()
+
     images = get_formated_images(response, parsed_json_main)
 
     parsed_data_dict = get_parsed_data_dict()
@@ -349,13 +351,20 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
             response.css("html::attr(lang)").get()
         )],
     }
-
-    parsed_data_dict |= {"description": response.xpath("//meta[@name='description']/@content").extract()}
-    parsed_data_dict |= {"published_at": [article_date_datetime.isoformat() if article_date_datetime else None]}
+    parsed_data_dict |= {"author": data_dict.get("author")}
+    parsed_data_dict |= {
+        "description": [data_dict.get("description")] if data_dict.get("description")
+        else response.xpath("//meta[@name='description']/@content").extract()
+    }
+    parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
+    parsed_data_dict |= {"published_at": [data_dict.get("published_at") or article_date]}
     parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
     parsed_data_dict |= {
-        "title": response.css("title::text").getall(),
-        "text": [text]
+        "title": [data_dict.get("title")] if data_dict.get("title")
+        else response.css("title::text").getall(),
+        "text": [text],
+        "thumbnail_image": [data_dict.get("thumbnail_image")],
+        "section": response.css("li.article-header-section-list-item a::text").getall()
     }
     parsed_data_dict |= {
         "images": images,
@@ -365,14 +374,14 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
 
 def get_all_details_of_block(block: dict) -> dict:
     """
-    get author and publisher details
+    get all details from main block
     Args:
         blocks: json/+ld data
     Returns:
         str : author and publisher details
     """
     data_dict = {
-        "description": block.get("description"),
+        "description": block.get("description", "").strip(),
         "modified_at": block.get("dateModified"),
         "published_at": block.get("datePublished"),
         "publisher_id": block.get("publisher", {}).get("url"),
@@ -383,8 +392,6 @@ def get_all_details_of_block(block: dict) -> dict:
         "logo_width": block.get("publisher", {}).get("logo", {}).get("width"),
         "logo_height": block.get("publisher", {}).get("logo", {}).get("height"),
         "title": block.get("headline", {}),
-        # "image_url": block.get("image", {}).get("url"),
-        # "image_caption": block.get("image", {}).get("description"),
         "thumbnail_image": block.get("thumbnailUrl"),
         "headline": block.get("headline"),
     }
@@ -396,8 +403,9 @@ def get_all_details_of_block(block: dict) -> dict:
         })
     return data_dict
 
+
 def get_formated_images(response, block) -> str:
-    """return image url from response
+    """return formated images response using block and response
 
     Args:
         response : response object of scrapy
@@ -406,30 +414,42 @@ def get_formated_images(response, block) -> str:
         str: return link of image
     """
     formated_images = []
-    # for image in block.get("image", []):
-    #     formated_images.append({
-    #         "link": image.get("url"),
-    #         "caption": None,
-    #     })
     for link, caption in zip(
         response.css('figure.article-image a::attr(href)').getall(),
         response.css('figure.article-image figcaption::text').getall()
     ):
         formated_images.append({
-            "link": link,
+            "link": get_full_url(link),
             "caption": caption,
         })
-    # images = []
-    # for image in response.css("figure"):
-    #     image_link = image.css("img::attr(src)").get()
-    #     images.append({
-    #         "link": image_link if "oriental" in image_link else "https://orientaldaily.on.cc/" + image_link,
-    #         "caption": image.css("figcaption.photoCaption::text").get()
-    #     })
-    # imageurl = response.css(".inline-image::attr(src)").getall()
-    # for img in imageurl:
-    #     image = img if "https://www.ctvnews.ca/" in img else f"https://www.ctvnews.ca/{img}"
+    if formated_images:
+        return formated_images
+    if response.css('figure.article-image figcaption::text').get() and block.get("image", [{}])[0].get("url"):
+        formated_images.append({
+            "link": get_full_url(block.get("image", [{}])[0].get("url")),
+            "caption": response.css('figure.article-image figcaption::text').get(),
+        })
+    elif response.css('figure.article-image a::attr(href)').get() and block.get("headline", {}):
+        formated_images.append({
+            "link": get_full_url(response.css('figure.article-image a::attr(href)').get()),
+            "caption": block.get("headline", {}),
+        })
     return formated_images
+
+
+def get_full_url(link: str) -> str:
+    """add base url to short url
+
+    Args:
+        link (str): link of image or any type
+
+    Returns:
+        str: Full url including base url
+    """
+    if "sankei.com" not in link and len(link) > 20:
+        return BASE_URL + link[1:]
+    return link
+
 
 def get_publisher_detail(response: str, data_dict: dict) -> dict:
     """generate publisher detail and return dict
@@ -442,7 +462,7 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
         dict: details of publisher to pass to json
     """
     return [{
-            "@id": data_dict.get("publisher_id", ""),
+            "@id": data_dict.get("publisher_id", "https://www.sankei.com/"),
             "@type": data_dict.get("publisher_type"),
             "name": data_dict.get("publisher_name"),
             "logo": {
