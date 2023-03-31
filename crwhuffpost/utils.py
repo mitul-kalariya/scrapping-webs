@@ -3,6 +3,7 @@ from datetime import timedelta, datetime
 import itertools
 import json
 import os
+import re
 
 from scrapy.loader import ItemLoader
 
@@ -21,6 +22,7 @@ ERROR_MESSAGES = {
     "InvalidDateException": "Please provide valid date.",
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
+SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
 
 language_mapper = {"fr": "France", "en": "English"}
 
@@ -214,19 +216,23 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     }
 
     for block in blocks:
-        if "NewsArticle" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
-        elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
-        elif json.loads(block).get("itemListElement"):
-            for itemlistelement in json.loads(block).get("itemListElement"):
-                parsed_json_flter_dict["VideoObject"] = itemlistelement.get(
-                    "item", [{}]
-                )
+        space_removed_block = re.sub(SPACE_REMOVER_PATTERN, "", block).strip()
+        if "NewsArticle" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(space_removed_block)
+        elif "ImageGallery" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageGallery"] = json.loads(space_removed_block)
+        elif "VideoObject" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["VideoObject"] = json.loads(space_removed_block)
+        elif "ItemList" in json.loads(space_removed_block).get("@type", [{}]):
+            for itemlistelement in json.loads(space_removed_block).get(
+                "itemListElement"
+            ):
+                if "VideoObject" in itemlistelement.get("item", {}).get("@type", ""):
+                    parsed_json_flter_dict["VideoObject"] = itemlistelement.get(
+                        "item", [{}][0].get("@type", [{}])
+                    )
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["Other"].append(json.loads(space_removed_block))
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
@@ -528,8 +534,8 @@ def get_thumbnail_image_video(response: str, videoobject: dict) -> dict:
         ],
         "video": [
             {
-                "link": videoobject.get("embedUrl"),
-                "caption": videoobject.get("description"),
+                "link": videoobject.get("embedUrl") if videoobject else None,
+                "caption": videoobject.get("description") if videoobject else None,
             }
         ],
     }
