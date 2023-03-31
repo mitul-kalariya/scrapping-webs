@@ -183,7 +183,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
     parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
-    parsed_data_dict["modified_at"] = []  # Not available
+    parsed_data_dict["modified_at"] = []
     parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
     parsed_data_dict["source_country"] = ["China"]
     parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').getall()
@@ -193,9 +193,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         "name": article_data.get("main").get("name"),
         "logo": {
             "@type": "ImageObject",
-            "url": response.css('link[rel="apple-touch-icon"]::attr(href)').get(),  # search:apple-touch-icon
-            "width": {},  # Filed not available
-            "height": {}  # Filed not available
+            "url": response.css('link[rel="apple-touch-icon"]::attr(href)').get(),
+            "width": {},
+            "height": {}
         }
     }]
     parsed_data_dict["text"] = response.css('p::text').getall()

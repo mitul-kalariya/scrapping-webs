@@ -12,11 +12,11 @@ from crwam730.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    # export_data_to_json_file
+    export_data_to_json_file
 )
 from crwam730.exception import (
-    # SitemapScrappingException,
-    # SitemapArticleScrappingException,
+    SitemapScrappingException,
+    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -193,9 +193,7 @@ class Am730(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
-
+            
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
