@@ -109,7 +109,6 @@ class Am730(scrapy.Spider, BaseSpider):
                             "link": url,
                             "title": title,
                         }
-                        print(article)
                         self.articles.append(article)
             else:
                 if self.start_date <= _date <= self.end_date:
@@ -118,7 +117,6 @@ class Am730(scrapy.Spider, BaseSpider):
                             "link": url,
                             "title": title,
                         }
-                        print(article)
                         self.articles.append(article)
 
     def parse_sitemap_article(self, response):
@@ -189,12 +187,12 @@ class Am730(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
             
         except Exception as exception:
             self.log(
