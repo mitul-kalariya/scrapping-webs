@@ -1,12 +1,11 @@
 from scrapy.crawler import CrawlerProcess
-#TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwtfinews.spiders.tfi_news_online import TfiNewsSpider
+
 
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
     ...
-
     Attributes
     ----------
     query : dict
@@ -15,7 +14,6 @@ class Crawler:
         dictionary that contains proxy related information
     output : int
         Data returned by crawl method
-
     Methods
     -------
     crawl()
@@ -43,15 +41,13 @@ class Crawler:
         self.query = query
         self.proxies = proxies
 
-    def crawl(self)-> list[dict]:
+    def crawl(self) -> list[dict]:
         """Crawls the sitemap URL and article URL and return final data
-
         Raises:
             Exception: Raised exception for unknown Type
-
         Returns:
-            list[dict]: list of dictionary of the article data or article links 
-            as per expected_article.json or expected_sitemap.json 
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
         """
         self.output = None
         process = CrawlerProcess()
@@ -75,8 +71,7 @@ class Crawler:
             process_settings['HTTP_PROXY_PASS'] = self.proxies['proxyPassword']
             process.settings = process_settings
 
-        #TODO: Replace the Spider name after importing
-        process.crawl(SueddeutscheSpider, **spider_args)
+        process.crawl(TfiNewsSpider, **spider_args)
         process.start()
         return self.output
 
