@@ -1,7 +1,7 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
-    name='newton-scrapping',  # TODO: <-- Change name here as per the folder
+    name='crwmainichi',
     author='Newton',
     version='0.1',
     packages=find_packages(),

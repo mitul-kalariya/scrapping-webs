@@ -139,3 +139,6 @@ dmypy.json
 # Output Data
 Article/
 Links/
+
+# Custom
+# *.json
