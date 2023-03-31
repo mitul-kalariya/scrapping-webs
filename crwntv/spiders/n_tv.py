@@ -1,25 +1,16 @@
-import gzip
-import scrapy
-import requests
 import logging
-from io import BytesIO
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
-from crwntv.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
-from crwntv import exceptions
 from abc import ABC, abstractmethod
+from datetime import datetime
+import scrapy
+from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
+from scrapy.utils.project import get_project_settings
+
+from crwntv import exceptions
+from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.items import ArticleData
-from crwntv.utils import (
-    create_log_file,
-    validate_sitemap_date_range,
-    export_data_to_json_file,
-    get_raw_response,
-    get_parsed_data,
-    get_parsed_json,
-)
+from crwntv.utils import (create_log_file, get_parsed_data, get_parsed_json,
+                          get_raw_response)
 
 
 class BaseSpider(ABC):
@@ -67,7 +58,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
         create_log_file()
         if self.type == "sitemap":
-            if start_date != None or  end_date != None:
+            if start_date is not None or end_date is not None:
                 raise Exception("Date filter is not available")
             self.start_urls.append(SITEMAP_URL)
         elif self.type == "article":
@@ -76,7 +67,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             else:
                 self.logger.error("Must have a URL to scrap")
                 raise Exception("Must have a URL to scrap")
-
 
     def parse(self, response):
         """
@@ -110,7 +100,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 "//*[local-name()='title' and namespace-uri()='http://www.google.com/schemas/sitemap-news/0.9']/text()"
             ).getall()
             published_date = response.xpath(
-                "//*[local-name()='publication_date' and namespace-uri()='http://www.google.com/schemas/sitemap-news/0.9']/text()"
+                "//*[local-name()='publication_date' and namespace-uri()='http://www.google.com/schemas/sitemap-news/0.9']/text()"  # noqa: E501
             ).getall()
             for loc, title, pub_date in zip(loc, title, published_date):
                 if loc and title and pub_date:
@@ -174,8 +164,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"
