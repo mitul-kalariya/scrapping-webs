@@ -1,19 +1,17 @@
 """list of article/sitemap URLs for testing"""
 
-#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.bild.de/regional/sachsen-anhalt/sachsen-anhalt-news/polizei-mutter-40-entsorgte-baby-im-altkleider-container-83393830.bild.html",
         "test_data_path": "crwbild/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.bild.de/sport/fussball/nationalmannschaft/dfb-team-lothar-matthaeus-zerlegt-die-nationalmannschaft-nach-2-3-pleite-83368970.bild.html",
         "test_data_path": "crwbild/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.bild.de/bild-plus/sport/fussball/bayern-muenchen/fc-bayern-san-kimmich-und-mueller-radikale-tuchel-aenderungen-geplant-83365758.bild.html",
         "test_data_path": "crwbild/test/data/test_article_3.json"
     }
 ]
-#TODO:Update below sitemap URL
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://www.bild.de/themen/uebersicht/archiv/archiv-82532020.bild.html"

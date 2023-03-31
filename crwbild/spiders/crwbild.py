@@ -60,8 +60,6 @@ class BildSpider(scrapy.Spider, BaseSpider):
 
     name = "bild"
     start_urls = [BASE_URL]
-    namespace = {"sitemap": "https://www.sitemaps.org/schemas/sitemap/0.9"}
-    namespace_news = {"sitemap": "https://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
@@ -119,13 +117,14 @@ class BildSpider(scrapy.Spider, BaseSpider):
                 f"Unable to scrape due to getting this status code {response.status}"
             )
 
-        if "archives/" in response.url:
+        if "archiv/" in response.url:
             for single_date in self.date_range_lst:
                 try:
+                    # https://www.bild.de/themen/uebersicht/archiv/archiv-82532020.bild.html?archiveDate=2023-03-26
                     self.logger.debug("Parse function called on %s", response.url)
                     yield scrapy.Request(
-                        f"https://www.20minutes.fr/archives/{single_date.year}/"
-                        f"{single_date.month}-{single_date.day}",
+                        f"https://www.bild.de/themen/uebersicht/archiv/archiv-82532020.bild.html?"
+                        f"archiveDate={single_date}",
                         callback=self.parse_sitemap,
                     )
                 except Exception as exception:
@@ -148,7 +147,7 @@ class BildSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            for url in response.css("ul.spreadlist>li>a::attr(href)").getall():
+            for url in response.css("article>a:not([href^='/video'])::attr(href)").getall():
                 yield scrapy.Request(
                     BASE_URL + url[1:], callback=self.parse_sitemap_article
                 )
@@ -161,6 +160,9 @@ class BildSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
 
+    # response.css("article>a:not([href^='/video'])::attr(href)").get()
+    # response.css("article>a:not([href^='/video'])::attr(href)").getall()
+
     def parse_sitemap_article(self, response: str) -> None:
         """
         parse sitemap article and scrap title and link
@@ -172,11 +174,7 @@ class BildSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if (
-                title := response.css("h1.nodeheader-title::text")
-                .get()
-                .replace("\xa0", "")
-            ):
+            if (title := response.css("h1 > span.article-title__headline::text").get()):
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:

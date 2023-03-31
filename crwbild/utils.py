@@ -1,5 +1,6 @@
 """ General functions """
 from datetime import timedelta, datetime
+from itertools import zip_longest
 import json
 import os
 
@@ -336,7 +337,7 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     """
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
-        "source_country": ["France"],
+        "source_country": ["Germany"],
         "source_language": [
             language_mapper.get(response.css("html::attr(lang)").get(), None)
         ],
@@ -451,7 +452,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
         "title": [parsed_data.get("headline")],
         "text": ["".join(response.css("div.article-body p::text").getall())],
         "section": [parsed_data.get("articleSection")],
-        "tags": parsed_data.get("keywords", []),
+        "tags": parsed_data.get("keywords", "").split(", "),
     }
 
 
@@ -479,9 +480,10 @@ def get_thumbnail_image_video(
                              response.css(".article-body>figure>figcaption p::text").getall()):
         images.append({"link": link, "caption": caption})
 
-    for link, caption in zip(response.css("article>figure img::attr(src)").getall(),
-                             response.css("article>figure p::text").getall()):
+    for link, caption in zip_longest(response.css("article>figure img::attr(src)").getall(),
+                                     response.css("article>figure p::text").getall()):
         images.append({"link": link, "caption": caption})
+    breakpoint()
 
     return {
         "images": images,
