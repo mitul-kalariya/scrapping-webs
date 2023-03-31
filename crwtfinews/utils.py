@@ -239,7 +239,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Export data to json file
 
     Args:
-        scrape_type: Name of the scrape type
+        scrape_type: Name of the scrape type, sitemap or article
         file_data: file data
         file_name: Name of the file which contain data
 

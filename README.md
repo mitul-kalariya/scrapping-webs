@@ -1,8 +1,8 @@
-# {ScrapperName} Scrapping
+# TF1 News Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www.tf1info.fr/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -35,7 +35,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://www.tf1info.fr/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -47,7 +47,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwtfinews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -59,7 +59,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://www.tf1info.fr/"
     },
     proxies=proxies
 )
@@ -70,7 +70,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwtfinews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -82,7 +82,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://www.tf1info.fr/international/etats-unis-un-grand-jury-a-new-york-a-vote-pour-inculper-au-penal-ex-president-donald-trump-dans-affaire-stormy-daniels-actrice-porno-2252626.html"
     },
     proxies=proxies
 )

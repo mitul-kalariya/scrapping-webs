@@ -15,7 +15,6 @@ from crwtfinews.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
