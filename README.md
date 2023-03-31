@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": https://www.nippon.com/ja/images/i00066/
+        "link": "https://www.nippon.com/ja/images/i00066/"
     },
     proxies=proxies
 )
