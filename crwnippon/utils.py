@@ -133,9 +133,6 @@ def get_parsed_data(response):
     try:
         pattern = r"[\r\n\t\"]+"
         main_dict = {}
-        video = []
-        main_data = get_main(response)
-
         # extract author info
         authors = get_author(response)
         main_dict["author"] = authors
@@ -267,7 +264,6 @@ def get_author(response) -> list:
 def get_tags(response) -> list:
     try:
         data = []
-        pattern = r"[\r\n\t\"]+"
         news_tags = response.css(".c-keywords a::text").getall()
         for tag in news_tags:
             data.append(tag)
