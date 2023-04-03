@@ -6,12 +6,6 @@ __pycache__/
 # C extensions
 *.so
 
-#pycharm
-.idea
-
-#vscode
-.vscode
-
 # Distribution / packaging
 .Python
 build/
@@ -134,5 +128,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-#log file
-logs.log
+# VS Code
+.vscode
+
+#PyCharm
+.idea
+
+*.zip
+
+# Output Data
+Article/
+Links/
