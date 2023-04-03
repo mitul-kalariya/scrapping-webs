@@ -159,6 +159,8 @@ def get_parsed_data(response):
     if thumbnail_image:
         main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
 
+
+    main_dict["images"] = get_article_images(response.css("div.absatzbild"))
     # extract video files if any
     frame_video = get_embed_video_link(response.css("div.copytext__video"))
     if frame_video:
@@ -218,11 +220,28 @@ def get_misc(response):
 def get_embed_video_link(response) -> list:
     info = []
     for child in response:
-        video = child.css("div.ts-mediaplayer::attr(data-config)").get()
-        if video:
-            video_link = re.findall(r"http?.*?\.mp4", video)[0]
+        raw_video_json = child.css("div.ts-mediaplayer::attr(data-config)").get()
+        video_json = (json.loads(raw_video_json)).get("mc")
+
+        if video_json.get("_sharing"):
+            video_link = video_json.get("_sharing").get("link")
             if video_link:
                 info.append(video_link)
+        elif video_json.get("_download"):
+            video_link = video_json.get("_download").get("url")
+            if video_link:
+                info.append(video_link)
+
+    return info
+
+
+def get_article_images(response)->list:
+    info = []
+    for child in response:
+        a_dict = {}
+        a_dict["link"] = BASE_URL+ child.css("div.absatzbild__media div picture img::attr(src)").get()
+        a_dict["caption"] = child.css("div.absatzbild__info p::text").get()
+        info.append(remove_empty_elements(a_dict))
     return info
 
 
