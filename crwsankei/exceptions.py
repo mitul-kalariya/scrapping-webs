@@ -21,6 +21,13 @@ class InputMissingException(Exception):
     pass
 
 
+class ScrappingException(Exception):
+    """Raise when exception arise while scrapping sitemap and article"""
+
+    # Use ScrappingException(f"Error occurred while fetching sitemap:- {str(e)}")
+    pass
+
+
 class SitemapScrappingException(Exception):
     """Raise when exception arise while fetching sitemap"""
 

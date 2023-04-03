@@ -415,7 +415,7 @@ def get_formated_images(response, block) -> str:
     """
     formated_images = []
     for link, caption in zip(
-        response.css('figure.article-image a::attr(href)').getall(),
+        response.css('figure.article-image img::attr(src)').getall(),
         response.css('figure.article-image figcaption::text').getall()
     ):
         formated_images.append({
@@ -429,9 +429,9 @@ def get_formated_images(response, block) -> str:
             "link": get_full_url(block.get("image", [{}])[0].get("url")),
             "caption": response.css('figure.article-image figcaption::text').get(),
         })
-    elif response.css('figure.article-image a::attr(href)').get() and block.get("headline", {}):
+    elif response.css('figure.article-image img::attr(src)').get() and block.get("headline", {}):
         formated_images.append({
-            "link": get_full_url(response.css('figure.article-image a::attr(href)').get()),
+            "link": get_full_url(response.css('figure.article-image img::attr(src)').get()),
             "caption": block.get("headline", {}),
         })
     return formated_images

@@ -22,7 +22,7 @@ from crwsankei.utils import (
 )
 from crwsankei.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
+    ScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -122,11 +122,21 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
             raise CloseSpider(
                 f"Unable to scrape due to getting this status code {response.status}"
             )
-        self.logger.info("Parse function called on %s", response.url)
-        if "sitemap" in response.url:
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
-        else:
-            yield self.parse_article(response)
+        try:
+            self.logger.info("Parse function called on %s", response.url)
+            if "sitemap" in response.url:
+                yield self.parse_sitemap(response)
+            else:
+                yield self.parse_article(response)
+        except Exception as exception:
+            self.log(
+                "Error occurred while calling article and sitemap parse funtion according to url. "
+                + str(exception),
+                level=logging.ERROR,
+            )
+            raise ScrappingException(
+                f"Error occurred while calling appropriate parse function:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response: str) -> None:
         """
@@ -148,10 +158,9 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
             try:
                 date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
                 if date_datetime.date() in self.date_range_lst:
-                    yield scrapy.Request(
-                        url.strip(), callback=self.parse_sitemap_article
-                    )
-            except SitemapScrappingException as exception:
+                    data = {"link": url}
+                    self.articles.append(data)
+            except Exception as exception:
                 self.log(
                     "Error occurred while scrapping urls from given sitemap url. "
                     + str(exception),
@@ -171,18 +180,7 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        try:
-            if title := response.css("h1.article-headline::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response: str) -> None:
         """
