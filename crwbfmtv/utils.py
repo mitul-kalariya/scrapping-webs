@@ -18,8 +18,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-                        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def validate_sitemap_date_range(start_date, end_date):
@@ -34,11 +39,11 @@ def validate_sitemap_date_range(start_date, end_date):
         if start_date and end_date and start_date > end_date:
             raise exceptions.InvalidDateException("start_date should not be later than end_date")
 
-        if start_date and end_date and start_date == end_date:
-            raise exceptions.InvalidDateException("start_date and end_date must not be the same")
-
         if start_date and end_date and start_date > TODAYS_DATE:
             raise exceptions.InvalidDateException("start_date should not be greater than today_date")
+
+        if start_date and end_date and end_date > TODAYS_DATE:
+            raise exceptions.InvalidDateException("end_date should not be greater than today_date")
 
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)

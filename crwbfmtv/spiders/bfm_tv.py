@@ -1,7 +1,6 @@
 import gzip
 import scrapy
 import requests
-import logging
 from io import BytesIO
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -63,32 +62,37 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
         InvalidDateRange: If the start_date is later than the end_date.
         Exception: If no URL is provided when type is "article".
         """
-        super(BFMTVSpider, self).__init__(*args, **kwargs)
-        self.output_callback = kwargs.get("args", {}).get("callback", None)
-        self.start_urls = []
-        self.articles = []
-        self.type = type.lower()
-        self.main_json = None
-        self.article_url = url
+        try:
+            super(BFMTVSpider, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.start_urls = []
+            self.articles = []
+            self.type = type.lower()
+            self.main_json = None
+            self.article_url = url
 
-        if self.type == "sitemap":
             if self.type == "sitemap":
-                self.start_urls.append(SITEMAP_URL)
-                self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else None
-                )
-                self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-                )
-                validate_sitemap_date_range(start_date, end_date)
-        elif self.type == "article":
-            if url:
-                self.start_urls.append(url)
-            else:
-                self.logger.error("Must have a URL to scrap")
-                raise Exception("Must have a URL to scrap")
+                if self.type == "sitemap":
+                    self.start_urls.append(SITEMAP_URL)
+                    self.start_date = (
+                        datetime.strptime(start_date, "%Y-%m-%d").date()
+                        if start_date
+                        else None
+                    )
+                    self.end_date = (
+                        datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                    )
+                    validate_sitemap_date_range(start_date, end_date)
+            elif self.type == "article":
+                if url:
+                    self.start_urls.append(url)
+                else:
+                    LOGGER.info("Must have a URL to scrap")
+                    raise Exception("Must have a URL to scrap")
+
+        except Exception as exception:
+            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
 
     def parse(self, response):
         """
@@ -100,7 +104,7 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
         Raises:
         BaseException: If an error occurs during parsing.
         """
-        self.logger.info("Parse function called on %s", response.url)
+        LOGGER.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -108,8 +112,7 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
                 yield self.parse_article(response)
 
         except BaseException as e:
-            print(f"Error while parse function: {e}")
-            LOGGER.error(f"Error while parse function: {e}")
+            LOGGER.info(f"Error while parse function: {e}")
 
     def parse_article(self, response) -> list:
         """
@@ -123,21 +126,28 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
             parsed JSON, and parsed data, along with additional information such as the country
             and time scraped.
         """
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        raw_response = get_raw_response(response)
-        response_json = get_parsed_json(response)
-        response_data = get_parsed_data(response)
-        response_data["source_country"] = ["France"]
-        response_data["time_scraped"] = [str(datetime.now())]
+        LOGGER.info("Parse function called on %s", response.url)
+        try:
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = get_parsed_json(response)
+            response_data = get_parsed_data(response)
+            response_data["source_country"] = ["France"]
+            response_data["time_scraped"] = [str(datetime.now())]
 
-        articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
-        articledata_loader.add_value("parsed_data", response_data)
-        self.articles.append(dict(articledata_loader.load_item()))
-        return articledata_loader.item
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
+            articledata_loader.add_value("parsed_data", response_data)
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+
+        except Exception as exception:
+            LOGGER.info(
+                f"Error occurring while parsing sitemap {exception} in parse function"
+            )
 
     def parse_sitemap(self, response):
         try:
@@ -179,9 +189,9 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
                             elif self.start_date and self.end_date:
                                 if ".html" in link:
                                     self.articles.append(data)
-        except BaseException as e:
-            LOGGER.error("Error while parsing sitemap: {}".format(e))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+        except Exception as exception:
+            LOGGER.info("Error while parsing sitemap: {}".format(exception))
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
 
     def closed(self, reason: any) -> None:
         """
@@ -198,16 +208,15 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+                LOGGER.info("No articles or sitemap url scrapped.")
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
-            self.log(
+            LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
             )
 
 
