@@ -15,6 +15,8 @@ from crwmediapart.utils import (create_log_file, validate_sitemap_date_range, ex
 
 # create log file
 create_log_file()
+
+
 class BaseSpider(ABC):
     @abstractmethod
     def parse(response):
@@ -56,7 +58,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         self.articles = []
         self.article_url = url
         self.type = type.lower()
-
 
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
