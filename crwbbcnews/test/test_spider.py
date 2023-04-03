@@ -1,5 +1,6 @@
 import logging
 import unittest
+from datetime import datetime, timedelta
 
 from crwbbcnews.spiders.bbcnews import BBCNews
 from crwbbcnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
@@ -237,7 +238,9 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        current_date = datetime.today().strftime("%Y-%m-%d")
+        past_date = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL, "since": past_date, "until": current_date})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
