@@ -1,5 +1,4 @@
 import scrapy
-import logging
 import w3lib.html
 from crwardnews.constant import SITEMAP_URL, LOGGER
 from crwardnews import exceptions
@@ -16,6 +15,7 @@ from crwardnews.utils import (
     get_parsed_json,
 )
 
+# create log file
 create_log_file()
 
 
@@ -99,7 +99,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             if url:
                 self.start_urls.append(url)
             else:
-                LOGGER.error("Must have a URL to scrap")
+                LOGGER.info("Must have a URL to scrap")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
@@ -216,7 +216,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                     )
 
         except Exception as exception:
-            LOGGER.error("Error while parsing sitemap: {}".format(exception))
+            LOGGER.info("Error while parsing sitemap: {}".format(exception))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
 
     def parse_sitemap_article(self, response):
@@ -259,7 +259,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {exception}"
             )
-            LOGGER.error("Error while parsing sitemap article: {}".format(exception))
+            LOGGER.info("Error while parsing sitemap article: {}".format(exception))
 
     def closed(self, reason: any) -> None:
         """
@@ -276,15 +276,12 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             # if self.output_callback is not None:
             #     self.output_callback(self.articles)
             if not self.articles:
-                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+                LOGGER.info("No articles or sitemap url scrapped.")
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
+            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
-            self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
             )

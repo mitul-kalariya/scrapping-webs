@@ -12,7 +12,7 @@ from crwardnews.constant import TODAYS_DATE, BASE_URL, LOGGER
 
 def create_log_file():
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
         filename="logs.log",
         filemode="a",
