@@ -95,7 +95,7 @@ class TestArticle(unittest.TestCase):
                 with self.subTest():
                     self.assertIsNotNone(author.get("url"), "missing object:- parsed_data--> author --> url")
 
-    def _test_parse_json_data_format(self, article, test_article_data): # noqa: C901
+    def _test_parse_json_data_format(self, article, test_article_data):  # noqa: C901
         # Since the content of article can be modified at anytime so not checkering exact text
         # but testing the object format so that we can verify that crawler is working well.
         if article[0].get("parsed_data").get("text"):
@@ -216,7 +216,6 @@ class TestArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> tags")
 
 
-
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
@@ -242,6 +241,7 @@ class TestSitemap(unittest.TestCase):
     def test_parse(self):
         self.article_urls = self.crawler.crawl()
         self._test_sitemap_results()
+
 
 if __name__ == "__main__":
     unittest.main()
