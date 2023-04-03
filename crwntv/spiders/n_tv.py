@@ -184,13 +184,10 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            LOGGER.info(
-                f"Error occurred while closing crawler{str(exception)} - {reason}",
-                level=logging.ERROR,
-            )
+            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}")
+
 
 
 if __name__ == "__main__":
