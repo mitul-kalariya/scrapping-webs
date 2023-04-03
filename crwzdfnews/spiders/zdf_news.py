@@ -1,4 +1,3 @@
-import re
 import scrapy
 import logging
 from datetime import datetime
@@ -148,16 +147,20 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         Raises:
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
         """
-        xmlresponse = XmlResponse(
-            url=response.url, body=response.body, encoding="utf-8"
-        )
-        xml_selector = Selector(xmlresponse)
-        xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        for sitemap in xml_selector.xpath(
-            "//xmlns:loc/text()", namespaces=xml_namespaces
-        ):
-            for link in sitemap.getall():
-                yield scrapy.Request(link, callback=self.parse_sitemap_article)
+        try:
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
+            xml_selector = Selector(xmlresponse)
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            for sitemap in xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ):
+                for link in sitemap.getall():
+                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+        except BaseException as e:
+            LOGGER.error("Error while parsing sitemap: {}".format(e))
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
@@ -170,53 +173,37 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         Raises:
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
-        namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-        published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
+        try:
+            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
+            published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
 
-        for link, pub_date in zip(links, published_date):
-            published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            today_date = datetime.today().date()
-            if self.start_date and self.end_date:
-                yield scrapy.Request(
-                    link,
-                    callback=self.parse_sitemap_datewise,
-                    meta={"link": link, "published_date": published_at},
-                )
-            elif today_date == published_at:
-                yield scrapy.Request(
-                    link,
-                    callback=self.parse_sitemap_datewise,
-                    meta={"link": link, "published_date": published_at},
-                )
-            else:
-                continue
+            for link, pub_date in zip(links, published_date):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                today_date = datetime.today().date()
 
-    def parse_sitemap_datewise(self, response):
-        """
-        Parses a response from a sitemap and extracts articles published within a certain date range.
-        Args:
-            response: The response to parse, containing information about a link.
-        Returns:
-            None if the published date of the article is outside of the specified date range, otherwise a dictionary
-            containing the link and title of the article,
-            which is appended to the 'articles' list attribute of the object.
-        """
-        link = response.meta["link"]
-        published_date = response.meta["published_date"]
-        title = response.css("h2#main-content").get()
-        pattern = r"[\r\n\t\</h2>\<h2>]+"
-        if title:
-            title = re.sub(pattern, "", title.split("</span>")[2]).strip()
-            if self.start_date and published_date < self.start_date:
-                return
-            if self.start_date and published_date > self.end_date:
-                return
-            data = {
-                "link": link,
-                "title": title,
-            }
-            self.articles.append(data)
+                if self.start_date and published_at < self.start_date:
+                    return
+                if self.start_date and published_at > self.end_date:
+                    return
+
+                if self.start_date and self.end_date:
+                    data = {
+                        "link": link
+                    }
+                    self.articles.append(data)
+                elif today_date == published_at:
+                    data = {
+                        "link": link
+                    }
+                    self.articles.append(data)
+                else:
+                    continue
+        except BaseException as e:
+            exceptions.SitemapArticleScrappingException(
+                f"Error while parsing sitemap article: {e}"
+            )
+            LOGGER.error(f"Error while parsing sitemap article: {e}")
 
     def closed(self, reason: any) -> None:
         """
@@ -229,8 +216,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
