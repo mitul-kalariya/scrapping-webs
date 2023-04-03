@@ -25,28 +25,18 @@ def validate_sitemap_date_range(start_date, end_date):
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
-            raise exceptions.InvalidDateException(
-                "end_date must be specified if start_date is provided"
-            )
+            raise exceptions.InvalidDateException("end_date must be specified if start_date is provided")
         if not start_date and end_date:
-            raise exceptions.InvalidDateException(
-                "start_date must be specified if end_date is provided"
-            )
+            raise exceptions.InvalidDateException("start_date must be specified if end_date is provided")
 
         if start_date and end_date and start_date > end_date:
-            raise exceptions.InvalidDateException(
-                "start_date should not be later than end_date"
-            )
+            raise exceptions.InvalidDateException("start_date should not be later than end_date")
 
         if start_date and end_date and start_date == end_date:
-            raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
-            )
+            raise exceptions.InvalidDateException("start_date and end_date must not be the same")
 
         if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
-            )
+            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
 
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
@@ -125,58 +115,60 @@ def get_parsed_json(response):
 
 
 def get_parsed_data(response):
+    try:
 
-    pattern = r"[\r\n\t\"]+"
-    main_dict = {}
-    video = []
-    main_data = get_main(response)
+        pattern = r"[\r\n\t\"]+"
+        main_dict = {}
+        video = []
+        main_data = get_main(response)
 
-    # extract author info
-    authors = [main_data[0].get("author")]
-    main_dict["author"] = authors
+        # extract author info
+        authors = [main_data[0].get("author")]
+        main_dict["author"] = authors
 
-    # extract main headline of article
-    title = response.css("span.seitenkopf__headline--text::text").get()
-    main_dict["title"] = [title]
+        # extract main headline of article
+        title = response.css("span.seitenkopf__headline--text::text").get()
+        main_dict["title"] = [title]
 
-    main_dict["publisher"] = [main_data[0].get("publisher")]
+        main_dict["publisher"] = [main_data[0].get("publisher")]
 
-    # extract the date published at
-    main_dict["published_at"] = [main_data[0].get("datePublished")]
-    main_dict["modified_at"] = [main_data[0].get("dateModified")]
-    main_dict["description"] = [main_data[0].get("description")]
+        # extract the date published at
+        main_dict["published_at"] = [main_data[0].get("datePublished")]
+        main_dict["modified_at"] = [main_data[0].get("dateModified")]
+        main_dict["description"] = [main_data[0].get("description")]
 
-    # extract the description or read text of the article
-    text = response.css("p.textabsatz::text").getall()
-    text = [re.sub(pattern, "", i) for i in text]
-    if text:
-        main_dict['text'] = ["".join(list(filter(None, text)))]
+        # extract the description or read text of the article
+        text = response.css("p.textabsatz::text").getall()
+        text = [re.sub(pattern, "", i) for i in text]
+        if text:
+            main_dict['text'] = ["".join(list(filter(None, text)))]
 
-    # extract the thumbnail image
-    thumbnail_image = response.css(
-        "picture.ts-picture--topbanner .ts-image::attr(src)"
-    ).get()
-    if thumbnail_image:
-        main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
+        # extract the thumbnail image
+        thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
+        if thumbnail_image:
+            main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
 
+        main_dict["images"] = get_article_images(response.css("div.absatzbild"))
+        # extract video files if any
+        frame_video = get_embed_video_link(response.css("div.copytext__video"))
+        if frame_video:
+            video.extend(frame_video)
 
-    main_dict["images"] = get_article_images(response.css("div.absatzbild"))
-    # extract video files if any
-    frame_video = get_embed_video_link(response.css("div.copytext__video"))
-    if frame_video:
-        video.extend(frame_video)
+        main_dict["embed_video_link"] = video
 
-    main_dict["embed_video_link"] = video
+        # extract tags associated with article
+        tags = response.css("ul.taglist li a::text").getall()
+        main_dict["tags"] = tags
 
-    # extract tags associated with article
-    tags = response.css("ul.taglist li a::text").getall()
-    main_dict["tags"] = tags
+        mapper = {'de': "German"}
+        article_lang = response.css("html::attr(lang)").get()
+        main_dict["source_language"] = [mapper.get(article_lang)]
 
-    mapper = {'de': "German"}
-    article_lang = response.css("html::attr(lang)").get()
-    main_dict["source_language"] = [mapper.get(article_lang)]
+        return remove_empty_elements(main_dict)
 
-    return remove_empty_elements(main_dict)
+    except BaseException as e:
+        LOGGER.error(f"Error while extracting parsed data: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while extracting parsed data: {e}")
 
 
 def get_main(response):
@@ -214,7 +206,6 @@ def get_misc(response):
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
 
 
 def get_embed_video_link(response) -> list:
@@ -235,12 +226,13 @@ def get_embed_video_link(response) -> list:
     return info
 
 
-def get_article_images(response)->list:
+def get_article_images(response) -> list:
     info = []
+    pattern = r"[\r\n\t\"]+"
     for child in response:
         a_dict = {}
-        a_dict["link"] = BASE_URL+ child.css("div.absatzbild__media div picture img::attr(src)").get()
-        a_dict["caption"] = child.css("div.absatzbild__info p::text").get()
+        a_dict["link"] = BASE_URL + child.css("div.absatzbild__media div picture img::attr(src)").get()
+        a_dict["caption"] = re.sub(pattern, "", child.css("div.absatzbild__info p::text").get()).strip()
         info.append(remove_empty_elements(a_dict))
     return info
 
@@ -264,9 +256,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     elif scrape_type == "article":
         folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        )
+        filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
 
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
