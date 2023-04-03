@@ -197,7 +197,7 @@ def get_parsed_data(response):
 
 def extract_videos(response) -> list:
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)
