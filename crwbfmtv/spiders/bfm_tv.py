@@ -21,6 +21,9 @@ from crwbfmtv.utils import (
     get_parsed_json,
 )
 
+# create log file
+create_log_file()
+
 
 class BaseSpider(ABC):
     @abstractmethod
@@ -67,8 +70,6 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
         self.type = type.lower()
         self.main_json = None
         self.article_url = url
-
-        create_log_file()
 
         if self.type == "sitemap":
             if self.type == "sitemap":
