@@ -152,10 +152,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             return articledata_loader.item
 
         except Exception as exception:
-            self.log(
+            LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception),
-                level=logging.ERROR,
+                + str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
