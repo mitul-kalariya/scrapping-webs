@@ -99,7 +99,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             if url:
                 self.start_urls.append(url)
             else:
-                LOGGER.error("Error while")
+                LOGGER.error("Must have a URL to scrap")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
@@ -133,22 +133,33 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             parsed JSON, and parsed data, along with additional information such as the country
             and time scraped.
         """
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        raw_response = get_raw_response(response)
-        response_json = get_parsed_json(response)
-        response_data = get_parsed_data(response)
-        response_data["source_country"] = ["Germany"]
-        response_data["time_scraped"] = [str(datetime.now())]
+        try:
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = get_parsed_json(response)
+            response_data = get_parsed_data(response)
+            response_data["source_country"] = ["Germany"]
+            response_data["time_scraped"] = [str(datetime.now())]
 
-        articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
-        articledata_loader.add_value("parsed_data", response_data)
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
+            articledata_loader.add_value("parsed_data", response_data)
 
-        self.articles.append(dict(articledata_loader.load_item()))
-        return articledata_loader.item
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+        
+        except Exception as exception:
+            self.log(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception),
+                level=logging.ERROR,
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -205,9 +216,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                         date_wise_url, callback=self.parse_sitemap_article
                     )
 
-        except BaseException as e:
-            LOGGER.error("Error while parsing sitemap: {}".format(e))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+        except Exception as exception:
+            LOGGER.error("Error while parsing sitemap: {}".format(exception))
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
@@ -245,11 +256,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                         pagination_url, callback=self.parse_sitemap_article
                     )
 
-        except BaseException as e:
+        except Exception as exception:
             exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {e}"
+                f"Error while filtering date wise: {exception}"
             )
-            LOGGER.error("Error while parsing sitemap article: {}".format(e))
+            LOGGER.error("Error while parsing sitemap article: {}".format(exception))
 
     def closed(self, reason: any) -> None:
         """
@@ -263,8 +274,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
