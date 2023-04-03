@@ -1,4 +1,4 @@
-from crwlemonde import Crawler
+from crwnhkorjp import Crawler
 
 crawler = Crawler(query={"type": "sitemap"})
 data = crawler.crawl()

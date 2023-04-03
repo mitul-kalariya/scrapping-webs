@@ -1,4 +1,4 @@
-# Lemonde Scrapping
+# NhkOrJp Scrapping
 
 #### Setup and execution instructions: - 
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from crwlemonde.main import Crawler
+from crwnhkorjp.main import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from crwlemonde.main import Crawler
+from crwnhkorjp.main import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crwlemonde.main import Crawler
+from crwnhkorjp.main import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP

@@ -1,5 +1,5 @@
 from scrapy.crawler import CrawlerProcess
-from crwlemonde.spiders.lemonade import LemonadeNews
+from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
 
 
 class Crawler:
@@ -80,7 +80,7 @@ class Crawler:
             process_settings['HTTP_PROXY_PASS'] = self.proxies['proxyPassword']
             process.settings = process_settings
 
-        process.crawl(LemonadeNews, **spider_args)
+        process.crawl(NhkOrJpNews, **spider_args)
         process.start()
         return self.output
 

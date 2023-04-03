@@ -1,10 +1,10 @@
 import logging
 import unittest
-from crwlemonde.spiders.lemonade import LemonadeNews
-from crwlemonde.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwlemonde.test.helpers.utils import (get_article_content,
+from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
+from crwnhkorjp.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwnhkorjp.test.helpers.utils import (get_article_content,
                                            online_response_from_url)
-from crwlemonde import Crawler
+from crwnhkorjp import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -24,7 +24,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = LemonadeNews(type="article", url=article["url"])
+            spider = NhkOrJpNews(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
