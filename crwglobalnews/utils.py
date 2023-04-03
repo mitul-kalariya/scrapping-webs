@@ -370,7 +370,7 @@ def get_images(response) -> list:
                     "figcaption.c-figure__caption.c-caption span::text"
                 ).get()
                 if link:
-                    temp_dict["url"] = link
+                    temp_dict["link"] = link
                     if caption:
                         temp_dict["caption"] = re.sub(pattern, "", caption).strip()
                     data.append(temp_dict)
@@ -390,12 +390,6 @@ def get_embed_video_link(response) -> list:
     """
     try:
         data = []
-        thumbnail_video = response.css("figure.l-article__featured")
-        for video in thumbnail_video:
-            link = video.css(".c-video::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
-
         videos = response.css("div.c-video.c-videoPlay")
         for video in videos:
             link = video.css("div::attr(data-displayinline)").get()
