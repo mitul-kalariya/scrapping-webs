@@ -50,7 +50,7 @@ class BaseSpider(ABC):
         pass
 
 
-class AsahiSDigital(scrapy.Spider, BaseSpider):
+class Mbn_news(scrapy.Spider, BaseSpider):
     name = "mbn_news"
 
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
