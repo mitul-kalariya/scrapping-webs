@@ -114,9 +114,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap_article(self, response):
-        """
-        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
-        """
         pass
 
     def parse_article(self, response):
