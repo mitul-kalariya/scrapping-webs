@@ -54,12 +54,12 @@ def validate_sitemap_date_range(start_date, end_date):
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
-        
+
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
                 "end_date should not be greater than today_date"
             )
-        
+
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {e}")
@@ -126,7 +126,7 @@ def get_parsed_json(response):
             parsed_json["VideoObject"] = data
         else:
             other_data.append(data)
-    
+
     parsed_json["Other"] = other_data
     misc = get_misc(response)
     if misc:
@@ -399,7 +399,6 @@ def get_embed_video_link(response) -> list:
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
-
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:

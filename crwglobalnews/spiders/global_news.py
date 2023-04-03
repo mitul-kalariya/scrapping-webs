@@ -1,5 +1,4 @@
 import scrapy
-import logging
 from datetime import datetime
 from lxml import etree
 from scrapy.crawler import CrawlerProcess
@@ -14,6 +13,7 @@ from crwglobalnews.utils import (create_log_file, validate_sitemap_date_range, e
 
 # create log file
 create_log_file()
+
 
 class BaseSpider(ABC):
     @abstractmethod
@@ -70,7 +70,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 else:
                     LOGGER.info("Must have a URL to scrap")
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
-                
+
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
             raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
@@ -151,7 +151,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             self.articles.append(dict(articledata_loader.load_item()))
 
             return articledata_loader.item
-        
+
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
