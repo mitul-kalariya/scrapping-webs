@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
+from scrapy.crawler import CrawlerProcess
 from crwmediapart import exceptions
 from crwmediapart.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
 from scrapy.utils.project import get_project_settings
@@ -10,7 +11,7 @@ from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from crwmediapart.items import ArticleData
 from crwmediapart.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
-                                    get_raw_response, get_parsed_data, get_parsed_json, )
+                                get_raw_response, get_parsed_data, get_parsed_json, )
 
 
 class BaseSpider(ABC):
@@ -150,23 +151,14 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 # Convert the published date to a datetime object
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
-                # Convert today's date to a datetime object
-                # today_date = datetime.strptime(TODAYS_DATE, "%Y-%m-%d").date()
-
                 # If the published date falls within the specified date range, make a request to the link
                 if (self.start_date and self.end_date and self.start_date <= published_at <= self.end_date):
-                    yield scrapy.Request(
-                        link,
-                        callback=self.parse_sitemap_by_title_link,
-                        meta={"link": link, "published_date": published_at},
-                    )
+                    data = {"link": link}
+                    self.articles.append(data)
                 # If the published date is today's date, make a request to the link
                 elif TODAYS_DATE == published_at:
-                    yield scrapy.Request(
-                        link,
-                        callback=self.parse_sitemap_by_title_link,
-                        meta={"link": link, "published_date": published_at},
-                    )
+                    data = {"link": link}
+                    self.articles.append(data)
                 else:
                     continue  # If there's any error during the above process, log it and print
         except BaseException as e:
@@ -174,28 +166,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
     def parse_sitemap_by_title_link(self, response):
-        """
-            Parses a sitemap article page and extracts its link, title, and published date. If the published date is outside
-            the specified start and end dates, the article is not added to the list of articles. If parsing fails, a 
-            SitemapArticleScrappingException is raised.
-
-            :param response: The response object from the sitemap article page.
-            :return: None
-        """
-        try:
-            link = response.meta["link"]
-            published_date = response.meta["published_date"]
-            title = response.css("h1#page-title::text").get()
-            if self.start_date and published_date < self.start_date:
-                return
-            if self.start_date and published_date > self.end_date:
-                return
-            data = {"link": link, "title": title, }
-            if title:
-                self.articles.append(data)
-        except BaseException as e:
-            LOGGER.error(f"Error while parsing sitemap article: {e}")
-            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
+        pass
 
     def parse_article(self, response):
         """
@@ -240,6 +211,15 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
-            raise exceptions.ExportOutputFileException(f"Error occurred while closing the crawler {str(exception)} - {reason}")
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing the crawler {str(exception)} - {reason}")
+
+
+if __name__ == "__main__":
+    process = CrawlerProcess(get_project_settings())
+    process.crawl(MediaPartSpider)
+    process.start()
