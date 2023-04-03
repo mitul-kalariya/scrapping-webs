@@ -64,7 +64,7 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
     news_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
-        self, *args, type=None, url=None, since=None, until=None, **kwargs
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """init method to take date, type and validating it"""
 
@@ -79,10 +79,10 @@ class OrientalDailySpider(scrapy.Spider, BaseSpider):
             self.error_msg_dict = {}
             self.type = type
             self.scrape_start_date = (
-                datetime.strptime(since, "%Y-%m-%d").date() if since else None
+                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             )
             self.scrape_end_date = (
-                datetime.strptime(until, "%Y-%m-%d").date() if until else None
+                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
 
             self.date_range_lst = validate(
