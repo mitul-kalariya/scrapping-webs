@@ -171,14 +171,18 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                       (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject") or (
                                   type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
             )
-        else:
-
+        elif key == "misc":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if (
-                            type(json.loads(data)) is dict and json.loads(data).get('@type') not in list(
-                        selector_and_key.keys())) or (
-                                  type(json.loads(data)) is list and json.loads(data)[0].get('@type') != "NewsArticle")]
-            )
+                key, [json.loads(data) for data in value.getall()])
+        else:
+            try:
+                for data in value.getall():
+                    data_dict = json.loads(data)
+                    data_type = data_dict.get('@graph')[0].get('@type')
+                    if data_dict is dict and data_type not in selector_and_key.keys() and data_type != "NewsArticle":
+                        article_raw_parsed_json_loader.add_value(key, data_dict)
+            except:
+                pass
 
     return dict(article_raw_parsed_json_loader.load_item())
 
@@ -242,7 +246,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_data_from_json(response):
+def get_data_from_json(response, parsed_main):
     """
     Get data from output response
     """
@@ -271,13 +275,16 @@ def get_data_from_json(response):
 
     parsed_json['section'] = topics
     parsed_json['tags'] = tags
+    parsed_json['author'] = [parsed_main['main']['@graph'][0]['author']]
     parsed_json['thumbnail_image'] = [response.get('promo').get('indexImage').get('href')]
     parsed_json['images'] = images
     parsed_json['text'] = [raw_text]
     parsed_json['title'] = [response.get('promo').get('headlines').get('headline')]
-    parsed_json['description'] = [response.get('promo').get('headlines').get('headline')]
-    parsed_json['modified_at'] = [datetime.fromtimestamp(response.get('metadata').get('firstPublished')/1000).__str__()]
-    parsed_json['published_at'] = [datetime.fromtimestamp(response.get('metadata').get('lastUpdated')/1000).__str__()]
+    parsed_json['description'] = [parsed_main['main']['@graph'][0]['description']]
+    parsed_json['modified_at'] = [parsed_main['main']['@graph'][0]['dateModified']]
+    parsed_json['published_at'] = [parsed_main['main']['@graph'][0]['datePublished']]
     parsed_json['source_language'] = [response.get('metadata').get('passport').get('language')]
+    parsed_json['source_country'] = ['China']
+    parsed_json['publisher'] = [parsed_main['main']['@graph'][0]['publisher']]
 
     return remove_empty_elements(parsed_json)

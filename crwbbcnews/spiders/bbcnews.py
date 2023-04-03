@@ -161,17 +161,19 @@ class BBCNews(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict['VideoObject'] = parsed_json_main
-                parsed_json_dict['other'] = parsed_json_main
 
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
+            parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value("parsed_json", dict())
+            if parsed_json_data:
+                articledata_loader.add_value(
+                    "parsed_json",
+                    parsed_json_data,
+                )
             articledata_loader.add_value(
-                "parsed_data", get_data_from_json(response)
+                "parsed_data", get_data_from_json(response, parsed_json_data)
             )
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
