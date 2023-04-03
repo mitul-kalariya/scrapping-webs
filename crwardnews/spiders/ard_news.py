@@ -76,31 +76,37 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         If the type argument is "article", the URL to be scraped is validated and set.
             A log file is created for the web scraper.
         """
-        super(ArdNewsSpider, self).__init__(*args, **kwargs)
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
-        self.start_urls = []
-        self.articles = []
-        self.article_url = url
-        self.sitemap_json = {}
-        self.type = type.lower()
-        self.date_wise = []
+        try:
+            super(ArdNewsSpider, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.start_urls = []
+            self.articles = []
+            self.article_url = url
+            self.sitemap_json = {}
+            self.type = type.lower()
+            self.date_wise = []
 
-        if self.type == "sitemap":
-            self.start_urls.append(SITEMAP_URL)
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-            )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            )
-            validate_sitemap_date_range(start_date, end_date)
+            if self.type == "sitemap":
+                self.start_urls.append(SITEMAP_URL)
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
+                validate_sitemap_date_range(start_date, end_date)
 
-        if self.type == "article":
-            if url:
-                self.start_urls.append(url)
-            else:
-                LOGGER.info("Must have a URL to scrap")
-                raise exceptions.InvalidInputException("Must have a URL to scrap")
+            if self.type == "article":
+                if url:
+                    self.start_urls.append(url)
+                else:
+                    LOGGER.info("Must have a URL to scrap")
+                    raise exceptions.InvalidInputException("Must have a URL to scrap")
+                
+        except Exception as exception:
+            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
+
 
     def parse(self, response):
         """
