@@ -384,6 +384,8 @@ def get_all_details_of_block(block: dict) -> dict:
     Returns:
         str : author and publisher details
     """
+    if not block:
+        return {}
     data_dict = {
         "description": block.get("description", "").strip(),
         "modified_at": block.get("dateModified"),
@@ -439,6 +441,13 @@ def get_formated_images(response, block) -> str:
             "link": get_full_url(response.css('figure.article-image a::attr(href)').get()),
             "caption": block.get("headline", {}),
         })
+    elif response.css('picture.image-gallery-img').get():
+        for image_link in response.css('picture.image-gallery-img img::attr(src)').getall():
+            formated_images.append({
+                "link": image_link,
+                "caption": block.get("headline", {}),
+            })
+            break
     return formated_images
 
 
@@ -467,7 +476,7 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
         dict: details of publisher to pass to json
     """
     return [{
-            "@id": data_dict.get("publisher_id", "https://www.sankei.com/"),
+            "@id": data_dict.get("publisher_id", ""),
             "@type": data_dict.get("publisher_type"),
             "name": data_dict.get("publisher_name"),
             "logo": {
