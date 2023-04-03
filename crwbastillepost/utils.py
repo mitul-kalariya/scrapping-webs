@@ -2,9 +2,6 @@
 import os
 import json
 import logging
-import requests
-from io import BytesIO
-from PIL import Image
 from datetime import datetime
 from crwbastillepost import exceptions
 from crwbastillepost.constant import TODAYS_DATE, LOGGER
@@ -13,7 +10,7 @@ import itertools
 
 def create_log_file():
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
         filename="logs.log",
         filemode="a",

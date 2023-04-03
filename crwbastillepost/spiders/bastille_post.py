@@ -1,5 +1,4 @@
 import scrapy
-import logging
 from lxml import etree
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
@@ -17,6 +16,9 @@ from crwbastillepost.utils import (
     get_parsed_data,
     get_parsed_json,
 )
+
+# create logger file
+create_log_file()
 
 
 class BaseSpider(ABC):
@@ -60,34 +62,38 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
+        try:
+            super(BastillePostSpider, self).__init__(*args, **kwargs)
 
-        super(BastillePostSpider, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.start_urls = []
+            self.articles = []
+            self.article_url = url
+            self.type = type.lower()
 
-        self.output_callback = kwargs.get("args", {}).get("callback", None)
-        self.start_urls = []
-        self.articles = []
-        self.article_url = url
-        self.type = type.lower()
+            create_log_file()
 
-        create_log_file()
+            if self.type == "sitemap":
+                self.start_urls.append(SITEMAP_URL)
 
-        if self.type == "sitemap":
-            self.start_urls.append(SITEMAP_URL)
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
+                validate_sitemap_date_range(start_date, end_date)
 
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-            )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            )
-            validate_sitemap_date_range(start_date, end_date)
+            if self.type == "article":
+                if url:
+                    self.start_urls.append(url)
+                else:
+                    LOGGER.info("Must have a URL to scrap")
+                    raise Exception("Must have a URL to scrap")
 
-        if self.type == "article":
-            if url:
-                self.start_urls.append(url)
-            else:
-                LOGGER.error("Error while")
-                raise exceptions.InvalidInputException("Must have a URL to scrap")
+        except Exception as exception:
+            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
 
     def parse(self, response: str, **kwargs) -> None:
         """
@@ -108,18 +114,22 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                     links = root.xpath(
                         "//xmlns:loc/text()",
                         namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
-                        )
+                    )
                     for link in links:
                         yield scrapy.Request(link, callback=self.parse_sitemap)
-                except BaseException as e:
-                    LOGGER.info(e)
+                except Exception as exception:
+                    LOGGER.info(
+                        f"Error occurring while parsing sitemap {exception} in parse function"
+                    )
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            self.logger.error(f"{e}")
+        except Exception as exception:
+            LOGGER.info(
+                f"Error occurring while parsing sitemap {exception} in parse function"
+            )
 
     def parse_sitemap(self, response: str) -> None:
         """
@@ -164,13 +174,12 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                     self.articles.append(data)
 
         except Exception as exception:
-            self.log(
+            LOGGER.info(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
             )
             raise exceptions.SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
+            )
 
     def parse_sitemap_article(self, response: str) -> None:
         pass
@@ -201,14 +210,13 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             return articledata_loader.item
 
         except Exception as exception:
-            self.log(
+            LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
                 + str(exception),
-                level=logging.ERROR,
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -224,18 +232,14 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+                LOGGER.info("No articles or sitemap url scrapped.")
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler"
-            )
-            self.log(
-                f"Error occurred while closing crawler",
-                level=logging.ERROR,
-            )
+            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}")
 
 
 if __name__ == "__main__":
