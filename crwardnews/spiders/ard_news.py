@@ -187,6 +187,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             if self.start_date is None and self.end_date is None:
                 for link in response.css("a"):
                     url = link.css("::attr(href)").get()
+                    if 'livestream' in link:
+                        continue
                     title = link.css(".teaser-xs__headline , .hyphenate").get()
                     published_at = link.css(".teaser-xs__date::text").get()
 
@@ -226,6 +228,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         try:
             for link in response.css("a"):
                 url = link.css("::attr(href)").get()
+                if 'livestream' in url:
+                    continue
                 title = link.css(".teaser-xs__headline, .hyphenate").get()
                 published_at = link.css(".teaser-xs__date::text").get()
 
@@ -267,6 +271,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
