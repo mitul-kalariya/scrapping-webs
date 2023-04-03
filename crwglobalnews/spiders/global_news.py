@@ -9,14 +9,8 @@ from scrapy.loader import ItemLoader
 from crwglobalnews.constant import TODAYS_DATE, LOGGER
 from abc import ABC, abstractmethod
 from crwglobalnews.items import ArticleData
-from crwglobalnews.utils import (
-    create_log_file,
-    validate_sitemap_date_range,
-    export_data_to_json_file,
-    get_raw_response,
-    get_parsed_data,
-    get_parsed_json,
-)
+from crwglobalnews.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
+                                 get_raw_response, get_parsed_data, get_parsed_json, )
 
 
 class BaseSpider(ABC):
@@ -65,12 +59,8 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
         if self.type == "sitemap":
             self.start_urls.append("https://globalnews.ca/news-sitemap.xml")
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-            )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            )
+            self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
+            self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
             validate_sitemap_date_range(start_date, end_date)
 
         if self.type == "article":
@@ -95,7 +85,6 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         elif self.type == "article":
             article_data = self.parse_article(response)
             yield article_data
-            
 
     def parse_sitemap(self, response):
         """
@@ -103,18 +92,12 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         """
         try:
             root = etree.fromstring(response.body)
-            urls = root.xpath(
-                "//xmlns:loc/text()",
-                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
-            )
-            titles = root.xpath(
-                "//news:title/text()",
-                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
-            )
-            publication_dates = root.xpath(
-                "//news:publication_date/text()",
-                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
-            )
+            urls = root.xpath("//xmlns:loc/text()",
+                              namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}, )
+            titles = root.xpath("//news:title/text()",
+                                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"}, )
+            publication_dates = root.xpath("//news:publication_date/text()",
+                                           namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"}, )
             for url, title, pub_date in zip(urls, titles, publication_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 if self.start_date and published_at < self.start_date:
@@ -124,21 +107,14 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
                 if self.start_date is None and self.end_date is None:
                     if TODAYS_DATE == published_at:
-                        data = {
-                            "link": url,
-                            "title": title,
-                        }
+                        data = {"link": url, "title": title, }
                         self.articles.append(data)
                 else:
-                    data = {
-                        "link": url,
-                        "title": title,
-                    }
+                    data = {"link": url, "title": title, }
                     self.articles.append(data)
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
-
 
     def parse_sitemap_article(self, response):
         pass
@@ -159,19 +135,14 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        
 
         articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
+        articledata_loader.add_value("parsed_json", response_json, )
         articledata_loader.add_value("parsed_data", response_data)
 
         self.articles.append(dict(articledata_loader.load_item()))
 
         return articledata_loader.item
-
 
     def closed(self, reason: any) -> None:
         """
@@ -187,19 +158,14 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         try:
             if self.output_callback is not None:
                 self.output_callback(self.articles)
-            
+
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
-            self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
-            )
+            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
+            self.log(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
 
 
 if __name__ == "__main__":

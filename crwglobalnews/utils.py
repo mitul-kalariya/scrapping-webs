@@ -338,14 +338,12 @@ def get_tags(response) -> list:
     try:
         info = response.css("div.c-tags__body a")
         data = []
-        for i in info:
-            temp_dict = {}
-            temp_dict["tag"] = i.css("a::text").get()
-            temp_dict["url"] = i.css("a::attr(href)").get()
-            if temp_dict["url"] == "#":
+        for block in info:
+            url = block.css("a::attr(href)").get()
+            if url == "#":
                 pass
             else:
-                data.append(temp_dict)
+                data.append(block.css("a::text").get())
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
