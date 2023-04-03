@@ -169,7 +169,7 @@ def get_parsed_data(response):
         main_dict["embed_video_link"] = frame_video
         tags = get_tags(response)
         main_dict["tags"] = tags
-        mapper = {"ja": "Japan"}
+        mapper = {"ja": "Japanese"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
         main_dict["section"] = get_section(response)
