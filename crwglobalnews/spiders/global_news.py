@@ -101,40 +101,43 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
-    
-        root = etree.fromstring(response.body)
-        urls = root.xpath(
-            "//xmlns:loc/text()",
-            namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
-        )
-        titles = root.xpath(
-            "//news:title/text()",
-            namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
-        )
-        publication_dates = root.xpath(
-            "//news:publication_date/text()",
-            namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
-        )
-        for url, title, pub_date in zip(urls, titles, publication_dates):
-            published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            if self.start_date and published_at < self.start_date:
-                return
-            if self.start_date and published_at > self.end_date:
-                return
+        try:
+            root = etree.fromstring(response.body)
+            urls = root.xpath(
+                "//xmlns:loc/text()",
+                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+            )
+            titles = root.xpath(
+                "//news:title/text()",
+                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+            )
+            publication_dates = root.xpath(
+                "//news:publication_date/text()",
+                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+            )
+            for url, title, pub_date in zip(urls, titles, publication_dates):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                if self.start_date and published_at < self.start_date:
+                    return
+                if self.start_date and published_at > self.end_date:
+                    return
 
-            if self.start_date is None and self.end_date is None:
-                if TODAYS_DATE == published_at:
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == published_at:
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
+                        self.articles.append(data)
+                else:
                     data = {
                         "link": url,
                         "title": title,
                     }
                     self.articles.append(data)
-            else:
-                data = {
-                    "link": url,
-                    "title": title,
-                }
-                self.articles.append(data)
+        except BaseException as e:
+            LOGGER.error("Error while parsing sitemap: {}".format(e))
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
 
     def parse_sitemap_article(self, response):
