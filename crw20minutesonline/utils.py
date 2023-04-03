@@ -426,11 +426,11 @@ def get_publihser_details(parsed_data: list) -> dict:
                 "logo": {
                     "url": parsed_data.get("publisher").get("logo").get("url"),
                     "width": str(parsed_data.get("publisher").get("logo").get("width"))
-                    + " px",
+                             + " px",
                     "height": str(
                         parsed_data.get("publisher").get("logo").get("height")
                     )
-                    + " px",
+                              + " px",
                 },
             }
             for publisher in [parsed_data.get("publisher")]
@@ -449,11 +449,11 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     return {
         "title": [parsed_data.get("headline")],
-        "text": "".join(
+        "text": ["".join(
             response.css(
                 "article div.content div.content p::text, article div.content h2::text"
             ).getall()
-        ),
+        )],
         "section": [parsed_data.get("articleSection")],
         "tags": parsed_data.get("keywords", []),
     }
