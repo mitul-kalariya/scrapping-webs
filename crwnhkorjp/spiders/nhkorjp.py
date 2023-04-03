@@ -219,6 +219,7 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
                     "parsed_json",
                     parsed_json_data,
                 )
+
             articledata_loader.add_value(
                 "parsed_data", get_parsed_data(response, parsed_json_data)
             )

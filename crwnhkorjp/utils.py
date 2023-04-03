@@ -129,7 +129,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in
                       selector_and_key.keys() and json.loads(data).get('@type') != "NewsArticle"]
             )
-
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -160,12 +159,16 @@ def get_parsed_data_dict() -> dict:
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
+
     text = response.css('p.content--summary-more::text').getall()
     text_summary = response.css('p.content--summary::text').getall()
+    body_text = response.css('div.body-text::text').getall()
+    body_img = response.css('figure.body-img img::attr("data-src")').getall()
     mapper = {"ja": "Japanse"}
     parsed_data_dict["source_country"] = ["Japan"]
     parsed_data_dict["source_language"] = [mapper.get(response.css('meta[name="content-language"]\
                                                                    ::attr(content)').get())]
+
     parsed_data_dict["author"] = [{"@type": parsed_json_dict.get("other")[1].get("@type"),
                                    "name": parsed_json_dict.get("other")[1].get("name"),
                                    "url": parsed_json_dict.get("other")[1].get("url")}]
@@ -188,10 +191,11 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
                     'name': str(parsed_json_dict.get("other")[0].get('logo').get('height')) + " Px"}}
         }
     ]
-    parsed_data_dict["text"] = [" ".join(text + text_summary)]
+    parsed_data_dict["text"] = [" ".join(text + text_summary + body_text)]
     parsed_data_dict["thumbnail_image"] = [parsed_json_dict.get("main").get('image')[0].get('url')]
     parsed_data_dict["title"] = [parsed_json_dict.get('main').get('headline')]
-    parsed_data_dict["images"] = [{"link": parsed_json_dict.get("main").get('image')[0].get('url')}]
+    parsed_data_dict["images"] = [{"link": parsed_json_dict.get("other")[1].get("url")[:-1] + img} for img in body_img]
+    parsed_data_dict["images"].append({"link": parsed_json_dict.get("main").get('image')[0].get('url')})
     parsed_data_dict["section"] = [parsed_json_dict.get("main").get('articleSection')]
     parsed_data_dict["tags"] = parsed_json_dict.get('main').get('keywords')
     if "VideoObject" in list(parsed_json_dict.keys()):
