@@ -13,7 +13,8 @@ from crwmediapart.items import ArticleData
 from crwmediapart.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
                                 get_raw_response, get_parsed_data, get_parsed_json, )
 
-
+# create log file
+create_log_file()
 class BaseSpider(ABC):
     @abstractmethod
     def parse(response):
@@ -56,7 +57,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         self.article_url = url
         self.type = type.lower()
 
-        create_log_file()
 
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
