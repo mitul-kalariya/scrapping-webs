@@ -51,7 +51,7 @@ class BaseSpider(ABC):
 
 
 class AsahiSDigital(scrapy.Spider, BaseSpider):
-    name = "asahispider"
+    name = "asahi_shimbun_digital"
 
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
@@ -141,7 +141,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
            """
-        article_urls = Selector(response, type='xml').\
+        article_url = Selector(response, type='xml').\
             xpath('//sitemap:loc/text()', namespaces={'sitemap': 'http://www.google.com/schemas/sitemap/0.84'}).getall()
         mod_date = Selector(response, type='xml')\
             .xpath('//news:publication_date/text()',
@@ -150,7 +150,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             .xpath('//news:title/text()',
                    namespaces=self.namespace).getall()
         try:
-            for url, date, title in zip(article_urls, mod_date, article_titles):
+            for url, date, title in zip(article_url, mod_date, article_titles):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
                     if _date == self.today_date:
@@ -212,7 +212,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
 
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
             parsed_json_misc = response.css('script[type="application/json"]::text')
-
+            
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
@@ -232,7 +232,6 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             articledata_loader.add_value(
                 "parsed_data", get_parsed_data(response, parsed_json_dict)
             )
-
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 

@@ -159,56 +159,49 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
-
     for key, value in parsed_json_dict.items():
         article_raw_parsed_json_loader.add_value(
             key, [json.loads(data) for data in value.getall()]
         )
-    article_data = dict(article_raw_parsed_json_loader.load_item())
-
     parsed_data_dict = get_parsed_data_dict()
-
-    mapper = {"fr": "French"}
-    caption = response.css("figcaption.article__legend::text").get()
-    article_text = " ".join(response.css("p.article__paragraph::text").getall())
-    parsed_data_dict["source_country"] = ["France"]
-    parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    author = article_data.get("main").get('author')
-    if author and isinstance(author, list):
-        parsed_data_dict["author"] = author
-    if author and isinstance(author, dict):
-        parsed_data_dict["author"] = [author]
-    parsed_data_dict["description"] = [article_data.get("main").get('description')]
-    parsed_data_dict["modified_at"] = [article_data.get("main").get("dateCreated")]
-    parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
-    parsed_data_dict["publisher"] = [
-        {
-            '@id': article_data.get("main").get("mainEntityOfPage").get("@id").split('/')[2],
-            '@type': article_data.get("main").get('publisher').get('@type'),
-            'name': article_data.get("main").get('publisher').get('name'),
-            'logo': {
-                "@type": article_data.get("main").get('publisher').get('logo').get('@type'),
-                "url": article_data.get("main").get('publisher').get('logo').get('url'),
-                'width': {
-                    '@type': "Distance",
-                    "name": str(article_data.get("main").get('publisher').get('logo').get('width')) + " Px"},
-                'height': {
-                    '@type': "Distance",
-                    'name': str(
-                        article_data.get("main").get('publisher').get('logo').get('height')) + " Px"}}
-        }
-    ]
-    parsed_data_dict["text"] = [article_text]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
-    parsed_data_dict["title"] = [article_data.get('main').get('headline')]
-    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image').get('url'), "caption": caption}]
-    parsed_data_dict["section"] = article_data.get('main').get('articleSection')
-    parsed_data_dict["tags"] = article_data.get('main').get('keywords')
-
+    mapper = {"ja": "Japanese"}
+    article_data = dict(article_raw_parsed_json_loader.load_item())
+    parsed_data_dict['author'] = [{'@type': 'person', 'name': response.css('.H8KYB::text').get()}]
+    parsed_data_dict["description"] = [article_data.get('main').get('description')]
+    parsed_data_dict["published_at"] = [article_data.get('main').get('datePublished')]
+    publisher = article_data.get('main').get('publisher')
+    publisher['@id'] = 'asahi.com'
+    publisher['logo']['height'] = {'@type': 'Distance', 'name': str(publisher['logo']['height']) + ' ' + 'px'}
+    publisher['logo']['width'] = {'@type': 'Distance', 'name': str(publisher['logo']['width']) + ' ' + 'px'}
+    parsed_data_dict['publisher'] = [publisher]
+    texts = []
+    for p in response.css('.nfyQp p'):
+        text = ''
+        for a in p.css('a'):
+            text += a.css('::text').get().strip() + ' '
+        for t in p.css('::text'):
+            if t.get().strip():
+                text += t.get().strip() + ' '
+        texts.append(text.strip())
+    parsed_data_dict["text"] = [data for data in texts if data]
+    parsed_data_dict['thumbnail_image'] = [response.css('.rXjfG a img::attr(src)').get().lstrip('/')]
+    parsed_data_dict['title'] = [response.css('#main h1::text').get()]
+    parsed_data_dict['modified_at'] = [article_data.get('main').get('dateModified')]
+    images = []
+    for img_data in response.css('.nfyQp'):
+        images.append({
+                      'link': img_data.css('img::attr(src)').get().lstrip('/'),
+                      'caption': img_data.css('figcaption::text').get()
+                    })
+    parsed_data_dict['images'] = images
+    parsed_data_dict['section'] = []
+    parsed_data_dict['embed_video_link'] = []
+    parsed_data_dict["source_country"] = ["Japan"]
+    parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
+    parsed_data_dict["embed_video_link"] = []
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -273,4 +266,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
