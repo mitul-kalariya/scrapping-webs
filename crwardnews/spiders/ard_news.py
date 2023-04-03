@@ -1,7 +1,7 @@
 import scrapy
 import logging
 import w3lib.html
-from crwardnews.constant import LOGGER, SITEMAP_URL
+from crwardnews.constant import SITEMAP_URL, LOGGER
 from crwardnews import exceptions
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
@@ -15,6 +15,8 @@ from crwardnews.utils import (
     get_parsed_data,
     get_parsed_json,
 )
+
+create_log_file()
 
 
 class BaseSpider(ABC):
@@ -83,8 +85,6 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         self.type = type.lower()
         self.date_wise = []
 
-        create_log_file()
-
         if self.type == "sitemap":
             self.start_urls.append(SITEMAP_URL)
             self.start_date = (
@@ -150,7 +150,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
-        
+
         except Exception as exception:
             self.log(
                 f"Error occurred while scrapping an article for this link {response.url}."
