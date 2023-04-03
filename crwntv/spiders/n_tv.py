@@ -10,7 +10,11 @@ from crwntv import exceptions
 from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.items import ArticleData
 from crwntv.utils import (create_log_file, get_parsed_data, get_parsed_json,
-                          get_raw_response)
+                          get_raw_response, export_data_to_json_file)
+
+
+# create logger file
+create_log_file()
 
 
 class BaseSpider(ABC):
@@ -56,7 +60,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         self.type = type.lower()
         self.article_url = url
 
-        create_log_file()
         if self.type == "sitemap":
             if start_date is not None or end_date is not None:
                 raise Exception("Date filter is not available")
@@ -161,6 +164,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"
