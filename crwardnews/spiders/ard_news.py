@@ -187,8 +187,6 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             if self.start_date is None and self.end_date is None:
                 for link in response.css("a"):
                     url = link.css("::attr(href)").get()
-                    if 'livestream' in link:
-                        continue
                     title = link.css(".teaser-xs__headline , .hyphenate").get()
                     published_at = link.css(".teaser-xs__date::text").get()
 
@@ -228,8 +226,6 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         try:
             for link in response.css("a"):
                 url = link.css("::attr(href)").get()
-                if 'livestream' in url:
-                    continue
                 title = link.css(".teaser-xs__headline, .hyphenate").get()
                 published_at = link.css(".teaser-xs__date::text").get()
 
