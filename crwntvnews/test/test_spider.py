@@ -1,8 +1,8 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
-from crwntvnews.spiders.indian_express import IndianExpressSpider
+# n_tv: Update the path here replace newton_scrapping --> your project name
+from crwntvnews.spiders.n_tv import NTvSpider
 from crwntvnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwntvnews.test.helpers.utils import get_article_content, online_response_from_url
 
