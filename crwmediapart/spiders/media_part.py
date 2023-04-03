@@ -165,7 +165,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             LOGGER.error(f"Error while parsing sitemap article: {e}")
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
-
     def parse_article(self, response):
         """
         Parses the article data from the response object and returns it as a dictionary.

@@ -158,7 +158,6 @@ def get_parsed_data(response):
     """
     try:
         main_dict = {}
-        pattern = r"[\r\n\t\"]+"
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
 
