@@ -155,7 +155,7 @@ def get_parsed_data(response):
         - 'images': (list) The list of image URLs in the article, if available.
     """
     main_dict = {}
-    breakpoint()
+
     # Author
     authors = get_author(response)
     main_dict["author"] = authors
@@ -199,8 +199,9 @@ def get_parsed_data(response):
     main_dict["embed_video_link"] = video
     
     # Language
+    mapper = {"ja": "Japanese"}
     article_lang = response.css("html::attr(lang)").get()
-    main_dict["source_language"] = [article_lang]
+    main_dict["source_language"] = [mapper.get(article_lang)]
     
     # Tags
     main_dict["tags"] = get_tags(response)
