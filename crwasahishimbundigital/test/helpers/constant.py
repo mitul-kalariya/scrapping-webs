@@ -3,17 +3,17 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.asahi.com/articles/ASR3Z6J0HR3NPTLC00B.html",
+        "url": "https://www.asahi.com/articles/ASR423GN5R30UTFK00G.html",
         "test_data_path": "crwasahishimbundigital/test/data/test_article_1.json"
     },
-    # {
-    #     "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
-    #     "test_data_path": "crwasahishimbundigital/test/data/test_article_2.json"
-    # },
-    # {
-    #     "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
-    #     "test_data_path": "crwasahishimbundigital/test/data/test_article_3.json"
-    # }
+    {
+        "url": "https://www.asahi.com/articles/ASR426Q3RR42UTQP014.html",
+        "test_data_path": "crwasahishimbundigital/test/data/test_article_2.json"
+    },
+    {
+        "url": "https://www.asahi.com/articles/ASR4234TVR42UQIP001.html",
+        "test_data_path": "crwasahishimbundigital/test/data/test_article_3.json"
+    }
 ]
 
 SITEMAP_URL = "http://www.asahi.com/sitemap.xml"

@@ -117,7 +117,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
 
                     else:
                         if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <=\
-                            (self.end_date.year, self.end_date.month):
+                           (self.end_date.year, self.end_date.month):
                             yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
@@ -212,7 +212,6 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
 
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
             parsed_json_misc = response.css('script[type="application/json"]::text')
-            
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
@@ -255,13 +254,10 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
-
 
         except Exception as exception:
             self.log(

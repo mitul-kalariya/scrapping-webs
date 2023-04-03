@@ -1,6 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from crwasahishimbundigital.spiders.asahispider import AsahiSDigital
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -42,15 +43,15 @@ class Crawler:
         self.query = query
         self.proxies = proxies
 
-    def crawl(self)-> list[dict]:
+    def crawl(self) -> list[dict]:
         """Crawls the sitemap URL and article URL and return final data
 
         Raises:
             Exception: Raised exception for unknown Type
 
         Returns:
-            list[dict]: list of dictionary of the article data or article links 
-            as per expected_article.json or expected_sitemap.json 
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
         """
         self.output = None
         process = CrawlerProcess()

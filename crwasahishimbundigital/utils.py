@@ -195,7 +195,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
         images.append({
                       'link': img_data.css('img::attr(src)').get().lstrip('/'),
                       'caption': img_data.css('figcaption::text').get()
-                    })
+                      })
     parsed_data_dict['images'] = images
     parsed_data_dict['section'] = []
     parsed_data_dict['embed_video_link'] = []
