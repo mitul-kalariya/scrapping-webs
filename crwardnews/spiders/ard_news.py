@@ -249,7 +249,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {e}"
             )
-            LOGGER.error("Error while filtering date wise: {}".format(e))
+            LOGGER.error("Error while parsing sitemap article: {}".format(e))
 
     def closed(self, reason: any) -> None:
         """
@@ -267,8 +267,6 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
