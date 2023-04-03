@@ -150,7 +150,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(
                         url.strip(), callback=self.parse_sitemap_article
                     )
-            except SitemapScrappingException as exception:
+            except Exception as exception:
                 self.log(
                     "Error occurred while scrapping urls from given sitemap url. "
                     + str(exception),
