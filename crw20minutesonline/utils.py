@@ -2,6 +2,7 @@
 from datetime import timedelta, datetime
 import json
 import os
+from itertools import zip_longest
 
 from scrapy.loader import ItemLoader
 
@@ -28,7 +29,7 @@ SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
 
 
 def sitemap_validations(
-    scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
+        scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
     Validate the sitemap arguments
@@ -66,7 +67,7 @@ def sitemap_validations(
 
 
 def article_validations(
-    article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
+        article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
 ) -> None:
     """
     Validate the article arguments
@@ -127,7 +128,7 @@ def validate_arg(param_name, param_value, custom_msg="") -> None:
 
 
 def based_on_scrape_type(
-    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+        scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
 ) -> datetime:
     """
     check scrape type and based on the type pass it to the validated function,
@@ -194,7 +195,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     }
     for block in blocks:
         if "LiveBlogPosting" in json.loads(block).get(
-            "@type", [{}]
+                "@type", [{}]
         ) or "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
         elif "ImageGallery" in json.loads(block).get("@type", [{}]):
@@ -221,8 +222,8 @@ def get_parsed_json(response) -> dict:
     )
 
     for key, value in get_parsed_json_filter(
-        response.css('script[type="application/ld+json"]::text').getall(),
-        response.css('script[type="application/json"]::text').getall(),
+            response.css('script[type="application/ld+json"]::text').getall(),
+            response.css('script[type="application/json"]::text').getall(),
     ).items():
         article_raw_parsed_json_loader.add_value(key, value)
 
@@ -345,8 +346,9 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
-    parsed_data_dict |= get_text_title_section_details(parsed_json_main)
-    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, video_object)
+    parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
+    parsed_data_dict |= get_thumbnail_image_video(video_object, response
+                                                  )
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -395,7 +397,7 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
         "published_at": None,
     }
     if "NewsArticle" in parsed_data.get(
-        "@type"
+            "@type"
     ) or "LiveBlogPosting" in parsed_data.get("@type"):
         article_data |= {
             "description": [parsed_data.get("description")],
@@ -436,7 +438,7 @@ def get_publihser_details(parsed_data: list) -> dict:
     return {"publisher": publisher_details}
 
 
-def get_text_title_section_details(parsed_data: list) -> dict:
+def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     Returns text, title, section details
     Args:
@@ -447,13 +449,18 @@ def get_text_title_section_details(parsed_data: list) -> dict:
     """
     return {
         "title": [parsed_data.get("headline")],
-        "text": [parsed_data.get("articlebody")],
+        "text": "".join(
+            response.css(
+                "article div.content div.content p::text, article div.content h2::text"
+            ).getall()
+        ),
         "section": [parsed_data.get("articleSection")],
         "tags": parsed_data.get("keywords", []),
     }
 
 
-def get_thumbnail_image_video(parsed_data: list, video_object: dict) -> dict:
+def get_thumbnail_image_video(video_object: dict, response: str
+                              ) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -464,12 +471,24 @@ def get_thumbnail_image_video(parsed_data: list, video_object: dict) -> dict:
     """
     video = None
     description = None
+    images = []
     if video_object:
         if video_url := video_object.get("embedUrl"):
             video = video_url
         description = video_object.get("description")
+    captions = response.css("div.content figure figcaption::text").getall()
+
+    for caption in captions:
+        if len(caption.strip()) == 0:
+            captions.remove(caption)
+
+    for link, caption in zip_longest(
+            response.css("div.content figure img::attr(src)").getall(),
+            captions,
+    ):
+        images.append({"link": link, "caption": caption})
 
     return {
-        "images": [{"link": parsed_data.get("image", {}).get("url")}],
+        "images": images,
         "video": [{"link": video, "caption": description}],
     }
