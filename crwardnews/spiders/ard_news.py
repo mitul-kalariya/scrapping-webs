@@ -270,7 +270,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                         pagination_url, callback=self.parse_sitemap_article
                     )
         except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+            LOGGER.info(f"Error while parsing sitemap article: {e}")
             raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {str(e)}"
             )
@@ -291,8 +291,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             #     self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             LOGGER.info(
