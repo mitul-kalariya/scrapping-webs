@@ -419,7 +419,6 @@ def get_text_title_section_details(parsed_data: list, response:str) -> dict:
         "title": [response.css("div.topic h1::text").get()],
         "text": response.css("#news-content::text").getall(),
         "section": response.css("div.section h3::text").getall(),
-        "tags": response.css("div.keywords a::text").getall(),
     }
 
 
