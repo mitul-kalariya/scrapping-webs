@@ -75,123 +75,116 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
             raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
 
-
-def parse(self, response):
-    """Parses the response object and extracts data based on the type of object.
-    Returns:
-        generator: A generator that yields scrapy.Request objects to be further parsed by other functions.
-    """
-    try:
-        if self.type == "sitemap":
-            if self.start_date and self.end_date:
-                LOGGER.info("Parse function called on %s", response.url)
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
-            else:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
-
-        elif self.type == "article":
-            article_data = self.parse_article(response)
-            yield article_data
-    except BaseException as e:
-        LOGGER.info(
-            f"Error occurring while parsing sitemap {e} in parse function"
-        )
-
-
-def parse_sitemap(self, response):
-    """
-    Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
-    """
-    try:
-        root = etree.fromstring(response.body)
-        urls = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}, )
-        titles = root.xpath("//news:title/text()",
-                            namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"}, )
-        publication_dates = root.xpath("//news:publication_date/text()",
-                                       namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"}, )
-        for url, title, pub_date in zip(urls, titles, publication_dates):
-            published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-            if self.start_date and published_at < self.start_date:
-                return
-            if self.start_date and published_at > self.end_date:
-                return
-
-            if self.start_date is None and self.end_date is None:
-                if TODAYS_DATE == published_at:
-                    data = {"link": url, "title": title, }
-                    self.articles.append(data)
-            else:
+    def parse(self, response):
+        """Parses the response object and extracts data based on the type of object.
+        Returns:
+            generator: A generator that yields scrapy.Request objects to be further parsed by other functions.
+        """
+        try:
+            if self.type == "sitemap":
                 if self.start_date and self.end_date:
-                    data = {"link": url, "title": title, }
-                    self.articles.append(data)
+                    LOGGER.info("Parse function called on %s", response.url)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-    except Exception as exception:
-        LOGGER.info(
-            f"Error occurred while scrapping an article for this link {response.url}."
-            + str(exception)
-        )
-        raise exceptions.ArticleScrappingException(
-            f"Error occurred while fetching article details:-  {str(exception)}"
-        )
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                yield article_data
+        except BaseException as e:
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(f"Error occured in parse function: {e}")
 
+    def parse_sitemap(self, response):
+        """
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
+        """
+        try:
+            root = etree.fromstring(response.body)
+            urls = root.xpath("//xmlns:loc/text()",
+                              namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}, )
+            titles = root.xpath("//news:title/text()",
+                                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+                                )
+            publication_dates = root.xpath("//news:publication_date/text()",
+                                           namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+                                           )
+            for url, title, pub_date in zip(urls, titles, publication_dates):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                if self.start_date and published_at < self.start_date:
+                    return
+                if self.start_date and published_at > self.end_date:
+                    return
 
-def parse_sitemap_article(self, response):
-    pass
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == published_at:
+                        data = {"link": url, "title": title, }
+                        self.articles.append(data)
+                else:
+                    if self.start_date and self.end_date:
+                        data = {"link": url, "title": title, }
+                        self.articles.append(data)
 
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(f"Error while parsing sitemap: {str(e)}")
 
-def parse_article(self, response) -> list:
-    """
-    Parses the article data from the response object and returns it as a dictionary.
+    def parse_sitemap_article(self, response):
+        pass
 
-    Args:
-        response (scrapy.http.Response): The response object containing the article data.
+    def parse_article(self, response) -> list:
+        """
+        Parses the article data from the response object and returns it as a dictionary.
 
-    Returns:
-        dict: A dictionary containing the parsed article data, including the raw response,
-        parsed JSON, and parsed data, along with additional information such as the country
-        and time scraped.
-    """
-    try:
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        raw_response = get_raw_response(response)
-        response_json = get_parsed_json(response)
-        response_data = get_parsed_data(response)
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
 
-        articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value("parsed_json", response_json, )
-        articledata_loader.add_value("parsed_data", response_data)
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
+        try:
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = get_parsed_json(response)
+            response_data = get_parsed_data(response)
 
-        self.articles.append(dict(articledata_loader.load_item()))
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value("parsed_json", response_json, )
+            articledata_loader.add_value("parsed_data", response_data)
 
-        return articledata_loader.item
+            self.articles.append(dict(articledata_loader.load_item()))
 
-    except Exception as exception:
-        LOGGER.info(f"Error occurred while scrapping an article for this link {response.url}." + str(exception))
-        raise exceptions.ArticleScrappingException(f"Error occurred while fetching article details:-  {str(exception)}")
+            return articledata_loader.item
 
+        except Exception as exception:
+            LOGGER.info(f"Error occurred while scrapping an article for this link {response.url}." + str(exception))
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}")
 
-def closed(self, reason: any) -> None:
-    """
-    store all scrapped data into json file with given date in filename
-    Args:
-        response: generated response
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
+    def closed(self, reason: any) -> None:
+        """
+        store all scrapped data into json file with given date in filename
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
+        """
 
-    try:
-        if self.output_callback is not None:
-            self.output_callback(self.articles)
+        try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
 
-        if not self.articles:
-            LOGGER.info("No articles or sitemap url scrapped.")
-        else:
-            export_data_to_json_file(self.type, self.articles, self.name)
-    except Exception as exception:
-        exceptions.ExportOutputFileException(f"Error occurred while writing json file {str(exception)} - {reason}")
-        LOGGER.info(f"Error occurred while writing json file {str(exception)} - {reason}")
+            if not self.articles:
+                LOGGER.info("No articles or sitemap url scrapped.")
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+        except Exception as exception:
+            exceptions.ExportOutputFileException(f"Error occurred while writing json file {str(exception)} - {reason}")
+            LOGGER.info(f"Error occurred while writing json file {str(exception)} - {reason}")
 
 
 if __name__ == "__main__":
