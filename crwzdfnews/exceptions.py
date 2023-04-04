@@ -6,6 +6,11 @@ class InvalidDateException(Exception):
     # Use InvalidDateException("Please enter valid date")
     pass
 
+class ArticleScrappingException(Exception):
+    """raise when scrapping Article"""
+
+
+    pass
 
 class InvalidInputException(Exception):
     """Raise when invalid input is given"""

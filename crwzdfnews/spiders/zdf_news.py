@@ -40,7 +40,7 @@ class BaseSpider(ABC):
 class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -59,7 +59,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
-        super().__init__(**kwargs)
+        super(ZdfNewsSpider,self).__init__(*args,**kwargs)
         self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
@@ -107,36 +107,41 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as e:
-            print(f"Error: {e}")
-            self.logger.error(f"{e}")
+            LOGGER.error("Error in parse function: {}".format(e))
+            raise exceptions.SitemapScrappingException(f"Error in parse function: {e}")
 
     def parse_article(self, response) -> list:
-        """
-            Parses the article data from the response object and returns it as a dictionary.
-            Args:
-                response (scrapy.http.Response): The response object containing the article data.
-            Returns:
-                dict: A dictionary containing the parsed article data, including the raw response,
-                parsed JSON, and parsed data, along with additional information such as the country
-                and time scraped.
-        """
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        raw_response = get_raw_response(response)
-        response_json = get_parsed_json(response)
-        response_data = get_parsed_data(response)
-        response_data["source_country"] = ["Germany"]
-        response_data["time_scraped"] = [str(datetime.now())]
+        try:
+            """
+                Parses the article data from the response object and returns it as a dictionary.
+                Args:
+                    response (scrapy.http.Response): The response object containing the article data.
+                Returns:
+                    dict: A dictionary containing the parsed article data, including the raw response,
+                    parsed JSON, and parsed data, along with additional information such as the country
+                    and time scraped.
+            """
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = get_parsed_json(response)
+            response_data = get_parsed_data(response)
+            response_data["source_country"] = ["Germany"]
+            response_data["time_scraped"] = [str(datetime.now())]
 
-        articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
-        articledata_loader.add_value("parsed_data", response_data)
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
+            articledata_loader.add_value("parsed_data", response_data)
 
-        self.articles.append(dict(articledata_loader.load_item()))
+            self.articles.append(dict(articledata_loader.load_item()))
 
-        return articledata_loader.item
+            return articledata_loader.item
+
+        except BaseException as e:
+            LOGGER.error("Error while parsing article: {}".format(e))
+            raise exceptions.ArticleScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -160,7 +165,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
@@ -200,10 +205,10 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 else:
                     continue
         except BaseException as e:
-            exceptions.SitemapArticleScrappingException(
+            LOGGER.error(f"Error while parsing sitemap article: {e}")
+            raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {e}"
             )
-            LOGGER.error(f"Error while parsing sitemap article: {e}")
 
     def closed(self, reason: any) -> None:
         """

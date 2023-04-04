@@ -74,25 +74,30 @@ def get_raw_response(response):
 
 
 def get_parsed_json(response):
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+    try:
 
-    return remove_empty_elements(parsed_json)
+        parsed_json = {}
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") == "ImageGallery":
+                parsed_json["ImageGallery"] = data
+            elif data.get("@type") == "VideoObject":
+                parsed_json["VideoObject"] = data
+            else:
+                other_data.append(data)
+        parsed_json["Other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+
+        return remove_empty_elements(parsed_json)
+    except BaseException as e:
+        LOGGER.error(f"while scrapping parsed json {e}")
+        raise exceptions.ArticleScrappingException(f"while scrapping parsed json :{e}")
 
 
 def get_parsed_data(response):
@@ -175,7 +180,8 @@ def get_main(response):
             data.append(json.loads(block))
         return data
     except BaseException as e:
-        LOGGER.error(f"{e}")
+        LOGGER.error(f"error parsing ld+json main data{e}")
+        raise exceptions.ArticleScrappingException(f"error parsing ld+json main data")
 
 
 def get_misc(response):
@@ -193,28 +199,32 @@ def get_misc(response):
             data.append(json.loads(block))
         return data
     except BaseException as e:
-        LOGGER.error(f"{e}")
-
+        LOGGER.error(f"error parsing ld+json misc data {e}")
+        raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
 
 def get_images(response, parsed_json=False) -> list:
-    images = response.css("figure.content-image")
-    pattern = r"[\r\n\t]"
-    data = []
-    for image in images:
-        temp_dict = {}
-        link = image.css("img::attr(data-src)").get()
-        caption = image.css("figcaption::text").get()
-        if parsed_json:
-            if link:
-                temp_dict["@type"] = "ImageObject"
-                temp_dict["link"] = link
-        else:
-            if link:
-                temp_dict["link"] = link
-                if caption:
-                    temp_dict["caption"] = re.sub(pattern, "", caption).strip()
-        data.append(temp_dict)
-    return data
+    try:
+        images = response.css("figure.content-image")
+        pattern = r"[\r\n\t]"
+        data = []
+        for image in images:
+            temp_dict = {}
+            link = image.css("img::attr(data-src)").get()
+            caption = image.css("figcaption::text").get()
+            if parsed_json:
+                if link:
+                    temp_dict["@type"] = "ImageObject"
+                    temp_dict["link"] = link
+            else:
+                if link:
+                    temp_dict["link"] = link
+                    if caption:
+                        temp_dict["caption"] = re.sub(pattern, "", caption).strip()
+            data.append(temp_dict)
+        return data
+    except BaseException as e:
+        LOGGER.error(f"image fetching exception {e}")
+        raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
 
 
 def get_embed_video_link(response) -> list:
@@ -244,7 +254,8 @@ def get_embed_video_link(response) -> list:
                         videos.append(video)
                 data["videos"] = videos
     except Exception as e:
-        LOGGER.error(f"Video not found in an article {e}")
+        LOGGER.error(f"exception while fetching video data{e}")
+        raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
     driver.quit()
     return data
 
@@ -261,16 +272,19 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
+    try:
+        folder_structure = ""
+        if scrape_type == "sitemap":
+            folder_structure = "Links"
+            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        elif scrape_type == "article":
+            folder_structure = "Article"
+            filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
 
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        if not os.path.exists(folder_structure):
+            os.makedirs(folder_structure)
+        with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
+            json.dump(file_data, file, indent=4)
+    except BaseException as e:
+        LOGGER.error(f"error while creating json file: {e}")
+        raise exceptions.ExportOutputFileException(f"error while creating json file: {e}")
