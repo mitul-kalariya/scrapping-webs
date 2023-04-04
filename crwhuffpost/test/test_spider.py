@@ -177,7 +177,7 @@ class TestArticle(unittest.TestCase):
                     0], str, "format mismatch for parsed_data--> modified_at")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
-                                  list, "format mismatch for parsed_data--> modified_at")
+                                      list, "format mismatch for parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():

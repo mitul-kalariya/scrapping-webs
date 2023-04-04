@@ -71,7 +71,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
@@ -88,7 +88,6 @@ class Crawler:
             process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
-
 
         process.crawl(HuffPostSpider, **spider_args)
         process.start()

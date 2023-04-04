@@ -49,13 +49,6 @@ class ArticleScrappingException(Exception):
     pass
 
 
-class ExportOutputFileException(Exception):
-    """Raise when exception arise while exporting output file"""
-
-    # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
-    pass
-
-
 class ServiceUnavailableException(Exception):
     """Rise when getting 403, 406, 429 or >500 status code"""
 
