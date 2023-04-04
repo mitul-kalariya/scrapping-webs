@@ -120,6 +120,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
         try:
+            LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
