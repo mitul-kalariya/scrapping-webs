@@ -35,7 +35,7 @@ class BaseSpider(ABC):
 class GlobalNewsSpider(scrapy.Spider, BaseSpider):
     name = "global_news"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args, **kwargs):
+    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
         1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
@@ -121,7 +121,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap: {}".format(exception))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
+            raise exceptions.SitemapScrappingException(f"Error while parsing sitemap: {str(exception)}")
 
     def parse_sitemap_article(self, response):
         pass
@@ -178,8 +178,8 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file {str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file {str(exception)} - {reason}")
