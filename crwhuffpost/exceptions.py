@@ -14,6 +14,13 @@ class InvalidArgumentException(Exception):
     pass
 
 
+class ExportOutputFileException(Exception):
+    """Raise when exception arise while exporting output file"""
+
+    # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
+    pass
+
+
 class InputMissingException(Exception):
     """Raise when any of the required input is missing"""
 

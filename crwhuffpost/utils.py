@@ -163,7 +163,7 @@ def get_closest_past_monday(dates):
     return true if date is last monday
 
     Args:
-        date (datetime): past monday exists or not in date.
+        dates (datetime): past monday exists or not in date.
     Returns:
         Value of parameter
     """
@@ -293,7 +293,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -518,7 +518,7 @@ def get_thumbnail_image_video(response: str, videoobject: dict) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
-        parsed_data: response of application/ld+json data
+        videoobject: response of application/ld+json data
         response: provided response
     Returns:
         dict: thumbnail images, images and video details

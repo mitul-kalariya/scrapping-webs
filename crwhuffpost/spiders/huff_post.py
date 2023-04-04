@@ -21,8 +21,8 @@ from crwhuffpost.utils import (
     get_closest_past_monday,
 )
 from crwhuffpost.exceptions import (
-    SitemapScrappingException,
     SitemapArticleScrappingException,
+    ExportOutputFileException,
     ArticleScrappingException,
 )
 from crwhuffpost.constant import SITEMAP_URL, BASE_URL
@@ -152,56 +152,29 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        try:
-            for article_url in (
-                Selector(response, type="xml")
-                .xpath("//sitemap:loc/text()", namespaces=self.namespace)
-                .getall()
-            ):
-                yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
+        for url, date in zip(
+                Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
+                Selector(response, type="xml").xpath(
+                    "//sitemap:lastmod/text()",
+                    namespaces=self.namespace
+                ).getall(),
+        ):
+            try:
+                date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d").date()
+                date_datetime = str(date_datetime).split(" ")[0]
 
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            published_date = (
-                response.css("time.article-metas span::text")
-                .get()
-                .split(" ")[0]
-                .replace("/", "-")
-            )
-            published_date = str(datetime.strptime(published_date, "%d-%m-%Y")).split(
-                " ", maxsplit=1
-            )[0]
-
-            if published_date in self.date_range_lst:
-                if title := response.css("h1.article-title::text").get():
-                    data = {"link": response.url, "title": title}
+                if date_datetime in self.date_range_lst:
+                    data = {"link": url}
                     self.articles.append(data)
-
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+            except Exception as exception:
+                self.log(
+                    "Error occurred while scrapping urls from given sitemap url. "
+                    + str(exception),
+                    level=logging.ERROR,
+                )
+                raise SitemapArticleScrappingException(
+                    f"Error occurred while fetching article url:- {str(exception)}"
+                ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -266,8 +239,13 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
-                f"Error occurred while closing the crawler {str(exception)}",
+                f"Error occurred while exporting file:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+            raise ExportOutputFileException(
+                f"Error occurred while exporting file:- {str(exception)} - {reason}"
+            ) from exception
