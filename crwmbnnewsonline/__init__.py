@@ -1,1 +1,1 @@
-from crwmbnnewsonline.main import Crawler
+from crwmbnnewsonline.main import Crawler  # noqa: F401

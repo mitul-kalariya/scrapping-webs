@@ -13,13 +13,12 @@ from crwmbnnewsonline.items import (
 from crwmbnnewsonline.exceptions import (
     InputMissingException,
     InvalidDateException,
-    InvalidArgumentException,
-    ArticleScrappingException
+    InvalidArgumentException
 )
 from crwmbnnewsonline.constant import LOGGER
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
     Args:
@@ -190,7 +189,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     texts = []
     for data in response.css('#newsViewArea::text'):
         texts.append(data.get().strip())
-    parsed_data_dict["text"] = [data for data in texts if data]
+    parsed_data_dict["text"] = " ".join([data for data in texts if data])
     parsed_data_dict['thumbnail_image'] = [response.css('h1 a:nth-child(1) img::attr(src)').get()]
     parsed_data_dict['title'] = [response.css('#container h1::text').get()]
     parsed_data_dict['section'] = [response.css('.section::text').get().split('>')[1]]

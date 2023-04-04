@@ -12,8 +12,7 @@ from crwmbnnewsonline.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crwmbnnewsonline.exceptions import (
     SitemapScrappingException,
@@ -84,7 +83,8 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
-            raise InvalidArgumentException(f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}")
+            raise InvalidArgumentException(
+                f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}")
 
     def parse(self, response):
         """
@@ -215,11 +215,10 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
-            if parsed_json_data:
-                articledata_loader.add_value(
-                    "parsed_json",
-                    parsed_json_data,
-                )
+            articledata_loader.add_value(
+                "parsed_json",
+                parsed_json_data,
+            )
             articledata_loader.add_value(
                 "parsed_data", get_parsed_data(response, parsed_json_dict)
             )

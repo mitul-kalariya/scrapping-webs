@@ -1,10 +1,8 @@
 import logging
 import unittest
 
-from crwmbnnewsonline.spiders.mbn_news import Mbn_news
 from crwmbnnewsonline.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwmbnnewsonline.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+from crwmbnnewsonline.test.helpers.utils import get_article_content
 from crwmbnnewsonline import Crawler
 
 # Creating an object
@@ -25,8 +23,6 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for test_article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {test_article['url']}")
-            # spider = Mbn_news(type="article", url=article["url"])
-            # articles = spider.parse(online_response_from_url(spider.article_url))
             article = Crawler(query={"type": "article", "link": test_article["url"]})
             articles = article.crawl()
             self._test_article_results(articles, test_article["test_data_path"])
