@@ -37,7 +37,7 @@ class BaseSpider(ABC):
 class NTvSpider(scrapy.Spider, BaseSpider):
     name = "n_tv"
 
-    def __init__(self, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object with the given parameters.
 
@@ -54,7 +54,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         Exception: If no URL is provided when type is "article".
         """
         try:
-            super().__init__(**kwargs)
+            super(NTvSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
@@ -101,6 +101,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             LOGGER.info(
                 f"Error occurring while parsing sitemap {e} in parse function"
             )
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occurring while parsing sitemap {str(e)} in parse function"
+            )
 
     def parse_sitemap(self, response):  # noqa: C901
         try:
@@ -121,7 +124,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap: {e}")
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_sitemap_article(self, response):
         pass
@@ -182,12 +187,10 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-
         except Exception as exception:
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}")
-
 
 
 if __name__ == "__main__":
