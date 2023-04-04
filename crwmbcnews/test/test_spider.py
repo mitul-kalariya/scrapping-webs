@@ -1,13 +1,11 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
+from crwmbcnews import Crawler
 from crwmbcnews.spiders.mbc_news import MbcNewsSpider
 from crwmbcnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwmbcnews.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
-# TODO: Update below path here
-from crwmbcnews import Crawler
+                                           online_response_from_url)
 
 # Creating an object
 logger = logging.getLogger()
@@ -114,6 +112,9 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                     "text"), list, "format mismatch for parsed_data--> text")
+            with self.subTest():
+                self.assertEqual(len(article[0].get("parsed_data").get(
+                    "text")), 1, "format mismatch for parsed_data--> text, more than 1 string found")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> text")

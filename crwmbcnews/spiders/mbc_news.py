@@ -16,7 +16,6 @@ from crwmbcnews.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -25,6 +24,7 @@ from crwmbcnews.exceptions import (
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    InvalidArgumentException
 )
 
 # Setting the threshold of logger to DEBUG
@@ -105,6 +105,7 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
                 + str(exception),
                 level=logging.ERROR,
             )
+            raise InvalidArgumentException("Error occurred while taking type, url, since and until args.")
 
     def parse(self, response: str, **kwargs) -> None:
         """

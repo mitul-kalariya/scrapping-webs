@@ -166,7 +166,7 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
     for key, value in selector_and_key.items():
         article_raw_response_loader.add_value(key, value)
     return dict(article_raw_response_loader.load_item())
-import commentjson
+
 
 def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """

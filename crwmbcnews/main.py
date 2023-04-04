@@ -1,6 +1,7 @@
-from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
+
+from scrapy.crawler import CrawlerProcess
+
 from crwmbcnews.spiders.mbc_news import MbcNewsSpider
 
 
@@ -71,7 +72,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
@@ -89,6 +90,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Replace the Spider name after importing
         process.crawl(MbcNewsSpider, **spider_args)
         process.start()

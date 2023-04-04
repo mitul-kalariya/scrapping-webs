@@ -1,6 +1,6 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
+
 TEST_ARTICLES = [
     {
         "url": "https://imnews.imbc.com/news/2023/world/article/6470702_36133.html",
@@ -43,5 +43,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwmbcnews/test/data/test_article_10.json"
     }
 ]
-# TODO:Update below sitemap URL
+
 SITEMAP_URL = "https://imnews.imbc.com/page/include/js/json/sitemap.xml"

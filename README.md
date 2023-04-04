@@ -22,6 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
+### Important:- Only last 5 days' article available in sitemap
 ```
 # To fetch all the article links
 
