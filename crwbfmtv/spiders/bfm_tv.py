@@ -104,15 +104,18 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
         Raises:
         BaseException: If an error occurs during parsing.
         """
-        LOGGER.info("Parse function called on %s", response.url)
         try:
+            LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
                 yield scrapy.Request(response.url, callback=self.parse_sitemap)
             elif self.type == "article":
                 yield self.parse_article(response)
 
         except BaseException as e:
-            LOGGER.info(f"Error while parse function: {e}")
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -126,8 +129,8 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
             parsed JSON, and parsed data, along with additional information such as the country
             and time scraped.
         """
-        LOGGER.info("Parse function called on %s", response.url)
         try:
+            LOGGER.info("Parse function called on %s", response.url)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
@@ -146,7 +149,11 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                f"Error occurring while parsing sitemap {exception} in parse function"
+                f"Error occurred while scrapping an article for link: {response.url}."
+                + str(exception)
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
     def parse_sitemap(self, response):
@@ -189,9 +196,14 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
                             elif self.start_date and self.end_date:
                                 if ".html" in link:
                                     self.articles.append(data)
-        except Exception as exception:
-            LOGGER.info("Error while parsing sitemap: {}".format(exception))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(e)}"
+            )
+
+    def parse_sitemap_article(self, response):
+        pass
 
     def closed(self, reason: any) -> None:
         """
