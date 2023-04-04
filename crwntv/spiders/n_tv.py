@@ -1,14 +1,13 @@
-import logging
-from abc import ABC, abstractmethod
-from datetime import datetime
 import scrapy
-from scrapy.crawler import CrawlerProcess
-from scrapy.loader import ItemLoader
-from scrapy.utils.project import get_project_settings
-
+import logging
+from datetime import datetime
 from crwntv import exceptions
-from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.items import ArticleData
+from scrapy.loader import ItemLoader
+from scrapy.crawler import CrawlerProcess
+from abc import ABC, abstractmethod
+from scrapy.utils.project import get_project_settings
+from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.utils import (create_log_file, get_parsed_data, get_parsed_json,
                           get_raw_response, export_data_to_json_file)
 
