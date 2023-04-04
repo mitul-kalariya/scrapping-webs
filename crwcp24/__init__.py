@@ -1,1 +1,1 @@
-# from crwcp24.main import Crawler
+from crwcp24.main import Crawler

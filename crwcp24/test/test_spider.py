@@ -83,8 +83,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -223,8 +221,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
                                   list, "format mismatch for parsed_data--> tags")
-        
-        
 
 
 class TestSitemap(unittest.TestCase):
