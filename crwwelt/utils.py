@@ -425,7 +425,7 @@ def get_formated_images(response, block) -> str:
         response.css("figure.o-element__main figcaption div.o-element__text[data-qa='Element.Caption.copyright'][data-qa='Element.Caption.copyright']::text").getall()
     ):
         formated_images.append({
-            "link": link.split()[0],
+            "link": link.split()[0] if link else None,
             "caption": caption,
         })
     if formated_images:
