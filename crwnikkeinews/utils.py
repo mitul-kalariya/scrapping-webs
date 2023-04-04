@@ -167,8 +167,9 @@ def get_parsed_data(response):
     main_dict["author"] = authors
 
     # Last Updated Date
-    last_updated = get_lastupdated(response)
-    main_dict["modified_at"] = [last_updated]
+    last_updated_date_meta = response.css('meta[property="article:modified_time"]')
+    last_updated_date = last_updated_date_meta.attrib["content"]
+    main_dict["modified_at"] = [last_updated_date]
 
     # Published Date
     published_meta = response.css('meta[property="article:published_time"]')
@@ -421,9 +422,11 @@ def get_image_dimension(response, img_link):
 
     return [width, height]
 
-def get_meta_information(response):
-    meta_info = response.css('meta[property="og:description"]')
-    description = description_meta.attrib["content"]
+# def get_meta_information(response, property):
+#     meta_info = response.css('meta[property=]')
+#     meta_tag_text = meta_info.attrib["content"]
+#
+#     return meta_tag_text
 
 
 def remove_empty_elements(parsed_data_dict):
