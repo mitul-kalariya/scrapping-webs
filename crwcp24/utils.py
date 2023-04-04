@@ -188,19 +188,12 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     section_meta = response.xpath('//meta[@property="article:section"]')
     article_data["section_content"] = section_meta.xpath('@content').get()
     language = response.css("html::attr(lang)").get()
-
-    #  if language not found static value will be provided
-    if not language:
-        language = mapper.get("en")
-    article_data["language"] = mapper.get(language)
-    article_data["country"] = mapper.get("CA")
+    
     if response.css("div.aritcleVideoContainer"):
         article_data["video_url"] = get_video(self, response.url)
 
-    mapper = {"en": "English"}
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict["source_country"] = ["India"]
-    parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
+    
     parsed_data_dict["author"] = [{
         "@type": article_data.get("main").get('author')[0].get("@type"),
         "name": article_data.get("main").get('author')[0].get("name"),
@@ -225,11 +218,19 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["text"] = [article_data.get("text")]
     parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get("title")]
-    parsed_data_dict["images"] = [{"link": article_data.get("img_url"), "caption": article_data.get("img_caption")}]
+    body_img_url = response.css('div.articleBody p img::attr("src")').getall()
+    body_img_caption = response.css('div.articleBody p img::attr("alt")').getall()
+    parsed_data_dict["images"] = [{"link": article_data.get('other')[-1].get('url')+link, "caption": caption} for link, caption in zip(body_img_url, body_img_caption)]
+    parsed_data_dict["images"].append({"link": article_data.get("img_url"), "caption": article_data.get("img_caption")})
     parsed_data_dict["section"] = [article_data.get("section_content")]
     parsed_data_dict["embed_video_link"] = [
         article_data.get("video_url")
     ]
+
+    if not language:
+        language = mapper.get("en")
+    parsed_data_dict["source_language"] = [mapper.get(language)]
+    parsed_data_dict["source_country"] = [mapper.get("CA")]
     return remove_empty_elements(parsed_data_dict)
 
 
