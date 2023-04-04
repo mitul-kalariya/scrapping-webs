@@ -110,10 +110,9 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     )
 
     for key, value in selector_and_key.items():
-
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
+                key, [json.loads(data.encode('utf-8').decode('utf-8')) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
@@ -158,8 +157,17 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    parsed_data_dict = get_parsed_data_dict()
 
+    article_raw_parsed_json_loader = ItemLoader(
+        item=ArticleRawParsedJson(), response=response
+    )
+    for key, value in parsed_json_dict.items():
+        article_raw_parsed_json_loader.add_value(
+            key, [json.loads(data) for data in value.getall()]
+        )
+    article_data = dict(article_raw_parsed_json_loader.load_item())
+    #breakpoint()
+    parsed_data_dict = get_parsed_data_dict()
     text = response.css('p.content--summary-more::text').getall()
     text_summary = response.css('p.content--summary::text').getall()
     body_text = response.css('div.body-text::text').getall()
@@ -168,38 +176,37 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["source_country"] = ["Japan"]
     parsed_data_dict["source_language"] = [mapper.get(response.css('meta[name="content-language"]\
                                                                    ::attr(content)').get())]
-
-    parsed_data_dict["author"] = [{"@type": parsed_json_dict.get("other")[1].get("@type"),
-                                   "name": parsed_json_dict.get("other")[1].get("name"),
-                                   "url": parsed_json_dict.get("other")[1].get("url")}]
-    parsed_data_dict["description"] = [parsed_json_dict.get("main").get('description')]
-    parsed_data_dict["modified_at"] = [parsed_json_dict.get("main").get("dateModified")]
-    parsed_data_dict["published_at"] = [parsed_json_dict.get("main").get('datePublished')]
+    parsed_data_dict["author"] = [{"@type": article_data.get("other")[1].get("@type"),
+                                   "name": article_data.get("other")[1].get("name"),
+                                   "url": article_data.get("other")[1].get("url")}]
+    parsed_data_dict["description"] = [article_data.get("other")[2].get('description')]
+    parsed_data_dict["modified_at"] = [article_data.get("other")[2].get("dateModified")]
+    parsed_data_dict["published_at"] = [article_data.get("other")[2].get('datePublished')]
     parsed_data_dict["publisher"] = [
         {
-            '@id': parsed_json_dict.get("other")[1].get("url").split('/')[2],
-            '@type': parsed_json_dict.get("other")[0].get('@type'),
-            'name': parsed_json_dict.get("other")[0].get('name'),
+            '@id': article_data.get("other")[1].get("url").split('/')[2],
+            '@type': article_data.get("other")[0].get('@type'),
+            'name': article_data.get("other")[0].get('name'),
             'logo': {
-                "@type": parsed_json_dict.get("other")[0].get('logo').get('@type'),
-                "url": parsed_json_dict.get("other")[0].get('logo').get('url'),
+                "@type": article_data.get("other")[0].get('logo').get('@type'),
+                "url": article_data.get("other")[0].get('logo').get('url'),
                 'width': {
                     '@type': "Distance",
-                    "name": str(parsed_json_dict.get("other")[0].get('logo').get('width')) + " Px"},
+                    "name": str(article_data.get("other")[0].get('logo').get('width')) + " Px"},
                 'height': {
                     '@type': "Distance",
-                    'name': str(parsed_json_dict.get("other")[0].get('logo').get('height')) + " Px"}}
+                    'name': str(article_data.get("other")[0].get('logo').get('height')) + " Px"}}
         }
     ]
     parsed_data_dict["text"] = [" ".join(text + text_summary + body_text)]
-    parsed_data_dict["thumbnail_image"] = [parsed_json_dict.get("main").get('image')[0].get('url')]
-    parsed_data_dict["title"] = [parsed_json_dict.get('main').get('headline')]
-    parsed_data_dict["images"] = [{"link": parsed_json_dict.get("other")[1].get("url")[:-1] + img} for img in body_img]
-    parsed_data_dict["images"].append({"link": parsed_json_dict.get("main").get('image')[0].get('url')})
-    parsed_data_dict["section"] = [parsed_json_dict.get("main").get('articleSection')]
-    parsed_data_dict["tags"] = parsed_json_dict.get('main').get('keywords')
-    if "VideoObject" in list(parsed_json_dict.keys()):
-        parsed_data_dict["embed_video_link"] = [parsed_json_dict.get("other")[1].get("url")[:-1] + response.css(
+    parsed_data_dict["thumbnail_image"] = [article_data.get("other")[2].get('image')[0].get('url')]
+    parsed_data_dict["title"] = [article_data.get("other")[2].get('headline')]
+    parsed_data_dict["images"] = [{"link": article_data.get("other")[1].get("url")[:-1] + img} for img in body_img]
+    parsed_data_dict["images"].append({"link": article_data.get("other")[2].get('image')[0].get('url')})
+    parsed_data_dict["section"] = [article_data.get("other")[2].get('articleSection')]
+    parsed_data_dict["tags"] = article_data.get("other")[2].get('keywords')
+    if "VideoObject" in list(article_data.keys()) and response.css("iframe.video-player-fixed::attr('src')").get():
+        parsed_data_dict["embed_video_link"] = [article_data.get("other")[1].get("url")[:-1] + response.css(
             "iframe.video-player-fixed::attr('src')").get()]
     return remove_empty_elements(parsed_data_dict)
 
@@ -265,4 +272,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
+        json.dump(file_data, file, indent=4)

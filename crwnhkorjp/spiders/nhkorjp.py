@@ -3,10 +3,10 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 import scrapy
 from scrapy.selector import Selector
-from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
 from crwnhkorjp.items import ArticleData
+from scrapy.loader import ItemLoader
 
 from crwnhkorjp.utils import (
     check_cmd_args,
@@ -208,22 +208,24 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
                 parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['VideoObject'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
-
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
+            # encoded_dict = {}
+
+            # for key, value in parsed_json_data.items():
+            #     breakpoint()
+            #     print('hello')
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
                 articledata_loader.add_value(
                     "parsed_json",
                     parsed_json_data,
                 )
-
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data)
+                "parsed_data", get_parsed_data(response, parsed_json_dict)
             )
-
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 
@@ -247,8 +249,8 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             if self.articles:
