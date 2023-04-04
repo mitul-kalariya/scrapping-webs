@@ -5,7 +5,6 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 
 import scrapy
-import lxml.etree as etree
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
@@ -15,7 +14,6 @@ from crwheadlinedaily.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -140,7 +138,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        
+
         try:
             for url in Selector(response, type="xml").xpath("//item/link/text()", namespaces=self.namespace).getall():
                 yield scrapy.Request(url, callback=self.parse_sitemap_article)
@@ -166,7 +164,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            
+
             if title := response.css("div.topic h1::text").get():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
@@ -237,8 +235,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            
-            
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

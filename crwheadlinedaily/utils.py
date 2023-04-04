@@ -15,7 +15,6 @@ from .exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
-from crwheadlinedaily.constant import BASE_URL
 
 ERROR_MESSAGES = {
     "InputMissingException": "{} field is required.",
@@ -268,7 +267,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii = False)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -325,7 +324,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
                 (key, remove_empty_elements(value))
                 for key, value in parsed_data_dict.items()
             )
-            if not empty(value) or key=="parsed_json"
+            if not empty(value) or key == "parsed_json"
         }
     return data_dict
 
@@ -364,11 +363,11 @@ def get_author_details(parsed_data: list, response: str) -> dict:
         dict: author related details
     """
     author_details = []
-    
+
     author_details.append(
-        {"name": response.css("meta[name*='author']::attr(content)").get()} 
+        {"name": response.css("meta[name*='author']::attr(content)").get()}
     )
-    
+
     return {"author": author_details}
 
 
@@ -401,12 +400,11 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: publisher details like name, type, id related details
     """
-    
-    
+
     return {"publisher": [{"name": response.css("meta[name*='publisher']::attr(content)").get()}]}
 
 
-def get_text_title_section_details(parsed_data: list, response:str) -> dict:
+def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     Returns text, title, section details
     Args:
@@ -444,8 +442,8 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
                     if caption:
                         temp_dict["caption"] = caption
                 data.append(temp_dict)
-        
+
             return {"thumbnail_image": thumbnail_image, "images": data}
     except exceptions.URLNotFoundException as exception:
-        
+
         print(f"Error while getting news content images: {str(exception)}")

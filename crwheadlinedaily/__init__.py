@@ -1,1 +1,1 @@
-from crwheadlinedaily.main import Crawler # noqa: F401
+from crwheadlinedaily.main import Crawler  # noqa: F401
