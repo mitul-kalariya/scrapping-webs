@@ -2,7 +2,9 @@ import scrapy
 import w3lib.html
 from crwardnews.constant import SITEMAP_URL, LOGGER
 from crwardnews import exceptions
+from scrapy.crawler import CrawlerProcess
 from datetime import datetime, timedelta
+from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from crwardnews.items import ArticleData
@@ -301,3 +303,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
+
+
+if __name__ == "__main__":
+    process = CrawlerProcess(get_project_settings())
+    process.crawl(ArdNewsSpider)
+    process.start()
