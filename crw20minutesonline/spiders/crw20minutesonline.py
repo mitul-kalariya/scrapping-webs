@@ -1,28 +1,27 @@
 """Spider to scrap TVA news website"""
 
 import logging
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 import scrapy
-
 from scrapy.exceptions import CloseSpider
 from scrapy.loader import ItemLoader
-from crw20minutesonline.constant import BASE_URL, SITEMAP_URL
 
+from crw20minutesonline.constant import BASE_URL, SITEMAP_URL
+from crw20minutesonline.exceptions import (
+    ArticleScrappingException,
+    ExportOutputFileException,
+    SitemapArticleScrappingException,
+)
 from crw20minutesonline.items import ArticleData
 from crw20minutesonline.utils import (
     based_on_scrape_type,
-    get_raw_response,
-    get_parsed_json,
     export_data_to_json_file,
     get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
     remove_empty_elements,
-)
-from crw20minutesonline.exceptions import (
-    SitemapArticleScrappingException,
-    ArticleScrappingException,
-    ExportOutputFileException,
 )
 
 # Setting the threshold of logger to DEBUG
@@ -148,8 +147,8 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
         """
         try:
             for link, title in zip(
-                    response.css("ul.spreadlist>li>a::attr(href)").getall(),
-                    response.css("ul.spreadlist>li>a::text").getall(),
+                response.css("ul.spreadlist>li>a::attr(href)").getall(),
+                response.css("ul.spreadlist>li>a::text").getall(),
             ):
                 data = {"link": BASE_URL + link[1:], "title": title}
                 self.articles.append(data)
@@ -226,6 +225,8 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, "20minutes")
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
