@@ -5,12 +5,12 @@ from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from crwnewsdigtbs import exceptions
+from crwtbsnews import exceptions
 from scrapy.loader import ItemLoader
-from crwnewsdigtbs.constant import LOGGER, SITEMAP_URL
+from crwtbsnews.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from abc import ABC, abstractmethod
-from crwnewsdigtbs.items import ArticleData
-from crwnewsdigtbs.utils import (
+from crwtbsnews.items import ArticleData
+from crwtbsnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
     export_data_to_json_file,
@@ -38,7 +38,7 @@ class BaseSpider(ABC):
 
 
 class NewsdigTbsSpider(scrapy.Spider):
-    name = "newsdig_tbs"
+    name = "tbs_news"
 
     def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
@@ -102,17 +102,22 @@ class NewsdigTbsSpider(scrapy.Spider):
 
         try:
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                    xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+                    xml_selector = Selector(xmlresponse)
+                    xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+                    for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+                        for link in sitemap.getall():
+                            if "sitemap-static.xml" in link:
+                                continue
+                            if link[-8:-4] in [str(TODAYS_DATE.year), str(TODAYS_DATE.year - 1)]:
+                                yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
 
         except BaseException as e:
-            print(f"Error: {e}")
             self.logger.error(f"{e}")
 
     def parse_sitemap(self, response: str) -> None:
@@ -130,10 +135,25 @@ class NewsdigTbsSpider(scrapy.Spider):
             xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            urls = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces)
+            last_modified_date = xml_selector.xpath("//xmlns:lastmod/text()", namespaces=xml_namespaces)
 
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            for url, last_modified_date in zip(urls, last_modified_date):
+                modified_at = datetime.strptime(last_modified_date.extract()[:10], "%Y-%m-%d").date()
+                if self.start_date and modified_at < self.start_date:
+                    continue
+                if self.start_date and modified_at > self.end_date:
+                    continue
+
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == modified_at:
+                        data = {"link": url.extract()}
+                        self.articles.append(data)
+                else:
+                    if self.start_date and self.end_date:
+                        data = {"link": url.extract(),}
+                        self.articles.append(data)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -141,29 +161,6 @@ class NewsdigTbsSpider(scrapy.Spider):
             )
             raise exceptions.SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.cat-theme-color::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
     def parse_article(self, response: str) -> None:
