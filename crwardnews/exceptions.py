@@ -64,15 +64,8 @@ class URLNotFoundException(Exception):
     pass
 
 
-class ArticleScrappingException(Exception):
-    """Raise when exception arise while fetching article details from sitemap"""
-
-    # Use ArticleScrappingException(f"Error occurred while fetching article details:- {str(e)}")
-    pass
-
-
 class ParseFunctionFailedException(Exception):
     """An exception raised when parse function fails."""
 
-    # use ParseFunctionFailedException(f"Error occurring while parsing sitemap {str(e)} in parse function")
+    # use ParseFunctionFailedException(f"Error occured in parse function: {e}")
     pass
