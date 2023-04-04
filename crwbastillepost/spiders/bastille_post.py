@@ -93,8 +93,10 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
-
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
+        
     def parse(self, response: str, **kwargs) -> None:
         """
         differentiate sitemap and article and redirect its callback to different parser
@@ -126,11 +128,12 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except Exception as exception:
-            LOGGER.info(
-                f"Error occurring while parsing sitemap {exception} in parse function"
+        except BaseException as e:
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
             )
-
+    
     def parse_sitemap(self, response: str) -> None:
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
@@ -173,12 +176,10 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                     }
                     self.articles.append(data)
 
-        except Exception as exception:
-            LOGGER.info(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-            )
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
             raise exceptions.SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
+                f"Error while parsing sitemap: {str(e)}"
             )
 
     def parse_sitemap_article(self, response: str) -> None:
@@ -212,7 +213,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception),
+                + str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
