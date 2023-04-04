@@ -18,6 +18,7 @@ from crwmbcnews.utils import (
     get_parsed_json,
     get_parsed_data,
     remove_empty_elements,
+    export_data_to_json_file
 )
 from crwmbcnews.exceptions import (
     SitemapScrappingException,
@@ -245,7 +246,8 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            
+            else:
+                export_data_to_json_file("article", self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

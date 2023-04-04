@@ -442,9 +442,12 @@ def get_text_title_section_details(parsed_data: list, response:str) -> dict:
     Returns:
         dict: text, title, section details
     """
+    pattern = r"[\r\n\t\"]+"
+    article_text = " ".join(response.css(".news_txt::text").getall())
+    text = [re.sub(pattern, "", article_text).strip()]
     return {
         "title": [response.css("h2.art_title::text").get()],
-        "text": response.css(".news_txt::text").getall(),
+        "text": text,
         "section": [response.css("meta[id*='section']::attr(content)").get()],
         "tags": [parsed_data.get("main").get("keywords", [])],
     }
