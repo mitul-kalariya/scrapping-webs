@@ -1,16 +1,22 @@
-import scrapy
 import logging
-from datetime import datetime
-from crwntv import exceptions
-from crwntv.items import ArticleData
-from scrapy.loader import ItemLoader
-from scrapy.crawler import CrawlerProcess
 from abc import ABC, abstractmethod
-from scrapy.utils.project import get_project_settings
-from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
-from crwntv.utils import (create_log_file, get_parsed_data, get_parsed_json,
-                          get_raw_response, export_data_to_json_file)
+from datetime import datetime
 
+import scrapy
+from scrapy.crawler import CrawlerProcess
+from scrapy.loader import ItemLoader
+from scrapy.utils.project import get_project_settings
+
+from crwntv import exceptions
+from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
+from crwntv.items import ArticleData
+from crwntv.utils import (
+    create_log_file,
+    export_data_to_json_file,
+    get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
+)
 
 # create logger file
 create_log_file()
@@ -36,7 +42,9 @@ class BaseSpider(ABC):
 class NTvSpider(scrapy.Spider, BaseSpider):
     name = "n_tv"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         Initializes a web scraper object with the given parameters.
 
@@ -63,7 +71,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 if start_date is not None or end_date is not None:
                     LOGGER.info(f"Date filter is not available in {self.name}")
-                    raise exceptions.InvalidInputException(f"Date filter is not available in {self.name}")
+                    raise exceptions.InvalidInputException(
+                        f"Date filter is not available in {self.name}"
+                    )
                 self.start_urls.append(SITEMAP_URL)
 
             elif self.type == "article":
@@ -75,7 +85,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
 
     def parse(self, response):
         """
@@ -97,9 +109,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as e:
-            LOGGER.info(
-                f"Error occurring while parsing sitemap {e} in parse function"
-            )
+            LOGGER.info(f"Error occurring while parsing sitemap {e} in parse function")
             raise exceptions.ParseFunctionFailedException(
                 f"Error occurring while parsing sitemap {str(e)} in parse function"
             )
@@ -184,12 +194,15 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            LOGGER.info(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
             raise exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}")
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
 
 
 if __name__ == "__main__":
