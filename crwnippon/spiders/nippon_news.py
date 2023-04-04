@@ -44,7 +44,7 @@ class NipponNews(scrapy.Spider, BaseSpider):
     name = "nippon_news"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(self, type=None, url=None, since=None, until=None, *args, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
 
@@ -101,19 +101,18 @@ class NipponNews(scrapy.Spider, BaseSpider):
             if url:
                 self.start_urls.append(url)
             else:
-                LOGGER.error("Error while")
+                LOGGER.error("Must have a URL to scrap")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
         """
-        Parses the given Scrapy response based on the specified type of parsing.
-
-        Returns:
-            A generator that yields a scrapy.Request object to parse a sitemap or an article.
-
-        Example Usage:
-            parse(scrapy.http.Response(url="https://example.com", body="..."))
+        Parses the response obtained from a website.
+        Yields:
+        scrapy.Request: A new request object to be sent to the website.
+        Raises:
+        BaseException: If an error occurs during parsing.
         """
+        self.logger.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
                 if self.since and self.until:
@@ -123,18 +122,17 @@ class NipponNews(scrapy.Spider, BaseSpider):
 
             elif self.type == "article":
                 yield self.parse_article(response)
-        # If there's any error during the above process, log it and print
-        except exceptions.InvalidInputException as exception:
-            LOGGER.error(f"{str(exception)}")
-            print(f"Error while callign the parse function: {str(exception)}")
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {exception}"
+            )
 
     def parse_article(self, response) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
-
         Args:
             response (scrapy.http.Response): The response object containing the article data.
-
         Returns:
             dict: A dictionary containing the parsed article data, including the raw response,
             parsed JSON, and parsed data, along with additional information such as the country
@@ -154,13 +152,16 @@ class NipponNews(scrapy.Spider, BaseSpider):
                 response_json,
             )
             articledata_loader.add_value("parsed_data", response_data)
-
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
-        # If there's any error during the above process, log it and print
-        except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"{str(exception)}")
-            print(f"Error while parsing article: {str(exception)}")
+        except BaseException as exception:
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:- {str(exception)}"
+            )
 
     def parse_sitemap(self, response):
         """
@@ -212,20 +213,15 @@ class NipponNews(scrapy.Spider, BaseSpider):
                                 callback=self.parse_sitemap_article,
                                 meta={"link": link, "pub_date": published_at},
                             )
-
-        # If there's any error during the above process, log it and print
-        except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"{str(exception)}")
-            print(f"Error while parsing sitemap: {str(exception)}")
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
+            )
 
     def parse_sitemap_article(self, response):
         """
-        This function takes in a response object and parses the sitemap.
-        It extracts the links and published dates from the response object
-        and uses them to make requests to other pages.
-        Yields:
-            scrapy.Request: A request object with the link and published date as metadata.
-            The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
         try:
             url = response.meta["link"]
@@ -239,7 +235,7 @@ class NipponNews(scrapy.Spider, BaseSpider):
 
         except exceptions.SitemapScrappingException as exception:
             LOGGER.error(f"Error while parsing sitemap article: {str(exception)}")
-            exceptions.SitemapArticleScrappingException(
+            raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {str(exception)}"
             )
 
@@ -260,12 +256,12 @@ class NipponNews(scrapy.Spider, BaseSpider):
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            self.log(
+            LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
 
 

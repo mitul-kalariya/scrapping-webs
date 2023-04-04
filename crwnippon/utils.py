@@ -249,10 +249,11 @@ def get_author(response) -> list:
         temp_dict = {}
         author_link = driver.find_elements(By.XPATH, '//a[@class="is-ttl"]')
         author_meta = response.css('meta[name="cXenseParse:author"]')
-        author = author_meta.attrib["content"]
-        temp_dict["@type"] = "Person"
-        temp_dict["name"] = author
-        temp_dict["link"] = author_link[0].get_attribute("href")
+        if author_meta:
+            author = author_meta.attrib["content"]
+            temp_dict["@type"] = "Person"
+            temp_dict["name"] = author
+            temp_dict["link"] = author_link[0].get_attribute("href")
 
         data.append(temp_dict)
         return data
