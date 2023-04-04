@@ -142,16 +142,15 @@ def get_parsed_data(response):
         images = get_images(response)
         if images:
             try:
-                response_images = images[1:]
-                if response_images:
-                    main_dict["images"] = response_images
-
-                thumbnail_image = images[0].get("link")
-                if thumbnail_image:
-                    main_dict["thumbnail_image"] = [thumbnail_image]
+                if images:
+                    main_dict["images"] = images
 
             except BaseException as e:
                 LOGGER.error(f"{e}")
+
+        thumbnail_image = get_thumbnail(response)
+        if thumbnail_image:
+            main_dict["thumbnail_image"] = [thumbnail_image]
 
         mapper = {"de": "German"}
         article_lang = response.css("html::attr(lang)").get()
@@ -164,6 +163,15 @@ def get_parsed_data(response):
     except BaseException as e:
         LOGGER.error(f"while scrapping parsed data {e}")
         raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
+
+
+def get_thumbnail(response):
+    data = get_main(response)
+    for data_block in data:
+        if data_block.get('@type') == "WebPage":
+            thumbnail = data_block.get('thumbnailUrl')
+            if thumbnail:
+                return thumbnail
 
 
 def get_main(response):

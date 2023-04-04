@@ -37,7 +37,7 @@ class BaseSpider(ABC):
 class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -57,7 +57,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
         try:
-            super().__init__(**kwargs)
+            super(ZdfNewsSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
@@ -80,7 +80,9 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
 
     def parse(self, response):
         """
@@ -100,8 +102,12 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
+
         except BaseException as e:
-            LOGGER.info(f"Error occurring while parsing sitemap {e} in parse function")
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -130,9 +136,13 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             return articledata_loader.item
 
         except Exception as exception:
-            LOGGER.info(f"Error occurred while scrapping an article for this link {response.url}." + str(exception))
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
+            )
             raise exceptions.ArticleScrappingException(
-                f"Error occurred while fetching article details:-  {str(exception)}")
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            )
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -153,7 +163,9 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
 
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap: {e}")
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
