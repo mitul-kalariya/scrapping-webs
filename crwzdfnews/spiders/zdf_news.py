@@ -10,14 +10,8 @@ from crwzdfnews.constant import SITEMAP_URL, LOGGER
 from scrapy.loader import ItemLoader
 from crwzdfnews.items import ArticleData
 from abc import ABC, abstractmethod
-from crwzdfnews.utils import (
-    create_log_file,
-    validate_sitemap_date_range,
-    get_raw_response,
-    get_parsed_data,
-    get_parsed_json,
-    export_data_to_json_file,
-)
+from crwzdfnews.utils import (create_log_file, validate_sitemap_date_range, get_raw_response, get_parsed_data,
+                              get_parsed_json, export_data_to_json_file, )
 
 # create log file
 create_log_file()
@@ -73,12 +67,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
-                self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-                )
-                self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-                )
+                self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
+                self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
                 validate_sitemap_date_range(start_date, end_date)
 
             if self.type == "article":
@@ -87,7 +77,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 else:
                     LOGGER.info("Must have a URL to scrap")
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
-                
+
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
             raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
@@ -100,15 +90,18 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         Example Usage:
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
-        if self.type == "sitemap":
-            if self.start_date and self.end_date:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
-            else:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+        try:
+            if self.type == "sitemap":
+                if self.start_date and self.end_date:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-        elif self.type == "article":
-            article_data = self.parse_article(response)
-            yield article_data
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                yield article_data
+        except BaseException as e:
+            LOGGER.info(f"Error occurring while parsing sitemap {e} in parse function")
 
     def parse_article(self, response) -> list:
         """
@@ -129,24 +122,17 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value(
-                "parsed_json",
-                response_json,
-            )
+            articledata_loader.add_value("parsed_json", response_json, )
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
 
             return articledata_loader.item
-        
+
         except Exception as exception:
-            LOGGER.info(
-                f"Error occurred while scrapping an article for link:- {response.url}."
-                + str(exception)
-            )
+            LOGGER.info(f"Error occurred while scrapping an article for this link {response.url}." + str(exception))
             raise exceptions.ArticleScrappingException(
-                f"Error occurred while fetching article details:-  {str(exception)}"
-            )
+                f"Error occurred while fetching article details:-  {str(exception)}")
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -158,18 +144,15 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
         """
         try:
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
+            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ):
+            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
+
         except BaseException as e:
-            LOGGER.info("Error while parsing sitemap: {}".format(e))
+            LOGGER.info(f"Error while parsing sitemap: {e}")
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap_article(self, response):
@@ -198,22 +181,17 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                     return
 
                 if self.start_date and self.end_date:
-                    data = {
-                        "link": link
-                    }
+                    data = {"link": link}
                     self.articles.append(data)
                 elif today_date == published_at:
-                    data = {
-                        "link": link
-                    }
+                    data = {"link": link}
                     self.articles.append(data)
                 else:
                     continue
-        except BaseException as e:
-            exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article: {e}"
-            )
-            LOGGER.error(f"Error while parsing sitemap article: {e}")
+        except Exception as exception:
+            LOGGER.info("Error while parsing sitemap article:" + str(exception))
+            raise exceptions.SitemapArticleScrappingException(
+                f"Error while parsing sitemap article::-  {str(exception)}")
 
     def closed(self, reason: any) -> None:
         """
@@ -229,13 +207,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
-            LOGGER.info(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
-            )
+            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
+            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
 
 
 if __name__ == "__main__":
