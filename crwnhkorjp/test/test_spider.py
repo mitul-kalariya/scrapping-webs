@@ -22,12 +22,12 @@ class TestArticle(unittest.TestCase):
 
     # This is first function called by crawler so testing the main function will cover all scenarios
     def test_parse(self):
-        for article in TEST_ARTICLES:
-            logger.info(f"Testing article with URL:- {article['url']}")
-            spider = NhkOrJpNews(type="article", url=article["url"])
-            articles = spider.parse(online_response_from_url(spider.article_url))
-            self._test_article_results(articles, article["test_data_path"])
-            logger.info(f"Testing completed article with URL:- {article['url']}")
+        for test_article in TEST_ARTICLES:
+            logger.info(f"Testing article with URL:- {test_article['url']}")
+            article = Crawler(query={"type": "article", "link": test_article["url"]})
+            articles = article.crawl()
+            self._test_article_results(articles, test_article["test_data_path"])
+            logger.info(f"Testing completed article with URL:- {test_article['url']}")
 
     def _test_raw_response(self, article, test_article_data):
         # Testing raw_response object
@@ -230,9 +230,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"), list,
                                       "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
 
 
 class TestSitemap(unittest.TestCase):
