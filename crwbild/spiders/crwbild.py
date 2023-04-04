@@ -60,7 +60,7 @@ class BildSpider(scrapy.Spider, BaseSpider):
     start_urls = [BASE_URL]
 
     def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """init method to take date, type and validating it"""
 
@@ -145,10 +145,12 @@ class BildSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            for url in response.css("article>a:not([href^='/video'])::attr(href)").getall():
-                yield scrapy.Request(
-                    BASE_URL + url[1:], callback=self.parse_sitemap_article
-                )
+            for link, title in zip(
+                    response.css("article>a:not([href^='/video'])::attr(href)").getall(),
+                    response.css("article>a:not([href^='/video']) div span.stage-feed-item__headline::text").getall(),
+            ):
+                data = {"link": BASE_URL + link[1:], "title": title.strip()}
+                self.articles.append(data)
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -156,29 +158,6 @@ class BildSpider(scrapy.Spider, BaseSpider):
             )
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1 > span.article-title__headline::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
     def parse_article(self, response: str) -> None:
