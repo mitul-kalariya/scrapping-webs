@@ -41,7 +41,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     name = "ard_news"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, *args, **kwargs):
+    def __init__(self, *args, type=None, start_date=None, url=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
 
@@ -102,11 +102,12 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 else:
                     LOGGER.info("Must have a URL to scrap")
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
-                
+
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
-
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
 
     def parse(self, response):
         """
@@ -118,14 +119,20 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         Example Usage:
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
-        if self.type == "sitemap":
-            if self.start_date and self.end_date:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
-            else:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+        try:
+            if self.type == "sitemap":
+                if self.start_date and self.end_date:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-        elif self.type == "article":
-            yield self.parse_article(response)
+            elif self.type == "article":
+                yield self.parse_article(response)
+        except BaseException as e:
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -164,7 +171,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception
+            )
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -220,10 +227,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(
                         date_wise_url, callback=self.parse_sitemap_article
                     )
-
-        except Exception as exception:
-            LOGGER.info("Error while parsing sitemap: {}".format(exception))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
@@ -260,12 +268,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(
                         pagination_url, callback=self.parse_sitemap_article
                     )
-
-        except Exception as exception:
-            exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {exception}"
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapArticleScrappingException(
+                f"Error while parsing sitemap article: {str(e)}"
             )
-            LOGGER.info("Error while parsing sitemap article: {}".format(exception))
 
     def closed(self, reason: any) -> None:
         """
@@ -287,7 +294,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
-            exceptions.ExportOutputFileException(
+            LOGGER.info(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
+            raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )

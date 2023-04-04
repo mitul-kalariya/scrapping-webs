@@ -38,9 +38,11 @@ def validate_sitemap_date_range(start_date, end_date):
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException("end_date should not be greater than today_date")
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as expception:
+        LOGGER.error(f"Error occured while checking date range: {expception}", exc_info=True)
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        ) from expception
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -91,27 +93,33 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css(
-        'script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
+    try:
+        parsed_json = {}
+        other_data = []
+        ld_json_data = response.css(
+            'script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") == "ImageGallery":
+                parsed_json["ImageGallery"] = data
+            elif data.get("@type") == "VideoObject":
+                parsed_json["VideoObject"] = data
+            else:
+                other_data.append(data)
 
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+        parsed_json["Other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
 
-    return remove_empty_elements(parsed_json)
+        return remove_empty_elements(parsed_json)
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting parsed json {exception}"
+        ) from exception
 
 
 def get_parsed_data(response):
@@ -165,10 +173,11 @@ def get_parsed_data(response):
         main_dict["source_language"] = [mapper.get(article_lang)]
 
         return remove_empty_elements(main_dict)
-
-    except BaseException as e:
-        LOGGER.error(f"Error while extracting parsed data: {e}")
-        raise exceptions.ArticleScrappingException(f"Error while extracting parsed data: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        ) from exception
 
 
 def get_main(response):
@@ -185,9 +194,11 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        ) from exception
 
 
 def get_misc(response):
@@ -204,37 +215,51 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        ) from exception
 
 
 def get_embed_video_link(response) -> list:
-    info = []
-    for child in response:
-        raw_video_json = child.css("div.ts-mediaplayer::attr(data-config)").get()
-        video_json = (json.loads(raw_video_json)).get("mc")
+    try:
+        info = []
+        for child in response:
+            raw_video_json = child.css("div.ts-mediaplayer::attr(data-config)").get()
+            video_json = (json.loads(raw_video_json)).get("mc")
 
-        if video_json.get("_sharing"):
-            video_link = video_json.get("_sharing").get("link")
-            if video_link:
-                info.append(video_link)
-        elif video_json.get("_download"):
-            video_link = video_json.get("_download").get("url")
-            if video_link:
-                info.append(video_link)
-
-    return info
+            if video_json.get("_sharing"):
+                video_link = video_json.get("_sharing").get("link")
+                if video_link:
+                    info.append(video_link)
+            elif video_json.get("_download"):
+                video_link = video_json.get("_download").get("url")
+                if video_link:
+                    info.append(video_link)
+        return info
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article video link: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting article video link: {exception}"
+        ) from exception
 
 
 def get_article_images(response) -> list:
-    info = []
-    pattern = r"[\r\n\t\"]+"
-    for child in response:
-        a_dict = {}
-        a_dict["link"] = BASE_URL + child.css("div.absatzbild__media div picture img::attr(src)").get()
-        a_dict["caption"] = re.sub(pattern, "", child.css("div.absatzbild__info p::text").get()).strip()
-        info.append(remove_empty_elements(a_dict))
-    return info
+    try:
+        info = []
+        pattern = r"[\r\n\t\"]+"
+        for child in response:
+            a_dict = {}
+            a_dict["link"] = BASE_URL + child.css("div.absatzbild__media div picture img::attr(src)").get()
+            a_dict["caption"] = re.sub(pattern, "", child.css("div.absatzbild__info p::text").get()).strip()
+            info.append(remove_empty_elements(a_dict))
+        return info
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article images: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting article article images: {exception}"
+        ) from exception
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
