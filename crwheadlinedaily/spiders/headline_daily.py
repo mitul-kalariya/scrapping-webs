@@ -22,6 +22,7 @@ from crwheadlinedaily.exceptions import (
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    InvalidArgumentException
 )
 
 # Setting the threshold of logger to DEBUG
@@ -104,6 +105,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
                 + str(exception),
                 level=logging.ERROR,
             )
+            raise InvalidArgumentException("Error occurred while taking type, url args. ")
 
     def parse(self, response: str, **kwargs) -> None:
         """
