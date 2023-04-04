@@ -2,6 +2,9 @@ import json
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
 from crwmbnnewsonline.constant import SITEMAP_URL
 from crwmbnnewsonline.items import (
     ArticleRawResponse,
@@ -11,7 +14,9 @@ from crwmbnnewsonline.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
+    ArticleScrappingException
 )
+from crwmbnnewsonline.constant import LOGGER
 
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
@@ -166,12 +171,17 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
         article_raw_parsed_json_loader.add_value(
             key, [json.loads(data) for data in value.getall()]
         )
+
     parsed_data_dict = get_parsed_data_dict()
-    mapper = {"ja": "Japanese"}
+    mapper = {"en": "English"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    parsed_data_dict['author'] = [{'@type': 'person', 'name': response.css('.H8KYB::text').get()}]
-    parsed_data_dict["description"] = [article_data.get('main').get('description')]
-    parsed_data_dict["published_at"] = [article_data.get('main').get('datePublished')]
+    parsed_data_dict['author'] = response.css('meta[property="article:author"]::attr(content)').get()
+    parsed_data_dict["description"] = response.css('meta[name="dc.description"]::attr(content)').get()
+    breakpoint()
+    published_at = response.css('.time::text').get()
+    if published_at:
+        parsed_data_dict["published_at"] = published_at[2] + 'T' + published_at[3]
+    parsed_data_dict["modified_at"] = response.css('.time::text').get()
     publisher = article_data.get('main').get('publisher')
     publisher['@id'] = 'asahi.com'
     publisher['logo']['height'] = {'@type': 'Distance', 'name': str(publisher['logo']['height']) + ' ' + 'px'}
@@ -190,13 +200,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict['thumbnail_image'] = [response.css('.rXjfG a img::attr(src)').get().lstrip('/')]
     parsed_data_dict['title'] = [response.css('#main h1::text').get()]
     parsed_data_dict['modified_at'] = [article_data.get('main').get('dateModified')]
-    images = []
-    for img_data in response.css('.nfyQp'):
-        images.append({
-                      'link': img_data.css('img::attr(src)').get().lstrip('/'),
-                      'caption': img_data.css('figcaption::text').get()
-                      })
-    parsed_data_dict['images'] = images
+    parsed_data_dict['images'] = get_images(response)
     parsed_data_dict['section'] = []
     parsed_data_dict['embed_video_link'] = []
     parsed_data_dict["source_country"] = ["Japan"]
@@ -267,3 +271,47 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
         json.dump(file_data, file, indent=4, ensure_ascii=False)
+
+
+def get_images(response, parsed_json=False) -> list:
+    """
+    Extracts all the images present in the web page.
+    Returns:
+    list: A list of dictionaries containing information about each image,
+    such as image link.
+    """
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    driver.get(response.url)
+
+    try:
+        scroll = driver.find_elements(By.XPATH, "//p")
+        last_p_tag = scroll[-1]
+        driver.execute_script(
+            "window.scrollTo("
+            + str(last_p_tag.location["x"])
+            + ", "
+            + str(last_p_tag.location["y"])
+            + ")"
+        )
+        import time
+        time.sleep(1)
+        data = []
+        images = driver.find_elements(By.CSS_SELECTOR, '.b-loaded')
+        if images:
+            for image in images:
+                temp_dict = {}
+                link = image.get_attribute("src")
+                caption = image.get_attribute("alt")
+                if link:
+                    temp_dict["link"] = link
+                    if caption:
+                        temp_dict["caption"] = caption
+                data.append(temp_dict)
+            return data
+    except Exception as e:
+        LOGGER.error(f"{str(e)}")
+        print(f"Error while getting article images: {str(exception)}")
+    driver.quit()
+    return data
