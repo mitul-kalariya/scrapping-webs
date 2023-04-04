@@ -107,7 +107,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
                 for site_map_url in sitemap_urls:
                     yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-                    
+
             except Exception as exception:
                 self.log(
                     f"Error occured while iterating sitemap url. {str(exception)}",
@@ -130,8 +130,6 @@ class Mbn_news(scrapy.Spider, BaseSpider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
            """
-        
-
         article_url = Selector(response, type='xml').\
             xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
         mod_date = Selector(response, type='xml')\

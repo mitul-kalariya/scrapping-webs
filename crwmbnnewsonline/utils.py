@@ -172,8 +172,6 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     parsed_data_dict = get_parsed_data_dict()
-    article_data = dict(article_raw_parsed_json_loader.load_item())
-    #parsed_data_dict['author'] = response.css('meta[property="article:author"]::attr(content)').get()
     parsed_data_dict["description"] = [response.css('meta[name="dc.description"]::attr(content)').get()]
     published_at = response.css('.txt_box span.time::text').getall()
     i = 0
@@ -181,14 +179,14 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
         i = 1
     parsed_data_dict["published_at"] = [published_at[i].split(' ')[2] + 'T' + published_at[i].split(' ')[3]]
     if len(published_at) > 1:
-        parsed_data_dict["modified_at"] = [published_at[i+1].split(' ')[3] + 'T' + published_at[i+1].split(' ')[4]]
+        parsed_data_dict["modified_at"] = [published_at[i + 1].split(' ')[3] + 'T' + published_at[i + 1].split(' ')[4]]
     author = {}
     if response.css('#container a::text')[0].get():
         author['@type'] = 'Person'
         author['name'] = response.css('#container a::text')[0].get()
         author['url'] = response.css('#container a::attr(href)')[0].get()
         parsed_data_dict['author'] = [author]
-    parsed_data_dict['author'] = [author] 
+    parsed_data_dict['author'] = [author]
     texts = []
     for data in response.css('#newsViewArea::text'):
         texts.append(data.get().strip())
@@ -307,7 +305,6 @@ def get_images(response, parsed_json=False) -> list:
             return data
     except Exception as e:
         LOGGER.error(f"{str(e)}")
-        print(f"Error while getting article images: {str(exception)}")
     driver.quit()
     return data
 
@@ -331,8 +328,7 @@ def get_embed_video_link(response) -> list:
                 link = video.get_attribute("src").replace("blob:", "")
                 temp_dict = {"link": link}
                 data.append(temp_dict)
-    except exceptions.ArticleScrappingException as exception:
+    except Exception as exception:
         LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting embed video: {str(exception)}")
     driver.quit()
     return data
