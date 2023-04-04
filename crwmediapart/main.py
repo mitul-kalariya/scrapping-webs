@@ -1,5 +1,9 @@
+from multiprocessing import Process, Queue
+
 from scrapy.crawler import CrawlerProcess
+
 from crwmediapart.spiders.media_part import MediaPartSpider
+
 
 class Crawler:
     """
@@ -23,7 +27,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -38,45 +42,56 @@ class Crawler:
                 "proxyUsername": "IgNyTnddr5", "proxyPassword": "123466"\n
                 }. Defaults to {}.
         """
-        self.output = None
+        self.output_queue = None
         self.query = query
         self.proxies = proxies
 
-    def crawl(self)-> list[dict]:
+    def crawl(self) -> list[dict]:
+        self.output_queue = Queue()
+        process = Process(
+            target=self.start_crawler, args=(self.query, self.output_queue)
+        )
+        process.start()
+        return self.output_queue.get()
+
+    def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
 
         Raises:
             Exception: Raised exception for unknown Type
 
         Returns:
-            list[dict]: list of dictionary of the article data or article links 
-            as per expected_article.json or expected_sitemap.json 
+            list[dict]: list of dictionary of the article data or article links
+            as per expected_article.json or expected_sitemap.json
         """
-        self.output = None
+
         process = CrawlerProcess()
-        if self.query['type'] == 'article':
-            spider_args = {'type': 'article', 'url': self.query.get('link'), 'args': {'callback': self.yield_output}}
-        elif self.query['type'] == 'sitemap' or self.query['type'] == 'link_feed':
-            spider_args = {'type': 'sitemap', 'args': {'callback': self.yield_output}}
-            if self.query.get('since') and self.query.get('until'):
-                spider_args['start_date'] = self.query['since']
-                spider_args['end_date'] = self.query['until']
+        if self.query["type"] == "article":
+            spider_args = {
+                "type": "article",
+                "url": self.query.get("link"),
+                "args": {"callback": output_queue.put},
+            }
+        elif self.query["type"] == "sitemap":
+            spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
+            if self.query.get("since") and self.query.get("until"):
+                spider_args["start_date"] = self.query["since"]
+                spider_args["end_date"] = self.query["until"]
         else:
-            raise Exception('Invalid Type')
+            raise Exception("Invalid Type")
 
         if self.proxies:
             process_settings = process.settings
-            process_settings['DOWNLOADER_MIDDLEWARES'][
-                'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware'] = 400
-            process_settings['HTTPPROXY_ENABLED'] = True
-            process_settings['HTTP_PROXY'] = self.proxies['proxyIp'] + ':' + self.proxies['proxyPort']
-            process_settings['HTTP_PROXY_USER'] = self.proxies['proxyUsername']
-            process_settings['HTTP_PROXY_PASS'] = self.proxies['proxyPassword']
+            process_settings["DOWNLOADER_MIDDLEWARES"][
+                "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
+            ] = 400
+            process_settings["HTTPPROXY_ENABLED"] = True
+            process_settings["HTTP_PROXY"] = (
+                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
+            )
+            process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
+            process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
         process.crawl(MediaPartSpider, **spider_args)
         process.start()
-        return self.output
-
-    def yield_output(self, data):
-        self.output = data
