@@ -112,7 +112,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     for key, value in selector_and_key.items():
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data.encode('utf-8').decode('utf-8')) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
+                key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
@@ -166,7 +166,6 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    #breakpoint()
     parsed_data_dict = get_parsed_data_dict()
     text = response.css('p.content--summary-more::text').getall()
     text_summary = response.css('p.content--summary::text').getall()
@@ -272,4 +271,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
