@@ -80,16 +80,25 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             generator: A generator that yields scrapy.Request objects to be further parsed by other functions.
         """
-        if self.type == "sitemap":
-            if self.start_date and self.end_date:
-                LOGGER.info("Parse function called on %s", response.url)
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
-            else:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+        try:
+            LOGGER.info("Parse function called on %s", response.url)
+            if self.type == "sitemap":
+                if self.start_date and self.end_date:
+                    LOGGER.info("Parse function called on %s", response.url)
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-        elif self.type == "article":
-            article_data = self.parse_article(response)
-            yield article_data
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                yield article_data
+        
+        except BaseException as e:
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
+
 
     def parse_sitemap(self, response):
         """
@@ -178,8 +187,8 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file {str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file {str(exception)} - {reason}")
