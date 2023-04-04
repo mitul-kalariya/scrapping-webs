@@ -37,7 +37,7 @@ class BaseSpider(ABC):
 class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
-    def __init__(self, *args, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -216,8 +216,8 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
