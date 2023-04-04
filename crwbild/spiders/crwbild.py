@@ -146,8 +146,8 @@ class BildSpider(scrapy.Spider, BaseSpider):
         """
         try:
             for link, title in zip(
-                    response.css("article>a:not([href^='/video'])::attr(href)").getall(),
-                    response.css("article>a:not([href^='/video']) div span.stage-feed-item__headline::text").getall(),
+                    response.css("article>a::attr(href)").getall(),
+                    response.css("article a div span.stage-feed-item__headline::text").getall(),
             ):
                 data = {"link": BASE_URL + link[1:], "title": title.strip()}
                 self.articles.append(data)

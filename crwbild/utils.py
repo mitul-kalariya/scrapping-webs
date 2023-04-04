@@ -471,29 +471,25 @@ def get_thumbnail_image_video(response: str
     Returns:
         dict: thumbnail images, images and video details
     """
-
+    images = []
     videos = []
+    captions = []
     for link, caption in zip_longest(
+            response.css("article div.article-body figure div.video-teaser a::attr(href)").getall(),
             response.css(
-                " article > div.article-body > figure:nth-child(8) > div > a::attr(href)"
-            ).getall(),
-            response.css(
-                " article > div.article-body > figure:nth-child(8) > div "
-                + "> a>figure>figcaption>div>span::text"
-            ).getall(),
+                "article div.article-body figure div.video-teaser a figure figcaption div.fig__caption__meta span::text").getall(),
     ):
         videos.append({"link": link, "caption": caption})
-
-    images = []
-    for link, caption in zip(
-            response.css(".article-body>figure img::attr(data-src)").getall(),
-            response.css(".article-body>figure>figcaption p::text").getall(),
-    ):
-        images.append({"link": link, "caption": caption})
+    for first_coming_caption in response.css("article figure>figure figcaption"):
+        caption_text = get_sub_caption(first_coming_caption)
+        captions.append(caption_text)
+    for remaining_coming_caption in response.css("article div.article-body figure.fig--inline>figcaption"):
+        caption_text = get_sub_caption(remaining_coming_caption)
+        captions.append(caption_text)
 
     for link, caption in zip_longest(
-            response.css("article>figure img::attr(src)").getall(),
-            response.css("article>figure p::text").getall(),
+            response.css("article>figure div img::attr(src),.article-body>figure.fig>div>img::attr(data-src)").getall(),
+            captions,
     ):
         images.append({"link": link, "caption": caption})
 
@@ -501,3 +497,16 @@ def get_thumbnail_image_video(response: str
         "images": images,
         "video": videos,
     }
+
+
+def get_sub_caption(caption: str):
+    caption_em_text = caption.css("div.fig__caption__meta span::text").get()
+
+    if caption_em_text is None:
+        caption_em_text = ""
+    else:
+        caption_em_text = caption_em_text.strip()
+    caption_text = (
+            caption.css("::text").get().strip() + " " + caption_em_text + "\n"
+    )
+    return caption_text
