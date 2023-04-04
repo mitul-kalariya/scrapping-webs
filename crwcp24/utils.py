@@ -2,19 +2,18 @@ import json
 import os
 from datetime import datetime
 from json import JSONDecodeError
+
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
-from crwcp24.videos import get_video
+
 from crwcp24.constant import SITEMAP_URL
-from crwcp24.items import (
-    ArticleRawResponse,
-    ArticleRawParsedJson,
-)
-from .exceptions import (
+from crwcp24.exceptions import (
     InputMissingException,
-    InvalidDateException,
     InvalidArgumentException,
+    InvalidDateException,
 )
+from crwcp24.items import ArticleRawParsedJson, ArticleRawResponse
+from crwcp24.videos import get_video
 
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
@@ -43,14 +42,16 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
         self.start_urls.append(url)
 
     def set_date_range(start_date, end_date):
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
 
     def validate_date_range():
         if self.start_date > self.end_date:
             raise InvalidDateException("start_date must be less then end_date")
         if (self.end_date - self.start_date).days > 30:
-            raise InvalidDateException("Enter start_date and end_date for maximum 30 days.")
+            raise InvalidDateException(
+                "Enter start_date and end_date for maximum 30 days."
+            )
 
     def validate_type():
         if self.type not in ["article", "sitemap"]:
@@ -64,11 +65,13 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
+            self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
             add_start_url(SITEMAP_URL)
 
         elif self.end_date is not None or self.start_date is not None:
-            raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
+            raise InvalidArgumentException(
+                "to use type sitemap give only type sitemap or with start date and end date"
+            )
 
     def handle_article_type():
         if self.url is not None:
@@ -123,20 +126,41 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") == "NewsArticle"
+                ],
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") == "VideoObject"
+                ],
             )
 
         elif key == "VideoObject":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") == "VideoObject"
+                ],
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") in list(selector_and_key.keys())
+                    or json.loads(data).get("@type") != "NewsArticle"
+                ],
             )
     return dict(article_raw_parsed_json_loader.load_item())
 
@@ -180,52 +204,82 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    article_data["title"] = response.css('h1.articleHeadline::text').get()
-    article_data["img_url"] = response.css('div.article div.image img::attr(src)').get()
-    article_data["img_caption"] = response.css('div.article div.image p::text').get()
+    article_data["title"] = response.css("h1.articleHeadline::text").get()
+    article_data["img_url"] = response.css("div.article div.image img::attr(src)").get()
+    article_data["img_caption"] = response.css("div.article div.image p::text").get()
     article_data["author_url"] = response.css('div.prof a::attr("href")').get()
-    article_data["text"] = " ".join(response.css('div.articleBody > p::text').getall())
+    article_data["text"] = " ".join(response.css("div.articleBody > p::text").getall())
     section_meta = response.xpath('//meta[@property="article:section"]')
-    article_data["section_content"] = section_meta.xpath('@content').get()
+    article_data["section_content"] = section_meta.xpath("@content").get()
     language = response.css("html::attr(lang)").get()
-    
+
     if response.css("div.aritcleVideoContainer"):
         article_data["video_url"] = get_video(self, response.url)
 
     parsed_data_dict = get_parsed_data_dict()
-    
-    parsed_data_dict["author"] = [{
-        "@type": article_data.get("main").get('author')[0].get("@type"),
-        "name": article_data.get("main").get('author')[0].get("name"),
-        "url": article_data.get('author_url')
-    }]
-    parsed_data_dict["description"] = [article_data.get("main").get('description')]
-    parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
-    parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
-    parsed_data_dict["publisher"] = [{
-        '@type': article_data.get("main").get('publisher').get('@type'),
-        'url': article_data.get("main").get('publisher').get('url'),
-        "logo": {
-            "@type": article_data.get("main").get('publisher').get("logo").get('@type'),
-            "url": article_data.get("main").get('publisher').get("logo").get('url'),
-            'width': {
-                '@type': "Distance",
-                "name": str(article_data.get("main").get('publisher').get('logo').get('width')) + " Px"},
-            'height': {
-                '@type': "Distance",
-                'name': str(article_data.get("main").get('publisher').get('logo').get('height')) + " Px"}}
-    }]
+
+    parsed_data_dict["author"] = [
+        {
+            "@type": article_data.get("main").get("author")[0].get("@type"),
+            "name": article_data.get("main").get("author")[0].get("name"),
+            "url": article_data.get("author_url"),
+        }
+    ]
+    parsed_data_dict["description"] = [article_data.get("main").get("description")]
+    parsed_data_dict["modified_at"] = [article_data.get("main").get("dateModified")]
+    parsed_data_dict["published_at"] = [article_data.get("main").get("datePublished")]
+    parsed_data_dict["publisher"] = [
+        {
+            "@type": article_data.get("main").get("publisher").get("@type"),
+            "url": article_data.get("main").get("publisher").get("url"),
+            "logo": {
+                "@type": article_data.get("main")
+                .get("publisher")
+                .get("logo")
+                .get("@type"),
+                "url": article_data.get("main").get("publisher").get("logo").get("url"),
+                "width": {
+                    "@type": "Distance",
+                    "name": str(
+                        article_data.get("main")
+                        .get("publisher")
+                        .get("logo")
+                        .get("width")
+                    )
+                    + " Px",
+                },
+                "height": {
+                    "@type": "Distance",
+                    "name": str(
+                        article_data.get("main")
+                        .get("publisher")
+                        .get("logo")
+                        .get("height")
+                    )
+                    + " Px",
+                },
+            },
+        }
+    ]
     parsed_data_dict["text"] = [article_data.get("text")]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
+    parsed_data_dict["thumbnail_image"] = [
+        article_data.get("main").get("image").get("url")
+    ]
     parsed_data_dict["title"] = [article_data.get("title")]
     body_img_url = response.css('div.articleBody p img::attr("src")').getall()
     body_img_caption = response.css('div.articleBody p img::attr("alt")').getall()
-    parsed_data_dict["images"] = [{"link": article_data.get('other')[-1].get('url')+link, "caption": caption} for link, caption in zip(body_img_url, body_img_caption)]
-    parsed_data_dict["images"].append({"link": article_data.get("img_url"), "caption": article_data.get("img_caption")})
-    parsed_data_dict["section"] = [article_data.get("section_content")]
-    parsed_data_dict["embed_video_link"] = [
-        article_data.get("video_url")
+    parsed_data_dict["images"] = [
+        {"link": article_data.get("other")[-1].get("url") + link, "caption": caption}
+        for link, caption in zip(body_img_url, body_img_caption)
     ]
+    parsed_data_dict["images"].append(
+        {
+            "link": article_data.get("img_url"),
+            "caption": article_data.get("img_caption"),
+        }
+    )
+    parsed_data_dict["section"] = [article_data.get("section_content")]
+    parsed_data_dict["embed_video_link"] = [article_data.get("video_url")]
 
     if not language:
         language = mapper.get("en")
