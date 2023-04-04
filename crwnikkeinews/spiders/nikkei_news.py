@@ -3,15 +3,21 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 import scrapy
-from crwnikkeinews import exceptions
-from crwnikkeinews.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
-from crwnikkeinews.items import ArticleData
-from crwnikkeinews.utils import (create_log_file, export_data_to_json_file,
-                           get_parsed_data, get_parsed_json, get_raw_response,
-                           validate_sitemap_date_range)
 from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
 from scrapy.utils.project import get_project_settings
+
+from crwnikkeinews import exceptions
+from crwnikkeinews.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
+from crwnikkeinews.items import ArticleData
+from crwnikkeinews.utils import (
+    create_log_file,
+    export_data_to_json_file,
+    get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range
+)
 
 
 class BaseSpider(ABC):
@@ -34,7 +40,7 @@ class BaseSpider(ABC):
 class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
     name = "nikkei_news"
 
-    def __init__(self, type=None, since=None, until=None, url=None, *args, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object with the given parameters.
         Parameters:
@@ -96,8 +102,10 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as exception:
-            print(f"Error while parse function: {str(exception)}")
-            LOGGER.error(f"Error while parse function: {str(exception)}")
+            LOGGER.info(f"Error occured in parse function: {exception}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {exception}"
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -109,21 +117,30 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
             parsed JSON, and parsed data, along with additional information such as the country
             and time scraped.
         """
-        articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        raw_response = get_raw_response(response)
-        response_json = get_parsed_json(response)
-        response_data = get_parsed_data(response)
-        response_data["source_country"] = ["Japan"]
-        response_data["time_scraped"] = [str(datetime.now())]
+        try:
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = get_parsed_json(response)
+            response_data = get_parsed_data(response)
+            response_data["source_country"] = ["Japan"]
+            response_data["time_scraped"] = [str(datetime.now())]
 
-        articledata_loader.add_value("raw_response", raw_response)
-        articledata_loader.add_value(
-            "parsed_json",
-            response_json,
-        )
-        articledata_loader.add_value("parsed_data", response_data)
-        self.articles.append(dict(articledata_loader.load_item()))
-        return articledata_loader.item
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
+            articledata_loader.add_value("parsed_data", response_data)
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+        except BaseException as exception:
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:- {str(exception)}"
+            )
 
     def parse_sitemap(self, response):
         try:
@@ -133,7 +150,7 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(link, self.parse_sitemap_article)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
-            exceptions.SitemapScrappingException(
+            raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
@@ -163,10 +180,10 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
                 elif self.since and self.until:
                     self.articles.append(data)
         except BaseException as exception:
-            exceptions.SitemapArticleScrappingException(
+            LOGGER.error(f"Error while filtering date wise: {str(exception)}")
+            raise exceptions.SitemapArticleScrappingException(
                 f"Error while filtering date wise: {str(exception)}"
             )
-            LOGGER.error(f"Error while filtering date wise: {str(exception)}")
 
     def closed(self, reason: any) -> None:
         """
@@ -187,12 +204,12 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            self.log(
+            LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
 
 
