@@ -201,8 +201,8 @@ def get_parsed_data(response):
     main_dict["images"] = article_images
 
     # Videos
-    # video = get_embed_video_link(response)
-    # main_dict["embed_video_link"] = video
+    video = get_embed_video_link(response)
+    main_dict["embed_video_link"] = video
 
     # Language
     mapper = {"ja": "Japanese"}
@@ -305,9 +305,7 @@ def get_embed_video_link(response) -> list:
     driver.get(response.url)
 
     try:
-        embed_videos = driver.find_elements(
-            By.XPATH, '//div[@class="article-grid__top-media-section"]//video'
-        )
+        embed_videos = driver.find_elements(By.XPATH, "//section[@class='container_c1suc6un']//iframe")
         data = []
         if embed_videos:
             for video in embed_videos:
