@@ -54,14 +54,16 @@ class TestArticle(unittest.TestCase):
 
         with self.subTest():
             self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
-                                 test_article_data[0].get("parsed_data").get("author")[0], "author mismatch in parsed_data")
+                                 test_article_data[0].get("parsed_data").get("author")[0],
+                                 "author mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("published_at"),
                              test_article_data[0].get("parsed_data").get("published_at"),
                              "published_at mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("publisher"),
-                             test_article_data[0].get("parsed_data").get("publisher"), "publisher mismatch in parsed_data")
+                             test_article_data[0].get("parsed_data").get("publisher"),
+                             "publisher mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("section"),
                              test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
@@ -70,10 +72,12 @@ class TestArticle(unittest.TestCase):
                 "parsed_data").get("tags"), "tags mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("source_country"),
-                             test_article_data[0].get("parsed_data").get("source_country"), "source_country mismatch in parsed_data")
+                             test_article_data[0].get("parsed_data").get("source_country"),
+                             "source_country mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("source_language"),
-                             test_article_data[0].get("parsed_data").get("source_language"), "source_language mismatch in parsed_data")
+                             test_article_data[0].get("parsed_data").get("source_language"),
+                             "source_language mismatch in parsed_data")
 
     def _test_image_format(self, article):
         # Testing the image object inside parsed_data
@@ -232,7 +236,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
