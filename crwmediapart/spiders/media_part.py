@@ -171,10 +171,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                     continue  # If there's any error during the above process, log it and print
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap article: {e}")
-            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
-
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap article: {e}")
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap article: {str(e)}"
             )
@@ -231,8 +227,8 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
             raise exceptions.ExportOutputFileException(
