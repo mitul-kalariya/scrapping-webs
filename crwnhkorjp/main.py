@@ -2,6 +2,8 @@ from scrapy.crawler import CrawlerProcess
 from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
 from multiprocessing import Process, Queue
 
+from multiprocessing import Process, Queue
+
 
 class Crawler:
     """
@@ -70,7 +72,8 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "sitemap":
+        
+        elif self.query["type"] == "link_feed":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
