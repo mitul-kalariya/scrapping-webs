@@ -45,7 +45,7 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
     name = "bfm_tv"
 
     def __init__(
-        self, type=None, start_date=None, url=None, end_date=None, *args, **kwargs
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """
         Initializes a web scraper object with the given parameters.
