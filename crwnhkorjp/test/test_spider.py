@@ -1,10 +1,9 @@
 import logging
 import unittest
-from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
-from crwnhkorjp.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwnhkorjp.test.helpers.utils import (get_article_content,
-                                           online_response_from_url)
+
 from crwnhkorjp import Crawler
+from crwnhkorjp.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwnhkorjp.test.helpers.utils import get_article_content
 
 # Creating an object
 logger = logging.getLogger()

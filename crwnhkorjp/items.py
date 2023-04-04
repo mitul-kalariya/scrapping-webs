@@ -9,8 +9,6 @@ from itemloaders.processors import TakeFirst, MapCompose
 from w3lib.html import remove_tags
 
 
-
-
 class NewtonScrappingItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
@@ -36,4 +34,3 @@ class ArticleRawParsedJson(Item):
     ImageGallery = Field(output_processor=TakeFirst())
     VideoObject = Field(output_processor=TakeFirst())
     other = Field()
-
