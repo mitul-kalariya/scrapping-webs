@@ -171,41 +171,36 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
         article_raw_parsed_json_loader.add_value(
             key, [json.loads(data) for data in value.getall()]
         )
-
     parsed_data_dict = get_parsed_data_dict()
-    mapper = {"en": "English"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    parsed_data_dict['author'] = response.css('meta[property="article:author"]::attr(content)').get()
-    parsed_data_dict["description"] = response.css('meta[name="dc.description"]::attr(content)').get()
-    breakpoint()
-    published_at = response.css('.time::text').get()
-    if published_at:
-        parsed_data_dict["published_at"] = published_at[2] + 'T' + published_at[3]
-    parsed_data_dict["modified_at"] = response.css('.time::text').get()
-    publisher = article_data.get('main').get('publisher')
-    publisher['@id'] = 'asahi.com'
-    publisher['logo']['height'] = {'@type': 'Distance', 'name': str(publisher['logo']['height']) + ' ' + 'px'}
-    publisher['logo']['width'] = {'@type': 'Distance', 'name': str(publisher['logo']['width']) + ' ' + 'px'}
-    parsed_data_dict['publisher'] = [publisher]
+    #parsed_data_dict['author'] = response.css('meta[property="article:author"]::attr(content)').get()
+    parsed_data_dict["description"] = [response.css('meta[name="dc.description"]::attr(content)').get()]
+    published_at = response.css('.txt_box span.time::text').getall()
+    i = 0
+    if len(published_at) == 3:
+        i = 1
+    parsed_data_dict["published_at"] = [published_at[i].split(' ')[2] + 'T' + published_at[i].split(' ')[3]]
+    if len(published_at) > 1:
+        parsed_data_dict["modified_at"] = [published_at[i+1].split(' ')[3] + 'T' + published_at[i+1].split(' ')[4]]
+    author = {}
+    if response.css('#container a::text')[0].get():
+        author['@type'] = 'Person'
+        author['name'] = response.css('#container a::text')[0].get()
+        author['url'] = response.css('#container a::attr(href)')[0].get()
+        parsed_data_dict['author'] = [author]
+    parsed_data_dict['author'] = [author] 
     texts = []
-    for p in response.css('.nfyQp p'):
-        text = ''
-        for a in p.css('a'):
-            text += a.css('::text').get().strip() + ' '
-        for t in p.css('::text'):
-            if t.get().strip():
-                text += t.get().strip() + ' '
-        texts.append(text.strip())
+    for data in response.css('#newsViewArea::text'):
+        texts.append(data.get().strip())
     parsed_data_dict["text"] = [data for data in texts if data]
-    parsed_data_dict['thumbnail_image'] = [response.css('.rXjfG a img::attr(src)').get().lstrip('/')]
-    parsed_data_dict['title'] = [response.css('#main h1::text').get()]
-    parsed_data_dict['modified_at'] = [article_data.get('main').get('dateModified')]
+    parsed_data_dict['thumbnail_image'] = [response.css('h1 a:nth-child(1) img::attr(src)').get()]
+    parsed_data_dict['title'] = [response.css('#container h1::text').get()]
+    parsed_data_dict['section'] = [response.css('.section::text').get().split('>')[1]]
+    # parsed_data_dict['embed_video_link'] = get_embed_video_link(response)
+    parsed_data_dict["source_country"] = ["South Korea"]
+    parsed_data_dict["source_language"] = ["Korean"]
+    parsed_data_dict['tags'] = response.css('.gnb_depth_in li a::text').getall()
     parsed_data_dict['images'] = get_images(response)
-    parsed_data_dict['section'] = []
-    parsed_data_dict['embed_video_link'] = []
-    parsed_data_dict["source_country"] = ["Japan"]
-    parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
-    parsed_data_dict["embed_video_link"] = []
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -298,7 +293,7 @@ def get_images(response, parsed_json=False) -> list:
         import time
         time.sleep(1)
         data = []
-        images = driver.find_elements(By.CSS_SELECTOR, '.b-loaded')
+        images = driver.find_elements(By.CSS_SELECTOR, '#newsViewArea .b-loaded')
         if images:
             for image in images:
                 temp_dict = {}
@@ -313,5 +308,31 @@ def get_images(response, parsed_json=False) -> list:
     except Exception as e:
         LOGGER.error(f"{str(e)}")
         print(f"Error while getting article images: {str(exception)}")
+    driver.quit()
+    return data
+
+
+def get_embed_video_link(response) -> list:
+    """
+    A list of video objects containing information about the videos on the webpage.
+    """
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    driver.get(response.url)
+
+    try:
+        import time
+        time.sleep(1)
+        embed_videos = driver.find_elements(By.CSS_SELECTOR, '#ats-video_html5_api')
+        data = []
+        if embed_videos:
+            for video in embed_videos:
+                link = video.get_attribute("src").replace("blob:", "")
+                temp_dict = {"link": link}
+                data.append(temp_dict)
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting embed video: {str(exception)}")
     driver.quit()
     return data

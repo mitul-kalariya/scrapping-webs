@@ -61,7 +61,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         end_date=None, url=None, *args, **kwargs
     ):
         try:
-            super(AsahiSDigital, self).__init__(*args, **kwargs)
+            super(Mbn_news, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
@@ -105,21 +105,9 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 sitemap_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                     namespaces=self.namespace).getall()
 
-                # sitemap_last_mod_dates = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
-                #                                                               namespaces=self.namespace).getall()
-
                 for site_map_url in sitemap_urls:
                     yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-                    # _date = datetime.strptime(last_mod_date.split("T")[0], '%Y-%m-%d')
-
-                    # if self.today_date:
-                    #     if (self.today_date.year, self.today_date.month) == (_date.year, _date.month):
-                            
-
-                    # else:
-                    #     if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <=\
-                    #        (self.end_date.year, self.end_date.month):
-                    #         yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                    
             except Exception as exception:
                 self.log(
                     f"Error occured while iterating sitemap url. {str(exception)}",
@@ -145,7 +133,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         
 
         article_url = Selector(response, type='xml').\
-            xpath('//sitemap:loc/text()', namespaces= self.namespace).getall()
+            xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
         mod_date = Selector(response, type='xml')\
             .xpath('//news:publication_date/text()',
                    namespaces=self.namespace).getall()
@@ -215,6 +203,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
             parsed_json_misc = response.css('script[type="application/json"]::text')
+
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
@@ -235,7 +224,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 "parsed_data", get_parsed_data(response, parsed_json_dict)
             )
             self.articles.append(dict(articledata_loader.load_item()))
-            return articledata_loader.item
+            return self.articles[0]
 
         except Exception as exception:
             self.log(
@@ -257,12 +246,12 @@ class Mbn_news(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(
