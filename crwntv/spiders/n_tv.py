@@ -98,10 +98,10 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
         except BaseException as e:
             LOGGER.info(
-                f"Error occurring while parsing sitemap {e} in parse function"
+                f"Error occured in parse function: {e}"
             )
             raise exceptions.ParseFunctionFailedException(
-                f"Error occurring while parsing sitemap {str(e)} in parse function"
+                f"Error occured in parse function: {e}"
             )
 
     def parse_sitemap(self, response):  # noqa: C901
