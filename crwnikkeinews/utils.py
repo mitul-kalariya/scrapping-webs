@@ -3,7 +3,10 @@ import json
 import logging
 import os
 from datetime import datetime
+from io import BytesIO
 
+import requests
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -156,8 +159,11 @@ def get_parsed_data(response):
     """
     main_dict = {}
 
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    json_data = json.loads(ld_json_data[0])
+
     # Author
-    authors = get_author(response)
+    authors = get_author(json_data)
     main_dict["author"] = authors
 
     # Last Updated Date
@@ -165,11 +171,13 @@ def get_parsed_data(response):
     main_dict["modified_at"] = [last_updated]
 
     # Published Date
-    published_on = get_published_at(response)
-    main_dict["published_at"] = [published_on]
+    published_meta = response.css('meta[property="article:published_time"]')
+    published = published_meta.attrib["content"]
+    main_dict["published_at"] = [published]
     
     # Description
-    description = response.css(".break-words::text").get()
+    description_meta = response.css('meta[property="og:description"]')
+    description = description_meta.attrib["content"]
     main_dict["description"] = [description]
     
     # Publisher
@@ -178,7 +186,7 @@ def get_parsed_data(response):
     
     # Article Text
     article_text = response.css(
-        "#article-content-section strong::text , #article-content-section .md\:mb-8::text, #article-content-section .break-words::text"
+        ".paragraph_p15tm1hb::text"
     ).getall()
     main_dict["text"] = [" ".join(article_text)]
     
@@ -195,8 +203,8 @@ def get_parsed_data(response):
     main_dict["images"] = article_images
     
     # Videos
-    video = get_embed_video_link(response)
-    main_dict["embed_video_link"] = video
+    # video = get_embed_video_link(response)
+    # main_dict["embed_video_link"] = video
     
     # Language
     mapper = {"ja": "Japanese"}
@@ -258,10 +266,11 @@ def get_author(response) -> list:
     try:
         data = []
         temp_dict = {}
-        temp_dict["@type"] = "Person"
-        temp_dict["name"] = response.css(
-            ".mb-0\.5 .whitespace-nowrap+ .flex::text"
-        ).get()
+        publisher_data = response[0].get("author")
+        temp_dict["@type"] = publisher_data.get("@type")
+        temp_dict["name"] = publisher_data.get("name")
+        temp_dict["url"] = publisher_data.get("url")
+
         data.append(temp_dict)
         return data
     except exceptions.ArticleScrappingException as exception:
@@ -277,29 +286,16 @@ def get_thumbnail_image(response) -> list:
         A list of dictionaries, with each dictionary containing information about an image.
             If no images are found, an empty list is returned.
     """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
-    data = {}
     try:
-        thumbnails = driver.find_elements(
-            By.XPATH, "//div[@class='article-grid__top-media-section']//img"
-        )
-
+        data = []
+        thumbnails_meta = response.css('meta[property="og:image"]')
+        thumbnails = thumbnails_meta.attrib["content"]
         if thumbnails:
-            for thumb in thumbnails:
-                try:
-                    return [thumb.get_attribute("src").replace("blob:", "")]
-                except:
-                    return [thumb.get_attribute("src").replace("blob:", "")]
+            data.append(thumbnails)
+        return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting thumbnail image: {str(exception)}")
-    driver.quit()
-    return data
-
 
 def get_embed_video_link(response) -> list:
     """
@@ -340,21 +336,21 @@ def get_publisher(response) -> list:
         ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         json_data = json.loads(ld_json_data[0])
         publisher_data = json_data[0].get("publisher")
-
+        image = BASE_URL[:-1] + publisher_data.get("logo").get("url")
         a_dict = {
             "@id": "nikkei.com",
             "@type": publisher_data.get("@type"),
             "name": "nikkei",
             "logo": {
                 "@type": publisher_data.get("logo").get("@type"),
-                "url": BASE_URL + publisher_data.get("logo").get("url"),
+                "url": image,
                 "width": {
                     "@type": "Distance",
-                    "name": str(publisher_data.get("logo").get("width")) + " px",
+                    "name": str(get_image_dimension(response, image)[0]) + " px",
                 },
                 "height": {
                     "@type": "Distance",
-                    "name": str(publisher_data.get("logo").get("height")) + " px",
+                    "name": str(get_image_dimension(response, image)[1]) + " px",
                 },
             },
         }
@@ -371,46 +367,24 @@ def get_images(response, parsed_json=False) -> list:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
     try:
-        scroll = driver.find_elements(By.XPATH, "//p")
-        last_p_tag = scroll[-1]
-        driver.execute_script(
-            "window.scrollTo("
-            + str(last_p_tag.location["x"])
-            + ", "
-            + str(last_p_tag.location["y"])
-            + ")"
-        )
-
-        images = driver.find_elements(
-            By.XPATH, '//*[@id="article-content-section"]//div/div/img'
-        )
         data = []
+        images = response.css('.image_i6zn6lo')
         if images:
             for image in images:
                 temp_dict = {}
-                link = image.get_attribute("src").replace("blob:", "")
-                caption = image.get_attribute("alt").replace("blob:", "")
-
-                if link:
-                    temp_dict["link"] = link
-                    if caption:
-                        temp_dict["caption"] = caption
+                image = image.css('::attr(src)').get()
+                if image:
+                    temp_dict["link"] = image
                 data.append(temp_dict)
             return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting article images: {str(exception)}")
-    driver.quit()
-    return data
 
 
 def get_tags(response) -> list:
+    breakpoint()
     """Extract all the tags available for the article
     Args:
         response (scrapy.http.Response): The response object containing the HTML of the article page.
@@ -418,9 +392,7 @@ def get_tags(response) -> list:
         list: List of tags
     """
     try:
-        tags = response.css(
-            "#web-isa-article-wrapper-0 .place-self-center::text"
-        ).getall()
+        tags = response.css(".list_lej8eec li a::text").getall()
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -435,13 +407,23 @@ def get_section(response) -> list:
         list: List of sections
     """
     try:
-        sections = response.css(
-            "#web-isa-article-wrapper-0 .md\:mt-0 li a::text"
-        ).getall()
-        return sections
+        sections_meta = response.css('meta[property="article:section"]')
+        sections = sections_meta.attrib["content"]
+        return [sections]
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting article sections: {str(exception)}")
+
+def get_image_dimension(response, img_link):
+    favicon_url = response.urljoin(img_link)
+    img_response = requests.get(favicon_url)
+    width, height = Image.open(BytesIO(img_response.content)).size
+
+    return [width, height]
+
+def get_meta_information(response):
+    meta_info = response.css('meta[property="og:description"]')
+    description = description_meta.attrib["content"]
 
 
 def remove_empty_elements(parsed_data_dict):
