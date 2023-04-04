@@ -15,7 +15,12 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from scrapy.utils.project import get_project_settings
 
-from crwzeitnews.constant import (TODAYS_DATE, LOGGER, BASE_URL, SITEMAP_URL, )
+from crwzeitnews.constant import (
+    TODAYS_DATE,
+    LOGGER,
+    BASE_URL,
+    SITEMAP_URL,
+)
 from crwzeitnews import exceptions
 from crwzeitnews.items import ArticleData
 from crwzeitnews.utils import (
@@ -49,7 +54,7 @@ class BaseSpider(ABC):
 class ZeitSpider(scrapy.Spider, BaseSpider):
     name = "zeit"
 
-    def __init__(self,type=None , since=None, url=None, until=None , *args, **kwargs):
+    def __init__(self, type=None, since=None, url=None, until=None, *args, **kwargs):
         """
         A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
         1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
@@ -63,9 +68,9 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
             url (str): The URL of the article to scrape in article mode.
         """
-        super(ZeitSpider,self).__init__(*args,**kwargs)
+        super(ZeitSpider, self).__init__(*args, **kwargs)
 
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -73,12 +78,8 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
         create_log_file()
         if self.type == "sitemap":
             self.start_urls.append("https://www.zeit.de/gsitemaps/index.xml")
-            self.since = (
-                datetime.strptime(since, "%Y-%m-%d").date() if until else None
-            )
-            self.until = (
-                datetime.strptime(until, "%Y-%m-%d").date() if until else None
-            )
+            self.since = datetime.strptime(since, "%Y-%m-%d").date() if until else None
+            self.until = datetime.strptime(until, "%Y-%m-%d").date() if until else None
             validate_sitemap_date_range(since, until)
 
         if self.type == "article":
@@ -87,20 +88,42 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             else:
                 LOGGER.error("Must have a URL to scrap")
                 raise Exception("Must have a URL to scrap")
+
         # collecting request headers from target website index page
-        request_headers = get_request_headers(self.start_urls[0],self.type)
-        self.valid_cookie = request_headers.get('cookie')
-        del request_headers['cookie']
+        request_headers = get_request_headers()
+        self.valid_cookie = request_headers.get("cookie")
         self.valid_request_headers = request_headers
-        yield scrapy.Request(self.start_urls[0],headers=self.valid_request_headers, cookies=self.valid_cookie, callback=self.parse)
+        self.start_requests()
+
+    def start_requests(self):
+        yield scrapy.Request(
+            self.start_urls[0],
+            headers=self.valid_request_headers,
+            cookies=self.valid_cookie,
+            callback=self.parse,
+        )
 
     def parse(self, response, **kwargs):
         if self.type == "sitemap":
             if self.since and self.until:
+                breakpoint()
                 LOGGER.info("Parse function called on %s", response.url)
-                yield scrapy.Request(response.url, headers=self.valid_request_headers, cookies=self.valid_cookie, callback=self.parse_sitemap)
+                yield scrapy.Request(
+                    response.url,
+                    headers=self.valid_request_headers,
+                    cookies=self.valid_cookie,
+                    callback=self.parse_sitemap,
+                    dont_filter = True,
+                )
             else:
-                yield scrapy.Request(response.url,headers=self.valid_request_headers, cookies=self.valid_cookie, callback=self.parse_sitemap)
+                breakpoint()
+                yield scrapy.Request(
+                    response.url,
+                    headers=self.valid_request_headers,
+                    cookies=self.valid_cookie,
+                    callback=self.parse_sitemap,
+                    dont_filter = True,
+                )
 
         elif self.type == "article":
 
@@ -110,18 +133,25 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
     def parse_article(self, response: str) -> list:
         pass
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_sitemap(self, response, **kwargs) -> None:
         try:
+            print("\n\n\n\n\n\n\n +++++++++++++++++++++++++++++++++++++++++++++++++")
+            breakpoint()
             # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             # Create a Selector object from the XmlResponse
             xml_selector = Selector(xmlresponse)
             # Define the XML namespaces used in the sitemap
-            xml_namespaces = {"xmlns": "https://www.zeit.de/gsitemaps/index.xml?date="}
-            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ).getall()
             # Loop through each sitemap URL in the XML response
+            breakpoint()
             for link in links:
-                pub_date = (re.search(r"\d{4}-\d{2}-\d{2}",link)).group(0)
+                pub_date = (re.search(r"\d{4}-\d{2}-\d{2}", link)).group(0)
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
                 if self.since and published_at < self.since:
@@ -131,17 +161,28 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                     return
 
                 if self.since is None and self.until is None:
+                    breakpoint()
                     if TODAYS_DATE == published_at:
-                        yield scrapy.Request(link, callback=self.parse_sitemap_article,
-                                             meta={'link': link, 'pub_date': published_at})
+                        yield scrapy.Request(
+                            link,
+                            callback=self.parse_sitemap_article,
+                            meta={"link": link, "pub_date": published_at},
+                            dont_filter = True,
+                        )
                 else:
+                    breakpoint()
                     if self.since and self.until:
-                        yield scrapy.Request(link, callback=self.parse_sitemap_article,
-                                             meta={'link': link, 'pub_date': published_at})
+                        yield scrapy.Request(
+                            link,
+                            callback=self.parse_sitemap_article,
+                            meta={"link": link, "pub_date": published_at},
+                            dont_filter = True,
+                        )
 
         except exceptions.SitemapScrappingException as exception:
             LOGGER.error(f"{str(exception)}")
             print(f"Error while parsing sitemap: {str(exception)}")
+
     def parse_sitemap_article(self, response) -> None:
         """
         This function takes in a response object and parses the sitemap.
@@ -152,7 +193,9 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
         """
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "https://www.zeit.de/"}
             links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces)
@@ -163,7 +206,9 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 self.articles.append(data)
         except exceptions.SitemapScrappingException as exception:
             LOGGER.error(f"Error while parsing sitemap article: {str(exception)}")
-            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {str(exception)}")
+            exceptions.SitemapArticleScrappingException(
+                f"Error while parsing sitemap article: {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -191,6 +236,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
+
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())

@@ -18,7 +18,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-def get_request_headers(url, type):
+def get_request_headers():
     headers = {}
     chrome_options = Options()
     # chrome_options.add_argument("--headless")
@@ -35,15 +35,16 @@ def get_request_headers(url, type):
             if article:
                 for request in driver.requests:
                     if "https://www.zeit.de/index" in str(request.url) and "cookie:" in str(request.headers):
-                        headers |= format_headers(str(request.headers))
+                        headers = format_headers(str(request.headers))
+                        print(headers)
                         return headers
 
-    except BaseException:
-        pass
+    except BaseException as e:
+        print(f"occured :- {e}")
 
 
 def format_headers(request_headers, sep=': ', strip_cookie=False, strip_cl=True,
-                               strip_headers: list = []) -> dict:
+                               strip_headers = []) -> dict:
     """
     formates a string of headers to a dictionary containing key-value pairs of request headers
     :param request_headers:
@@ -72,7 +73,8 @@ def format_headers(request_headers, sep=': ', strip_cookie=False, strip_cl=True,
 
     headers_dict["cookie"] = parse_cookies(headers_dict.get("cookie",None))
     return headers_dict
-def parse_cookies(self, raw_cookies):
+
+def parse_cookies(raw_cookies):
     # parsed cookies
     cookies = {}
 
