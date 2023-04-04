@@ -96,7 +96,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
-        
+
     def parse(self, response: str, **kwargs) -> None:
         """
         differentiate sitemap and article and redirect its callback to different parser
@@ -133,7 +133,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
-    
+
     def parse_sitemap(self, response: str) -> None:
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
