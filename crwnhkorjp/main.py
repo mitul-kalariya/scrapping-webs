@@ -73,7 +73,7 @@ class Crawler:
                 "args": {"callback": output_queue.put},
             }
         
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")

@@ -2,7 +2,7 @@
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from www.lemonde.fr website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www3.nhk.or.jp/news/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -22,10 +22,11 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
+### Important:- Olnly last 5 day's articles are available including today's date
 ```
 # To fetch all the article links
 
-from crwnhkorjp.main import Crawler
+from crwnhkorjp import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -37,9 +38,9 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.lemonde.fr/sitemap_index.xml",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
+        "domain": "https://www3.nhk.or.jp/news/",
+        "since": "2023-04-01",
+        "until": "2023-04-05"
     },
     proxies=proxies
 )
@@ -49,7 +50,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from crwnhkorjp.main import Crawler
+from crwnhkorjp import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.lemonde.fr/sitemap_index.xml"
+        "domain": "https://www3.nhk.or.jp/news/"
     },
     proxies=proxies
 )
@@ -72,7 +73,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crwnhkorjp.main import Crawler
+from crwnhkorjp import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +85,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://www3.nhk.or.jp/news/html/20230403/k10014027091000.html"
     },
     proxies=proxies
 )
