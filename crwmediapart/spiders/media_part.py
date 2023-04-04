@@ -36,7 +36,7 @@ class BaseSpider(ABC):
 class MediaPartSpider(scrapy.Spider, BaseSpider):
     name = "media_part"
 
-    def __init__(self, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         A spider to crawl mediapart.fr for news articles.
         The spider can be initialized with two modes:
@@ -52,7 +52,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             url (str): The URL of the article to scrape in article mode.
         """
         try:
-            super().__init__(**kwargs)
+            super(MediaPartSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
@@ -70,11 +70,11 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 else:
                     LOGGER.info("Must have a URL to scrap")
                     raise Exception("Must have a URL to scrap")
-                
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
-
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
 
     def parse(self, response):
         """
@@ -88,16 +88,21 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         Raises:
             BaseException: If an error occurs during parsing, an error is logged and printed to the console.
         """
-        if self.type == "sitemap":
-            if self.start_date and self.end_date:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
-            else:
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+        try:
+            if self.type == "sitemap":
+                if self.start_date and self.end_date:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
-        elif self.type == "article":
-            article_data = self.parse_article(response)
-            yield article_data
-
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                yield article_data
+        except BaseException as e:
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
 
     def parse_sitemap(self, response):
         """
@@ -125,8 +130,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
         # If there's any error during the above process, log it and print
         except BaseException as e:
-            LOGGER.info("Error while parsing sitemap: {}".format(e))
-            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
+            LOGGER.info(f"Error while parsing sitemap: {e}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_sitemap_article(self, response):
 
@@ -166,6 +173,12 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             LOGGER.info(f"Error while parsing sitemap article: {e}")
             exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {e}")
 
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap article: {e}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap article: {str(e)}"
+            )
+
     def parse_article(self, response):
         """
         Parses the article data from the response object and returns it as a dictionary.
@@ -192,7 +205,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
-        
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
