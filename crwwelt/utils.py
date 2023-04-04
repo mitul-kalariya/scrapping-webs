@@ -2,6 +2,7 @@
 from datetime import timedelta, datetime
 import json
 import os
+import itertools
 
 from scrapy.loader import ItemLoader
 
@@ -336,17 +337,9 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         Dictionary with Parsed json response from generated data
     """
     data_dict = get_author_and_publisher_details(parsed_json_main)
-    text = response.css('.__margin-bottom--is-0 p::text , .c-summary__intro::text').getall()
+    text = response.css('.__margin-bottom--is-0 p::text , .c-summary__intro::text, p em::text, p span::text').getall()
 
-    caption = response.css('.o-element__text::text').get()
-    image_link = response.css('.c-progressive-opener-image__original-image img::attr(src)').get()
-    image_link2 = response.css("picture.o-element__image source::attr(data-src-template)").get()
-    image = None
-    if caption and (image_link or image_link2):
-        image = {
-            "link": image_link or image_link2,
-            "caption": caption.strip() if caption else None
-        }
+    image = get_formated_images(response, parsed_json_main)
     video_caption = response.css('.o-element__text--has-no-ellipsis::text').getall()
 
     parsed_data_dict = get_parsed_data_dict()
@@ -370,7 +363,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "thumbnail_image": [data_dict.get("thumbnail_image")]
     }
     parsed_data_dict |= {
-        "images": [image],
+        "images": image,
         "video": {"caption": video_caption},
         "section": [data_dict.get("category")]
 
@@ -386,6 +379,8 @@ def get_author_and_publisher_details(block: dict) -> dict:
     Returns:
         str : author and publisher details
     """
+    if not block:
+        return {}
     data_dict = {
         "description": block.get("description"),
         "modified_at": block.get("dateModified"),
@@ -415,6 +410,42 @@ def get_author_and_publisher_details(block: dict) -> dict:
                 "url": author.get("url")
             })
     return data_dict
+
+
+def get_formated_images(response, block) -> str:
+    """return formated images response using block and response
+    Args:
+        response : response object of scrapy
+    Returns:
+        str: return link of image
+    """
+    formated_images = []
+    for link, caption in itertools.zip_longest(
+        response.css("figure picture.c-progressive-opener-image__original-image source[data-breakpoint='Large']::attr(srcset)").getall(),
+        response.css("figure.o-element__main figcaption div.o-element__text[data-qa='Element.Caption.copyright'][data-qa='Element.Caption.copyright']::text").getall()
+    ):
+        formated_images.append({
+            "link": link.split()[0],
+            "caption": caption,
+        })
+    if formated_images:
+        return formated_images
+    if block:
+        image_url_from_block = block.get("image", {}).get("url")
+        if image_url_from_block:
+            formated_images.append({
+                "link": image_url_from_block
+            })
+            return formated_images
+    caption = response.css('.o-element__text::text').get()
+    image_link = response.css('.c-progressive-opener-image__original-image img::attr(src)').get()
+    image_link2 = response.css("picture.o-element__image source::attr(data-src-template)").get()
+    if caption and (image_link or image_link2):
+        formated_images.append({
+            "link": image_link or image_link2,
+            "caption": caption.strip() if caption else None
+        })
+    return formated_images
 
 
 def get_publisher_detail(response: str, data_dict: dict) -> dict:
