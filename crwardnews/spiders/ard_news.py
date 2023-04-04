@@ -41,7 +41,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
     name = "ard_news"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(self, *args, type=None, start_date=None, url=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
 
