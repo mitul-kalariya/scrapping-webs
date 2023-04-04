@@ -347,8 +347,7 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
-    parsed_data_dict |= get_thumbnail_image_video(video_object, response
-                                                  )
+    parsed_data_dict |= get_thumbnail_image_video(video_object, response)
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -449,18 +448,19 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     return {
         "title": [parsed_data.get("headline")],
-        "text": ["".join(
-            response.css(
-                "article div.content div.content p::text, article div.content h2::text"
-            ).getall()
-        )],
+        "text": [
+            "".join(
+                response.css(
+                    "article div.content div.content p::text, article div.content h2::text"
+                ).getall()
+            )
+        ],
         "section": [parsed_data.get("articleSection")],
         "tags": parsed_data.get("keywords", []),
     }
 
 
-def get_thumbnail_image_video(video_object: dict, response: str
-                              ) -> dict:
+def get_thumbnail_image_video(video_object: dict, response: str) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -472,15 +472,24 @@ def get_thumbnail_image_video(video_object: dict, response: str
     video = None
     description = None
     images = []
+    captions = []
+
     if video_object:
         if video_url := video_object.get("embedUrl"):
             video = video_url
         description = video_object.get("description")
-    captions = response.css("div.content figure figcaption::text").getall()
 
-    for caption in captions:
-        if len(caption.strip()) == 0:
-            captions.remove(caption)
+    for caption in response.css("div.content figure figcaption"):
+        caption_em_text = caption.css("em::text").get()
+        if caption_em_text is None:
+            caption_em_text = ""
+        else:
+            caption_em_text = caption_em_text.strip()
+
+        caption_text = (
+                caption.css("::text").get().strip() + " " + caption_em_text + "\n"
+        )
+        captions.append(caption_text)
 
     for link, caption in zip_longest(
             response.css("div.content figure img::attr(src)").getall(),
