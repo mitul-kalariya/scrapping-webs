@@ -1,23 +1,25 @@
 import gzip
-import scrapy
-import requests
-from io import BytesIO
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-from scrapy.crawler import CrawlerProcess
-from crwbfmtv.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
-from crwbfmtv import exceptions
-from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+from io import BytesIO
+
+import requests
+import scrapy
+from bs4 import BeautifulSoup
+from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
+from scrapy.utils.project import get_project_settings
+
+from crwbfmtv import exceptions
+from crwbfmtv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwbfmtv.items import ArticleData
 from crwbfmtv.utils import (
     create_log_file,
-    validate_sitemap_date_range,
     export_data_to_json_file,
-    get_raw_response,
     get_parsed_data,
     get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range,
 )
 
 # create log file
@@ -80,7 +82,9 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
                         else None
                     )
                     self.end_date = (
-                        datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                        datetime.strptime(end_date, "%Y-%m-%d").date()
+                        if end_date
+                        else None
                     )
                     validate_sitemap_date_range(start_date, end_date)
             elif self.type == "article":
@@ -92,7 +96,9 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
 
     def parse(self, response):
         """
@@ -221,10 +227,10 @@ class BFMTVSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
+            raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
             LOGGER.info(
