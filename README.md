@@ -22,6 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
+### important:- In the sitemap, only last 10-12 days' articles available
 ```
 # To fetch all the article links
 
@@ -38,8 +39,8 @@ crawler = Crawler(
     query={
         "type": "sitemap",
         "domain": "https://www.sankei.com/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
+        "since": "2023-03-25",
+        "until": "2023-04-04"
     },
     proxies=proxies
 )
