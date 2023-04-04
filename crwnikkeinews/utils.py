@@ -167,54 +167,51 @@ def get_parsed_data(response):
     main_dict["author"] = authors
 
     # Last Updated Date
-    last_updated_date_meta = response.css('meta[property="article:modified_time"]')
-    last_updated_date = last_updated_date_meta.attrib["content"]
+    last_updated_date = get_meta_information(response, "article:modified_time")
     main_dict["modified_at"] = [last_updated_date]
 
     # Published Date
-    published_meta = response.css('meta[property="article:published_time"]')
-    published = published_meta.attrib["content"]
+    published = get_meta_information(response, "article:published_time")
     main_dict["published_at"] = [published]
-    
+
     # Description
-    description_meta = response.css('meta[property="og:description"]')
-    description = description_meta.attrib["content"]
+    description = get_meta_information(response, "og:description")
     main_dict["description"] = [description]
-    
+
     # Publisher
     publisher = get_publisher(response)
     main_dict["publisher"] = publisher
-    
+
     # Article Text
     article_text = response.css(
         ".paragraph_p15tm1hb::text"
     ).getall()
     main_dict["text"] = [" ".join(article_text)]
-    
+
     # Thumbnail
     thumbnail = get_thumbnail_image(response)
     main_dict["thumbnail_image"] = thumbnail
-    
+
     # Title
     title = response.css("h1.title_tp0qjrp::text").get().strip()
     main_dict["title"] = [title]
-    
+
     # Images
     article_images = get_images(response)
     main_dict["images"] = article_images
-    
+
     # Videos
     # video = get_embed_video_link(response)
     # main_dict["embed_video_link"] = video
-    
+
     # Language
     mapper = {"ja": "Japanese"}
     article_lang = response.css("html::attr(lang)").get()
     main_dict["source_language"] = [mapper.get(article_lang)]
-    
+
     # Tags
     main_dict["tags"] = get_tags(response)
-    
+
     # Section/Category
     main_dict["section"] = get_section(response)
 
@@ -289,14 +286,14 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         data = []
-        thumbnails_meta = response.css('meta[property="og:image"]')
-        thumbnails = thumbnails_meta.attrib["content"]
+        thumbnails = get_meta_information(response, "og:image")
         if thumbnails:
             data.append(thumbnails)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting thumbnail image: {str(exception)}")
+
 
 def get_embed_video_link(response) -> list:
     """
@@ -370,13 +367,16 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         data = []
-        images = response.css('.image_i6zn6lo')
+        images = response.css('.paragraph_p15tm1hb+ .figure_fv30jf .image_i6zn6lo')
         if images:
             for image in images:
                 temp_dict = {}
-                image = image.css('::attr(src)').get()
-                if image:
-                    temp_dict["link"] = image
+                link = image.css('::attr(src)').get()
+                alt_text = image.css("::attr(alt)").get()
+                if link:
+                    temp_dict["link"] = link
+                if alt_text:
+                    temp_dict["caption"] = alt_text
                 data.append(temp_dict)
             return data
     except exceptions.ArticleScrappingException as exception:
@@ -385,7 +385,6 @@ def get_images(response, parsed_json=False) -> list:
 
 
 def get_tags(response) -> list:
-    breakpoint()
     """Extract all the tags available for the article
     Args:
         response (scrapy.http.Response): The response object containing the HTML of the article page.
@@ -408,25 +407,53 @@ def get_section(response) -> list:
         list: List of sections
     """
     try:
-        sections_meta = response.css('meta[property="article:section"]')
-        sections = sections_meta.attrib["content"]
+        sections = get_meta_information(response, "article:section")
         return [sections]
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting article sections: {str(exception)}")
 
+
 def get_image_dimension(response, img_link):
-    favicon_url = response.urljoin(img_link)
-    img_response = requests.get(favicon_url)
-    width, height = Image.open(BytesIO(img_response.content)).size
+    """Extract image dimensions
 
-    return [width, height]
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+        img_link (str): Image link
 
-# def get_meta_information(response, property):
-#     meta_info = response.css('meta[property=]')
-#     meta_tag_text = meta_info.attrib["content"]
-#
-#     return meta_tag_text
+    Returns:
+        list: list containing image width and height
+    """
+    try:
+        favicon_url = response.urljoin(img_link)
+        img_response = requests.get(favicon_url)
+        width, height = Image.open(BytesIO(img_response.content)).size
+
+        return [width, height]
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting image dimensions: {str(exception)}")
+
+
+def get_meta_information(response, property):
+    """Extract information from meta tag
+
+    Args:
+        response (_type_): (scrapy.http.Response): The response object containing the HTML of the article page.
+        property (str): meta property
+
+    Returns:
+        str: Requested meta tag content
+    """
+    try:
+        meta_info = response.css(f'meta[property="{property}"]')
+        if meta_info:
+            meta_tag_text = meta_info.attrib["content"]
+            return meta_tag_text
+        return None
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article details (meta info): {str(exception)}")
 
 
 def remove_empty_elements(parsed_data_dict):
