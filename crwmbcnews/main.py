@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwmbcnews.spiders.mbc_news import MbcNewsSpider
 
 
 class Crawler:
@@ -82,7 +82,7 @@ class Crawler:
             process.settings = process_settings
 
         # TODO: Replace the Spider name after importing
-        process.crawl(SueddeutscheSpider, **spider_args)
+        process.crawl(MbcNewsSpider, **spider_args)
         process.start()
         return self.output
 
