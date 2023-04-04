@@ -1,6 +1,6 @@
 from crwbild.main import Crawler
 
-crawler = Crawler(query={"type": "sitemap", "since": "2023-03-31"})
+crawler = Crawler(query={"type": "sitemap"})
 data = crawler.crawl()
 
 print(data)
