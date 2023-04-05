@@ -70,7 +70,10 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     try:
+
         parsed_json = {}
+        imageObjects = []
+        videoObjects = []
         other_data = []
         ld_json_data = response.css(
             'script[type="application/ld+json"]::text'
@@ -80,13 +83,14 @@ def get_parsed_json(response):
         for data in ld_json_list:
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
-            elif data.get("@type") == "ImageGallery":
-                parsed_json["ImageGallery"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                imageObjects.append(data)
             elif data.get("@type") == "VideoObject":
-                parsed_json["VideoObject"] = data
+                videoObjects.append(data)
             else:
                 other_data.append(data)
-
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
         parsed_json["Other"] = other_data
         misc = get_misc(response)
         if misc:
