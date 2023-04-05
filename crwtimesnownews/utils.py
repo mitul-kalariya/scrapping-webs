@@ -129,9 +129,17 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
             )
 
-        elif key == "VideoObject":
+        elif key == "VideoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+            )
+        elif key == "ImageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObject"]
+            )   
+        elif key == "misc":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall()]
             )
         else:
             article_raw_parsed_json_loader.add_value(

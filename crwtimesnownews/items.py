@@ -30,5 +30,6 @@ class ArticleRawParsedJson(Item):
     main = Field(output_processor=TakeFirst())
     misc = Field()
     ImageGallery = Field()
-    VideoObject = Field()
+    ImageObjects = Field()
+    VideoObjects = Field()
     other = Field()
