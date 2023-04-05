@@ -58,7 +58,7 @@
                     }
                 ]
             },
-            "Other": [
+            "other": [
                 {
                     "@context": "https://schema.org",
                     "@type": "BreadcrumbList",
@@ -163,6 +163,9 @@
                 "Prozess",
                 "Kunden",
                 "Kundendienst"
+            ],
+            "time_parsed": [
+                "2023-04-05 22:38:58.176521"
             ]
         }
     }
