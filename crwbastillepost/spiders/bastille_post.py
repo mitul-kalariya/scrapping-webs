@@ -243,9 +243,3 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}")
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(BastillePostSpider)
-    process.start()
