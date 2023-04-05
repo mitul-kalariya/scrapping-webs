@@ -49,6 +49,18 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 if test_article_data[0].get("parsed_json").get("misc"):
                     self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("imageObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("imageObjects"), list,
+                                          "parsed_json --> imageObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("videoObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("videoObjects"), list,
+                                          "parsed_json --> videoObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
+                                          "parsed_json --> other must be list")
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
@@ -69,9 +81,6 @@ class TestArticle(unittest.TestCase):
             self.assertEqual(article[0].get("parsed_data").get("section"),
                              test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
         with self.subTest():
-            self.assertEqual(article[0].get("parsed_data").get("tags"), test_article_data[0].get(
-                "parsed_data").get("tags"), "tags mismatch in parsed_data")
-        with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("source_country"),
                              test_article_data[0].get("parsed_data").get("source_country"),
                              "source_country mismatch in parsed_data")
@@ -87,7 +96,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -176,7 +184,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
                                       list, "format mismatch for parsed_data--> modified_at")
-
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():

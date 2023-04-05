@@ -92,7 +92,7 @@ def get_parsed_json(response):
                 other_data.append(data)
         parsed_json["imageObjects"] = imageObjects
         parsed_json["videoObjects"] = videoObjects
-        parsed_json["Other"] = other_data
+        parsed_json["other"] = other_data
         misc = get_misc(response)
         if misc:
             parsed_json["misc"] = misc
