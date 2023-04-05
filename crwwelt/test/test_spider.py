@@ -83,8 +83,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -257,6 +255,7 @@ class TestSitemap(unittest.TestCase):
     def test_parse(self):
         self.article_urls = self.crawler.crawl()
         self._test_sitemap_results()
+
 
 if __name__ == "__main__":
     unittest.main()

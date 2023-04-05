@@ -213,7 +213,7 @@ class WeltSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
+                "parsed_data", get_parsed_data(response, parsed_json_data)
             )
 
             self.articles.append(

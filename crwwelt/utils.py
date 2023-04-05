@@ -188,18 +188,19 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
+        "imageObject": None,
+        "videoObject": None,
         "Other": [],
         "misc": [],
     }
     for block in blocks:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif ("ImageGallery" in json.loads(block).get("@type", [{}])
+              or"ImageObject" in json.loads(block).get("@type", [{}])):
+            parsed_json_flter_dict["imageObject"] = json.loads(block)
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObject"] = json.loads(block)
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
@@ -325,7 +326,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list) -> dict:
+def get_parsed_data(response: str, parsed_json: dict) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -336,6 +337,10 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
+    if not parsed_json.get("main"):
+        parsed_json_main = parsed_json.get("videoObject")
+    else:
+        parsed_json_main = parsed_json.get("main")
     data_dict = get_author_and_publisher_details(parsed_json_main)
     text = response.css('.__margin-bottom--is-0 p::text , .c-summary__intro::text, p em::text, p span::text').getall()
 
@@ -421,11 +426,24 @@ def get_formated_images(response, block) -> str:
     """
     formated_images = []
     for link, caption in itertools.zip_longest(
-        response.css("figure picture.c-progressive-opener-image__original-image source[data-breakpoint='Large']::attr(srcset)").getall(),
-        response.css("figure.o-element__main figcaption div.o-element__text[data-qa='Element.Caption.copyright'][data-qa='Element.Caption.copyright']::text").getall()
+        response.css(
+            "figure.o-element__main picture.o-element__image source[data-breakpoint='Large']::attr(data-src-template), \
+            figure.o-element__main picture.o-element__image img::attr(src)")
+        .getall(),
+        response.css(
+            "figure.o-element__main figcaption div.o-element__text[data-qa='Element.Caption.text']::text")
+        .getall()
     ):
+        if not link:
+            continue
+        dupliate = False
+        for formated_image in formated_images:
+            if link == formated_image.get("link"):
+                dupliate = True
+        if dupliate:
+            continue
         formated_images.append({
-            "link": link.split()[0] if link else None,
+            "link": link,
             "caption": caption,
         })
     if formated_images:
