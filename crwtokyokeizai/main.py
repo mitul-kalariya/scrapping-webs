@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwtokyokeizai.spiders.tokyo_keizai import TokyoKeizaiOnlineSpider
 
 
 class Crawler:
