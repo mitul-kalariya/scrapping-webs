@@ -1,15 +1,19 @@
 import scrapy
 from datetime import datetime
 from lxml import etree
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
 from crwglobalnews import exceptions
 from scrapy.loader import ItemLoader
 from crwglobalnews.constant import TODAYS_DATE, LOGGER
 from abc import ABC, abstractmethod
 from crwglobalnews.items import ArticleData
-from crwglobalnews.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
-                                 get_raw_response, get_parsed_data, get_parsed_json, )
+from crwglobalnews.utils import (
+    create_log_file,
+    validate_sitemap_date_range,
+    export_data_to_json_file,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
+)
 
 # create log file
 create_log_file()
@@ -35,7 +39,9 @@ class BaseSpider(ABC):
 class GlobalNewsSpider(scrapy.Spider, BaseSpider):
     name = "global_news"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(
+            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
         1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
@@ -52,7 +58,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         try:
             super(GlobalNewsSpider, self).__init__(*args, **kwargs)
 
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.article_url = url
@@ -60,8 +66,14 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
             if self.type == "sitemap":
                 self.start_urls.append("https://globalnews.ca/news-sitemap.xml")
-                self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-                self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date()
+                    if start_date
+                    else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
                 validate_sitemap_date_range(start_date, end_date)
 
             if self.type == "article":
@@ -73,7 +85,9 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
-            raise exceptions.InvalidInputException(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
+            )
 
     def parse(self, response):
         """Parses the response object and extracts data based on the type of object.
@@ -92,13 +106,12 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
-        
+
         except BaseException as e:
             LOGGER.info(f"Error occured in parse function: {e}")
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
-
 
     def parse_sitemap(self, response):
         """
@@ -106,12 +119,18 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         """
         try:
             root = etree.fromstring(response.body)
-            urls = root.xpath("//xmlns:loc/text()",
-                              namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}, )
-            titles = root.xpath("//news:title/text()",
-                                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"}, )
-            publication_dates = root.xpath("//news:publication_date/text()",
-                                           namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"}, )
+            urls = root.xpath(
+                "//xmlns:loc/text()",
+                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+            )
+            titles = root.xpath(
+                "//news:title/text()",
+                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+            )
+            publication_dates = root.xpath(
+                "//news:publication_date/text()",
+                namespaces={"news": "http://www.google.com/schemas/sitemap-news/0.9"},
+            )
             for url, title, pub_date in zip(urls, titles, publication_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 if self.start_date and published_at < self.start_date:
@@ -121,16 +140,24 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
 
                 if self.start_date is None and self.end_date is None:
                     if TODAYS_DATE == published_at:
-                        data = {"link": url, "title": title, }
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
                         self.articles.append(data)
                 else:
                     if self.start_date and self.end_date:
-                        data = {"link": url, "title": title, }
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
                         self.articles.append(data)
 
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap: {}".format(exception))
-            raise exceptions.SitemapScrappingException(f"Error while parsing sitemap: {str(exception)}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
+            )
 
     def parse_sitemap_article(self, response):
         pass
@@ -154,7 +181,10 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             response_data = get_parsed_data(response)
 
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value("parsed_json", response_json, )
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
@@ -190,11 +220,9 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(f"Error occurred while writing json file {str(exception)} - {reason}")
-            LOGGER.info(f"Error occurred while writing json file {str(exception)} - {reason}")
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(GlobalNewsSpider)
-    process.start()
+            exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file {str(exception)} - {reason}"
+            )
+            LOGGER.info(
+                f"Error occurred while writing json file {str(exception)} - {reason}"
+            )

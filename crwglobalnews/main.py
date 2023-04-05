@@ -41,7 +41,7 @@ class Crawler:
         self.query = query
         self.proxies = proxies
 
-    def crawl(self)-> list[dict]:
+    def crawl(self) -> list[dict]:
         """Crawls the sitemap URL and article URL and return final data
         Raises:
             Exception: Raised exception for unknown Type
