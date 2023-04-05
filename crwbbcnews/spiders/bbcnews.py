@@ -1,20 +1,18 @@
 import logging
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
+
 import scrapy
 from scrapy.loader import ItemLoader
 
-from crwbbcnews.items import ArticleData
-from crwbbcnews.utils import (
-    check_cmd_args,
-    get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file,
-    get_data_from_json
-)
-from crwbbcnews.exceptions import ExportOutputFileException, SitemapArticleScrappingException, ArticleScrappingException
 from crwbbcnews.constant import BASE_URL
-
+from crwbbcnews.exceptions import (ArticleScrappingException,
+                                   ExportOutputFileException,
+                                   )
+from crwbbcnews.items import ArticleData
+from crwbbcnews.utils import (check_cmd_args,
+                              get_data_from_json, get_parsed_json,
+                              get_raw_response)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -56,7 +54,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
     def __init__(
         self, type=None, start_date=None,
         end_date=None, url=None, *args, **kwargs
-                ):
+    ):
         super(BBCNews, self).__init__(*args, **kwargs)
         self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
@@ -70,12 +68,14 @@ class BBCNews(scrapy.Spider, BaseSpider):
 
         check_cmd_args(self, self.start_date, self.end_date)
 
-    def parse(self, response):
+    def parse(self, response):  # noqa: C901
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
-        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
-        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback function `parse_article`.
+        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and
+        sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        If `type` is "articles", sends a request for the given URL to
+        Scrapy's engine with the callback function `parse_article`.
         This function is intended to be used as a Scrapy spider callback function.
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
@@ -88,7 +88,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
                     group_types = group['items']
                     for group_type in group_types:
                         article_timestamp = group_type['timestamp']
-                        article_date = datetime.fromtimestamp(article_timestamp/1000).date()
+                        article_date = datetime.fromtimestamp(article_timestamp / 1000).date()
 
                         if self.start_date and self.end_date:
                             if self.start_date.date() <= article_date <= self.end_date.date():
@@ -202,8 +202,6 @@ class BBCNews(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(

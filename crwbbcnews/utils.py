@@ -9,7 +9,7 @@ from crwbbcnews.items import ArticleRawResponse, ArticleRawParsedJson
 from crwbbcnews.exceptions import InvalidDateException, InvalidArgumentException, InputMissingException
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
 
@@ -153,23 +153,23 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key,
                 [json.loads(data) if type(json.loads(data)) is dict else json.loads(data)[0] for data in value.getall()
                  if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "NewsArticle") or (
-                             type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle") or (
-                             type(json.loads(data)) in [list, dict])]
+                    type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle") or (
+                    type(json.loads(data)) in [list, dict])]
 
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if
                       (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageGallery") or (
-                                  type(json.loads(data)) is list and json.loads(data)[0].get(
-                              '@type') == "ImageGallery")]
+                    type(json.loads(data)) is list and json.loads(data)[0].get(
+                        '@type') == "ImageGallery")]
             )
 
         elif key == "VideoObject":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if
                       (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject") or (
-                                  type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
+                    type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
             )
         elif key == "misc":
             article_raw_parsed_json_loader.add_value(
@@ -181,7 +181,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                     data_type = data_dict.get('@graph')[0].get('@type')
                     if data_dict is dict and data_type not in selector_and_key.keys() and data_type != "NewsArticle":
                         article_raw_parsed_json_loader.add_value(key, data_dict)
-            except:
+            except:  # noqa: E722
                 pass
 
     return dict(article_raw_parsed_json_loader.load_item())
