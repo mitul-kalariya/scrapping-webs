@@ -139,9 +139,26 @@ class HK01Spider(scrapy.Spider, BaseSpider):
     def parse_sitemap(self, response):
         try:
             namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for url in response.xpath("//xmlns:url", namespaces=namespaces):
-                link = url.xpath("xmlns:loc/text()", namespaces=namespaces).get()
-                yield scrapy.Request(link, self.parse_sitemap_article)
+            url = response.xpath("//xmlns:url", namespaces=namespaces)
+            links = url.xpath("xmlns:loc/text()", namespaces=namespaces).getall()
+            titles = url.xpath('//*[local-name()="title"]/text()').getall()
+            published_date = url.xpath('//*[local-name()="publication_date"]/text()').getall()
+
+            for link, title, pub_date in zip(links, titles, published_date):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                data = {
+                    'link': link,
+                    'title': title
+                }
+                if self.since is None and self.until is None:
+                    if TODAYS_DATE == published_at:
+                        self.articles.append(data)
+                elif self.since and self.until and self.since <= published_at <= self.until:
+                    self.articles.append(data)
+                elif self.since and self.until:
+                    if published_at == self.since and published_at == self.until:
+                        self.articles.append(data)
+
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
             raise exceptions.SitemapScrappingException(
@@ -149,35 +166,7 @@ class HK01Spider(scrapy.Spider, BaseSpider):
             )
 
     def parse_sitemap_article(self, response):
-        """
-        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
-        """
-        try:
-            link = response.url
-            title = response.css("#articleTitle::text").get()
-            published_at = response.css(".inline time::attr(datetime)").get()
-            date_only = datetime.strptime(published_at[:10], "%Y-%m-%d").date()
-
-            if self.since and date_only < self.until:
-                return
-            if self.until and date_only > self.until:
-                return
-
-            if link and title and published_at:
-                data = {
-                    "link": link,
-                    "title": title,
-                }
-                if self.since is None and self.until is None:
-                    if TODAYS_DATE == date_only:
-                        self.articles.append(data)
-                elif self.since and self.until:
-                    self.articles.append(data)
-        except BaseException as exception:
-            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
-            raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(exception)}"
-            )
+        pass
 
     def closed(self, reason: any) -> None:
         """
@@ -195,8 +184,6 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
