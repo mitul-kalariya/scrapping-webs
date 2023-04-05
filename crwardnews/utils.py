@@ -21,25 +21,39 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
-            raise exceptions.InvalidDateException("end_date must be specified if start_date is provided")
+            raise exceptions.InvalidDateException(
+                "end_date must be specified if start_date is provided"
+            )
         if not start_date and end_date:
-            raise exceptions.InvalidDateException("start_date must be specified if end_date is provided")
+            raise exceptions.InvalidDateException(
+                "start_date must be specified if end_date is provided"
+            )
 
         if start_date and end_date and start_date > end_date:
-            raise exceptions.InvalidDateException("start_date should not be later than end_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be later than end_date"
+            )
 
         if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be greater than today_date"
+            )
 
         if start_date and end_date and end_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException("end_date should not be greater than today_date")
+            raise exceptions.InvalidDateException(
+                "end_date should not be greater than today_date"
+            )
 
     except exceptions.InvalidDateException as expception:
-        LOGGER.error(f"Error occured while checking date range: {expception}", exc_info=True)
+        LOGGER.error(
+            f"Error occured while checking date range: {expception}", exc_info=True
+        )
         raise exceptions.InvalidDateException(
             f"Error occured while checking date range: {expception}"
         )
@@ -98,13 +112,12 @@ def get_parsed_json(response):
         imageObjects = []
         videoObjects = []
         other_data = []
-        ld_json_data = response.css(
-            'script[type="application/ld+json"]::text').getall()
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in ld_json_data:
             data = json.loads(a_block)
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
-            elif data.get("@type") == "ImageGallery" or data.get("@type") == "ImageObject":
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
                 imageObjects.append(data)
             elif data.get("@type") == "VideoObject":
                 videoObjects.append(data)
@@ -153,14 +166,16 @@ def get_parsed_data(response):
         text = response.css("p.textabsatz::text").getall()
         text = [re.sub(pattern, "", i) for i in text]
         if text:
-            main_dict['text'] = ["".join(list(filter(None, text)))]
+            main_dict["text"] = ["".join(list(filter(None, text)))]
 
         # extract section information
         section = get_section(response)
-        main_dict['section'] = section
+        main_dict["section"] = section
 
         # extract the thumbnail image
-        thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
+        thumbnail_image = response.css(
+            "picture.ts-picture--topbanner .ts-image::attr(src)"
+        ).get()
         if thumbnail_image:
             main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
 
@@ -176,7 +191,7 @@ def get_parsed_data(response):
         tags = response.css("ul.taglist li a::text").getall()
         main_dict["tags"] = tags
 
-        mapper = {'de': "German"}
+        mapper = {"de": "German"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
@@ -259,10 +274,12 @@ def get_article_images(response) -> list:
         pattern = r"[\r\n\t\"]+"
         for child in response:
             a_dict = {}
-            a_dict["link"] = BASE_URL + child.css("div.absatzbild__media div picture img::attr(src)").get()
+            a_dict["link"] = (
+                BASE_URL
+                + child.css("div.absatzbild__media div picture img::attr(src)").get()
+            )
             caption = re.sub(
-                pattern, "",
-                child.css("div.absatzbild__info p::text").get()
+                pattern, "", child.css("div.absatzbild__info p::text").get()
             ).strip()
             if caption:
                 a_dict["caption"] = caption
@@ -306,7 +323,9 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     elif scrape_type == "article":
         folder_structure = "Article"
-        filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        )
 
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
