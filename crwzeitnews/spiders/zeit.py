@@ -1,3 +1,4 @@
+"""Spider to scrap ZEIT news website"""
 import re
 import scrapy
 import logging
@@ -49,16 +50,20 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
 
     def __init__(self, type=None, since=None, url=None, until=None, *args, **kwargs):
         """
-        A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
+        A spider to crawl globalnews.ca for news articles. 
+        The spider can be initialized with two modes:
         1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
         and scrape articles within a specified date range.
         2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
 
         Attributes:
             name (str): The name of the spider.
-            type (str): The mode of the spider. Possible values are 'sitemap' and 'article'.
-            start_date (str): The start date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
-            end_date (str): The end date of the date range for sitemap mode. Should be in 'YYYY-MM-DD' format.
+            type (str): The mode of the spider. 
+                        Possible values are 'sitemap' and 'article'.
+            start_date (str): The start date of the date range for sitemap mode.
+                              Should be in 'YYYY-MM-DD' format.
+            end_date (str): The end date of the date range for sitemap mode. 
+                            Should be in 'YYYY-MM-DD' format.
             url (str): The URL of the article to scrape in article mode.
         """
         super(ZeitSpider, self).__init__(*args, **kwargs)

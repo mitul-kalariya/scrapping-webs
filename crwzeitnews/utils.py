@@ -15,6 +15,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 def get_request_headers():
+
+    """fetching headers from selenium instance
+
+    Returns:
+        dict: containing formatted request headers containing cookies
+    """
     headers = {}
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -41,13 +47,12 @@ def get_request_headers():
                         request.url
                     ) and "cookie:" in str(request.headers):
                         headers = format_headers(str(request.headers))
-                        print(headers)
                         return headers
 
-    except BaseException as e:
-        LOGGER.debug(f"error while running selenium instance: {e}")
+    except BaseException as exception:
+        LOGGER.debug(f"error while running selenium instance: {exception}")
         raise exceptions.RequestHeadersException(
-            "error while running selenium instance: {e}"
+            f"error while running selenium instance: {exception}"
         )
 
 
@@ -86,10 +91,10 @@ def format_headers(
 
         headers_dict["cookie"] = parse_cookies(headers_dict.get("cookie", None))
         return headers_dict
-    except BaseException as e:
-        LOGGER.debug(f"error while folding header data: {e}")
+    except BaseException as exception:
+        LOGGER.debug(f"error while folding header data: {exception}")
         raise exceptions.RequestHeadersException(
-            "error while folding headers data: {e}"
+            f"error while folding headers data: {exception}"
         )
 
 
@@ -109,10 +114,10 @@ def parse_cookies(raw_cookies):
             # parse raw cookie string
             cookies[key] = val
 
-        except BaseException as e:
-            LOGGER.debug(f"error while folding cookies data: {e}")
+        except BaseException as exception:
+            LOGGER.debug(f"error while folding cookies data: {exception}")
             raise exceptions.RequestHeadersException(
-                "error while folding cookies data: {e}"
+                f"error while folding cookies data: {exception}"
             )
 
     return cookies
@@ -140,9 +145,9 @@ def validate_sitemap_date_range(since, until):
                 "since should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.error(f"Error in __init__: {exception}", exc_info=True)
+        raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
 """
@@ -151,6 +156,8 @@ common function
 
 
 def create_log_file():
+    """creating log file
+    """
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -220,22 +227,16 @@ def remove_empty_elements(parsed_data_dict):
     return data_dict
 
 
-"""
-raw response functions
-"""
-
-
 def get_raw_response(response):
+    """parsing raw response
+    
+    returns: raw response
+    """
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
         "content": response.css("html").get(),
     }
     return raw_resopnse
-
-
-"""
-parse json data functions
-"""
 
 
 def get_parsed_json(response):
@@ -320,9 +321,9 @@ def get_main(response):
                 information["publisher_info"] = get_publisher_info(data)
 
         return information
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while getting main: {e}")
+    except BaseException as exception:
+        LOGGER.error(f"Error while getting main{exception}")
+        raise exceptions.ArticleScrappingException(f"Error while getting main: {exception}")
 
 
 def get_misc(response):
@@ -339,14 +340,9 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
-
-
-"""
-parse article data
-"""
+    except BaseException as exception:
+        LOGGER.error(f"{exception}")
+        raise exceptions.ArticleScrappingException(f"Error while getting misc: {exception}")
 
 
 def get_parsed_data_dict() -> dict:
@@ -462,7 +458,6 @@ def get_author_details(parsed_data: list, response: str) -> dict:
         }
         for author in parsed_data.get("author")
     )
-    print(author_details)
     return {"author": author_details}
 
 
