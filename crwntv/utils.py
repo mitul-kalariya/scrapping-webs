@@ -154,6 +154,9 @@ def get_parsed_data(response):
     article_description = response.css("p strong::text").get()
     response_data["description"] = [article_description]
 
+    article_section = response.css("span[class=\"title title--dark\"]::text").get()
+    if article_section: response_data["section"] = [article_section]
+
     article_publisher = get_main(response)
     response_data["publisher"] = [article_publisher[0].get("publisher")]
 
