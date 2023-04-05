@@ -1,4 +1,4 @@
-# {ScrapperName} Scrapping
+# ZDF Scrapping
 
 #### Setup and execution instructions: - 
 
