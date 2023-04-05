@@ -3,8 +3,6 @@ import logging
 from datetime import datetime
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
 from crwtbsnews import exceptions
 from scrapy.loader import ItemLoader
 from crwtbsnews.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
@@ -37,6 +35,10 @@ class BaseSpider(ABC):
         pass
 
 
+# create log file
+create_log_file()
+
+
 class NewsdigTbsSpider(scrapy.Spider):
     name = "tbs_news"
 
@@ -59,34 +61,38 @@ class NewsdigTbsSpider(scrapy.Spider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
+        try:
+            super(NewsdigTbsSpider, self).__init__(*args, **kwargs)
 
-        super(NewsdigTbsSpider, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.start_urls = []
+            self.articles = []
+            self.article_url = url
+            self.type = type.lower()
 
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
-        self.start_urls = []
-        self.articles = []
-        self.article_url = url
-        self.type = type.lower()
+            if self.type == "sitemap":
+                self.start_urls.append(SITEMAP_URL)
 
-        create_log_file()
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
+                validate_sitemap_date_range(start_date, end_date)
 
-        if self.type == "sitemap":
-            self.start_urls.append(SITEMAP_URL)
+            if self.type == "article":
+                if url:
+                    self.start_urls.append(url)
+                else:
+                    LOGGER.info("Must have a URL to scrap")
+                    raise exceptions.InvalidInputException("Must have a URL to scrap")
 
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+        except Exception as exception:
+            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
             )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            )
-            validate_sitemap_date_range(start_date, end_date)
-
-        if self.type == "article":
-            if url:
-                self.start_urls.append(url)
-            else:
-                LOGGER.error("Error while")
-                raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response: str, **kwargs) -> None:
         """
@@ -102,23 +108,26 @@ class NewsdigTbsSpider(scrapy.Spider):
 
         try:
             if self.type == "sitemap":
-                    xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
-                    xml_selector = Selector(xmlresponse)
-                    xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+                xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+                xml_selector = Selector(xmlresponse)
+                xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
-                    for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                        for link in sitemap.getall():
-                            if "sitemap-static.xml" in link:
-                                continue
-                            if link[-8:-4] in [str(TODAYS_DATE.year), str(TODAYS_DATE.year - 1)]:
-                                yield scrapy.Request(link, callback=self.parse_sitemap)
+                for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+                    for link in sitemap.getall():
+                        if "sitemap-static.xml" in link:
+                            continue
+                        if link[-8:-4] in [str(TODAYS_DATE.year), str(TODAYS_DATE.year - 1)]:
+                            yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
 
         except BaseException as e:
-            self.logger.error(f"{e}")
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
 
     def parse_sitemap(self, response: str) -> None:
         """
@@ -151,17 +160,14 @@ class NewsdigTbsSpider(scrapy.Spider):
                         self.articles.append(data)
                 else:
                     if self.start_date and self.end_date:
-                        data = {"link": url.extract(),}
+                        data = {"link": url.extract()}
                         self.articles.append(data)
 
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
             raise exceptions.SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_article(self, response: str) -> None:
         """
@@ -192,14 +198,13 @@ class NewsdigTbsSpider(scrapy.Spider):
             return articledata_loader.item
 
         except Exception as exception:
-            self.log(
+            LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception),
-                level=logging.ERROR,
+                + str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -212,9 +217,10 @@ class NewsdigTbsSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
-                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+                LOGGER.info("No articles or sitemap url scrapped.")
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
 
@@ -226,9 +232,3 @@ class NewsdigTbsSpider(scrapy.Spider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(NewsdigTbsSpider)
-    process.start()
