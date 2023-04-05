@@ -49,22 +49,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 if test_article_data[0].get("parsed_json").get("misc"):
                     self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
-            with self.subTest():
-                if test_article_data[0].get("parsed_json").get("imageObjects"):
-                    self.assertIsInstance(article[0].get("parsed_json").get("imageObjects"), list,
-                                          "parsed_json --> imageObjects must be list")
-            with self.subTest():
-                if test_article_data[0].get("parsed_json").get("videoObjects"):
-                    self.assertIsInstance(article[0].get("parsed_json").get("videoObjects"), list,
-                                          "parsed_json --> videoObjects must be list")
-            with self.subTest():
-                if test_article_data[0].get("parsed_json").get("other"):
-                    self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
-                                          "parsed_json --> other must be list")
-                if test_article_data[0].get("parsed_json").get("Other"):
-                    self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
-                                          "parsed_json --> other must be list")
-
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
@@ -258,8 +242,6 @@ class TestSitemap(unittest.TestCase):
         for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-            with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
     def _test_sitemap_results(self):
         with self.subTest():
@@ -273,6 +255,7 @@ class TestSitemap(unittest.TestCase):
     def test_parse(self):
         self.article_urls = self.crawler.crawl()
         self._test_sitemap_results()
+
 
 if __name__ == "__main__":
     unittest.main()

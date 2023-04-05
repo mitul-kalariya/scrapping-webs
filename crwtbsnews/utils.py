@@ -354,10 +354,10 @@ def get_author(response) -> list:
                 if data.get("@type") == "NewsArticle":
                     list_of_ele = []
                     var = {
-                        "@type": data.get("author", [{}]).get("@type"),
-                        "name": data.get("author", [{}]).get("name"),
+                        "@type": data.get("author").get("@type"),
+                        "name": data.get("author").get("name"),
                         "url": data
-                        .get("author", [{}])
+                        .get("author")
                         .get("url", None),
                     }
                     list_of_ele.append(remove_empty_elements(var))
