@@ -1,16 +1,18 @@
 # Utility/helper functions
 # utils.py
 
-import os
-import json
-import re
-import logging
-from datetime import datetime
-from crwtokyokeizai import exceptions
-from crwtokyokeizai.constant import TODAYS_DATE, LOGGER
 import itertools
-from bs4 import BeautifulSoup
+import json
+import logging
+import os
+import re
+from datetime import datetime
+
 import requests
+from bs4 import BeautifulSoup
+
+from crwtokyokeizai import exceptions
+from crwtokyokeizai.constant import LOGGER, TODAYS_DATE
 
 
 def create_log_file():
@@ -24,7 +26,9 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
@@ -97,7 +101,6 @@ def get_main(response):
         main data
     """
     try:
-        # breakpoint()
         data = []
         misc = response.css('script[type="application/ld+json"]::text').getall()
         for block in misc:
@@ -198,13 +201,10 @@ def get_parsed_data(response):
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
     try:
-        breakpoint()
-        # pagination
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
-        # breakpoint()
 
         h_str = "".join(response.css("div.title-parts h1::text").getall())
         if h_str:
@@ -216,7 +216,6 @@ def get_parsed_data(response):
 
         main_data = get_main(response)
         for block in main_data:
-            # breakpoint()
             if "description" in block:
                 main_dict["description"] = block.get("description")
             if "datePublished" in block:
@@ -227,7 +226,9 @@ def get_parsed_data(response):
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
 
-        article_text = response.css("div.article-box-blue, .market h2, .market p::text").getall()
+        article_text = response.css(
+            "div.article-box-blue, .market h2, .market p::text"
+        ).getall()
         # response.css(".life div.article-box-blue, .life h2, .life p::text").getall()
 
         main_dict["text"] = [" ".join(article_text)]
@@ -250,7 +251,9 @@ def get_parsed_data(response):
 
     except BaseException as e:
         LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching parsed_data data: {e}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -327,7 +330,6 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-        breakpoint()
         try:
             response = response.css('script[type="application/ld+json"]::text').getall()
             json_loads = json.loads(response[0])
@@ -363,7 +365,6 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        # breakpoint()
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in parsed_data:
             for data in json.loads(a_block):
@@ -372,9 +373,7 @@ def get_author(response) -> list:
                     var = {
                         "@type": data.get("author", [{}]).get("@type"),
                         "name": data.get("author", [{}]).get("name"),
-                        "url": data
-                        .get("author", [{}])
-                        .get("url", None),
+                        "url": data.get("author", [{}]).get("url", None),
                     }
                     list_of_ele.append(var)
                     return list_of_ele
@@ -390,7 +389,6 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    # breakpoint()
     image = get_main(response)
     for block in image:
         if "image" in block.keys():
@@ -475,4 +473,6 @@ def get_embed_video_link(response) -> list:
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching video links: {e}"
+        )

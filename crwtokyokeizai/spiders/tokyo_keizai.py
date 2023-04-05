@@ -1,25 +1,27 @@
-import scrapy
 import logging
-from datetime import datetime
-from scrapy.http import XmlResponse
-from scrapy.selector import Selector
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
-from crwtokyokeizai import exceptions
-from scrapy.loader import ItemLoader
-from crwtokyokeizai.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
+import re
 from abc import ABC, abstractmethod
+from datetime import datetime
+
+import requests
+import scrapy
+from scrapy.crawler import CrawlerProcess
+from scrapy.http import HtmlResponse, XmlResponse
+from scrapy.loader import ItemLoader
+from scrapy.selector import Selector
+from scrapy.utils.project import get_project_settings
+
+from crwtokyokeizai import exceptions
+from crwtokyokeizai.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwtokyokeizai.items import ArticleData
 from crwtokyokeizai.utils import (
     create_log_file,
-    validate_sitemap_date_range,
     export_data_to_json_file,
-    get_raw_response,
     get_parsed_data,
     get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range,
 )
-import re, requests
-from scrapy.http import HtmlResponse
 
 
 class BaseSpider(ABC):
@@ -39,11 +41,12 @@ class BaseSpider(ABC):
         pass
 
 
-
 class TokyoKeizaiOnlineSpider(scrapy.Spider):
     name = "tokyo_keizai"
-    
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+
+    def __init__(
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -65,7 +68,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
 
         super(TokyoKeizaiOnlineSpider, self).__init__(*args, **kwargs)
 
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -111,8 +114,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
-                article_data = self.parse_article(response)
-                yield article_data
+                yield scrapy.Request(response.url, callback=self.parse_article)
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -130,11 +132,15 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
         """
 
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+            for sitemap in xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ):
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
         except Exception as exception:
@@ -180,45 +186,38 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-            # breakpoint()
-            articledata_loader = ItemLoader(item=ArticleData(), response=response)
-            raw_response = get_raw_response(response)
-            articledata_loader.add_value("raw_response", raw_response)
 
+            raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
-            articledata_loader.add_value(
-                "parsed_json",
-                response_json,
-            )
             response_data = [get_parsed_data(response)]
 
-            breakpoint()
-            urls = response.css("div#article-body div.mp-ie-end a::attr(href)").getall()
-            if urls:
-                for url in urls:
-                    str_url = re.sub("'", '', url)
-                    response_str = 'https://toyokeizai.net' + str_url
+            pagination_links = response.css(
+                "div#article-body div.mp-ie-end a::attr(href)"
+            ).getall()
+            pagination_links = list(set(pagination_links))
+            if pagination_links:
+                for link in pagination_links:
+                    print("##################################################", link)
+                    response_str = "https://toyokeizai.net" + link
+                    yield scrapy.Request(
+                        url=response_str,
+                        callback=self.parse_pagination_page,
+                        meta={
+                            "raw_response": raw_response,
+                            "response_json": response_json,
+                            "response_data": response_data,
+                        },
+                    )
 
-                    # yield scrapy.Request(
-                    #     url=response_str,
-                    #     callback=self.pagination_article()
-                    # )
-                    response = self.pagination_article(response_str)
-                    response_data = [get_parsed_data(response)]
-                    articledata_loader.add_value("parsed_data", response_data)
-                    self.articles.append(dict(articledata_loader.load_item()))
-                    return articledata_loader.item
-
-                articledata_loader.add_value("parsed_data", response_data)
-                self.articles.append(dict(articledata_loader.load_item()))
+                # Retun data after all pagination pages are scrapped
 
             else:
-                response_data = get_parsed_data(response)
+                articledata_loader = ItemLoader(item=ArticleData(), response=response)
+                articledata_loader.add_value("raw_response", raw_response)
+                articledata_loader.add_value("parsed_json", response_json)
                 articledata_loader.add_value("parsed_data", response_data)
                 self.articles.append(dict(articledata_loader.load_item()))
                 return articledata_loader.item
-
-            return articledata_loader.item
 
         except Exception as exception:
             self.log(
@@ -230,23 +229,19 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception
 
-    # def parse_urls(self, response_str):
-    #     breakpoint()
-    #     yield scrapy.Request(
-    #         url=response_str,
-    #         callback=self.pagination_article
-    #     )
+    def parse_pagination_page(self, response):
+        # Extract article data from paginated pages
+        previous_raw_response = response.meta.get("raw_response")
+        previous_response_json = response.meta.get("response_json")
+        previous_response_data = response.meta.get("response_data")
 
-    def pagination_article(self, response):
-        breakpoint()
-        res = scrapy.Request(response)
-        # articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        # response_data = []
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = [get_parsed_data(response)]
 
-        # response_data.append(get_parsed_data(res))
-        # articledata_loader.add_value("parsed_data", response_data)
-        # self.articles.append(dict(articledata_loader.load_item()))
-        return get_parsed_data(res)
+        # Merge previous and current data
+
+        # return updated data
 
     def closed(self, reason: any) -> None:
         """
