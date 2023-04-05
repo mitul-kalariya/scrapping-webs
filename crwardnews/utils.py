@@ -95,6 +95,8 @@ def get_parsed_json(response):
     """
     try:
         parsed_json = {}
+        imageObjects = []
+        videoObjects = []
         other_data = []
         ld_json_data = response.css(
             'script[type="application/ld+json"]::text').getall()
@@ -102,13 +104,15 @@ def get_parsed_json(response):
             data = json.loads(a_block)
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
-            elif data.get("@type") == "ImageGallery":
-                parsed_json["ImageGallery"] = data
+            elif data.get("@type") == "ImageGallery" or "ImageObject":
+                imageObjects.append(data)
             elif data.get("@type") == "VideoObject":
-                parsed_json["VideoObject"] = data
+                videoObjects.append(data)
             else:
                 other_data.append(data)
 
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
         parsed_json["Other"] = other_data
         misc = get_misc(response)
         if misc:
@@ -150,6 +154,10 @@ def get_parsed_data(response):
         text = [re.sub(pattern, "", i) for i in text]
         if text:
             main_dict['text'] = ["".join(list(filter(None, text)))]
+
+        # extract section information
+        section = get_section(response)
+        main_dict['section'] = section
 
         # extract the thumbnail image
         thumbnail_image = response.css("picture.ts-picture--topbanner .ts-image::attr(src)").get()
@@ -252,7 +260,8 @@ def get_article_images(response) -> list:
         for child in response:
             a_dict = {}
             a_dict["link"] = BASE_URL + child.css("div.absatzbild__media div picture img::attr(src)").get()
-            a_dict["caption"] = re.sub(pattern, "", child.css("div.absatzbild__info p::text").get()).strip()
+            caption = re.sub(pattern, "", child.css("div.absatzbild__info p::text").get()).strip()
+            if caption: a_dict["caption"] = caption
             info.append(remove_empty_elements(a_dict))
         return info
     except BaseException as exception:
@@ -260,6 +269,17 @@ def get_article_images(response) -> list:
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting article article images: {exception}"
         ) from exception
+
+def get_section(response) -> list:
+    breadcrumb_list = response.css("ul.article-breadcrumb li")
+    for i in breadcrumb_list:
+        text = i.css("li a::text").get()
+        if text:
+            text = text.split()
+            text = "".join(text)
+            if text:
+                return [text]
+   
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
