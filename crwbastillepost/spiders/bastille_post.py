@@ -118,6 +118,8 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                         namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
                     )
                     for link in links:
+                        if "trends" in link:
+                            continue
                         yield scrapy.Request(link, callback=self.parse_sitemap)
                 except Exception as exception:
                     LOGGER.info(
