@@ -103,26 +103,36 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
+    try:
+        parsed_json = {}
+        imageObjects = []
+        videoObjects = []
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                imageObjects.append(data)
+            elif data.get("@type") == "VideoObject":
+                videoObjects.append(data)
+            else:
+                other_data.append(data)
 
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
+        parsed_json["other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+        return remove_empty_elements(parsed_json)
 
-    return remove_empty_elements(parsed_json)
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while getting parsed json {exception}"
+        )
 
 
 def get_parsed_data(response):
