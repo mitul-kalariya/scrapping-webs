@@ -161,7 +161,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                     return
 
                 if self.since is None and self.until is None:
-                    breakpoint()
                     if TODAYS_DATE == published_at:
                         yield scrapy.Request(
                             link,
@@ -170,7 +169,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                             dont_filter = True,
                         )
                 else:
-                    breakpoint()
                     if self.since and self.until:
                         yield scrapy.Request(
                             link,
@@ -193,12 +191,13 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
         """
         try:
+            breakpoint()
             xmlresponse = XmlResponse(
                 url=response.url, body=response.body, encoding="utf-8"
             )
             xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "https://www.zeit.de/"}
-            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces)
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
             for link in links:
                 data = {
                     "link": link,
