@@ -18,6 +18,7 @@ from crwnippon.utils import (
     get_parsed_json,
     get_raw_response,
     validate_sitemap_date_range,
+    export_data_to_json_file,
 )
 
 
@@ -254,6 +255,8 @@ class NipponNews(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
