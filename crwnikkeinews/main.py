@@ -3,7 +3,6 @@ from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
 
 
-
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -63,8 +62,7 @@ class Crawler:
             list[dict]: list of dictionary of the article data or article links
             as per expected_article.json or expected_sitemap.json
         """
-
-        process = CrawlerProcess()            
+        process = CrawlerProcess()
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
@@ -75,11 +73,12 @@ class Crawler:
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
-        
+
         process_settings = process.settings
         process_settings["DOWNLOAD_DELAY"] = 0.25
         process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process_settings[
+            "USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
         process.settings = process_settings
 
         if self.proxies:
@@ -88,9 +87,7 @@ class Crawler:
                 "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
             ] = 400
             process_settings["HTTPPROXY_ENABLED"] = True
-            process_settings["HTTP_PROXY"] = (
-                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
-            )
+            process_settings["HTTP_PROXY"] = (self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"])
             process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings

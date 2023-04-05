@@ -294,7 +294,7 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         data = []
-        thumbnails = get_meta_information(response, "og:image")
+        thumbnails = response.css(".figure_fv30jf:nth-child(1) .image_i6zn6lo::attr(src)").get()
         if thumbnails:
             data.append(thumbnails)
         return data
