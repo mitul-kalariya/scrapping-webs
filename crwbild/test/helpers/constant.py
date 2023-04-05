@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.bild.de/sport/mehr-sport/sport-mix/ukraine-hochspringer-protsenko-heftige-kritik-an-bach-und-ioc-83395442.bild.html",
+        "url": "https://www.bild.de/bild-plus/regional/hamburg/hamburg-aktuell/techniker-von-kunde-eingesperrt-weil-internet-nicht-lief-83460238.bild.html",
         "test_data_path": "crwbild/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.bild.de/sport/fussball/1-fc-koeln/1-fc-koeln-nach-dem-fifa-urteil-so-koennte-koeln-im-sommer-trotzdem-einkaufen-83394674.bild.html",
+        "url": "https://www.bild.de/regional/ruhrgebiet/ruhrgebiet-aktuell/umbenennung-nach-116-jahren-uni-muenster-jagt-kaiser-wilhelm-vom-hof-83461618.bild.html",
         "test_data_path": "crwbild/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.bild.de/ratgeber/2023/ratgeber/allergie-pollenflugkalender-diese-pollen-fliegen-im-april-2023-83292088.bild.html",
+        "url": "https://www.bild.de/sport/mehr-sport/handball/wetzlar-trainer-horvat-weg-das-steckt-hinter-der-vertrauensbruch-rauswurf-83454824.bild.html",
         "test_data_path": "crwbild/test/data/test_article_3.json"
     }
 ]

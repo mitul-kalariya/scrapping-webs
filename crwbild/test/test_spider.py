@@ -1,6 +1,7 @@
 import logging
 import unittest
 
+
 from crwbild.spiders.crwbild import BildSpider
 from crwbild.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwbild.test.helpers.utils import (get_article_content,

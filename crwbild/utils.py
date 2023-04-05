@@ -190,7 +190,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "main": None,
         "imageObjects": [],
         "videoObjects": [],
-        "Other": [],
+        "other": [],
         "misc": [],
     }
     for block in blocks:
@@ -207,7 +207,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["videoObjects"] = json.loads(block)
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
     return parsed_json_flter_dict
 
