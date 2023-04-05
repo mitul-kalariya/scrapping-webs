@@ -93,7 +93,7 @@ def get_parsed_json(response):
             data = json.loads(a_block)
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
-            elif data.get("@type") in {"ImageGallery","ImageObject"}:
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
                 imageObjects.append(data)
             elif data.get("@type") == "VideoObject":
                 videoObjects.append(data)
