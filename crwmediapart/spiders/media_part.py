@@ -266,8 +266,3 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
 
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(MediaPartSpider)
-    process.start()
