@@ -114,24 +114,27 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     parsed_json = {}
+    imageObjects = []
+    videoObjects = []
     other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
     for a_block in ld_json_data:
         data = json.loads(a_block)
         if data.get("@type") == "NewsArticle":
             parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
+        elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+            imageObjects.append(data)
         elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
+            videoObjects.append(data)
         else:
             other_data.append(data)
 
-    parsed_json["Other"] = other_data
+    parsed_json["imageObjects"] = imageObjects
+    parsed_json["videoObjects"] = videoObjects
+    parsed_json["other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
-
     return remove_empty_elements(parsed_json)
 
 
@@ -222,6 +225,10 @@ def get_parsed_data(response):
 
         tags = get_tags(response)
         main_dict["tags"] = tags
+
+        section = response.css("div.l-article__label a::text").getall()
+        section = re.sub(pattern, "", section[0]).strip()
+        main_dict["section"] = [section]
 
         images = get_images(response)
         if images:
