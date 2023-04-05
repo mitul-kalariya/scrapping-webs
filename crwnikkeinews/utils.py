@@ -73,6 +73,8 @@ def get_parsed_json(response):
     """
     try:
         parsed_json = {}
+        imageObjects = []
+        videoObjects = []
         other_data = []
         ld_json_data = response.css(
             'script[type="application/ld+json"]::text'
@@ -82,17 +84,19 @@ def get_parsed_json(response):
         for data in ld_json_list:
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
-            elif data.get("@type") == "ImageGallery":
-                parsed_json["ImageGallery"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                imageObjects.append(data)
             elif data.get("@type") == "VideoObject":
-                parsed_json["VideoObject"] = data
+                videoObjects.append(data)
             else:
                 other_data.append(data)
-
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
         parsed_json["Other"] = other_data
         misc = get_misc(response)
         if misc:
             parsed_json["misc"] = misc
+
         return remove_empty_elements(parsed_json)
     except BaseException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -491,6 +495,7 @@ def remove_empty_elements(parsed_data_dict):
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while removing empty elements: {str(exception)}")
+
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """
