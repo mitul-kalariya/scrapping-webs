@@ -17,8 +17,13 @@ def online_response_from_url(url: str) -> TextResponse:
 
     raw_response = requests.get(url)
 
-    response = TextResponse(url=url, request=request, headers=raw_response.headers,
-                            body=raw_response.text, encoding='utf-8')
+    response = TextResponse(
+        url=url,
+        request=request,
+        headers=raw_response.headers,
+        body=raw_response.text,
+        encoding="utf-8",
+    )
     return response
 
 
@@ -31,7 +36,7 @@ def get_article_content(file_name: str) -> dict:
     Returns:
         dict: JSON data
     """
-    with open(file_name, 'r') as f:
+    with open(file_name, "r") as f:
         data = json.load(f)
 
     return data

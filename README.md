@@ -1,4 +1,4 @@
-# {ScrapperName} Scrapping
+# Indian Express Scrapping
 
 #### Setup and execution instructions: - 
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwindianexpress import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwindianexpress import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwindianexpress import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP

@@ -1,7 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+
+from crwindianexpress.spiders.indian_express import IndianExpressSpider
 
 
 class Crawler:
@@ -26,7 +26,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -71,7 +71,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
@@ -89,6 +89,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(IndianExpressSpider, **spider_args)
         process.start()

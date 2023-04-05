@@ -3,28 +3,26 @@
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
-from crwindianexpress.constant import BASE_URL, SITEMAP_URL
-
 import scrapy
+
 
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
-
 from crwindianexpress.items import ArticleData
+
 from crwindianexpress.utils import (
     based_on_scrape_type,
     get_raw_response,
     get_parsed_json,
     get_parsed_data,
-    remove_empty_elements,
 )
 from crwindianexpress.exceptions import (
-    SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
+from crwindianexpress.constant import BASE_URL, SITEMAP_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
@@ -121,10 +119,21 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
         if "sitemap.xml" in response.url:
             for single_date in self.date_range_lst:
                 try:
+                    day = (
+                        single_date.day
+                        if len(str(single_date.day)) > 1
+                        else f"0{single_date.day}"
+                    )
+                    month = (
+                        single_date.month
+                        if len(str(single_date.month)) > 1
+                        else f"0{single_date.month}"
+                    )
+                    year = single_date.year
                     self.logger.debug("Parse function called on %s", response.url)
                     yield scrapy.Request(
-                        f"https://indianexpress.com/sitemap.xml?yyyy={single_date.year}"
-                        + f"&mm={single_date.month}&dd={single_date.day}",
+                        f"https://indianexpress.com/sitemap.xml?yyyy={year}"
+                        + f"&mm={month}&dd={day}",
                         callback=self.parse_sitemap,
                     )
                 except Exception as exception:
@@ -137,7 +146,7 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response: str) -> None:
         """
-        parse sitemap from sitemap url and callback parser to parse title and link
+        parse sitemap article and scrap link
         Args:
             response: generated response
         Raises:
@@ -151,29 +160,7 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
                 .xpath("//sitemap:loc/text()", namespaces=self.namespace)
                 .getall()
             ):
-                yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.native_story_title::text").get():
-                data = {"link": response.url, "title": title}
+                data = {"link": article_url}
                 self.articles.append(data)
         except Exception as exception:
             self.log(
@@ -183,6 +170,17 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
             raise SitemapArticleScrappingException(
                 f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
+
+    def parse_sitemap_article(self, response) -> None:
+        """
+        parse sitemap article and scrap title and link
+
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
+        """
+        pass
 
     def parse_article(self, response: str) -> None:
         """
@@ -202,8 +200,6 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
 
-            parsed_json_main = response.css('script[type="application/ld+json"]::text')
-
             parsed_json_data = get_parsed_json(response)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -212,12 +208,17 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_main)
+                "parsed_data",
+                get_parsed_data(
+                    response,
+                    parsed_json_data.get("main", [{}]),
+                    parsed_json_data.get("imageObjects", [{}]),
+                    parsed_json_data.get("videoObjects", [{}]),
+                    response.url,
+                ),
             )
 
-            self.articles.append(
-                remove_empty_elements(dict(articledata_loader.load_item()))
-            )
+            self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 
         except Exception as exception:
