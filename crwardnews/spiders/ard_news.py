@@ -289,8 +289,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
             else:
