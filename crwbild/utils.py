@@ -29,7 +29,7 @@ SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
 
 
 def sitemap_validations(
-        scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
+    scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
     Validate the sitemap arguments
@@ -67,7 +67,7 @@ def sitemap_validations(
 
 
 def article_validations(
-        article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
+    article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
 ) -> None:
     """
     Validate the article arguments
@@ -128,7 +128,7 @@ def validate_arg(param_name, param_value, custom_msg="") -> None:
 
 
 def based_on_scrape_type(
-        scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
 ) -> datetime:
     """
     check scrape type and based on the type pass it to the validated function,
@@ -188,20 +188,24 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
+        "imageObjects": [],
+        "videoObjects": [],
         "Other": [],
         "misc": [],
     }
     for block in blocks:
         if "LiveBlogPosting" in json.loads(block).get(
-                "@type", [{}]
+            "@type", [{}]
         ) or "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif (
+            "ImageGallery" in json.loads(block).get("@type", [{}])
+            or "ImageObject" in json.loads(block).get("@type", [{}])
+            or "imageobject" in json.loads(block).get("@type", [{}])
+        ):
+            parsed_json_flter_dict["imageObjects"] = json.loads(block)
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"] = json.loads(block)
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
@@ -222,8 +226,8 @@ def get_parsed_json(response) -> dict:
     )
 
     for key, value in get_parsed_json_filter(
-            response.css('script[type="application/ld+json"]::text').getall(),
-            response.css('script[type="application/json"]::text').getall(),
+        response.css('script[type="application/ld+json"]::text').getall(),
+        response.css('script[type="application/json"]::text').getall(),
     ).items():
         article_raw_parsed_json_loader.add_value(key, value)
 
@@ -396,7 +400,7 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
         "published_at": None,
     }
     if "NewsArticle" in parsed_data.get(
-            "@type"
+        "@type"
     ) or "LiveBlogPosting" in parsed_data.get("@type"):
         article_data |= {
             "description": [parsed_data.get("description")],
@@ -425,11 +429,11 @@ def get_publihser_details(parsed_data: list) -> dict:
                 "logo": {
                     "url": parsed_data.get("publisher").get("logo").get("url"),
                     "width": str(parsed_data.get("publisher").get("logo").get("width"))
-                             + " px",
+                    + " px",
                     "height": str(
                         parsed_data.get("publisher").get("logo").get("height")
                     )
-                              + " px",
+                    + " px",
                 },
             }
             for publisher in [parsed_data.get("publisher")]
@@ -461,8 +465,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     }
 
 
-def get_thumbnail_image_video(response: str
-                              ) -> dict:
+def get_thumbnail_image_video(response: str) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -475,21 +478,29 @@ def get_thumbnail_image_video(response: str
     videos = []
     captions = []
     for link, caption in zip_longest(
-            response.css("article div.article-body figure div.video-teaser a::attr(href)").getall(),
-            response.css(
-                "article div.article-body figure div.video-teaser a figure figcaption div.fig__caption__meta span::text").getall(),
+        response.css(
+            "article div.article-body figure div.video-teaser a::attr(href)"
+        ).getall(),
+        response.css(
+            "article div.article-body figure div.video-teaser "
+            + "a figure figcaption div.fig__caption__meta span::text"
+        ).getall(),
     ):
         videos.append({"link": link, "caption": caption})
     for first_coming_caption in response.css("article figure>figure figcaption"):
         caption_text = get_sub_caption(first_coming_caption)
         captions.append(caption_text)
-    for remaining_coming_caption in response.css("article div.article-body figure.fig--inline>figcaption"):
+    for remaining_coming_caption in response.css(
+        "article div.article-body figure.fig--inline>figcaption"
+    ):
         caption_text = get_sub_caption(remaining_coming_caption)
         captions.append(caption_text)
 
     for link, caption in zip_longest(
-            response.css("article>figure div img::attr(src),.article-body>figure.fig>div>img::attr(data-src)").getall(),
-            captions,
+        response.css(
+            "article>figure div img::attr(src),.article-body>figure.fig>div>img::attr(data-src)"
+        ).getall(),
+        captions,
     ):
         images.append({"link": link, "caption": caption})
 
@@ -499,14 +510,19 @@ def get_thumbnail_image_video(response: str
     }
 
 
-def get_sub_caption(caption: str):
+def get_sub_caption(caption: str) -> str:
+    """
+       Returns sub caption data
+       Args:
+           caption: caption from the response
+       Returns:
+           str: data of sub caption
+    """
     caption_em_text = caption.css("div.fig__caption__meta span::text").get()
 
     if caption_em_text is None:
         caption_em_text = ""
     else:
         caption_em_text = caption_em_text.strip()
-    caption_text = (
-            caption.css("::text").get().strip() + " " + caption_em_text + "\n"
-    )
+    caption_text = caption.css("::text").get().strip() + " " + caption_em_text + "\n"
     return caption_text
