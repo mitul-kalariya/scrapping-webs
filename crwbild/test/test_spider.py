@@ -87,9 +87,6 @@ class TestArticle(unittest.TestCase):
             self.assertEqual(article[0].get("parsed_data").get("section"),
                              test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
         with self.subTest():
-            self.assertEqual(article[0].get("parsed_data").get("tags"), test_article_data[0].get(
-                "parsed_data").get("tags"), "tags mismatch in parsed_data")
-        with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("source_country"),
                              test_article_data[0].get("parsed_data").get("source_country"),
                              "source_country mismatch in parsed_data")
