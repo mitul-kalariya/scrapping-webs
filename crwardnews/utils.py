@@ -42,7 +42,7 @@ def validate_sitemap_date_range(start_date, end_date):
         LOGGER.error(f"Error occured while checking date range: {expception}", exc_info=True)
         raise exceptions.InvalidDateException(
             f"Error occured while checking date range: {expception}"
-        ) from expception
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -113,17 +113,17 @@ def get_parsed_json(response):
 
         parsed_json["imageObjects"] = imageObjects
         parsed_json["videoObjects"] = videoObjects
-        parsed_json["Other"] = other_data
+        parsed_json["other"] = other_data
         misc = get_misc(response)
         if misc:
             parsed_json["misc"] = misc
-
         return remove_empty_elements(parsed_json)
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting parsed json {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting parsed json {exception}"
-        ) from exception
+        )
 
 
 def get_parsed_data(response):
@@ -185,7 +185,7 @@ def get_parsed_data(response):
         LOGGER.info(f"Error while extracting parsed data: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error while extracting parsed data: {exception}"
-        ) from exception
+        )
 
 
 def get_main(response):
@@ -250,7 +250,7 @@ def get_embed_video_link(response) -> list:
         LOGGER.info(f"Error occured while getting article video link: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting article video link: {exception}"
-        ) from exception
+        )
 
 
 def get_article_images(response) -> list:
@@ -260,15 +260,21 @@ def get_article_images(response) -> list:
         for child in response:
             a_dict = {}
             a_dict["link"] = BASE_URL + child.css("div.absatzbild__media div picture img::attr(src)").get()
-            caption = re.sub(pattern, "", child.css("div.absatzbild__info p::text").get()).strip()
-            if caption: a_dict["caption"] = caption
+            caption = re.sub(
+                pattern, "",
+                child.css("div.absatzbild__info p::text").get()
+            ).strip()
+            if caption:
+                a_dict["caption"] = caption
+
             info.append(remove_empty_elements(a_dict))
         return info
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting article images: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting article article images: {exception}"
-        ) from exception
+            f"Error occured while getting article images: {exception}"
+        )
+
 
 def get_section(response) -> list:
     breadcrumb_list = response.css("ul.article-breadcrumb li")
@@ -279,7 +285,6 @@ def get_section(response) -> list:
             text = "".join(text)
             if text:
                 return [text]
-   
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
