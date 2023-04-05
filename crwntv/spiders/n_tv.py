@@ -1,12 +1,8 @@
+import scrapy
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-
-import scrapy
-from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
-from scrapy.utils.project import get_project_settings
-
 from crwntv import exceptions
 from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.items import ArticleData
@@ -194,8 +190,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
