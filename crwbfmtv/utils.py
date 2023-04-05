@@ -89,20 +89,24 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     parsed_json = {}
+    imageObjects = []
+    videoObjects = []
     other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
     for a_block in ld_json_data:
         data = json.loads(a_block)
         if data.get("@type") == "NewsArticle":
             parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
+        elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+            imageObjects.append(data)
         elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
+            videoObjects.append(data)
         else:
             other_data.append(data)
 
-    parsed_json["Other"] = other_data
+    parsed_json["imageObjects"] = imageObjects
+    parsed_json["videoObjects"] = videoObjects
+    parsed_json["other"] = other_data
     misc = get_misc(response)
     if misc:
         parsed_json["misc"] = misc
@@ -178,6 +182,9 @@ def get_parsed_data(response):
     article_publisher = (main_json[1]).get("publisher")
     response_data["publisher"] = [article_publisher]
 
+    section = get_section(response)
+    response_data["section"] = section
+
     article_thumbnail = (main_json[1]).get("image")
     if article_thumbnail:
         response_data["thumbnail_image"] = [article_thumbnail.get("contentUrl")]
@@ -230,6 +237,13 @@ def extract_videos(response) -> list:
 
     driver.quit()
     return data
+
+
+def get_section(response) -> list:
+    breadcrumb_list = response.xpath("//ul[@class='list_inbl']//li[2]//a//span/text()")
+    if breadcrumb_list:
+        for i in breadcrumb_list:
+            return [i.extract()]
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
