@@ -14,7 +14,6 @@ from crwnippon.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwnippon.items import ArticleData
 from crwnippon.utils import (
     create_log_file,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,

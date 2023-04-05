@@ -4,7 +4,6 @@ from crwnippon.spiders.nippon_news import NipponNews
 from multiprocessing import Process, Queue
 
 
-
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -65,14 +64,14 @@ class Crawler:
             as per expected_article.json or expected_sitemap.json
         """
 
-        process = CrawlerProcess()            
+        process = CrawlerProcess()
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
