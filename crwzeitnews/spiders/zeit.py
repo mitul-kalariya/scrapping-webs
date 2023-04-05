@@ -136,7 +136,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
     def parse_sitemap(self, response, **kwargs) -> None:
         try:
             print("\n\n\n\n\n\n\n +++++++++++++++++++++++++++++++++++++++++++++++++")
-            breakpoint()
+        
             # Create an XmlResponse object from the response
             xmlresponse = XmlResponse(
                 url=response.url, body=response.body, encoding="utf-8"
@@ -148,8 +148,8 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             links = xml_selector.xpath(
                 "//xmlns:loc/text()", namespaces=xml_namespaces
             ).getall()
+
             # Loop through each sitemap URL in the XML response
-            breakpoint()
             for link in links:
                 pub_date = (re.search(r"\d{4}-\d{2}-\d{2}", link)).group(0)
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
@@ -191,7 +191,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
         """
         try:
-            breakpoint()
+
             xmlresponse = XmlResponse(
                 url=response.url, body=response.body, encoding="utf-8"
             )
