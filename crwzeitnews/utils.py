@@ -1,14 +1,10 @@
 """Utility Functions"""
 import os
-import re
 import json
-import requests
-from io import BytesIO
-from PIL import Image
 import logging
 from datetime import datetime
 from crwzeitnews import exceptions
-from crwzeitnews.constant import (SITEMAP_URL, TODAYS_DATE, BASE_URL, LOGGER)
+from crwzeitnews.constant import TODAYS_DATE, LOGGER
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -21,30 +17,43 @@ from webdriver_manager.chrome import ChromeDriverManager
 def get_request_headers():
     headers = {}
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get("https://www.zeit.de/index")
     try:
         element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="main"]/div/article/div/section[2]/div[1]/div')))
-        banner_button = driver.find_element(By.XPATH, '//*[@id="main"]/div/article/div/section[2]/div[1]/div')
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="main"]/div/article/div/section[2]/div[1]/div')
+            )
+        )
+        banner_button = driver.find_element(
+            By.XPATH, '//*[@id="main"]/div/article/div/section[2]/div[1]/div'
+        )
         if element:
             banner_button.click()
-            article = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]')))
+            article = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "/html/body/div[3]"))
+            )
             if article:
                 for request in driver.requests:
-                    if "https://www.zeit.de/index" in str(request.url) and "cookie:" in str(request.headers):
+                    if "https://www.zeit.de/index" in str(
+                        request.url
+                    ) and "cookie:" in str(request.headers):
                         headers = format_headers(str(request.headers))
                         print(headers)
                         return headers
 
     except BaseException as e:
-        print(f"occured :- {e}")
+        LOGGER.debug(f"error while running selenium instance: {e}")
+        raise exceptions.RequestHeadersException(
+            "error while running selenium instance: {e}"
+        )
 
 
-def format_headers(request_headers, sep=': ', strip_cookie=False, strip_cl=True,
-                               strip_headers = []) -> dict:
+def format_headers(
+    request_headers, sep=": ", strip_cookie=False, strip_cl=True, strip_headers=[]
+) -> dict:
     """
     formates a string of headers to a dictionary containing key-value pairs of request headers
     :param request_headers:
@@ -54,59 +63,67 @@ def format_headers(request_headers, sep=': ', strip_cookie=False, strip_cl=True,
     :param strip_headers:
     :return: -> dictionary
     """
-    headers_dict = dict()
-    for keyvalue in request_headers.split('\n'):
-        keyvalue = keyvalue.strip()
-        if keyvalue and sep in keyvalue:
-            value = ''
-            key = keyvalue.split(sep)[0]
-            if len(keyvalue.split(sep)) == 1:
-                value = ''
-            else:
-                value = keyvalue.split(sep)[1]
-            if value == '\'\'':
-                value = ''
-            if strip_cookie and key.lower() == 'cookie': continue
-            if strip_cl and key.lower() == 'content-length': continue
-            if key in strip_headers: continue
-            headers_dict[key] = value
+    try:
+        headers_dict = dict()
+        for keyvalue in request_headers.split("\n"):
+            keyvalue = keyvalue.strip()
+            if keyvalue and sep in keyvalue:
+                value = ""
+                key = keyvalue.split(sep)[0]
+                if len(keyvalue.split(sep)) == 1:
+                    value = ""
+                else:
+                    value = keyvalue.split(sep)[1]
+                if value == "''":
+                    value = ""
+                if strip_cookie and key.lower() == "cookie":
+                    continue
+                if strip_cl and key.lower() == "content-length":
+                    continue
+                if key in strip_headers:
+                    continue
+                headers_dict[key] = value
 
-    headers_dict["cookie"] = parse_cookies(headers_dict.get("cookie",None))
-    return headers_dict
+        headers_dict["cookie"] = parse_cookies(headers_dict.get("cookie", None))
+        return headers_dict
+    except BaseException as e:
+        LOGGER.debug(f"error while folding header data: {e}")
+        raise exceptions.RequestHeadersException(
+            "error while folding headers data: {e}"
+        )
+
 
 def parse_cookies(raw_cookies):
     # parsed cookies
     cookies = {}
 
     # loop over cookies
-    for cookie in raw_cookies.split('; '):
+    for cookie in raw_cookies.split("; "):
         try:
             # init cookie key
-            key = cookie.split('=')[0]
+            key = cookie.split("=")[0]
 
             # init cookie value
-            val = cookie.split('=')[1]
+            val = cookie.split("=")[1]
 
             # parse raw cookie string
             cookies[key] = val
 
-        except:
-            pass
+        except BaseException as e:
+            LOGGER.debug(f"error while folding cookies data: {e}")
+            raise exceptions.RequestHeadersException(
+                "error while folding cookies data: {e}"
+            )
 
     return cookies
 
 
-
 def validate_sitemap_date_range(since, until):
-    since = (
-        datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
-    )
+    since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
     until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
     try:
         if (since and not until) or (not since and until):
-            raise exceptions.InvalidDateException(
-                "since or until must be specified"
-            )
+            raise exceptions.InvalidDateException("since or until must be specified")
 
         if since and until and since > until:
             raise exceptions.InvalidDateException(
@@ -129,13 +146,18 @@ def validate_sitemap_date_range(since, until):
 
 
 """
-common function 
+common function
 """
 
 
 def create_log_file():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-                        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -157,12 +179,13 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     elif scrape_type == "article":
         folder_structure = "Article"
-        filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        )
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
         json.dump(file_data, file, indent=4)
-
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -201,6 +224,7 @@ def remove_empty_elements(parsed_data_dict):
 raw response functions
 """
 
+
 def get_raw_response(response):
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
@@ -213,6 +237,7 @@ def get_raw_response(response):
 parse json data functions
 """
 
+
 def get_parsed_json(response):
     """
     extracts json data from web page and returns a dictionary
@@ -221,26 +246,54 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "Article":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
+    try:
+        parsed_json = {}
+        imageObjects = []
+        videoObjects = []
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                imageObjects.append(data)
+            elif data.get("@type") == "VideoObject":
+                videoObjects.append(data)
+            else:
+                other_data.append(data)
 
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
+        parsed_json["other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+        return remove_empty_elements(parsed_json)
 
-    return remove_empty_elements(parsed_json)
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while getting parsed json {exception}"
+        )
+
+
+def get_publisher_info(article_data: dict) -> dict:
+    """
+    filtering required information from article data
+    Parameters:
+        article_data: dict
+    returns: dict
+    """
+    return remove_empty_elements(
+        {
+            "@id": article_data.get("@id", None),
+            "@type": article_data.get("@type", None),
+            "name": article_data.get("name", None),
+            "url": article_data.get("url", None),
+            "logo": article_data.get("logo", None),
+        }
+    )
 
 
 def get_main(response):
@@ -264,12 +317,12 @@ def get_main(response):
             elif data.get("@type") == "VideoObject":
                 information["VideoObject"] = data
             elif data.get("@type") == "NewsMediaOrganization":
-                information["publisher_info"] = data
+                information["publisher_info"] = get_publisher_info(data)
 
         return information
     except BaseException as e:
         LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+        raise exceptions.ArticleScrappingException(f"Error while getting main: {e}")
 
 
 def get_misc(response):
@@ -289,9 +342,6 @@ def get_misc(response):
     except BaseException as e:
         LOGGER.error(f"{e}")
         print(f"Error while getting misc: {e}")
-
-
-
 
 
 """
@@ -326,7 +376,6 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-
 def get_parsed_data(response: str) -> dict:
     """
      Parsed data response from generated data using given response and selector
@@ -353,7 +402,7 @@ def get_parsed_data(response: str) -> dict:
     parsed_data_dict |= get_language_details(response)
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
-    parsed_data_dict |= get_publisher_details(parsed_json_main)
+    parsed_data_dict |= get_publisher_details(publisher_info_json)
     parsed_data_dict |= get_text_title_section_tag_details(parsed_json_main, response)
     parsed_data_dict |= get_thumbnail_image_video(response, webpage_json)
     final_dict = format_dictionary(parsed_data_dict)
@@ -381,11 +430,7 @@ def get_language_details(response: str) -> dict:
     Returns:
         dict: language related details
     """
-    return {
-        "source_language": [
-            "German"
-        ]
-    }
+    return {"source_language": ["German"]}
 
 
 def get_author_details(parsed_data: list, response: str) -> dict:
@@ -402,7 +447,9 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     if not parsed_data.get("author"):
         return author_details.append(
             {
-                "name": response.css('div.column-heading__name > script[itemprop="name"]::text')
+                "name": response.css(
+                    'div.column-heading__name > script[itemprop="name"]::text'
+                )
                 .get()
                 .strip()
             }
@@ -450,10 +497,7 @@ def get_publisher_details(parsed_data: list) -> dict:
     Returns:
         dict: publisher details like name, type, id related details
     """
-    publisher_details = []
-    if parsed_data.get("publisher"):
-        publisher_details.extend(parsed_data.get("publisher"))
-    return {"publisher": publisher_details}
+    return {"publisher": parsed_data}
 
 
 def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict:
@@ -469,7 +513,7 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
         return {
             "title": parsed_data.get("headline"),
             "text": parsed_data.get("articleBody"),
-            "section": parsed_data.get('articleSection'),
+            "section": parsed_data.get("articleSection"),
             "tags": parsed_data.get("keywords"),
         }
     return {
@@ -491,10 +535,7 @@ def get_thumbnail_image_video(response: str, webpage_json: dict) -> dict:
     thumbnail_json = webpage_json.get("primaryImageOfPage")
     if thumbnail_json:
         thumbnail_url = [thumbnail_json.get("url")]
-    return {
-        "embed_video_link": video_urls,
-        "thumbnail_image": thumbnail_url
-    }
+    return {"embed_video_link": video_urls, "thumbnail_image": thumbnail_url}
 
 
 def format_dictionary(raw_dictionary):

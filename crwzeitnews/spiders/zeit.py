@@ -1,25 +1,18 @@
 import re
-
-from scrapy import spiders
-from abc import ABC, abstractmethod
-from scrapy.loader import ItemLoader
 import scrapy
 import logging
-from dateutil import parser
-from datetime import datetime
 
+from abc import ABC, abstractmethod
+from datetime import datetime
 from scrapy.crawler import CrawlerProcess
 from scrapy.http import XmlResponse
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
-from scrapy.loader import ItemLoader
 from scrapy.utils.project import get_project_settings
 
 from crwzeitnews.constant import (
     TODAYS_DATE,
     LOGGER,
-    BASE_URL,
-    SITEMAP_URL,
 )
 from crwzeitnews import exceptions
 from crwzeitnews.items import ArticleData
@@ -106,38 +99,68 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
     def parse(self, response, **kwargs):
         if self.type == "sitemap":
             if self.since and self.until:
-                breakpoint()
                 LOGGER.info("Parse function called on %s", response.url)
                 yield scrapy.Request(
                     response.url,
                     headers=self.valid_request_headers,
                     cookies=self.valid_cookie,
                     callback=self.parse_sitemap,
-                    dont_filter = True,
+                    dont_filter=True,
                 )
             else:
-                breakpoint()
                 yield scrapy.Request(
                     response.url,
                     headers=self.valid_request_headers,
                     cookies=self.valid_cookie,
                     callback=self.parse_sitemap,
-                    dont_filter = True,
+                    dont_filter=True,
                 )
 
         elif self.type == "article":
 
-            articledata_loader = ItemLoader(item=ArticleData(), response=response)
-            yield articledata_loader.item
+            article_data = self.parse_article(response)
+            yield article_data
 
     def parse_article(self, response: str) -> list:
-        pass
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
+        try:
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = get_parsed_json(response)
+            response_data = get_parsed_data(response)
+            response_data["source_country"] = ["Germany"]
+            response_data["time_scraped"] = [str(datetime.now())]
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
+            articledata_loader.add_value("parsed_data", response_data)
+
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+
+        except Exception as exception:
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            )
 
     def parse_sitemap(self, response, **kwargs) -> None:
-        try:
-            print("\n\n\n\n\n\n\n +++++++++++++++++++++++++++++++++++++++++++++++++")
-        
-            # Create an XmlResponse object from the response
+        try:            # Create an XmlResponse object from the response
             xmlresponse = XmlResponse(
                 url=response.url, body=response.body, encoding="utf-8"
             )
@@ -154,28 +177,25 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 pub_date = (re.search(r"\d{4}-\d{2}-\d{2}", link)).group(0)
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
-                if self.since and published_at < self.since:
-                    return
-
-                if self.since and published_at > self.until:
-                    return
-
                 if self.since is None and self.until is None:
                     if TODAYS_DATE == published_at:
                         yield scrapy.Request(
                             link,
                             callback=self.parse_sitemap_article,
                             meta={"link": link, "pub_date": published_at},
-                            dont_filter = True,
+                            dont_filter=True,
                         )
-                else:
-                    if self.since and self.until:
-                        yield scrapy.Request(
-                            link,
-                            callback=self.parse_sitemap_article,
-                            meta={"link": link, "pub_date": published_at},
-                            dont_filter = True,
-                        )
+                elif (
+                    self.since
+                    and self.until
+                    and self.since <= published_at <= self.until
+                ):
+                    yield scrapy.Request(
+                        link,
+                        callback=self.parse_sitemap_article,
+                        meta={"link": link, "pub_date": published_at},
+                        dont_filter=True,
+                    )
 
         except exceptions.SitemapScrappingException as exception:
             LOGGER.error(f"{str(exception)}")
@@ -191,13 +211,14 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
         """
         try:
-
             xmlresponse = XmlResponse(
                 url=response.url, body=response.body, encoding="utf-8"
             )
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
+            links = xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ).getall()
             for link in links:
                 data = {
                     "link": link,

@@ -62,3 +62,8 @@ class URLNotFoundException(Exception):
     # Use URLNotFoundException(f"Given {url} not found for website {website_name}
     # with status code{response.status_code}")
     pass
+
+class RequestHeadersException(Exception):
+    """raise when getting error in request headers or cookies"""
+
+    pass
