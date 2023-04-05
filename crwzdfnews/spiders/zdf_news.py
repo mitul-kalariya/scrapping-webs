@@ -221,9 +221,3 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(ZdfNewsSpider)
-    process.start()
