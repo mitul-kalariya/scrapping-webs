@@ -1,7 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwtvchosun.spiders.tv_chosun import TvChosunSpider
 
 
 class Crawler:
@@ -71,7 +70,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "link_feed" or self.query['type'] == 'sitemap':
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
@@ -89,6 +88,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(TvChosunSpider, **spider_args)
         process.start()

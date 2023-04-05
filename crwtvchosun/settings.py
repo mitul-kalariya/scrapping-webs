@@ -1,4 +1,4 @@
-# Scrapy settings for newton_scrapping project
+# Scrapy settings for crwtvchosun project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,17 +7,17 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "newton_scrapping"
-
-SPIDER_MODULES = ["newton_scrapping.spiders"]
-NEWSPIDER_MODULE = "newton_scrapping.spiders"
+BOT_NAME = "crwtvchosun"
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+SPIDER_MODULES = ["crwtvchosun.spiders"]
+NEWSPIDER_MODULE = "crwtvchosun.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "newton_scrapping (+http://www.yourdomain.com)"
+#USER_AGENT = "crwtvchosun (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "newton_scrapping.middlewares.NewtonScrappingSpiderMiddleware": 543,
+#    "crwtvchosun.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "newton_scrapping.middlewares.NewtonScrappingDownloaderMiddleware": 543,
+#    "crwtvchosun.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "newton_scrapping.pipelines.NewtonScrappingPipeline": 300,
+#    "crwtvchosun.pipelines.NewtonScrappingPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
