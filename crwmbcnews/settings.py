@@ -1,4 +1,4 @@
-# Scrapy settings for newton_scrapping project
+# Scrapy settings for crwmbcnews project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -14,7 +14,7 @@ NEWSPIDER_MODULE = "crwmbcnews.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "newton_scrapping (+http://www.yourdomain.com)"
+#USER_AGENT = "crwmbcnews (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True

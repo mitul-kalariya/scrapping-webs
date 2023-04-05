@@ -1,4 +1,4 @@
-"""Spider to scrap Oriental Daily News (CH) news website"""
+"""Spider to scrap MBC News Online (KR) news website"""
 
 import logging
 from datetime import datetime
