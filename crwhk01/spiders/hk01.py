@@ -203,9 +203,3 @@ class HK01Spider(scrapy.Spider, BaseSpider):
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(HK01Spider)
-    process.start()
