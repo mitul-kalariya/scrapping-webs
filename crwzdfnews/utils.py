@@ -147,6 +147,10 @@ def get_parsed_data(response):
         if author:
             main_dict["author"] = [author]
 
+        section = get_section(response)
+        if section:
+            main_dict["section"] = [section]
+
         publisher = main_data[1].get("publisher")
         main_dict["publisher"] = [publisher]
 
@@ -155,12 +159,7 @@ def get_parsed_data(response):
 
         images = get_images(response)
         if images:
-            try:
-                if images:
-                    main_dict["images"] = images
-
-            except BaseException as e:
-                LOGGER.error(f"{e}")
+            main_dict["images"] = images
 
         thumbnail_image = get_thumbnail(response)
         if thumbnail_image:
@@ -186,6 +185,12 @@ def get_thumbnail(response):
             thumbnail = data_block.get('thumbnailUrl')
             if thumbnail:
                 return thumbnail
+
+
+def get_section(response):
+    breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
+    if breadcrumb_list[-1]:
+        return breadcrumb_list[-1]
 
 
 def get_main(response):
