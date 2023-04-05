@@ -1,8 +1,8 @@
-# crwbild Scrapping
+# {ScrapperName} Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from https://www.bild.de/ website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from crwbild import Crawler
+from {package_name} import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from crwbild import Crawler
+from {package_name} import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crwbild import Crawler
+from {package_name} import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
