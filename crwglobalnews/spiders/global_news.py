@@ -92,13 +92,12 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
-        
+
         except BaseException as e:
             LOGGER.info(f"Error occured in parse function: {e}")
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
-
 
     def parse_sitemap(self, response):
         """
