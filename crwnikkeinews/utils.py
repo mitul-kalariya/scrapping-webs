@@ -394,7 +394,7 @@ def get_tags(response) -> list:
         list: List of tags
     """
     try:
-        tags = response.css(".list_lej8eec li a::text").getall()
+        tags = response.css(".div_d1762n5m .list_lej8eec li a::text").getall()
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
