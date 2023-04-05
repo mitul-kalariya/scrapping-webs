@@ -121,15 +121,20 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObject":
+        elif key == "VideoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
             )
+        elif key == "ImageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObject"]
+            )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in selector_and_key.keys()  or json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not
+                      in selector_and_key.keys() or json.loads(data).get('@type') != "NewsArticle"]
             )
-    # print(dict(article_raw_parsed_json_loader.load_item()))
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -158,19 +163,9 @@ def get_parsed_data_dict() -> dict:
     }
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    # article_raw_parsed_json_loader = ItemLoader(
-    #     item=ArticleRawParsedJson(), response=response
-    # )
-
-    # print(parsed_json_dict)    
-    # for key, value in parsed_json_dict.items():
-    #     article_raw_parsed_json_loader.add_value(
-    #         key, [json.loads(data) for data in value.getall()]
-    #     )
+    
     article_data = parsed_json_dict
     parsed_data_dict = get_parsed_data_dict()
-    # article_data = dict(article_raw_parsed_json_loader.load_item())
-    print(article_data)
     mapper = {"en": "English"}
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["source_country"] = ["India"]
