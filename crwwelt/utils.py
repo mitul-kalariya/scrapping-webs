@@ -188,8 +188,8 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "imageObject": None,
-        "videoObject": None,
+        "imageObjects": [],
+        "videoObjects": [],
         "Other": [],
         "misc": [],
     }
@@ -197,10 +197,10 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
         elif ("ImageGallery" in json.loads(block).get("@type", [{}])
-              or"ImageObject" in json.loads(block).get("@type", [{}])):
-            parsed_json_flter_dict["imageObject"] = json.loads(block)
+              or "ImageObject" in json.loads(block).get("@type", [{}])):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(block))
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["videoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"].append(json.loads(block))
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
@@ -338,7 +338,7 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
         Dictionary with Parsed json response from generated data
     """
     if not parsed_json.get("main"):
-        parsed_json_main = parsed_json.get("videoObject")
+        parsed_json_main = parsed_json.get("videoObjects")[0]
     else:
         parsed_json_main = parsed_json.get("main")
     data_dict = get_author_and_publisher_details(parsed_json_main)

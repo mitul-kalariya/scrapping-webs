@@ -229,7 +229,6 @@ class TestArticle(unittest.TestCase):
                                   list, "format mismatch for parsed_data--> tags")
 
 
-
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
