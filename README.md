@@ -22,30 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-```
-# To fetch all the article links
 
-from crwhk01 import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://www.hk01.com/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 
@@ -60,7 +37,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.hk01.com/"
     },
     proxies=proxies

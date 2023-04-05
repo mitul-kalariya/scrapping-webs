@@ -151,18 +151,21 @@ class HK01Spider(scrapy.Spider, BaseSpider):
             url = response.xpath("//xmlns:url", namespaces=namespaces)
             links = url.xpath("xmlns:loc/text()", namespaces=namespaces).getall()
             titles = url.xpath('//*[local-name()="title"]/text()').getall()
-            published_date = url.xpath('//*[local-name()="publication_date"]/text()').getall()
+            published_date = url.xpath(
+                '//*[local-name()="publication_date"]/text()'
+            ).getall()
 
             for link, title, pub_date in zip(links, titles, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-                data = {
-                    'link': link,
-                    'title': title
-                }
+                data = {"link": link, "title": title}
                 if self.since is None and self.until is None:
                     if TODAYS_DATE == published_at:
                         self.articles.append(data)
-                elif self.since and self.until and self.since <= published_at <= self.until:
+                elif (
+                    self.since
+                    and self.until
+                    and self.since <= published_at <= self.until
+                ):
                     self.articles.append(data)
                 elif self.since and self.until:
                     if published_at == self.since and published_at == self.until:
@@ -193,8 +196,8 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",

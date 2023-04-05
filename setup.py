@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="crwhk01",
@@ -7,5 +7,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "scrapy",
+        "selenium",
+        "webdriver-manager",
     ],
 )
