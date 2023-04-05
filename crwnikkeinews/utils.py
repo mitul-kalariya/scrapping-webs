@@ -157,65 +157,69 @@ def get_parsed_data(response):
         - 'text': (list) The list of text paragraphs in the article.
         - 'images': (list) The list of image URLs in the article, if available.
     """
-    main_dict = {}
+    try:
+        main_dict = {}
 
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    json_data = json.loads(ld_json_data[0])
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        json_data = json.loads(ld_json_data[0])
 
-    # Author
-    authors = get_author(json_data)
-    main_dict["author"] = authors
+        # Author
+        authors = get_author(json_data)
+        main_dict["author"] = authors
 
-    # Last Updated Date
-    last_updated_date = get_meta_information(response, "article:modified_time")
-    main_dict["modified_at"] = [last_updated_date]
+        # Last Updated Date
+        last_updated_date = get_meta_information(response, "article:modified_time")
+        main_dict["modified_at"] = [last_updated_date]
 
-    # Published Date
-    published = get_meta_information(response, "article:published_time")
-    main_dict["published_at"] = [published]
+        # Published Date
+        published = get_meta_information(response, "article:published_time")
+        main_dict["published_at"] = [published]
 
-    # Description
-    description = get_meta_information(response, "og:description")
-    main_dict["description"] = [description]
+        # Description
+        description = get_meta_information(response, "og:description")
+        main_dict["description"] = [description]
 
-    # Publisher
-    publisher = get_publisher(response)
-    main_dict["publisher"] = publisher
+        # Publisher
+        publisher = get_publisher(response)
+        main_dict["publisher"] = publisher
 
-    # Article Text
-    article_text = response.css(
-        ".paragraph_p15tm1hb::text"
-    ).getall()
-    main_dict["text"] = [" ".join(article_text)]
+        # Article Text
+        article_text = response.css(
+            ".paragraph_p15tm1hb::text"
+        ).getall()
+        main_dict["text"] = [" ".join(article_text)]
 
-    # Thumbnail
-    thumbnail = get_thumbnail_image(response)
-    main_dict["thumbnail_image"] = thumbnail
+        # Thumbnail
+        thumbnail = get_thumbnail_image(response)
+        main_dict["thumbnail_image"] = thumbnail
 
-    # Title
-    title = response.css("h1.title_tp0qjrp::text").get().strip()
-    main_dict["title"] = [title]
+        # Title
+        title = response.css("h1.title_tp0qjrp::text").get().strip()
+        main_dict["title"] = [title]
 
-    # Images
-    article_images = get_images(response)
-    main_dict["images"] = article_images
+        # Images
+        article_images = get_images(response)
+        main_dict["images"] = article_images
 
-    # Videos
-    video = get_embed_video_link(response)
-    main_dict["embed_video_link"] = video
+        # Videos
+        video = get_embed_video_link(response)
+        main_dict["embed_video_link"] = video
 
-    # Language
-    mapper = {"ja": "Japanese"}
-    article_lang = response.css("html::attr(lang)").get()
-    main_dict["source_language"] = [mapper.get(article_lang)]
+        # Language
+        mapper = {"ja": "Japanese"}
+        article_lang = response.css("html::attr(lang)").get()
+        main_dict["source_language"] = [mapper.get(article_lang)]
 
-    # Tags
-    main_dict["tags"] = get_tags(response)
+        # Tags
+        main_dict["tags"] = get_tags(response)
 
-    # Section/Category
-    main_dict["section"] = get_section(response)
+        # Section/Category
+        main_dict["section"] = get_section(response)
 
-    return remove_empty_elements(main_dict)
+        return remove_empty_elements(main_dict)
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article data (utils --> get_parsed_data): {str(exception)}")
 
 
 def get_lastupdated(response) -> str:
@@ -462,29 +466,31 @@ def remove_empty_elements(parsed_data_dict):
     :return: Dictionary with all empty lists, and empty dictionaries removed.
     :rtype: dict
     """
+    try:
+        def empty(value):
+            return value is None or value == {} or value == []
 
-    def empty(value):
-        return value is None or value == {} or value == []
-
-    if not isinstance(parsed_data_dict, (dict, list)):
-        data_dict = parsed_data_dict
-    elif isinstance(parsed_data_dict, list):
-        data_dict = [
-            value
-            for value in (remove_empty_elements(value) for value in parsed_data_dict)
-            if not empty(value)
-        ]
-    else:
-        data_dict = {
-            key: value
-            for key, value in (
-                (key, remove_empty_elements(value))
-                for key, value in parsed_data_dict.items()
-            )
-            if not empty(value)
-        }
-    return data_dict
-
+        if not isinstance(parsed_data_dict, (dict, list)):
+            data_dict = parsed_data_dict
+        elif isinstance(parsed_data_dict, list):
+            data_dict = [
+                value
+                for value in (remove_empty_elements(value) for value in parsed_data_dict)
+                if not empty(value)
+            ]
+        else:
+            data_dict = {
+                key: value
+                for key, value in (
+                    (key, remove_empty_elements(value))
+                    for key, value in parsed_data_dict.items()
+                )
+                if not empty(value)
+            }
+        return data_dict
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while removing empty elements: {str(exception)}")
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """

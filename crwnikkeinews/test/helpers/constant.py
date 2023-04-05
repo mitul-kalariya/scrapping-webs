@@ -6,7 +6,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwnikkeinews/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.nikkei.com/article/DGXZQOUC031X20T00C23A4000000/",
+        "url": "https://www.nikkei.com/article/DGXZQOUA04CHW0U3A400C2000000/",
         "test_data_path": "crwnikkeinews/test/data/test_article_2.json"
     },
     {

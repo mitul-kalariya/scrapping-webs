@@ -6,7 +6,8 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
 from scrapy.utils.project import get_project_settings
-
+from scrapy.http import XmlResponse
+from scrapy.selector import Selector
 from crwnikkeinews import exceptions
 from crwnikkeinews.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwnikkeinews.items import ArticleData
@@ -96,7 +97,10 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
         self.logger.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                if self.since and self.until:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
@@ -105,6 +109,51 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
             LOGGER.info(f"Error occured in parse function: {exception}")
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {exception}"
+            )
+
+    def parse_sitemap(self, response):
+        try:
+            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xml_selector = Selector(xmlresponse)
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+                for link in sitemap.getall():
+                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
+            )
+
+    def parse_sitemap_article(self, response):
+        """
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
+        """
+        try:
+            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
+            title = response.xpath('//*[local-name()="title"]/text()').getall()
+            published_date = response.xpath('//*[local-name()="publication_date"]/text()').getall()
+
+            for link, title, pub_date in zip(links, title, published_date):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+
+                data = {
+                    'link': link,
+                    'title': title
+                }
+                if self.since is None and self.until is None:
+                    if TODAYS_DATE == published_at:
+                        self.articles.append(data)
+                elif self.since and self.until and self.since <= published_at <= self.until:
+                    self.articles.append(data)
+                elif self.since and self.until:
+                    if published_at == self.since and published_at == self.until:
+                        self.articles.append(data)
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap article:: {str(exception)}")
+            raise exceptions.SitemapArticleScrappingException(
+                f"Error while filtering date wise: {str(exception)}"
             )
 
     def parse_article(self, response) -> list:
@@ -140,49 +189,6 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:- {str(exception)}"
-            )
-
-    def parse_sitemap(self, response):
-        try:
-            namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for url in response.xpath("//xmlns:url", namespaces=namespaces):
-                link = url.xpath("xmlns:loc/text()", namespaces=namespaces).get()
-                yield scrapy.Request(link, self.parse_sitemap_article)
-        except BaseException as exception:
-            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
-            raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(exception)}"
-            )
-
-    def parse_sitemap_article(self, response):
-        """
-        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
-        """
-        try:
-            link = response.url
-            title = response.css("#articleTitle::text").get()
-            published_at = response.css(".inline time::attr(datetime)").get()
-            date_only = datetime.strptime(published_at[:10], "%Y-%m-%d").date()
-
-            if self.since and date_only < self.until:
-                return
-            if self.until and date_only > self.until:
-                return
-
-            if link and title and published_at:
-                data = {
-                    "link": link,
-                    "title": title,
-                }
-                if self.since is None and self.until is None:
-                    if TODAYS_DATE == date_only:
-                        self.articles.append(data)
-                elif self.since and self.until:
-                    self.articles.append(data)
-        except BaseException as exception:
-            LOGGER.error(f"Error while filtering date wise: {str(exception)}")
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {str(exception)}"
             )
 
     def closed(self, reason: any) -> None:

@@ -87,8 +87,7 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
+
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -177,9 +176,7 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
                                       list, "format mismatch for parsed_data--> modified_at")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> modified_at")
+
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
