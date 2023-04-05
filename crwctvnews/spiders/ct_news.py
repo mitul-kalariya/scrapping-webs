@@ -21,11 +21,12 @@ from crwctvnews.utils import (
 )
 from crwctvnews.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
+    ScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
     URLNotFoundException,
 )
+from crwctvnews.constant import BASE_URL, SITEMAP_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
@@ -61,7 +62,7 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of CTV news site"""
 
     name = "ct_news"
-    start_urls = ["http://www.ctvnews.ca/"]
+    start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
     namespace_news = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
@@ -93,7 +94,7 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
             if self.current_date:
                 self.scrape_start_date = self.scrape_end_date = self.current_date
             self.start_urls.append(
-                url if self.type == "article" else "https://www.ctvnews.ca/sitemap_news.xml"
+                url if self.type == "article" else SITEMAP_URL
             )
 
         except Exception as exception:  # pylint: disable=broad-except
@@ -128,11 +129,21 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
             )
         elif response.status == 404:
             raise URLNotFoundException("URL not found")
+        try:
+            if "sitemap_news.xml" in response.url:
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            else:
+                yield self.parse_article(response)
+        except Exception as exception:
+            self.log(
+                "Error occurred while scrapping urls from given sitemap or article. "
+                + str(exception),
+                level=logging.ERROR,
+            )
+            raise ScrappingException(
+                f"Error occurred while parsing start url:- {str(exception)}"
+            ) from exception
 
-        if "sitemap_news.xml" in response.url:
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
-        else:
-            yield self.parse_article(response)
 
     def parse_sitemap(self, response: str) -> None:
         """
@@ -144,19 +155,19 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        for link, date in zip(
+        for link, date, title in zip(
                 Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
                 Selector(response, type="xml").xpath("//sitemap:publication_date/text()",
                                                      namespaces=self.namespace_news).getall(),
+                Selector(response, type="xml").xpath("//sitemap:title/text()", namespaces=self.namespace_news).getall()
         ):
             try:
                 date_datetime_obj = datetime.strptime(
                     date.strip()[:-6], "%Y-%m-%dT%H:%M:%S"
                 )
                 if date_in_date_range(date_datetime_obj, self.date_range_lst):
-                    yield scrapy.Request(
-                        link.strip(), callback=self.parse_sitemap_article
-                    )
+                    data = {"link": link.strip(), "title": title}
+                    self.articles.append(data)
             except Exception as exception:  # pylint: disable=broad-except
                 self.log(
                     f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -176,18 +187,7 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        try:
-            if title := response.css("h1.c-title__text::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:  # pylint: disable=broad-except
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response: str) -> None:
         """
