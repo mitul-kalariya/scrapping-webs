@@ -2,16 +2,13 @@ import scrapy
 import w3lib.html
 from crwardnews.constant import SITEMAP_URL, LOGGER
 from crwardnews import exceptions
-from scrapy.crawler import CrawlerProcess
 from datetime import datetime, timedelta
-from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from crwardnews.items import ArticleData
 from crwardnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -293,8 +290,8 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             LOGGER.info(
@@ -303,9 +300,3 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(ArdNewsSpider)
-    process.start()
