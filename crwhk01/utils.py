@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from datetime import datetime
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -23,25 +24,25 @@ def create_log_file():
 def validate_sitemap_date_range(since, until):
     """validated date range given by user
     Args:
-        start_date (str): start_date
-        end_date (str): end_date
+        since (str): since
+        until (str): until
     """
     since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
     until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
     try:
         if (since and not until) or (not since and until):
             raise exceptions.InvalidDateException(
-                "start_date or end_date must be specified"
+                "since or until must be specified"
             )
 
         if since and until and since > until:
             raise exceptions.InvalidDateException(
-                "start_date should not be later than end_date"
+                "since should not be later than until"
             )
 
         if since > TODAYS_DATE or until > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date and end_date should not be greater than today_date"
+                "since and until should not be greater than today_date"
             )
     except exceptions.InvalidDateException as exception:
         LOGGER.error(f"Error in __init__: {str(exception)}", exc_info=True)
@@ -155,36 +156,39 @@ def get_parsed_data(response):
         - 'text': (list) The list of text paragraphs in the article.
         - 'images': (list) The list of image URLs in the article, if available.
     """
-    main_dict = {}
-    authors = get_author(response)
-    main_dict["author"] = authors
+    try:
+        main_dict = {}
+        authors = get_author(response)
+        main_dict["author"] = authors
 
-    last_updated = get_lastupdated(response)
-    main_dict["modified_at"] = [last_updated]
-    published_on = get_published_at(response)
-    main_dict["published_at"] = [published_on]
-    description = response.css(".break-words::text").get()
-    main_dict["description"] = [description]
-    publisher = get_publisher(response)
-    main_dict["publisher"] = publisher
-    article_text = response.css(
-        "#article-content-section strong::text , #article-content-section .md\:mb-8::text, #article-content-section .break-words::text"
-    ).getall()
-    main_dict["text"] = [" ".join(article_text)]
-    thumbnail = get_thumbnail_image(response)
-    main_dict["thumbnail_image"] = thumbnail
-    headline = response.css("#articleTitle::text").get().strip()
-    main_dict["title"] = [headline]
-    article_images = get_images(response)
-    main_dict["images"] = article_images
-    video = get_embed_video_link(response)
-    main_dict["embed_video_link"] = video
-    article_lang = response.css("html::attr(lang)").get()
-    main_dict["source_language"] = [article_lang]
-    main_dict["tags"] = get_tags(response)
-    main_dict["section"] = get_section(response)
+        last_updated = get_lastupdated(response)
+        main_dict["modified_at"] = [last_updated]
+        published_on = get_published_at(response)
+        main_dict["published_at"] = [published_on]
+        description_data = response.css("meta[property='og:description']")
+        description = description_data.attrib.get("content")
+        main_dict["description"] = [description]
+        publisher = get_publisher(response)
+        main_dict["publisher"] = publisher
+        article_text = response.css(
+            "#article-content-section strong::text , #article-content-section .md\:mb-8::text, #article-content-section .break-words::text"
+        ).getall()
+        main_dict["text"] = [" ".join(article_text)]
+        thumbnail = get_thumbnail_image(response)
+        main_dict["thumbnail_image"] = thumbnail
+        headline = response.css("#articleTitle::text").get().strip()
+        main_dict["title"] = [headline]
+        article_images = get_images(response)
+        main_dict["images"] = article_images
+        article_lang = response.css("html::attr(lang)").get()
+        main_dict["source_language"] = [article_lang]
+        main_dict["tags"] = get_tags(response)
+        main_dict["section"] = get_section(response)
 
-    return remove_empty_elements(main_dict)
+        return remove_empty_elements(main_dict)
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article data (utils --> get_parsed_data): {str(exception)}")
 
 
 def get_lastupdated(response) -> str:
@@ -276,32 +280,6 @@ def get_thumbnail_image(response) -> list:
     return data
 
 
-def get_embed_video_link(response) -> list:
-    """
-    A list of video objects containing information about the videos on the webpage.
-    """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
-    try:
-        embed_videos = driver.find_elements(
-            By.XPATH, '//div[@class="article-grid__top-media-section"]//video'
-        )
-        data = []
-        if embed_videos:
-            for video in embed_videos:
-                link = video.get_attribute("src").replace("blob:", "")
-                temp_dict = {"link": link}
-                data.append(temp_dict)
-    except exceptions.ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting embed video: {str(exception)}")
-    driver.quit()
-    return data
-
-
 def get_publisher(response) -> list:
     """
     Extracts publisher information from the given response object and returns it as a dictionary.
@@ -346,46 +324,23 @@ def get_images(response, parsed_json=False) -> list:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
     try:
-        scroll = driver.find_elements(By.XPATH, "//p")
-        last_p_tag = scroll[-1]
-        driver.execute_script(
-            "window.scrollTo("
-            + str(last_p_tag.location["x"])
-            + ", "
-            + str(last_p_tag.location["y"])
-            + ")"
-        )
-        # TODO: Check after removing sleep
-        import time
+        response_data = response.css('script[type="application/json"]::text').getall()
+        json_data = json.loads(response_data[0])
+        article_blocks = json_data["props"]["initialProps"]["pageProps"]["article"]["blocks"]
+        image_objects = [obj for obj in article_blocks if obj.get("blockType") == "image" or obj.get("blockType") == "gallery"]
 
-        time.sleep(1)
-        images = driver.find_elements(
-            By.XPATH, '//*[@id="article-content-section"]//div/div/img'
-        )
-        data = []
-        if images:
-            for image in images:
-                temp_dict = {}
-                link = image.get_attribute("src").replace("blob:", "")
-                caption = image.get_attribute("alt").replace("blob:", "")
+        images = find_key(image_objects, "cdnUrl")
+        result = remove_duplicates(images)
 
-                if link:
-                    temp_dict["link"] = link
-                    if caption:
-                        temp_dict["caption"] = caption
-                data.append(temp_dict)
-            return data
+        for dictionary in result:
+            dictionary["link"] = dictionary.pop("cdnUrl")
+            dictionary["caption"] = dictionary.pop("caption")
+
+        return result
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting article images: {str(exception)}")
-    driver.quit()
-    return data
 
 
 def get_tags(response) -> list:
@@ -434,28 +389,65 @@ def remove_empty_elements(parsed_data_dict):
     :return: Dictionary with all empty lists, and empty dictionaries removed.
     :rtype: dict
     """
+    try:
+        def empty(value):
+            return value is None or value == {} or value == []
 
-    def empty(value):
-        return value is None or value == {} or value == []
+        if not isinstance(parsed_data_dict, (dict, list)):
+            data_dict = parsed_data_dict
+        elif isinstance(parsed_data_dict, list):
+            data_dict = [
+                value
+                for value in (remove_empty_elements(value) for value in parsed_data_dict)
+                if not empty(value)
+            ]
+        else:
+            data_dict = {
+                key: value
+                for key, value in (
+                    (key, remove_empty_elements(value))
+                    for key, value in parsed_data_dict.items()
+                )
+                if not empty(value)
+            }
+        return data_dict
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while removing empty elements: {str(exception)}")
 
-    if not isinstance(parsed_data_dict, (dict, list)):
-        data_dict = parsed_data_dict
-    elif isinstance(parsed_data_dict, list):
-        data_dict = [
-            value
-            for value in (remove_empty_elements(value) for value in parsed_data_dict)
-            if not empty(value)
-        ]
-    else:
-        data_dict = {
-            key: value
-            for key, value in (
-                (key, remove_empty_elements(value))
-                for key, value in parsed_data_dict.items()
-            )
-            if not empty(value)
-        }
-    return data_dict
+
+def find_key(obj, key):
+    """
+    Recursively finds all occurrences of a key in a nested dictionary or a list of dictionaries.
+    """
+    results = []
+    if isinstance(obj, dict):
+        if key in obj:
+            img_dict = dict(([key, obj.get(key)],))
+            img_dict.update({
+                "caption": obj.get("caption")
+            })
+            results.append(img_dict)
+        for k, v in obj.items():
+            results += find_key(v, key)
+    elif isinstance(obj, list):
+        for item in obj:
+            results += find_key(item, key)
+    return results
+
+
+def remove_duplicates(input_list):
+    """
+    Removes dictionaries with duplicate key-value pairs from a list of dictionaries.
+    """
+    output_list = []
+    seen_pairs = set()
+    for d in input_list:
+        pairs = tuple(sorted(d.items()))
+        if pairs not in seen_pairs:
+            output_list.append(d)
+            seen_pairs.add(pairs)
+    return output_list
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:

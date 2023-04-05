@@ -40,7 +40,7 @@ class BaseSpider(ABC):
 class HK01Spider(scrapy.Spider, BaseSpider):
     name = "hk01"
 
-    def __init__(self, type=None, since=None, until=None, url=None, *args, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object with the given parameters.
         Parameters:
@@ -102,8 +102,13 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as exception:
-            print(f"Error while parse function: {str(exception)}")
-            LOGGER.error(f"Error while parse function: {str(exception)}")
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:- {str(exception)}"
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -119,7 +124,7 @@ class HK01Spider(scrapy.Spider, BaseSpider):
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = get_parsed_data(response)
-        response_data["source_country"] = ["Chinese"]
+        response_data["source_country"] = ["China"]
         response_data["time_scraped"] = [str(datetime.now())]
 
         articledata_loader.add_value("raw_response", raw_response)
@@ -139,7 +144,7 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(link, self.parse_sitemap_article)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
-            exceptions.SitemapScrappingException(
+            raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
@@ -169,10 +174,10 @@ class HK01Spider(scrapy.Spider, BaseSpider):
                 elif self.since and self.until:
                     self.articles.append(data)
         except BaseException as exception:
-            exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {str(exception)}"
+            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
             )
-            LOGGER.error(f"Error while filtering date wise: {str(exception)}")
 
     def closed(self, reason: any) -> None:
         """
@@ -193,12 +198,12 @@ class HK01Spider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            self.log(
+            LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
 
 

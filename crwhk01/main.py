@@ -60,8 +60,8 @@ class Crawler:
         elif self.query['type'] == 'sitemap' or self.query['type'] == 'link_feed':
             spider_args = {'type': 'sitemap', 'args': {'callback': self.yield_output}}
             if self.query.get('since') and self.query.get('until'):
-                spider_args['start_date'] = self.query['since']
-                spider_args['end_date'] = self.query['until']
+                spider_args['since'] = self.query['since']
+                spider_args['until'] = self.query['until']
             process_settings = process.settings
             process_settings["DOWNLOAD_DELAY"] = 0.25
             process_settings["REFERER_ENABLED"] = False
