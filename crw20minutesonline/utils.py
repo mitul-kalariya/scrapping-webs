@@ -188,8 +188,8 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
+        "imageObjects": [],
+        "videoObjects": [],
         "Other": [],
         "misc": [],
     }
@@ -198,10 +198,12 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
                 "@type", [{}]
         ) or "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get(
+                "@type", [{}]
+        ) or "ImageObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(block))
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"].append(json.loads(block))
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
@@ -451,7 +453,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
         "text": [
             "".join(
                 response.css(
-                    "article div.content div.content p::text, article div.content h2::text"
+                    "article div.content p::text, article div.content h2::text"
                 ).getall()
             )
         ],
@@ -473,11 +475,11 @@ def get_thumbnail_image_video(video_object: dict, response: str) -> dict:
     description = None
     images = []
     captions = []
-
     if video_object:
-        if video_url := video_object.get("embedUrl"):
-            video = video_url
-        description = video_object.get("description")
+        for videos in video_object:
+            if video_url := videos.get("embedUrl"):
+                video = video_url
+            description = videos.get("description")
 
     for caption in response.css("div.content figure figcaption"):
         caption_em_text = caption.css("em::text").get()
