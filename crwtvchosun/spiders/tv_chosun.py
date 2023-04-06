@@ -143,8 +143,11 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
         """
         
         try:
-            for url in response.css("div.contents p a::attr(href)").getall():
+            for url, title in zip(response.css("div.contents p a::attr(href)").getall(),
+                           response.css("div.contents p a::text").getall()):
                 yield scrapy.Request(url, callback=self.parse_sitemap_article)
+                data = {"link": url, "title": title}
+                self.articles.append(data)
         except SitemapScrappingException as exception:
             self.log(
                 "Error occurred while scrapping urls from given sitemap url. "
@@ -156,29 +159,8 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
             ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
         
-        try:
-            
-            if title := response.css("h3.title::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response: str) -> None:
         """

@@ -12,7 +12,7 @@ from crwtvchosun.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwtvchosun.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
@@ -391,7 +391,6 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
     article_data |= {
         "published_at": [response.css("meta[property*='article:published_time']::attr(content)").get()],
         "description": [response.css("meta[property*='og:description']::attr(content)").get()]
-        # "published_at": [response.css("div.pull-right.option > span.date::text").get()],
     }
     return article_data
 
@@ -417,8 +416,6 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
         )
     return {"publisher": publisher_details}
     
-    # return {"publisher": [{"name": response.css("meta[name*='publisher']::attr(content)").get()}]}
-
 
 def get_text_title_section_details(parsed_data: list, response:str) -> dict:
     """
@@ -459,22 +456,4 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
         images.append({"link": link, "caption": caption})
 
     return {"images": images}
-    # try:
-    #     breakpoint()
-    #     data = []
-        # thumbnail_image = [response.css("meta[name*='thumbnail']::attr(content)").get()]
-    #     images = response.css("div.article_img img::attr(src)").getall()
-    #     caption = response.css("p.aboutPhoto::text").getall()
-    #     if images:
-    #         for image, caption in zip(images, caption):
-    #             temp_dict = {}
-    #             if image:
-    #                 temp_dict["link"] = image
-    #                 if caption:
-    #                     temp_dict["caption"] = caption
-    #             data.append(temp_dict)
-        
-    #         return {"images": data}
-    # except exceptions.URLNotFoundException as exception:
-        
-    #     print(f"Error while getting news content images: {str(exception)}")
+    
