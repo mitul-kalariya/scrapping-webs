@@ -124,7 +124,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             self.logger.error(f"Error while parse function: {e}")
 
     def parse_sitemap(self, response):
-        breakpoint()
+
         """
         Parses a webpage response object and yields scrapy requests for each sitemap XML link found.
 

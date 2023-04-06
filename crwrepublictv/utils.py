@@ -161,10 +161,8 @@ def get_parsed_data(response):
     try:
         main_dict = {}
         main_data = get_main(response)
-        for e in main_data:
-            print("\n\n\n", e)
         authors = main_data[1].get("author")
-        main_dict["author"] = authors
+        main_dict["author"] = [authors]
         last_updated = main_data[1].get("dateModified")
         main_dict["modified_at"] = [last_updated]
         published_on = main_data[1].get("datePublished")
@@ -172,7 +170,7 @@ def get_parsed_data(response):
         description = main_data[1].get("description")
         main_dict["description"] = [description]
         publisher = main_data[1].get("publisher")
-        main_dict["publisher"] = publisher
+        main_dict["publisher"] = [publisher]
         article_text = response.css("section p::text").getall()
         main_dict["text"] = [" ".join(article_text)]
         thumbnail = get_thumbnail_image(response)
@@ -186,7 +184,12 @@ def get_parsed_data(response):
         mapper = {"en": "English", "hi_IN": "Hindi"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
-
+        main_dict["tags"] = get_tags(response)
+        main_dict["publisher_name"] = [publisher.get("name")]
+        main_dict["publisher_type"] = [publisher.get("@type")]
+        main_dict["author_name"] = [authors.get("@type")] if isinstance(authors, dict) else None
+        main_dict["author_link"] = [response.css('.author-title ::attr(href)').get()]
+        main_dict["author_link"] = [response.css('.author-title ::attr(href)').get()]
         return remove_empty_elements(main_dict)
 
     except BaseException as e:
@@ -255,6 +258,12 @@ def get_author(response) -> list:
             data.append(temp_dict)
         return data
 
+def get_tags(response):
+    tags = []
+    raw_tags = response.xpath("//meta[@name='keywords']/@content")[0].extract()
+    if raw_tags:
+        return raw_tags.split(",")
+    return tags
 
 def get_thumbnail_image(response) -> list:
     """
