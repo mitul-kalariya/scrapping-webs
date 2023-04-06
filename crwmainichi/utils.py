@@ -161,11 +161,8 @@ def get_parsed_data(response):
     try:
         main_dict = {}
 
-        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-        json_data = json.loads(ld_json_data)
-
         # Author
-        authors = get_author(json_data)
+        authors = get_author(response)
         main_dict["author"] = authors
 
         # Last Updated Date
@@ -267,14 +264,21 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        data = []
+        authors = response.css(".articletag-author")
         temp_dict = {}
-        publisher_data = response.get("author")
-        temp_dict["@type"] = publisher_data.get("@type")
-        temp_dict["name"] = publisher_data.get("name")
-        temp_dict["url"] = publisher_data.get("url")
+        if authors:
+            data = [dict((("@type", "Person"), ("name", author.css("::text").get()), ("url", f'https:{author.attrib.get("href")}'))) for author in authors]
+        else:
+            ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+            json_data = json.loads(ld_json_data)
 
-        data.append(temp_dict)
+            data = []
+            publisher_data = json_data.get("author")
+            temp_dict["@type"] = publisher_data.get("@type")
+            temp_dict["name"] = publisher_data.get("name")
+            temp_dict["url"] = publisher_data.get("url")
+
+            data.append(temp_dict)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")

@@ -1,17 +1,16 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://mainichi.jp/articles/20230405/k00/00m/040/239000c",
         "test_data_path": "crwmainichi/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://mainichi.jp/articles/20230405/k00/00m/040/167000c",
         "test_data_path": "crwmainichi/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://mainichi.jp/articles/20230405/k00/00m/050/006000c",
         "test_data_path": "crwmainichi/test/data/test_article_3.json"
     }
 ]
