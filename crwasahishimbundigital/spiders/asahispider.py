@@ -214,8 +214,8 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             parsed_json_misc = response.css('script[type="application/json"]::text')
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
 
             if parsed_json_misc:
