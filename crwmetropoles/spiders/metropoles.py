@@ -133,7 +133,10 @@ class MetropolesSpider(scrapy.Spider):
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
-            for sitemap in xml_selector.xpath("//xmlns#)", namespaces=xml_namespaces):
+            date_lastmod = xml_selector.xpath("//xmlns:lastmod/text()", namespaces=xml_namespaces)
+            for i in date_lastmod.getall():
+                print(i)
+            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
         except Exception as exception:
