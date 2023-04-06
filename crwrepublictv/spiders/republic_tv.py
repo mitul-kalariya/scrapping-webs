@@ -2,7 +2,7 @@ import scrapy
 import logging
 from dateutil import parser
 from datetime import datetime
-from crwrepublictv.constant import SITEMAP_URL, TODAYS_DATE, LOGGER, PAGINATION
+from crwrepublictv.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
 from crwrepublictv import exceptions
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
@@ -15,6 +15,9 @@ from crwrepublictv.utils import (
     get_parsed_data,
     get_parsed_json,
 )
+
+from scrapy.http import XmlResponse
+from scrapy.selector import Selector
 
 
 class BaseSpider(ABC):
@@ -121,6 +124,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             self.logger.error(f"Error while parse function: {e}")
 
     def parse_sitemap(self, response):
+        breakpoint()
         """
         Parses a webpage response object and yields scrapy requests for each sitemap XML link found.
 
@@ -128,48 +132,40 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         scrapy.Request: A scrapy request object for each sitemap XML link found in the response.
         """
         try:
-            response.selector.remove_namespaces()
-            links = response.xpath("//url/loc/text()").getall()
-            for link in links:
-                if link in self.ignored_url or "shows" in link:
-                    continue
-                else:
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
+            # Create a Selector object from the XmlResponse
+            xml_selector = Selector(xmlresponse)
+            # Define the XML namespaces used in the sitemap
+            xml_namespaces = {"xmlns": "https://www.sitemaps.org/schemas/sitemap/0.9"}
+            # Loop through each sitemap URL in the XML response
+            links = xml_selector.xpath('//*[local-name()="loc"]/text()', namespaces=xml_namespaces).getall()
+            titles = xml_selector.xpath('//*[local-name()="title"]/text()', namespaces=xml_namespaces).getall()
+            published_dates = xml_selector.xpath('//*[local-name()="publication_date"]/text()', namespaces=xml_namespaces).getall()
+
+
+            for link, title, pub_date in zip(links, titles, published_dates):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                data = {"link": link, "title": title}
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == published_at:
+                        self.articles.append(data)
+                elif (
+                        self.start_date
+                        and self.end_date
+                        and self.start_date <= published_at <= self.end_date
+                ):
+                    self.articles.append(data)
+                elif self.start_date and self.end_date:
+                    if published_at == self.start_date and published_at == self.end_date:
+                        self.articles.append(data)
         except BaseException as e:
             LOGGER.error("Error while parsing sitemap: {}".format(e))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {e}")
 
     def parse_sitemap_article(self, response):
-        """
-        Parses a sitemap and sends requests to scrape each of the links.
-
-        Yields:
-        scrapy.Request: A request to scrape each of the links in the sitemap.
-
-        Notes:
-        The sitemap must be in the XML format specified by the sitemaps.org protocol.
-        The function extracts the links from the sitemap
-            and sends a request to scrape each link using the `parse_sitemap_link_title` callback method.
-        The function also extracts the publication date of the sitemap, if available, and
-            passes it along as a meta parameter in each request.
-        """
-        try:
-            pagi = response.css(
-                ".page-jump-number~ .page-jump+ .page-jump div a::attr(href)"
-            ).get()
-            # last_num = int(pagi.split("/")[-1])
-            self.start_urls.append(response.request.url)
-            for i in range(1, PAGINATION):
-                yield scrapy.Request(
-                    response.request.url + "/" + str(i),
-                    callback=self.parse_sitemap_by_title_link,
-                    meta={"index": i},
-                )
-        except BaseException as e:
-            exceptions.SitemapArticleScrappingException(
-                f"Error while parse sitemap article: {e}"
-            )
-            LOGGER.error(f"Error while parse sitemap article: {e}")
+        pass
 
     def parse_sitemap_by_title_link(self, response):
         """
