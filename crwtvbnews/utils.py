@@ -1,7 +1,16 @@
+import logging
 import json
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 from crwtvbnews.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -13,6 +22,8 @@ from crwtvbnews.exceptions import (
     InvalidArgumentException,
 )
 
+logging.basicConfig(filename='selenium.log', level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(message)s')
+logger = logging.getLogger(__name__)
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
@@ -179,34 +190,55 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     parsed_data_dict = get_parsed_data_dict()
-    mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
-    parsed_data_dict["modified_at"] = []
-    parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
-    parsed_data_dict["source_country"] = ["China"]
-    parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').getall()
-    parsed_data_dict["publisher"] = [{
-        "@id": "https://www.am730.com.hk",
-        "@type": article_data.get("main").get("@type"),
-        "name": article_data.get("main").get("name"),
-        "logo": {
-            "@type": "ImageObject",
-            "url": response.css('link[rel="apple-touch-icon"]::attr(href)').get(),
-            "width": {},
-            "height": {}
-        }
-    }]
-    parsed_data_dict["text"] = response.css('p::text').getall()
-    parsed_data_dict["thumbnail_image"] = [response.css(".picset-img::attr('data-src')").get()]
-    parsed_data_dict["title"] = [response.css('.article__head-title::text').get()]
-    parsed_data_dict["images"] = []
-    for img_data in response.css(".picsolo-img"):
-        parsed_data_dict["images"].append({'link': img_data.css("::attr('data-src')").get(),
-                                           'caption': response.css('.picsolo-descr::text').get()})
-    parsed_data_dict["section"] = response.css('.article__head-unit a::text').getall()
-    parsed_data_dict["tags"] = response.css('.hashtags a::text').getall()
-    parsed_data_dict["embed_video_link"] = []
+    parsed_data_dict['author'] = [article_data.get('main').get('author')]
+    publisher = article_data.get('main').get('publisher')
+    width = {
+        '@type': 'Distance',
+        'name': str(publisher['logo']['width']) + ' px'
+    }
+    height = {
+        '@type': 'Distance',
+        'name': str(publisher['logo']['height']) + ' px'
+    }
+    publisher['logo']['width'] = width
+    publisher['logo']['height'] = height
+    parsed_data_dict['publisher'] = publisher
+    parsed_data_dict['modified_at'] = article_data.get('main').get('dateModified')
+    parsed_data_dict['published_at'] = article_data.get('main').get('datePublished')
+    parsed_data_dict['description'] = article_data.get('main').get('description')
+    breakpoint()
+    parsed_data_dict = get_scrapped_data(response, parsed_data_dict)
+
+
+
+    # mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
+    # parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
+    # parsed_data_dict["modified_at"] = []
+    # parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
+    # parsed_data_dict["source_country"] = ["China"]
+    # parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').getall()
+    # parsed_data_dict["publisher"] = [{
+    #     "@id": "https://www.am730.com.hk",
+    #     "@type": article_data.get("main").get("@type"),
+    #     "name": article_data.get("main").get("name"),
+    #     "logo": {
+    #         "@type": "ImageObject",
+    #         "url": response.css('link[rel="apple-touch-icon"]::attr(href)').get(),
+    #         "width": {},
+    #         "height": {}
+    #     }
+    # }]
+    # parsed_data_dict["text"] = response.css('p::text').getall()
+    # parsed_data_dict["thumbnail_image"] = [response.css(".picset-img::attr('data-src')").get()]
+    # parsed_data_dict["title"] = [response.css('.article__head-title::text').get()]
+    # parsed_data_dict["images"] = []
+    # for img_data in response.css(".picsolo-img"):
+    #     parsed_data_dict["images"].append({'link': img_data.css("::attr('data-src')").get(),
+    #                                        'caption': response.css('.picsolo-descr::text').get()})
+    # parsed_data_dict["section"] = response.css('.article__head-unit a::text').getall()
+    # parsed_data_dict["tags"] = response.css('.hashtags a::text').getall()
+    # parsed_data_dict["embed_video_link"] = []
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -275,3 +307,29 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
         json.dump(file_data, file, indent=4, ensure_ascii=False)
+
+
+def get_scrapped_data(response):
+    """
+    Extracts all the irequired data present in the web page.
+    Returns:
+    dict: dictionary containing scrapped data.
+    """
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.get(response.url)
+    try:
+        breakpoint()
+        title = driver.find_elements(By.CSS_SELECTOR, 'div.newsEntryContainer h1')[0].text
+        text = driver.find_elements(By.CSS_SELECTOR, 'h6.descContainer > pre').text
+        
+        print(title, text)
+        breakpoint()
+        
+    except Exception as e:
+        logger.error(f"{str(e)}")
+    else:
+        driver.close()
+        return 'hello'

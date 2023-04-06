@@ -115,10 +115,9 @@ class NewsTVB(scrapy.Spider):
                     "parsed_json",
                     parsed_json_data,
                 )
-            
-            # articledata_loader.add_value(
-            #     "parsed_data", get_parsed_data(self, response, parsed_json_dict)
-            # )
+            articledata_loader.add_value(
+                "parsed_data", get_parsed_data(self, response, parsed_json_dict)
+            )
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 
