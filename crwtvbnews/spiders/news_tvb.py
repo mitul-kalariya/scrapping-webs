@@ -1,10 +1,27 @@
+import logging
 import os
 import scrapy
 import json
 from datetime import datetime
 from scrapy.selector import Selector
-from .utils import check_cmd_args, set_article_dict, get_article_data
+from scrapy.loader import ItemLoader
+from crwtvbnews.items import ArticleData
 
+#from .utils import check_cmd_args, set_article_dict, get_article_data
+
+from crwtvbnews.utils import (
+    check_cmd_args,
+    get_parsed_data,
+    get_raw_response,
+    get_parsed_json,
+    export_data_to_json_file
+)
+
+from crwtvbnews.exceptions import (
+    SitemapScrappingException,
+    ArticleScrappingException,
+    ExportOutputFileException,
+)
 
 class NewsTVB(scrapy.Spider):
     name = "tvb"
@@ -18,6 +35,7 @@ class NewsTVB(scrapy.Spider):
         self.articles = []
         self.type = type
         self.url = url
+        self.article_url = url
         self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
         self.today_date = None
@@ -39,15 +57,12 @@ class NewsTVB(scrapy.Spider):
                 .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
             article_title = Selector(response, type='xml')\
                 .xpath('//news:title/text()', namespaces=self.namespace).getall()
-            print(article_title, article_url)
             for url, title in zip(article_url, article_title):
                 article = {
                     "link": url,
                     "title": title
                 }
                 self.articles.append(article)
-                # yield scrapy.Request(url, callback=self.parse_sitemap_article)
-
         elif self.type == "article":
             yield scrapy.Request(self.url, callback=self.parse_article)
 
@@ -58,15 +73,7 @@ class NewsTVB(scrapy.Spider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
            """
-        article_urls = response.css("div.BigNewsContainer a::attr('href')").getall()
-        print(article_urls)
-        try:
-            for url in article_urls:
-                url = f"https://news.tvb.com{url}"
-                yield scrapy.Request(
-                    url, callback=self.parse_sitemap_article)
-        except Exception as e:
-            self.logger.exception(f"Error in parse_sitemap:- {e}")
+        pass
 
     def parse_sitemap_article(self, response):
         """
@@ -75,28 +82,55 @@ class NewsTVB(scrapy.Spider):
            :param response: HTTP response from the sitemap URL.
            :return: None
         """
-        # Extract the article title from the response
-        title = response.css('div.newsEntryContainer h1::text').get()
-        # If the title exists, add the article information to the list of articles
-        if title:
-            article = {
-                "link": response.url,
-                "title": title
-            }
-            self.articles.append(article)
+        pass
 
     def parse_article(self, response):
         """
-            This function takes the response object of the news article page and extracts the necessary information
-            using get_article_data() function and constructs a dictionary using set_article_dict() function
-            :param response: scrapy.http.Response object
-            :return: None
-            """
+        This function takes the response object of the news article page and extracts the necessary information
+        using get_article_data() function and constructs a dictionary using set_article_dict() function
+        :param response: scrapy.http.Response object
+        :return: None
+        """
+        try:
+            raw_response_dict = {
+                "content_type": response.headers.get("Content-Type").decode("utf-8"),
+                "content": response.text,
+            }
+            raw_response = get_raw_response(response, raw_response_dict)
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            articledata_loader.add_value("raw_response", raw_response)
+            parsed_json_dict = {}
+            parsed_json_main = response.css('script[type="application/ld+json"]::text')
+            parsed_json_misc = response.css('script[type="application/json"]::text')
+            if parsed_json_main:
+                parsed_json_dict["main"] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
+                parsed_json_dict['other'] = parsed_json_main
+            if parsed_json_misc:
+                parsed_json_dict["misc"] = parsed_json_misc
+            parsed_json_data = get_parsed_json(response, parsed_json_dict)
+            if parsed_json_data:
+                articledata_loader.add_value(
+                    "parsed_json",
+                    parsed_json_data,
+                )
+            
+            # articledata_loader.add_value(
+            #     "parsed_data", get_parsed_data(self, response, parsed_json_dict)
+            # )
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
 
-        article_data = get_article_data(response)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while fetching article details:- {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
+            ) from exception
 
-        article = set_article_dict(response, article_data)
-        self.articles.append(article)
 
     def closed(self, reason):
         """
@@ -105,22 +139,19 @@ class NewsTVB(scrapy.Spider):
             the current date and time.
             :param reason: the reason for the spider's closure
             """
-        if self.output_callback is not None:
-            self.output_callback(self.articles)
+        try:
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
+            if not self.articles:
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
 
-        if self.type == "sitemap":
-            if not os.path.isdir('Links'):
-                os.makedirs('Links')
-            filename = os.path.join(
-                'Links', f'{self.name}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-                )
-
-        elif self.type == "article":
-            if not os.path.isdir('Article'):
-                os.makedirs('Article')
-            filename = os.path.join(
-                'Article', f'{self.name}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-                )
-
-        with open(f'{filename}.json', 'w') as f:
-            json.dump(self.articles, f, indent=4)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while closing crawler:- {str(exception)} - {reason}",
+                level=logging.ERROR,
+            )
+            raise ExportOutputFileException(
+                f"Error occurred while closing crawler:- {str(exception)} - {reason}"
+            ) from exception

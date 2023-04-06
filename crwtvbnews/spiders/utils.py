@@ -142,3 +142,4 @@ def set_article_dict(response: Response, article_data: dict) -> dict:
         }
     }
     return article
+
