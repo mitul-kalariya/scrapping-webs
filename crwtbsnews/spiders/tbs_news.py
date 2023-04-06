@@ -179,7 +179,7 @@ class NewsdigTbsSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-            breakpoint()
+            # breakpoint()
             # if response == "https://newsdig.tbs.co.jp":
             #     continue
 
@@ -223,7 +223,7 @@ class NewsdigTbsSpider(scrapy.Spider):
 
     def parse_pagination_page(self, response):
         # Extract article data from paginated pages
-        breakpoint()
+        # breakpoint()
         previous_raw_response = response.meta.get("raw_response")
         previous_response_json = response.meta.get("response_json")
         previous_response_data = response.meta.get("response_data")
