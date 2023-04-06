@@ -180,7 +180,7 @@ def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
     parsed_data_dict["thumbnail_image"] = [main.get("thumbnailUrl")]
 
     parsed_data_dict["title"] = [headline]
-    parsed_data_dict["images"] = get_image(main)
+    parsed_data_dict["images"] = [{"link": main.get("image"), "caption": response.css('span.css-1a0w51d::text').get()}]
     parsed_data_dict["section"] = [main.get("articleSection")]
 
     parsed_data_dict["tags"] = main.get("keywords")
@@ -226,13 +226,6 @@ def get_publisher(main, logo_width, logo_height):
     }
     publisher_list.append(publisher_dict)
     return publisher_list
-
-
-def get_image(main):
-    img_dict = {
-        "link": main.get("image")
-    }
-    return [img_dict]
 
 
 def remove_empty_elements(parsed_data_dict: dict) -> dict:

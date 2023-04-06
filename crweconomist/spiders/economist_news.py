@@ -9,7 +9,6 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from crweconomist.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -88,9 +87,12 @@ class Economist(scrapy.Spider, BaseSpider):
             try:
                 for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                          namespaces=self.namespace).getall()[4:]:
-                    
-                    if self.start_date.year <= int(site_map_url.split('-')[-2]) <= self.end_date.year:
-                        yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                    if self.today_date:
+                        if self.today_date.year <= int(site_map_url.split('-')[-2]) <= self.today_date.year:
+                            yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                    else:
+                        if self.start_date.year <= int(site_map_url.split('-')[-2]) <= self.end_date.year:
+                            yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
                     f"Error occurred while iterating sitemap url. {str(exception)}",
@@ -107,20 +109,18 @@ class Economist(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response):
         article_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-        sitemap_articel_urls = []
         mod_date = Selector(response, type='xml').xpath('//sitemap:lastmod/text()', namespaces=self.namespace).getall()
         try:
             if self.today_date:
                 for url, date in zip(article_urls, mod_date):
                     _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                     if _date == self.today_date:
-                        yield scrapy.Request(url, callback=self.parse_sitemap_article)
+                        self.articles.append({"link": url})
             else:
                 for url, date in zip(article_urls, mod_date):
                     _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                     if self.start_date <= _date <= self.end_date:
-                        sitemap_articel_urls.append(url)
-                yield from response.follow_all(sitemap_articel_urls, callback=self.parse_sitemap_article)
+                        self.articles.append({"link": url})
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -131,22 +131,7 @@ class Economist(scrapy.Spider, BaseSpider):
             ) from exception
 
     def parse_sitemap_article(self, response):
-        try:
-            title = response.css('#content h1::text').get()
-            if title:
-                article = {
-                    "link": response.url,
-                    "title": title,
-                }
-                self.articles.append(article)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response):
         try:
