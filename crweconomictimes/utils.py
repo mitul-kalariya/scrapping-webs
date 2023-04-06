@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from scrapy.http import Response
 from scrapy.loader import ItemLoader
 from crweconomictimes.constant import SITEMAP_URL
 from crweconomictimes.items import (
@@ -13,6 +12,7 @@ from crweconomictimes.exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
+
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
@@ -31,7 +31,6 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     Note:
         This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
     """
-
 
     def add_start_url(url):
         self.start_urls.append(url)
@@ -162,8 +161,9 @@ def get_parsed_data_dict() -> dict:
         "video": None,
     }
 
+
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    
+
     article_data = parsed_json_dict
     parsed_data_dict = get_parsed_data_dict()
     mapper = {"en": "English"}
@@ -179,17 +179,19 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["modified_at"] = [article_data.get("main")['dateModified']]
     parsed_data_dict["published_at"] = [article_data.get("main")['datePublished']]
     # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
-    parsed_data_dict["publisher"] = [{'@type': article_data.get("main").get('publisher').get('@type'),
-        'name': article_data.get("main").get('publisher').get('name'),
-        'logo': {
-            "@type": article_data.get("main").get('publisher').get('logo').get('@type'),
-            "url": article_data.get("main").get('publisher').get('logo').get('url'),
-            'width': {'@type': "Distance",
-                "name": str(article_data.get("main")['publisher']['logo']['width']) + " Px"},
-            'height': {'@type': "Distance",
-                'name': str(
-                    article_data.get("main")['publisher']['logo']['height']) + " Px"}}
+    parsed_data_dict["publisher"] = [
+        {
+            '@type': article_data.get("main").get('publisher').get('@type'),
+            'name': article_data.get("main").get('publisher').get('name'),
+            'logo': {
+                "@type": article_data.get("main").get('publisher').get('logo').get('@type'),
+                "url": article_data.get("main").get('publisher').get('logo').get('url'),
+                'width': {'@type': "Distance",
+                          "name": str(article_data.get("main")['publisher']['logo']['width']) + " Px"},
+                'height': {'@type': "Distance",
+                           'name': str(article_data.get("main")['publisher']['logo']['height']) + " Px"}
             }
+        }
     ]
     parsed_data_dict["text"] = [article_data.get("main").get("articleBody")]
     parsed_data_dict["thumbnail_image"] = [article_data.get("img_url")]

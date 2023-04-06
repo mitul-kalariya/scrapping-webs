@@ -42,7 +42,7 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
-    @abstractmethod    
+    @abstractmethod
     def parse_sitemap_article(self, response: str) -> None:
         pass
 
@@ -59,7 +59,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
     def __init__(
         self, type=None, start_date=None,
         end_date=None, url=None, *args, **kwargs
-                ):
+    ):
         try:
             super(EconomicTimes, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -72,7 +72,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
             self.start_date = start_date
             self.end_date = end_date
             self.today_date = None
-            
+
             check_cmd_args(self, self.start_date, self.end_date)
 
         except Exception as exception:
@@ -99,24 +99,25 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
         if response.status != 200:
             raise CloseSpider(
                 f"Unable to scrape due to getting this status code {response.status}"
-            )    
+            )
         if self.type == "sitemap":
             try:
                 for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                        namespaces=self.namespace).getall():
+                                                                         namespaces=self.namespace).getall():
                     split_url = site_map_url.split('/')[-1].split('-')
                     if len(split_url) == 2:
                         split_date = split_url[1].split('.')
                         date = f"{split_url[0]}-{split_date[0]}"
                     else:
-                        date = "-".join(split_url[:2])      
+                        date = "-".join(split_url[:2])
                     target_date = datetime.strptime(date, '%Y-%B')
                     if self.today_date:
                         if (self.today_date.year, self.today_date.month) == (target_date.year, target_date.month):
                             yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
 
                     else:
-                        if (self.start_date.year, self.start_date.month) <= (target_date.year, target_date.month) <= (self.end_date.year, self.end_date.month):
+                        if (self.start_date.year, self.start_date.month) <= (target_date.year, target_date.month) <=\
+                           (self.end_date.year, self.end_date.month):
                             yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
@@ -144,7 +145,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
             xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
         mod_date = Selector(response, type='xml')\
             .xpath('//sitemap:lastmod/text()',
-                namespaces=self.namespace).getall()
+                   namespaces=self.namespace).getall()
 
         try:
             for url, date in zip(article_urls, mod_date):
@@ -157,7 +158,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                     if self.start_date <= _date <= self.end_date:
                         yield scrapy.Request(
                             url, callback=self.parse_sitemap_article)
-                
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -223,10 +224,10 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 parsed_json_dict['VideoObjects'] = parsed_json_main
                 parsed_json_dict['ImageObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
-                
+
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
-            
+
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
@@ -265,8 +266,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)    
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

@@ -1,6 +1,5 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
 from crweconomictimes.spiders.ecnomictime import EconomicTimes
 
 
@@ -61,14 +60,17 @@ class Crawler:
         """
 
         process = CrawlerProcess()
-        print(self.query)
+        process_settings = process.settings
+        process_settings["DOWNLOAD_DELAY"] = 0.25
+        process_settings["REFERER_ENABLED"] = False
+
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
@@ -86,6 +88,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
         process.crawl(EconomicTimes, **spider_args)
         process.start()

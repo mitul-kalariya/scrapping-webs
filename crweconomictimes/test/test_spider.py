@@ -1,12 +1,10 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
 from crweconomictimes.spiders.ecnomictime import EconomicTimes
 from crweconomictimes.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crweconomictimes.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
-# TODO: Update below path here
 from crweconomictimes import Crawler
 
 # Creating an object
@@ -66,7 +64,6 @@ class TestArticle(unittest.TestCase):
                 if test_article_data[0].get("parsed_json").get("Other"):
                     self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
                                           "parsed_json --> other must be list")
-
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object

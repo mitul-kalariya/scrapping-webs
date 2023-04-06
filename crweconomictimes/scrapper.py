@@ -1,7 +1,6 @@
-# TODO: Change the path below
 from crweconomictimes import Crawler
 
-crawler = Crawler(query={"type": "link_feed"})
+crawler = Crawler(query={"type": "sitemap"})
 data = crawler.crawl()
 
 print(data)
