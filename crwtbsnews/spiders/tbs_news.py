@@ -17,7 +17,6 @@ from crwtbsnews.utils import (
     get_parsed_json,
 )
 
-
 class BaseSpider(ABC):
     @abstractmethod
     def parse(self, response):
@@ -180,33 +179,65 @@ class NewsdigTbsSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            breakpoint()
+            # if response == "https://newsdig.tbs.co.jp":
+            #     continue
+
             raw_response = get_raw_response(response)
-            articledata_loader.add_value("raw_response", raw_response)
-
             response_json = get_parsed_json(response)
-            articledata_loader.add_value(
-                "parsed_json",
-                response_json,
-            )
+            response_data = [get_parsed_data(response)]
 
-            response_data = get_parsed_data(response)
-            articledata_loader.add_value("parsed_data", response_data)
+            read_more = response.css("div.u-wf-noto a::attr(href)").getall()
+            if read_more:
+                new_list = [i for i in read_more if i.startswith('/articles/')]
+                response_str = "https://newsdig.tbs.co.jp" + new_list[0]
+                yield scrapy.Request(
+                    url=response_str,
+                    callback=self.parse_pagination_page,
+                    meta={
+                        "raw_response": raw_response,
+                        "response_json": response_json,
+                        "response_data": response_data,
+                    },
+                )
 
-            self.articles.append(dict(articledata_loader.load_item()))
+                # Retun data after all pagination pages are scrapped
 
-            return articledata_loader.item
+            else:
+                articledata_loader = ItemLoader(item=ArticleData(), response=response)
+                articledata_loader.add_value("raw_response", raw_response)
+                articledata_loader.add_value("parsed_json", response_json)
+                articledata_loader.add_value("parsed_data", response_data)
+                self.articles.append(dict(articledata_loader.load_item()))
+                return articledata_loader.item
 
         except Exception as exception:
-            LOGGER.info(
+            self.log(
                 f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception)
+                + str(exception),
+                level=logging.ERROR,
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
-            )
+            ) from exception
 
-    def closed(self, reason: any) -> None:
+    def parse_pagination_page(self, response):
+        # Extract article data from paginated pages
+        breakpoint()
+        previous_raw_response = response.meta.get("raw_response")
+        previous_response_json = response.meta.get("response_json")
+        previous_response_data = response.meta.get("response_data")
+
+        raw_response = get_raw_response(response)
+        response_json = get_parsed_json(response)
+        response_data = [get_parsed_data(response)]
+
+        # Merge previous and current data
+
+
+        # return updated data
+
+def closed(self, reason: any) -> None:
         """
         store all scrapped data into json file with given date in filename
         Args:
