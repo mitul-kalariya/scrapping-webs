@@ -14,6 +14,8 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from crwzdfnews import exceptions
 from crwzdfnews.constant import TODAYS_DATE, LOGGER
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
@@ -262,26 +264,29 @@ def get_embed_video_link(response) -> list:
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     driver.get(response.url)
-    time.sleep(5)
     data = {}
     try:
-        banner_button = driver.find_element(By.XPATH, "//div[@class='banner-actions-container']//button")
+        banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='banner-actions-container']//button")))
         if banner_button:
             banner_button.click()
-            time.sleep(5)
-            video_button = driver.find_elements(By.XPATH,
-                                                "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']", )
+            time.sleep(3)
+            video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
+                By.XPATH,
+                "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
             if video_button:
                 videos = []
                 for i in video_button:
                     i.click()
-                    time.sleep(5)
-                    video = i.find_elements(By.XPATH,
-                                            "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']")[
-                        -1].get_attribute("src").replace("blob:", "")
+                    time.sleep(3)
+                    video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
+                        By.XPATH,
+                        "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
+                    )))
                     if video:
-                        videos.append(video)
+                        videos.append(video[-1].get_attribute("src"))
                 data["videos"] = videos
+
     except Exception as e:
         LOGGER.error(f"exception while fetching video data {e}")
         raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
