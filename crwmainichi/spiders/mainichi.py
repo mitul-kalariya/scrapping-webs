@@ -44,7 +44,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
     name = "mainichi"
 
     # Initializing the spider class with site_url and category parameters
-    def __init__(self, type=None, url=None, since=None, until=None, *args, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -98,25 +98,73 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
 
     def parse(self, response):
         """
-        Parses the given Scrapy response based on the specified type of parsing.
-        Returns:
-            A generator that yields a scrapy.Request object to parse a sitemap or an article.
-        Example Usage:
-            parse(scrapy.http.Response(url="https://example.com", body="..."))
+        Parses the response obtained from a website.
+        Yields:
+        scrapy.Request: A new request object to be sent to the website.
+        Raises:
+        BaseException: If an error occurs during parsing.
         """
+        self.logger.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
                 if self.since and self.until:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
-
             elif self.type == "article":
-                yield self.parse_article(response)
-        # If there's any error during the above process, log it and print
-        except exceptions.InvalidInputException as exception:
-            LOGGER.error(f"{str(exception)}")
-            print(f"Error while callign the parse function: {str(exception)}")
+                article_data = self.parse_article(response)
+                yield article_data
+
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {exception}"
+            )
+
+    def parse_sitemap(self, response):
+        try:
+            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xml_selector = Selector(xmlresponse)
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+                for link in sitemap.getall():
+                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
+            )
+
+    def parse_sitemap_article(self, response):
+        """
+        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
+        """
+        try:
+            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
+            title = response.xpath('//*[local-name()="title"]/text()').getall()
+            published_date = response.xpath('//*[local-name()="publication_date"]/text()').getall()
+
+            for link, title, pub_date in zip(links, title, published_date):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+
+                data = {
+                    'link': link,
+                    'title': title
+                }
+                if self.since is None and self.until is None:
+                    if TODAYS_DATE == published_at:
+                        self.articles.append(data)
+                elif self.since and self.until and self.since <= published_at <= self.until:
+                    self.articles.append(data)
+                elif self.since and self.until:
+                    if published_at == self.since and published_at == self.until:
+                        self.articles.append(data)
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap article:: {str(exception)}")
+            raise exceptions.SitemapArticleScrappingException(
+                f"Error while filtering date wise: {str(exception)}"
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -133,7 +181,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = get_parsed_data(response)
-            response_data["source_country"] = ["Japanese"]
+            response_data["source_country"] = ["Japan"]
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
@@ -142,78 +190,16 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
                 response_json,
             )
             articledata_loader.add_value("parsed_data", response_data)
-
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
-        # If there's any error during the above process, log it and print
-        except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"{str(exception)}")
-            print(f"Error while parsing article: {str(exception)}")
-
-    def parse_sitemap(self, response):
-        """
-        Function to parse a sitemap response by date
-        Returns:
-            Yields scrapy.Request objects for each link found in the sitemap.
-        Description:
-        This function takes in a scrapy response object and parses it by date to extract the sitemap links.
-        For each sitemap link found, it yields a scrapy.Request object to the parse_sitemap function.
-        """
-        try:
-            # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
-            # Create a Selector object from the XmlResponse
-            xml_selector = Selector(xmlresponse)
-            # Define the XML namespaces used in the sitemap
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            # Loop through each sitemap URL in the XML response
-            links = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
-            published_date = xml_selector.xpath("///xmlns:lastmod/text()", namespaces=xml_namespaces).getall()
-
-            for link, pub_date in zip(links, published_date):
-                if link and pub_date:
-                    published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-
-                    if self.since and published_at < self.since:
-                        return
-
-                    if self.since and published_at > self.until:
-                        return
-
-                    if self.since is None and self.until is None:
-                        if TODAYS_DATE == published_at:
-                            yield scrapy.Request(link, callback=self.parse_sitemap_article, meta={'link': link, 'pub_date': published_at})
-                    else:
-                        if self.since and self.until:
-                            yield scrapy.Request(link, callback=self.parse_sitemap_article, meta={'link': link, 'pub_date': published_at})
-
-        # If there's any error during the above process, log it and print
-        except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"{str(exception)}")
-            print(f"Error while parsing sitemap: {str(exception)}")
-
-    def parse_sitemap_article(self, response):
-        """
-        This function takes in a response object and parses the sitemap.
-        It extracts the links and published dates from the response object
-        and uses them to make requests to other pages.
-        Yields:
-            scrapy.Request: A request object with the link and published date as metadata.
-            The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
-        """
-        try:
-            url = response.meta['link']
-            title = response.css('.c-h1::text').get()
-
-            data = {
-                "link": url,
-                "title": title,
-            }
-            self.articles.append(data)
-
-        except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"Error while parsing sitemap article: {str(exception)}")
-            exceptions.SitemapArticleScrappingException(f"Error while parsing sitemap article: {str(exception)}")
+        except BaseException as exception:
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:- {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -234,16 +220,10 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            self.log(
+            LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(MainichiSpider)
-    process.start()
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
+            )
