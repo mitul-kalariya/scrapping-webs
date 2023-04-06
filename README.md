@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from crwam730.main import Crawler
+from crwam730 import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from crwam730.main import Crawler
+from crwam730 import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crwam730.main import Crawler
+from crwam730 import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://www.am730.com.hk/本地/大埔同秀坊住宅拖板短路起火-1死7傷-有片-/368937"
     },
     proxies=proxies
 )
