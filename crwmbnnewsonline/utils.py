@@ -307,27 +307,3 @@ def get_images(response, parsed_json=False) -> list:
     driver.quit()
     return data
 
-
-def get_embed_video_link(response) -> list:
-    """
-    A list of video objects containing information about the videos on the webpage.
-    """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
-    try:
-        import time
-        time.sleep(1)
-        embed_videos = driver.find_elements(By.CSS_SELECTOR, '#ats-video_html5_api')
-        data = []
-        if embed_videos:
-            for video in embed_videos:
-                link = video.get_attribute("src").replace("blob:", "")
-                temp_dict = {"link": link}
-                data.append(temp_dict)
-    except Exception as exception:
-        LOGGER.error(f"{str(exception)}")
-    driver.quit()
-    return data
