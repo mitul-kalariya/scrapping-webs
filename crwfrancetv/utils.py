@@ -128,14 +128,22 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObject":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data).get('video') for data in value.getall()[:1] if
                       json.loads(data).get('video') and json.loads(data).get('video').get("@type") == "VideoObject"]
             )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data).get('video')
+                      for data in value.getall()[:1]
+                      if json.loads(data).get('video') and (json.loads(data).get('video').get("@type") == "ImageObject"
+                                                            or json.loads(data).get('video').get("@type")
+                                                            == "ImageGallery")]
+            )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') \
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type')
                       in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
             )
 
@@ -191,7 +199,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
 
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    # breakpoint()
+
     if len([article_data.get("main").get('author')]) == 1:
         if type(article_data.get("main").get('author')) == list:
             parsed_data_dict["author"] = [{

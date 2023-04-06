@@ -15,8 +15,6 @@ from crwfrancetv.utils import (
     export_data_to_json_file
 )
 from crwfrancetv.exceptions import (
-    SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -112,7 +110,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                             "link": url,
                             "title": title,
                         }
-                        print(article)
                         self.articles.append(article)
 
             else:
@@ -122,7 +119,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                             "link": url,
                             "title": title,
                         }
-                        print(article)
                         self.articles.append(article)
 
     def parse_sitemap_article(self, response):
@@ -160,7 +156,8 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
 
             if parsed_json_misc:
