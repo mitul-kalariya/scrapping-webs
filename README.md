@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links from today's date only
 
-from crwmbnnewsonline.main import Crawler
+from crwmbnnewsonline import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -48,7 +48,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crwmbnnewsonline.main import Crawler
+from crwmbnnewsonline import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
