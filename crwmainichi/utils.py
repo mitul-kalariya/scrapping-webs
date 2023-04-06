@@ -291,9 +291,8 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         data = []
-        thumbnails = response.css(".articledetail-image-left:nth-child(1) .image-mask img::attr(src)").get()
-        if thumbnails:
-            data.append(thumbnails)
+        thumbnails = response.css(".articledetail-image-left picture img::attr(src)").get()
+        data.append(thumbnails)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -369,8 +368,9 @@ def get_images(response, parsed_json=False) -> list:
     such as image link.
     """
     try:
+        breakpoint()
         data = []
-        images = response.css('.ad-articledetail-1+ .articledetail-image-left .image-mask')
+        images = response.css(".articledetail-image-left picture img")[1:]
         if images:
             for image in images:
                 temp_dict = {}
