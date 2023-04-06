@@ -2,8 +2,6 @@ import scrapy
 import logging
 from datetime import datetime
 from crwzdfnews import exceptions
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from crwzdfnews.constant import SITEMAP_URL, LOGGER
