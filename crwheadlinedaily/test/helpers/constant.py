@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://hd.stheadline.com/news/daily/ent/1022333/%E6%97%A5%E5%A0%B1-%E5%A8%9B%E6%A8%82-%E7%B5%95%E4%B8%8D%E7%B0%A1%E5%96%AE%E7%9A%84%E5%85%A9%E9%A4%B8%E9%A3%AF",
@@ -43,5 +42,4 @@ TEST_ARTICLES = [
         "test_data_path": "crwheadlinedaily/test/data/test_article_10.json"
     }
 ]
-#TODO:Update below sitemap URL
 SITEMAP_URL = "https://hd.stheadline.com/rss/news/daily/"

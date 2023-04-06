@@ -1,4 +1,4 @@
-"""Spider to scrap Globe and Mail online (EN) news website"""
+"""Spider to scrap Headline Daily Online (CH) website"""
 
 import logging
 from datetime import datetime
