@@ -1,2 +1,1 @@
-# TODO: Update the path below
-from crwsueddeutsche.main import Crawler  # noqa: F401
+from crwhuffpost.main import Crawler  # noqa: F401

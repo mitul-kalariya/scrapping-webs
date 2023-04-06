@@ -1,4 +1,4 @@
-# crwhuffpost Scrapping
+# Le Huffpost FR Scrapping
 
 #### Setup and execution instructions: - 
 
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://www.huffingtonpost.fr/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://www.huffingtonpost.fr/"
     },
     proxies=proxies
 )
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": https://www.huffingtonpost.fr/sport/article/kylian-mbappe-s-en-prend-au-psg-en-passe-de-devenir-le-kylian-saint-germain_216254.html
     },
     proxies=proxies
 )

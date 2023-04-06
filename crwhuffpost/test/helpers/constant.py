@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.huffingtonpost.fr/sport/article/deschamps-poursuit-daniel-riolo-en-diffamation_215962.html",
+        "url": "https://www.huffingtonpost.fr/politique/article/a-paris-devant-assas-bloquee-contre-la-reforme-des-retraites-deux-trottoirs-deux-ambiances_216244.html",
         "test_data_path": "crwhuffpost/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.huffingtonpost.fr/politique/article/reforme-des-retraites-lfi-et-le-pc-refusent-l-invitation-d-elisabeth-borne_215958.html",
+        "url": "https://www.huffingtonpost.fr/environnement/article/la-fonte-de-l-antarctique-continue-en-mars-a-cause-du-changement-climatique_216246.html",
         "test_data_path": "crwhuffpost/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.huffingtonpost.fr/environnement/article/plan-eau-macron-veut-generaliser-la-tarification-progressive_215949.html",
+        "url": "https://www.huffingtonpost.fr/sport/article/kylian-mbappe-s-en-prend-au-psg-en-passe-de-devenir-le-kylian-saint-germain_216254.html",
         "test_data_path": "crwhuffpost/test/data/test_article_3.json"
     },
 ]
