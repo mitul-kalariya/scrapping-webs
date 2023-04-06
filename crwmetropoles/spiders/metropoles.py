@@ -128,7 +128,6 @@ class MetropolesSpider(scrapy.Spider):
         """
 
         try:
-            breakpoint()
             xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -141,11 +140,11 @@ class MetropolesSpider(scrapy.Spider):
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
         except Exception as exception:
             self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
                 level=logging.ERROR,
             )
             raise exceptions.SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
@@ -159,10 +158,7 @@ class MetropolesSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-            breakpoint()
-            if title := response.css("h1.cat-theme-color::text").get():
-                # response.css("h1.m-title-single::text").getall()
-
+            if title := response.css("h1.m-title-single::text").getall():
                 data = {"link": response.url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
@@ -185,7 +181,6 @@ class MetropolesSpider(scrapy.Spider):
             Values of parameters
         """
         try:
-            breakpoint()
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             articledata_loader.add_value("raw_response", raw_response)

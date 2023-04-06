@@ -350,7 +350,6 @@ def get_publisher(response):
             soup = BeautifulSoup(response.text, "html.parser")
             ee = soup.find_all("script", {"type": "application/ld+json"})
 
-            # json_loads = json.loads(response[0])
             data = []
             for block in ee:
                 if "publisher" in block:
@@ -399,7 +398,6 @@ def get_author(response) -> list:
 
 
 def get_section(response) -> list:
-    breakpoint()
     try:
         section = get_main(response)
         for block in section.get("@graph"):
@@ -425,7 +423,6 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    breakpoint()
     image = get_main(response)
     for block in image.get("@graph"):
         if "image" in block.keys():
@@ -468,7 +465,6 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
-        breakpoint()
         temp_dict = {
             "images": [
                 {"link": img, "caption": cap}
