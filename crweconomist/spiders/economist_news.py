@@ -88,7 +88,9 @@ class Economist(scrapy.Spider, BaseSpider):
             try:
                 for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                          namespaces=self.namespace).getall()[4:]:
-                    yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                    
+                    if self.start_date.year <= int(site_map_url.split('-')[-2]) <= self.end_date.year:
+                        yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
             except Exception as exception:
                 self.log(
                     f"Error occurred while iterating sitemap url. {str(exception)}",
@@ -194,8 +196,8 @@ class Economist(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
