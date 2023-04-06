@@ -1,15 +1,13 @@
 """Spider to scrap ZEIT news website"""
 import re
-import scrapy
 import logging
-
 from abc import ABC, abstractmethod
 from datetime import datetime
-from scrapy.crawler import CrawlerProcess
+
+import scrapy
 from scrapy.http import XmlResponse
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
-from scrapy.utils.project import get_project_settings
 
 from crwzeitnews.constant import (
     TODAYS_DATE,
@@ -29,28 +27,41 @@ from crwzeitnews.utils import (
 
 
 class BaseSpider(ABC):
+    """Abstract Base class for scrapy spider
+
+    Args:
+        ABC : Abstract
+    """
+    # pylint disable=unnecessary-pass
     @abstractmethod
-    def parse(response):
+    def parse(self,response):
+        """parse function responsible for calling individual methods for each request"""
         pass
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
+        """called by parse function when response is sitemap"""
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
+        """called by parse function when response is sitemap article"""
         pass
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
+        """called by parse function when response is article"""
         pass
 
 
 class ZeitSpider(scrapy.Spider, BaseSpider):
+    """main spider for parsing sitemap or article"""
+    # pylint: disable=too-many-instance-attributes
     name = "zeit"
 
-    def __init__(self, type=None, since=None, url=None, until=None, *args, **kwargs):
+    def __init__(self, *args, type=None, since=None, url=None, until=None, **kwargs):
+        # pylint: disable=redefined-builtin
         """
-        A spider to crawl globalnews.ca for news articles. 
+        A spider to crawl globalnews.ca for news articles.
         The spider can be initialized with two modes:
         1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
         and scrape articles within a specified date range.
@@ -58,15 +69,15 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
 
         Attributes:
             name (str): The name of the spider.
-            type (str): The mode of the spider. 
+            type (str): The mode of the spider.
                         Possible values are 'sitemap' and 'article'.
             start_date (str): The start date of the date range for sitemap mode.
                               Should be in 'YYYY-MM-DD' format.
-            end_date (str): The end date of the date range for sitemap mode. 
+            end_date (str): The end date of the date range for sitemap mode.
                             Should be in 'YYYY-MM-DD' format.
             url (str): The URL of the article to scrape in article mode.
         """
-        super(ZeitSpider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
@@ -122,7 +133,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 )
 
         elif self.type == "article":
-
             article_data = self.parse_article(response)
             yield article_data
 
@@ -157,14 +167,14 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception)
+                "Error occurred while scrapping an article for this link %s %s",
+                response.url, str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
-    def parse_sitemap(self, response, **kwargs) -> None:
+    def parse_sitemap(self, response) -> None:
         try:            # Create an XmlResponse object from the response
             xmlresponse = XmlResponse(
                 url=response.url, body=response.body, encoding="utf-8"
@@ -203,7 +213,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                     )
 
         except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"{str(exception)}")
+            LOGGER.error("Error while parsing sitemap: %s",str(exception))
             print(f"Error while parsing sitemap: {str(exception)}")
 
     def parse_sitemap_article(self, response) -> None:
@@ -213,7 +223,8 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
         and uses them to make requests to other pages.
         Yields:
             scrapy.Request: A request object with the link and published date as metadata.
-            The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
+            The request object is sent to the 'parse_sitemap_link_title'
+            callback function for further processing.
         """
         try:
             xmlresponse = XmlResponse(
@@ -230,7 +241,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 }
                 self.articles.append(data)
         except exceptions.SitemapScrappingException as exception:
-            LOGGER.error(f"Error while parsing sitemap article: {str(exception)}")
+            LOGGER.error("Error while parsing sitemap article: %s", str(exception))
             exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {str(exception)}"
             )
@@ -245,7 +256,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-
         try:
             if self.output_callback is not None:
                 self.output_callback(self.articles)
@@ -253,7 +263,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-        except Exception as exception:
+        except BaseException as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
@@ -261,9 +271,3 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl()
-    process.start()
