@@ -3,14 +3,10 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 import scrapy
-from scrapy.crawler import CrawlerProcess
-from scrapy.http import XmlResponse
 from scrapy.loader import ItemLoader
-from scrapy.selector import Selector
-from scrapy.utils.project import get_project_settings
 
 from crwmainichi import exceptions
-from crwmainichi.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
+from crwmainichi.constant import LOGGER, SITEMAP_URL, TODAYS_DATE, FORMATTED_DATE
 from crwmainichi.items import ArticleData
 from crwmainichi.utils import (
     create_log_file,
@@ -81,7 +77,13 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
-            self.start_urls.append(SITEMAP_URL)
+            full_url = [
+                'm/?sd=' + str(FORMATTED_DATE),
+                'e/?sd=' + str(FORMATTED_DATE),
+            ]
+            for url in full_url:
+                sitemap_link = SITEMAP_URL + url
+                self.start_urls.append(sitemap_link)
             self.since = (
                 datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
             )
@@ -123,12 +125,14 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response):
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            links = response.css('.articlelist a::attr(href)').getall()
+            titles = response.css('.articlelist a h3::text').getall()
+            for link, title in zip(links, titles):
+                data = {
+                    'link': 'https:' + link,
+                    'title': title
+                }
+                self.articles.append(data)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
             raise exceptions.SitemapScrappingException(
@@ -136,35 +140,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             )
 
     def parse_sitemap_article(self, response):
-        """
-        Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
-        """
-        try:
-            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            title = response.xpath('//*[local-name()="title"]/text()').getall()
-            published_date = response.xpath('//*[local-name()="publication_date"]/text()').getall()
-
-            for link, title, pub_date in zip(links, title, published_date):
-                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-
-                data = {
-                    'link': link,
-                    'title': title
-                }
-                if self.since is None and self.until is None:
-                    if TODAYS_DATE == published_at:
-                        self.articles.append(data)
-                elif self.since and self.until and self.since <= published_at <= self.until:
-                    self.articles.append(data)
-                elif self.since and self.until:
-                    if published_at == self.since and published_at == self.until:
-                        self.articles.append(data)
-        except BaseException as exception:
-            LOGGER.error(f"Error while parsing sitemap article:: {str(exception)}")
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error while filtering date wise: {str(exception)}"
-            )
+        pass
 
     def parse_article(self, response) -> list:
         """

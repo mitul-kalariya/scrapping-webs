@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 
 TODAYS_DATE = datetime.today().date()
-SITEMAP_URL = "https://www.n-tv.de/sitemap.xml"
+FORMATTED_DATE = TODAYS_DATE.strftime('%Y%m%d')
+SITEMAP_URL = "https://mainichi.jp/shimen/tokyo/"
 BASE_URL = 'https://mainichi.jp/'
 LOGGER = logging.getLogger()
