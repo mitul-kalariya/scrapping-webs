@@ -58,7 +58,7 @@
                     "productID": "nationalpost.com:showcase"
                 }
             },
-            "Other": [
+            "other": [
                 {
                     "@context": "http://schema.org",
                     "@type": "WebPage",
