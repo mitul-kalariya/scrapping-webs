@@ -120,9 +120,13 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObject":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObjects"]
             )
         else:
             article_raw_parsed_json_loader.add_value(
@@ -173,7 +177,22 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict = get_parsed_data_dict()
 
     mapper = {"fr": "French"}
-    caption = response.css("figcaption.article__legend::text").get()
+
+    caption = [capt for capt in response.css("figcaption.article__legend::text").getall() if capt.strip() != '']
+    images = response.css('figure.article__media img::attr("data-srcset")').getall()
+    if not images:
+        images = response.css('figure.article__media img::attr("srcset")').getall()
+    images_list = []
+    if caption and images:
+        for img, cap in zip(images, caption):
+            images_list.append({'link': img.split(',')[0].split(' ')[0], 'caption': cap})
+    else:
+        if not images and not caption:
+            images_list.append({"link": article_data.get("main").get('image').get('url')})
+        elif not caption:
+            for img in images:
+                images_list.append({'link': img.split(',')[0].split(' ')[0], 'caption': ''})
+
     article_text = " ".join(response.css("p.article__paragraph::text").getall())
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
@@ -205,7 +224,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["text"] = [article_text]
     parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get('main').get('headline')]
-    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image').get('url'), "caption": caption}]
+    parsed_data_dict["images"] = images_list
     parsed_data_dict["section"] = article_data.get('main').get('articleSection')
     parsed_data_dict["tags"] = article_data.get('main').get('keywords')
 
