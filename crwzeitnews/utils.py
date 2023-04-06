@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import time
 from datetime import datetime
 
 from selenium.webdriver.chrome.options import Options
@@ -14,6 +15,7 @@ from seleniumwire import webdriver
 
 from crwzeitnews import exceptions
 from crwzeitnews.constant import TODAYS_DATE, LOGGER
+
 
 def get_request_headers():
     """fetching headers from selenium instance
@@ -28,18 +30,18 @@ def get_request_headers():
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get("https://www.zeit.de/index")
     try:
-        element = WebDriverWait(driver, 10).until(
+        
+        element = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located(
-                (By.XPATH, '//*[@id="main"]/div/article/div/section[2]/div[1]/div')
+               (By.CSS_SELECTOR,"div.option__accbtn")
             )
         )
-        banner_button = driver.find_element(
-            By.XPATH, '//*[@id="main"]/div/article/div/section[2]/div[1]/div'
-        )
+        
         if element:
-            banner_button.click()
+            time.sleep(2)
+            element.click()
             article = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "/html/body/div[3]"))
+                EC.presence_of_element_located((By.XPATH , "/html/body/div[3]"))
             )
             if article:
                 for request in driver.requests:
@@ -58,7 +60,8 @@ def get_request_headers():
 
 
 def format_headers(
-    request_headers, sep=": ", strip_cookie=False, strip_cl=True, strip_headers = list) -> dict:
+    request_headers, sep=": ", strip_cookie=False, strip_cl=True, strip_headers=[]
+) -> dict:
     """
     formates a string of headers to a dictionary containing key-value pairs of request headers
     :param request_headers:
@@ -154,8 +157,7 @@ def validate_sitemap_date_range(since, until):
 
 
 def create_log_file():
-    """creating log file
-    """
+    """creating log file"""
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -227,7 +229,7 @@ def remove_empty_elements(parsed_data_dict):
 
 def get_raw_response(response):
     """parsing raw response
-       returns: raw response
+    returns: raw response
     """
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
@@ -252,7 +254,7 @@ def get_parsed_json(response):
         ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in ld_json_data:
             data = json.loads(a_block)
-            if data.get("@type") == "NewsArticle":
+            if data.get("@type") == "Article":
                 parsed_json["main"] = data
             elif data.get("@type") in {"ImageGallery", "ImageObject"}:
                 image_objects.append(data)
@@ -270,7 +272,7 @@ def get_parsed_json(response):
         return remove_empty_elements(parsed_json)
 
     except BaseException as exception:
-        LOGGER.info("Error occured while getting parsed json %s ",exception)
+        LOGGER.info("Error occured while getting parsed json %s ", exception)
         raise exceptions.ArticleScrappingException(
             f"Error occurred while getting parsed json {exception}"
         )
@@ -316,11 +318,12 @@ def get_main(response):
                 information["VideoObject"] = data
             elif data.get("@type") == "NewsMediaOrganization":
                 information["publisher_info"] = get_publisher_info(data)
-
         return information
     except BaseException as exception:
-        LOGGER.error("Error while getting main %s ",exception)
-        raise exceptions.ArticleScrappingException(f"Error while getting main: {exception}")
+        LOGGER.error("Error while getting main %s ", exception)
+        raise exceptions.ArticleScrappingException(
+            f"Error while getting main: {exception}"
+        )
 
 
 def get_misc(response):
@@ -339,7 +342,9 @@ def get_misc(response):
         return data
     except BaseException as exception:
         LOGGER.error("error while getting misc: %s ", exception)
-        raise exceptions.ArticleScrappingException(f"Error while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while getting misc: {exception}"
+        )
 
 
 def get_parsed_data_dict() -> dict:
@@ -397,7 +402,9 @@ def get_parsed_data(response: str) -> dict:
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publisher_details(publisher_info_json)
     parsed_data_dict |= get_text_title_section_tag_details(parsed_json_main, response)
-    parsed_data_dict |= get_thumbnail_image_video(response, webpage_json)
+    parsed_data_dict |= get_thumbnail_image_video(
+        response, webpage_json, parsed_json_main
+    )
     final_dict = format_dictionary(parsed_data_dict)
     return remove_empty_elements(final_dict)
 
@@ -454,7 +461,7 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
     Returns:
         dict: description, modified date, published date related details
     """
-    if {"Article" ,"VideoObject"} in parsed_data.get("@type"):
+    if parsed_data.get("@type")[0] in {"Article", "VideoObject"}:
         return {
             "description": parsed_data.get("description"),
             "modified_at": parsed_data.get("dateModified"),
@@ -489,7 +496,7 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
     Returns:
         dict: text, title, section, tag details
     """
-    if {"Article" ,"VideoObject"} in parsed_data.get("@type"):
+    if parsed_data.get("@type")[0] in {"Article", "VideoObject"}:
         return {
             "title": parsed_data.get("headline"),
             "text": parsed_data.get("articleBody"),
@@ -502,7 +509,9 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
     }
 
 
-def get_thumbnail_image_video(response: str, webpage_json: dict) -> dict:
+def get_thumbnail_image_video(
+    response: str, webpage_json: dict, parsed_data: dict
+) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -511,10 +520,21 @@ def get_thumbnail_image_video(response: str, webpage_json: dict) -> dict:
     Returns:
         dict: thumbnail images, images and video details
     """
-    video_urls = response.css("video::attr(src)").getall()
-    thumbnail_json = webpage_json.get("primaryImageOfPage")
-    if thumbnail_json:
-        thumbnail_url = [thumbnail_json.get("url")]
+    video_urls = []
+    thumbnail_url = []
+    if webpage_json:
+        thumbnail_json = webpage_json.get("primaryImageOfPage")
+        if thumbnail_json:
+            thumbnail_url.append(thumbnail_json.get("url"))
+    if parsed_data.get("@type")[0] == "VideoObject":
+        video_urls.append(response.url)
+    elif parsed_data.get("@type")[0] == "Article":
+        raw_sources = response.css('script[class="raw__source"]').getall()
+        if raw_sources:
+            for a_response in raw_sources:
+                link_data = ((a_response.split("src="))[1]).split('"')[1::2]
+                video_urls.append(link_data[0])
+
     return {"embed_video_link": video_urls, "thumbnail_image": thumbnail_url}
 
 

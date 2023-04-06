@@ -3,15 +3,15 @@
 # TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.zeit.de/video/2023-04/6324065533112/un-sicherheitsrat-russische-kinderrechtsbeauftragte-sorgt-fuer-eklat-bei-un-sitzung", #video article
         "test_data_path": "crwzeitnews/test/data/test_article_1.json",
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.zeit.de/kultur/musik/2023-04/rat-saw-god-wednesday-album-indierock",#article with yt videos
         "test_data_path": "crwzeitnews/test/data/test_article_2.json",
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.zeit.de/arbeit/2023-04/arbeitszeitbetrug-angestellte-kuendigung",
         "test_data_path": "crwzeitnews/test/data/test_article_3.json",
     },
 ]
