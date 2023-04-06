@@ -117,6 +117,7 @@ def validate_arg(param_name, param_value, custom_msg=None) -> None:
     Args:
         param_name: Name of the parameter to be validated
         param_value: Value of the required parameter
+        custom_msg: gives proper validation message
 
     Raises:
         ValueError if not provided
@@ -209,9 +210,9 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": [],
+        "videoObjects": [],
+        "other": [],
         "misc": [],
     }
 
@@ -219,20 +220,18 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         space_removed_block = re.sub(SPACE_REMOVER_PATTERN, "", block).strip()
         if "NewsArticle" in json.loads(space_removed_block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(space_removed_block)
-        elif "ImageGallery" in json.loads(space_removed_block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(space_removed_block)
+        elif "ImageGallery" in json.loads(space_removed_block).get(
+            "@type", [{}]
+        ) or "ImageObject" in json.loads(space_removed_block).get("@type", [{}]):
+            parsed_json_flter_dict["imageObjects"].append(
+                json.loads(space_removed_block)
+            )
         elif "VideoObject" in json.loads(space_removed_block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(space_removed_block)
-        elif "ItemList" in json.loads(space_removed_block).get("@type", [{}]):
-            for itemlistelement in json.loads(space_removed_block).get(
-                "itemListElement"
-            ):
-                if "VideoObject" in itemlistelement.get("item", {}).get("@type", ""):
-                    parsed_json_flter_dict["VideoObject"] = itemlistelement.get(
-                        "item", [{}][0].get("@type", [{}])
-                    )
+            parsed_json_flter_dict["videoObjects"].append(
+                json.loads(space_removed_block)
+            )
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(space_removed_block))
+            parsed_json_flter_dict["other"].append(json.loads(space_removed_block))
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
@@ -243,7 +242,6 @@ def get_parsed_json(response) -> dict:
 
     Args:
         response: provided response
-        selector_and_key: A dictionary with key and selector
 
     Returns:
         Dictionary with Parsed json response from generated data
@@ -355,13 +353,17 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list, videoobject: dict) -> dict:
+def get_parsed_data(
+    response: str, parsed_json_main: list, video_objects: dict, other: dict
+) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
     Args:
         response: provided response
         parsed_json_main: A list of dictionary with applications/+ld data
+        video_objects: A list of dictionary with applications/+ld data for getting video
+        other: A list of dictionary with applications/+ld data for getting video
 
     Returns:
         Dictionary with Parsed json response from generated data
@@ -371,17 +373,15 @@ def get_parsed_data(response: str, parsed_json_main: list, videoobject: dict) ->
     parsed_data_dict |= get_language_details(response)
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
-    parsed_data_dict |= get_publihser_details(parsed_json_main)
+    parsed_data_dict |= get_publisher_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_tag_details(parsed_json_main, response)
-    parsed_data_dict |= get_thumbnail_image_video(response, videoobject)
+    parsed_data_dict |= get_thumbnail_image_video(response, video_objects, other)
     return remove_empty_elements(parsed_data_dict)
 
 
 def get_country_details() -> dict:
     """
     Return country related details
-    Args:
-        parsed_data: response of application/ld+json data
     Returns:
         dict: country related details
     """
@@ -393,7 +393,6 @@ def get_language_details(response: str) -> dict:
     """
     Return language related details
     Args:
-        parsed_data: response of application/ld+json data
         response: provided response
     Returns:
         dict: language related details
@@ -448,6 +447,7 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
             "description": [parsed_data.get("description")],
             "modified_at": [parsed_data.get("dateModified")],
             "published_at": [parsed_data.get("datePublished")],
+            "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
         }
 
     return {
@@ -457,12 +457,11 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
     }
 
 
-def get_publihser_details(parsed_data: list) -> dict:
+def get_publisher_details(parsed_data: list) -> dict:
     """
     Returns publisher details like name, type, id
     Args:
         parsed_data: response of application/ld+json data
-        response: provided response
     Returns:
         dict: publisher details like name, type, id related details
     """
@@ -509,20 +508,37 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
         }
     return {
         "title": response.css("header.article-header > h1::text").getall(),
+        "text": ["".join(response.css("div.article-content p::text").extract())],
         "section": response.css("div.breadcrumb a::text").getall(),
         "tags": response.css("div.articleTags > div > a::text").getall(),
     }
 
 
-def get_thumbnail_image_video(response: str, videoobject: dict) -> dict:
+def get_thumbnail_image_video(response: str, video_objects: dict, other: dict) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
-        videoobject: response of application/ld+json data
+        video_objects: response of application/ld+json data
+        other: response of application/ld+json data
         response: provided response
     Returns:
         dict: thumbnail images, images and video details
     """
+    video_link = []
+    video_caption = []
+    if video_objects:
+        for videos in video_objects:
+            if video_url := videos.get("embedUrl"):
+                video_link.append(video_url)
+            video_caption.append(videos.get("description"))
+    elif other:
+        for videos in other:
+            if video_url := videos.get("itemListElement"):
+                for abc in video_url:
+                    if isinstance(abc.get("item"), dict):
+                        video_link.append(abc.get("item").get("embedUrl"))
+                        video_caption.append(abc.get("item").get("description"))
+
     image_url = response.css("div.asset-image figure picture img::attr(src)").getall()
     image_caption = response.css("div.asset-image div.caption::text").getall()
     return {
@@ -533,9 +549,9 @@ def get_thumbnail_image_video(response: str, videoobject: dict) -> dict:
             )
         ],
         "video": [
-            {
-                "link": videoobject.get("embedUrl") if videoobject else None,
-                "caption": videoobject.get("description") if videoobject else None,
-            }
+            {"link": video, "caption": cap}
+            for video, cap in itertools.zip_longest(
+                video_link, video_caption, fillvalue=None
+            )
         ],
     }

@@ -153,15 +153,16 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         for url, date in zip(
-                Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-                Selector(response, type="xml").xpath(
-                    "//sitemap:lastmod/text()",
-                    namespaces=self.namespace
-                ).getall(),
+            Selector(response, type="xml")
+            .xpath("//sitemap:loc/text()", namespaces=self.namespace)
+            .getall(),
+            Selector(response, type="xml")
+            .xpath("//sitemap:lastmod/text()", namespaces=self.namespace)
+            .getall(),
         ):
             try:
                 date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d").date()
-                date_datetime = str(date_datetime).split(" ")[0]
+                date_datetime = str(date_datetime).split(" ", maxsplit=1)[0]
 
                 if date_datetime in self.date_range_lst:
                     data = {"link": url}
@@ -206,7 +207,8 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
                 get_parsed_data(
                     response,
                     parsed_json_data.get("main", [{}]),
-                    parsed_json_data.get("VideoObject"),
+                    parsed_json_data.get("videoObjects"),
+                    parsed_json_data.get("other"),
                 ),
             )
             self.articles.append(
@@ -228,7 +230,7 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
         """
         store all scrapped data into json file with given date in filename
         Args:
-            response: generated response
+            reason: generated response
         Raises:
             ValueError if not provided
         Returns:
@@ -239,6 +241,8 @@ class HuffPostSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
