@@ -1,29 +1,30 @@
 """Spider to scrap TV Chosun Online (KR) news website"""
 
 import logging
-from datetime import datetime
 from abc import ABC, abstractmethod
-from crwtvchosun.constant import BASE_URL
-import scrapy
-import lxml.etree as etree
-from scrapy.exceptions import CloseSpider
-from scrapy.selector import Selector
-from scrapy.loader import ItemLoader
+from datetime import datetime
 
-from crwtvchosun.items import ArticleData
-from crwtvchosun.utils import (
-    validate,
-    get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file,
-    get_parsed_data,
-    remove_empty_elements,
-)
+import lxml.etree as etree
+import scrapy
+from scrapy.exceptions import CloseSpider
+from scrapy.loader import ItemLoader
+from scrapy.selector import Selector
+
+from crwtvchosun.constant import BASE_URL
 from crwtvchosun.exceptions import (
-    SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    SitemapArticleScrappingException,
+    SitemapScrappingException,
+)
+from crwtvchosun.items import ArticleData
+from crwtvchosun.utils import (
+    export_data_to_json_file,
+    get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
+    remove_empty_elements,
+    validate,
 )
 
 # Setting the threshold of logger to DEBUG
@@ -71,7 +72,7 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
         super(TvChosunSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -124,7 +125,7 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
             raise CloseSpider(
                 f"Unable to scrape due to getting this status code {response.status}"
             )
-        
+
         self.logger.info("Parse function called on %s", response.url)
         if "ospc_news_all_list.html" in response.url:
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -141,11 +142,12 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        
+
         try:
-            for url, title in zip(response.css("div.contents p a::attr(href)").getall(),
-                           response.css("div.contents p a::text").getall()):
-                yield scrapy.Request(url, callback=self.parse_sitemap_article)
+            for url, title in zip(
+                response.css("div.contents p a::attr(href)").getall(),
+                response.css("div.contents p a::text").getall(),
+            ):
                 data = {"link": url, "title": title}
                 self.articles.append(data)
         except SitemapScrappingException as exception:
@@ -159,7 +161,6 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
             ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
-        
         pass
 
     def parse_article(self, response: str) -> None:
@@ -220,7 +221,7 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

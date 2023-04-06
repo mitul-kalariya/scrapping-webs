@@ -1,5 +1,7 @@
-from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
+
+from scrapy.crawler import CrawlerProcess
+
 from crwtvchosun.spiders.tv_chosun import TvChosunSpider
 
 
@@ -25,7 +27,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -70,7 +72,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed" or self.query['type'] == 'sitemap':
+        elif self.query["type"] == "link_feed" or self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
