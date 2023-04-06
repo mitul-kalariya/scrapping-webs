@@ -26,7 +26,9 @@ python setup.py sdist
 
 Use the command `pip install <path_to_package>`. for example `pip install dist/crwtimesnownews-0.1.tar.gz`
 
-### Usage
+This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+- Python 3.10
+- Scrapy
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.

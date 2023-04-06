@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-# Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.timesnownews.com/web-stories/health/world-health-day-2023-everyday-aches-and-pains-you-should-not-ignore-article-99285223",
