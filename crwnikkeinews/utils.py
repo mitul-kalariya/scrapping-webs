@@ -10,6 +10,8 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 from crwnikkeinews import exceptions
 from crwnikkeinews.constant import BASE_URL, LOGGER, TODAYS_DATE
@@ -309,6 +311,8 @@ def get_embed_video_link(response) -> list:
     """
     options = Options()
     options.headless = True
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
     driver = webdriver.Chrome(options=options)
     driver.get(response.url)
 
