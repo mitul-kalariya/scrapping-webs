@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from scrapy.http import Response
 from scrapy.loader import ItemLoader
 
 from crwtimesnownews.items import (
@@ -126,7 +125,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
         elif key == "VideoObjects":
@@ -136,14 +135,15 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
         elif key == "ImageObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObject"]
-            )   
+            )
         elif key == "misc":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall()]
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject" or json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"
+                      or json.loads(data).get('@type') != "NewsArticle"]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())
@@ -213,9 +213,11 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["text"] = ["".join(article_data.get("text"))]
     parsed_data_dict["thumbnail_image"] = [article_data.get("main_copy").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get("title")[0]]
-    parsed_data_dict["images"] = [{"link": article_data.get("main_copy").get('image').get('url'), "caption": article_data.get("main_copy").get('image').get('caption')}]
+    parsed_data_dict["images"] = [{"link": article_data.get("main_copy").get('image').get('url'),
+                                   "caption": article_data.get("main_copy").get('image').get('caption')}]
     parsed_data_dict["section"] = article_data.get("category")[1:]
     parsed_data_dict["tags"] = article_data.get("tags")
+
     return remove_empty_elements(parsed_data_dict)
 
 

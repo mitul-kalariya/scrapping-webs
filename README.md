@@ -33,7 +33,7 @@ Quick example as shown below.
 ```
 from crwtimesnownews import Crawler
 
-crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+crawler = Crawler(query={"type": "article", "link": "https://www.timesnownews.com/business-economy/companies/tiktok-can-still-access-years-of-indians-data-despite-ban-this-is-ceo-shou-zi-chews-response-when-grilled-by-the-us-congress-article-98955792"})
 data = crawler.crawl()
 ```
 The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.

@@ -75,7 +75,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                    "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
@@ -259,8 +259,6 @@ class TimesNow(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
