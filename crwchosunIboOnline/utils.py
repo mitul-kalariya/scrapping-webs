@@ -9,6 +9,7 @@ from crwchosunIboOnline.constant import SITEMAP_URL
 from crwchosunIboOnline.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
+    ArtcleRawParsedData
 )
 from crwchosunIboOnline.exceptions import (
     InputMissingException,
@@ -167,17 +168,18 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     )
     for key, value in parsed_json_dict.items():
         article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
+            key, [json.loads(value)]
         )
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict["description"] = [response.css('meta[name="dc.description"]::attr(content)').get()]
-    published_at = response.css('.txt_box span.time::text').getall()
-    i = 0
-    if len(published_at) == 3:
-        i = 1
-    parsed_data_dict["published_at"] = [published_at[i].split(' ')[2] + 'T' + published_at[i].split(' ')[3]]
-    if len(published_at) > 1:
-        parsed_data_dict["modified_at"] = [published_at[i + 1].split(' ')[3] + 'T' + published_at[i + 1].split(' ')[4]]
+    test = get_images(response, parsed_data_dict)
+    breakpoint()
+
+    article_data = dict(article_raw_parsed_json_loader.load_item())
+    parsed_data_dict["description"] = [response.css('meta[property="og:description"]::attr(content)').get()]
+    parsed_data_dict["published_at"] = [response.css('meta[name="article:published_time"]::attr(content)').get()]
+    
+
+
     author = {}
     if response.css('#container a::text')[0].get():
         author['@type'] = 'Person'
@@ -264,7 +266,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
-def get_images(response, parsed_json=False) -> list:
+def get_images(response, parsed_data_dict, parsed_json=False) -> list:
     """
     Extracts all the images present in the web page.
     Returns:
@@ -289,7 +291,12 @@ def get_images(response, parsed_json=False) -> list:
         import time
         time.sleep(1)
         data = []
-        images = driver.find_elements(By.CSS_SELECTOR, '#newsViewArea .b-loaded')
+        parsed_data_dict['title'] = driver.find_elements(By.CSS_SELECTOR, 'h1.article-header__headline')[0].text
+        parsed_data_dict['author'] = []
+        author_dict = {}
+        author_dict['name'] = driver.find_elements(By.CSS_SELECTOR, '.text--black.text__link--underline')[0].text
+        
+        breakpoint()
         if images:
             for image in images:
                 temp_dict = {}

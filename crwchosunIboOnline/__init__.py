@@ -1,1 +1,1 @@
-# from crwchosunIboOnline.main import Crawler
+from crwchosunIboOnline.main import Crawler
