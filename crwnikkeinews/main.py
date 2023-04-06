@@ -63,13 +63,18 @@ class Crawler:
             as per expected_article.json or expected_sitemap.json
         """
         process = CrawlerProcess()
+        process_settings = process.settings
+        process_settings["DOWNLOAD_DELAY"] = 0.25
+        process_settings["REFERER_ENABLED"] = False
+        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
