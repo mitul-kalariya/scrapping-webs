@@ -3,9 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 import scrapy
-from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
-from scrapy.utils.project import get_project_settings
 
 from crwhk01 import exceptions
 from crwhk01.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
