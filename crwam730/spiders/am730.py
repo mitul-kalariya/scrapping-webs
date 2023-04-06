@@ -83,7 +83,31 @@ class Am730(scrapy.Spider, BaseSpider):
             using the `parse_article` callback.
         """
         if self.type == "sitemap":
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                           namespaces=self.namespace).getall()
+            published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
+                                                                namespaces=self.namespace).getall()
+            article_title = Selector(response, type='xml').xpath('//news:title/text()',
+                                                                namespaces=self.namespace).getall()
+            for url, date, title in zip(article_url, published_date, article_title):
+                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                if self.today_date:
+                    if _date == self.today_date:
+                        if title:
+                            article = {
+                                "link": url,
+                                "title": title,
+                            }
+                            self.articles.append(article)
+                else:
+                    if self.start_date <= _date <= self.end_date:
+                        if title:
+                            article = {
+                                "link": url,
+                                "title": title,
+                            }
+                            self.articles.append(article)
+           
         if self.type == "article":
             yield self.parse_article(response)
 
@@ -94,30 +118,7 @@ class Am730(scrapy.Spider, BaseSpider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
         """
-        article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                           namespaces=self.namespace).getall()
-        published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
-                                                              namespaces=self.namespace).getall()
-        article_title = Selector(response, type='xml').xpath('//news:title/text()',
-                                                             namespaces=self.namespace).getall()
-        for url, date, title in zip(article_url, published_date, article_title):
-            _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-            if self.today_date:
-                if _date == self.today_date:
-                    if title:
-                        article = {
-                            "link": url,
-                            "title": title,
-                        }
-                        self.articles.append(article)
-            else:
-                if self.start_date <= _date <= self.end_date:
-                    if title:
-                        article = {
-                            "link": url,
-                            "title": title,
-                        }
-                        self.articles.append(article)
+        pass
 
     def parse_sitemap_article(self, response):
         """
@@ -191,9 +192,7 @@ class Am730(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
-            
+
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
