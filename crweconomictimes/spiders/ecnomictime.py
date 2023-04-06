@@ -152,12 +152,16 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
                     if _date == self.today_date:
-                        yield scrapy.Request(
-                            url, callback=self.parse_sitemap_article)
+                        article = {
+                            "link": url
+                        }
+                        self.articles.append(article)
                 else:
                     if self.start_date <= _date <= self.end_date:
-                        yield scrapy.Request(
-                            url, callback=self.parse_sitemap_article)
+                        article = {
+                            "link": url
+                        }
+                        self.articles.append(article)
 
         except Exception as exception:
             self.log(
@@ -175,25 +179,7 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
         :param response: HTTP response from the sitemap URL.
         :return: None
         """
-        # Extract the article title from the response
-        try:
-            title = response.css('div.topPart h1.artTitle::text').get()
-            # If the title exists, add the article information to the list of articles
-            if title:
-                article = {
-                    "link": response.url,
-                    "title": title
-                }
-                self.articles.append(article)
-
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response):
         """
