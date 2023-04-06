@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "newton_scrapping.middlewares.NewtonScrappingSpiderMiddleware": 543,
+#    "crwmbcnews.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "newton_scrapping.middlewares.NewtonScrappingDownloaderMiddleware": 543,
+#    "crwmbcnews.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "newton_scrapping.pipelines.NewtonScrappingPipeline": 300,
+#    "crwmbcnews.pipelines.NewtonScrappingPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)

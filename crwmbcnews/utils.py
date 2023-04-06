@@ -186,20 +186,14 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     }
     
     for block in blocks:
-        # space_removed_block = re.sub(SPACE_REMOVER_PATTERN, "", block).strip()
-        # new_block = json.loads(re.sub("//.*","",block,flags=re.MULTILINE))
-        # new_block = re.sub(r'(?:,\/\/)[^"\n]*(?:)?', ',', space_removed_block)
-        # final_block = re.sub(re.compile(r'(?:"\/\/)[^}\n]*(?:)?'), '', new_block)
-        # a = r'{}'.format(final_block)
+        
         if "NewsArticle" in json5.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json5.loads(block)
-        elif "ImageGallery" in json5.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json5.loads(block)
+        elif "ImageGallery" in json5.loads(block).get("@type", [{}]) or "ImageObject" in json5.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["ImageObject"] = json5.loads(block)
         elif "VideoObject" in json5.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["VideoObject"] = json5.loads(block)
         else:
-            
-            # final_block = space_removed_block.replace("'", '"') jsondata = ''.join(line for line in block if not line.startswith('//'))
             parsed_json_flter_dict["Other"].append(json5.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
