@@ -12,7 +12,8 @@ from crwmbnnewsonline.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json
+    get_parsed_json,
+    export_data_to_json_file
 )
 from crwmbnnewsonline.exceptions import (
     SitemapScrappingException,
@@ -206,8 +207,8 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
 
             if parsed_json_misc:
@@ -245,10 +246,12 @@ class Mbn_news(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(
