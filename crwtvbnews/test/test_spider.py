@@ -1,6 +1,5 @@
 import logging
 import unittest
-
 from crwtvbnews.spiders.news_tvb import NewsTVB
 from crwtvbnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwtvbnews.test.helpers.utils import (get_article_content,
@@ -66,7 +65,6 @@ class TestArticle(unittest.TestCase):
                 if test_article_data[0].get("parsed_json").get("Other"):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
-
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
@@ -258,8 +256,8 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.type = "link_feed"
+        self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

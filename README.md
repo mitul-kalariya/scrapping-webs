@@ -1,8 +1,8 @@
-# {ScrapperName} Scrapping
+# TVB News Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://news.tvb.com/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwtvbnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://news.tvb.com/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwtvbnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://news.tvb.com/"
     },
     proxies=proxies
 )
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwtvbnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://news.tvb.com/tc/local/642eed3b13220566d11f2cfd/港澳-香港快運取消6月4日至10月29日所有來往日本石垣航班"
     },
     proxies=proxies
 )

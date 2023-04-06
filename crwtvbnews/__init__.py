@@ -1,1 +1,1 @@
-from .main import Crawler
+from crwtvbnews.main import Crawler

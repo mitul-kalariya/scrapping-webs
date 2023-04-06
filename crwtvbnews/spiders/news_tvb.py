@@ -1,13 +1,9 @@
 import logging
-import os
 import scrapy
-import json
 from datetime import datetime
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from crwtvbnews.items import ArticleData
-
-#from .utils import check_cmd_args, set_article_dict, get_article_data
 
 from crwtvbnews.utils import (
     check_cmd_args,
@@ -18,10 +14,10 @@ from crwtvbnews.utils import (
 )
 
 from crwtvbnews.exceptions import (
-    SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
+
 
 class NewsTVB(scrapy.Spider):
     name = "tvb"
@@ -39,15 +35,17 @@ class NewsTVB(scrapy.Spider):
         self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
         self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
         self.today_date = None
-        
+
         check_cmd_args(self, self.start_date, self.end_date)
 
     def parse(self, response):
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
-        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
-        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback function `parse_article`.
+        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a
+        request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback functio
+        n `parse_article`.
         This function is intended to be used as a Scrapy spider callback function.
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
@@ -57,12 +55,24 @@ class NewsTVB(scrapy.Spider):
                 .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
             article_title = Selector(response, type='xml')\
                 .xpath('//news:title/text()', namespaces=self.namespace).getall()
-            for url, title in zip(article_url, article_title):
-                article = {
-                    "link": url,
-                    "title": title
-                }
-                self.articles.append(article)
+            publication_date = Selector(response, type='xml')\
+                .xpath('//news:publication_date/text()', namespaces=self.namespace).getall()
+            for url, title, date in zip(article_url, article_title, publication_date):
+                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                if self.today_date:
+                    if _date == self.today_date:
+                        article = {
+                            "link": url,
+                            "title": title
+                        }
+                        self.articles.append(article)
+                else:
+                    if self.start_date <= _date <= self.end_date:
+                        article = {
+                            "link": url,
+                            "title": title
+                        }
+                        self.articles.append(article)
         elif self.type == "article":
             yield scrapy.Request(self.url, callback=self.parse_article)
 
@@ -129,7 +139,6 @@ class NewsTVB(scrapy.Spider):
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             ) from exception
-
 
     def closed(self, reason):
         """
