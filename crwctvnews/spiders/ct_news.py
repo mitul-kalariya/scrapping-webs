@@ -15,7 +15,7 @@ from crwctvnews.utils import (
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
+    # export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -144,7 +144,6 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while parsing start url:- {str(exception)}"
             ) from exception
 
-
     def parse_sitemap(self, response: str) -> None:
         """
         parse sitemap and scrap article url
@@ -216,7 +215,7 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
+                "parsed_data", get_parsed_data(response, parsed_json_data)
             )
             article = remove_empty_elements(dict(articledata_loader.load_item()))
             self.articles.append(article)

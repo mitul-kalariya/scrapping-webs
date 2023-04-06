@@ -3,6 +3,7 @@ from datetime import timedelta, datetime
 import json
 import os
 import re
+import itertools
 
 from scrapy.loader import ItemLoader
 
@@ -10,11 +11,12 @@ from crwctvnews.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwctvnews.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
 )
+from crwctvnews.constant import BASE_URL
 
 ERROR_MESSAGES = {
     "InputMissingException": "This field is required :-",
@@ -189,8 +191,8 @@ def get_parsed_json_filter(blocks: list, misc: list, regex_pattern: str = "") ->
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
+        "imageObjects": [],
+        "videoObjects": [],
         "Other": [],
         "misc": [],
     }
@@ -198,13 +200,14 @@ def get_parsed_json_filter(blocks: list, misc: list, regex_pattern: str = "") ->
         space_removed_block = re.sub(regex_pattern, "", block).strip()
         if "NewsArticle" in json.loads(space_removed_block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(space_removed_block)
-        elif "ImageGallery" in json.loads(space_removed_block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(space_removed_block)
+        elif ("ImageGallery" in json.loads(space_removed_block).get("@type", [{}])
+              or "ImageObject" in json.loads(space_removed_block).get("@type", [{}])):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(space_removed_block))
         elif "VideoObject" in json.loads(space_removed_block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(space_removed_block)
+            parsed_json_flter_dict["videoObjects"].append(json.loads(space_removed_block))
         else:
             parsed_json_flter_dict["Other"].append(json.loads(space_removed_block))
-    parsed_json_flter_dict["misc"] = [json.loads(re.sub(regex_pattern, "", data).strip()) for data in misc]
+    parsed_json_flter_dict["misc"].extend(json.loads(re.sub(regex_pattern, "", data).strip()) for data in misc)
     return parsed_json_flter_dict
 
 
@@ -294,7 +297,7 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-def get_parsed_data(response: str, parsed_json_main: list) -> dict:
+def get_parsed_data(response: str, parsed_json: dict) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -305,15 +308,15 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
+    parsed_json_main = parsed_json.get("main")
     data_dict = get_author_and_publisher_details(parsed_json_main)
-    image = get_image_url(response)
+    images = get_formated_images(response, parsed_json_main)
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
         "source_country": ["India"],
         "source_language": [language_mapper.get(response.css("html::attr(lang)").get())],
     }
-    caption = response.css(".c-text span::text").getall()
 
     video_url = response.css("inline-video::attr('axis-ids')").get()
     video_link = None
@@ -329,12 +332,11 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     parsed_data_dict |= {
         "title": [data_dict.get("headline")],
         "text": [re.sub(SPACE_REMOVER_PATTERN, "", " ".join(
-            response.css(".twitter-tweet::text, .c-text p::text").getall()),)],
+            response.css(".twitter-tweet::text, .c-text p::text, .c-text h2::text, .c-text span::text").getall()),)],
         "section": response.css(".c-breadcrumb__item__link span::text").getall()
     }
     parsed_data_dict |= {
-        "images": [{"link": data_dict.get("image_url")}] if data_dict.get("image_url")
-        else [{"link": image, "caption": caption}],
+        "images": images,
         "video": [{"link": video_link}],
         "thumbnail_image": [data_dict.get("thumbnail_url")],
     }
@@ -349,6 +351,8 @@ def get_author_and_publisher_details(block: dict) -> dict:
     Returns:
         str : author and publisher details
     """
+    if not block:
+        return {}
     data_dict = {}
     data_dict["publisher_name"] = block.get("publisher", None).get("name", None)
     data_dict["publisher_type"] = block.get("publisher", None).get(
@@ -368,7 +372,6 @@ def get_author_and_publisher_details(block: dict) -> dict:
             auth["@type"] = author.get("@type")
             auth["url"] = author.get("sameAs")
             data_dict["author"].append(auth)
-    data_dict["image_url"] = block.get("image", None).get("url", None)
     return data_dict
 
 
@@ -402,11 +405,79 @@ def get_image_url(response) -> str:
     Returns:
         str: return link of image
     """
-    image = None
+    images = []
+    imageurls = response.css("div.c-heroMedia div.c-image img::attr(src)").getall()
+    for img in imageurls:
+        images.append(get_full_url(img))
+    return images
+
+
+def get_formated_images(response, block) -> str:
+    """return formated images response using block and response
+    Args:
+        response : response object of scrapy
+    Returns:
+        str: return link of image
+    """
+    images = get_image_url(response)
+    captions = response.css("span.c-image__title::text").getall()
+    formated_images = []
+    for link, caption in itertools.zip_longest(images, captions):
+        if not link_in_images(formated_images, link):
+            formated_images.append({
+                "link": link,
+                "caption": caption,
+            })
+    if formated_images:
+        return formated_images
+    if block:
+        image_url_from_block = block.get("image", {}).get("url")
+        if image_url_from_block:
+            formated_images.append({
+                "link": image_url_from_block
+            })
+            return formated_images
+    caption = response.css(".c-text span::text").getall()
     imageurl = response.css(".inline-image::attr(src)").getall()
     for img in imageurl:
-        image = img if "https://www.ctvnews.ca/" in img else f"https://www.ctvnews.ca/{img}"
-    return image
+        images.append(get_full_url(img + "/"))
+    if caption and images:
+        for image, caption in itertools.zip_longest(images, caption):
+            formated_images.append({
+                "link": image,
+                "caption": caption.strip() if caption else None
+            })
+    return formated_images
+
+
+def link_in_images(formated_images: list, link: str) -> bool:
+    """return true if link in list of dictionary of image
+
+    Args:
+        formated_images (list): list of dict of images
+        link (str): link
+
+    Returns:
+        bool: true if link present
+    """
+    if not link:
+        return True
+    for formated_image in formated_images:
+        if link == formated_image.get("link"):
+            return True
+    return False
+
+
+def get_full_url(link: str) -> str:
+    """add base url to short url
+    Args:
+        link (str): link of image or any type
+    Returns:
+        str: Full url including base url
+    """
+    if BASE_URL not in link and len(link) > 20:
+        return BASE_URL + link
+    return link
 
 
 def remove_empty_elements(parsed_data_dict: dict) -> dict:
