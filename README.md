@@ -1,10 +1,10 @@
-# Newton Scrapping
+# France Tv Info Scraping
 This is the scrapping project to scrap news from different website.
 
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
+This repo contains the code to scrap all sitemaps (if available) and articles from https://www.francetvinfo.fr/ website and the Tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -35,11 +35,11 @@ Quick example as shown below.
 from crwfrancetv import Crawler
 
 # For Article
-crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+crawler = Crawler(query={"type": "article", "link": "https://www.francetvinfo.fr/culture/spectacles/theatre/julie-deliquet-une-des-rares-femmes-a-ouvrir-le-festival-d-avignon-ca-me-parait-fou-reagit-la-metteuse-en-scene_5754221.html"})
 data = crawler.crawl()
 
 # For Sitemap
-crawler = Crawler(query={"type": "sitemap", "domain": "https://example.com", "since": "2022-03-01", "until": "2022-03-26"})
+crawler = Crawler(query={"type": "sitemap", "domain": "https://www.francetvinfo.fr/sitemap_news.xml", "since": "2022-03-01", "until": "2022-03-26"})
 data = crawler.crawl()
 
 # For Link Feed

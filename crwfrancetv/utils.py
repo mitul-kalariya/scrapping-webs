@@ -2,7 +2,6 @@ import json
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from crwfrancetv.videos import get_video
 from crwfrancetv.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -189,9 +188,6 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     language = response.css("html::attr(lang)").get()
     article_data["language"] = mapper.get(language)
     article_data["country"] = mapper.get("FRA")
-
-    if article_data.get("main").get('video'):
-        article_data["video"] = get_video(self, response.url)
 
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
