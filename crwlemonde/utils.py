@@ -194,7 +194,16 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             for img in images:
                 images_list.append({'link': img.split(',')[0].split(' ')[0], 'caption': ''})
 
-    article_text = " ".join(response.css("p.article__paragraph::text").getall())
+    texts = []
+    for p in response.css('p.article__paragraph'):
+        text = ''
+        for a in p.css('a'):
+            text += a.css('::text').get().strip() + ' '
+        for t in p.css('::text'):
+            if t.get().strip():
+                text += t.get().strip() + ' '
+        texts.append(text.strip())
+    parsed_data_dict["text"] = [data for data in texts if data]
     parsed_data_dict["source_country"] = ["France"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
     author = article_data.get("main").get('author')
@@ -222,7 +231,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
                         article_data.get("main").get('publisher').get('logo').get('height')) + " Px"}}
         }
     ]
-    parsed_data_dict["text"] = [article_text]
+
     parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get('main').get('headline')]
     parsed_data_dict["images"] = images_list
