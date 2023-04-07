@@ -270,7 +270,7 @@ def get_embed_video_link(response) -> list:
             By.XPATH, "//div[@class='banner-actions-container']//button")))
         if banner_button:
             banner_button.click()
-            time.sleep(3)
+            time.sleep(4)
             video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
                 By.XPATH,
                 "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
@@ -278,13 +278,13 @@ def get_embed_video_link(response) -> list:
                 videos = []
                 for i in video_button:
                     i.click()
-                    time.sleep(3)
+                    time.sleep(4)
                     video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
                         By.XPATH,
                         "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
                     )))
                     if video:
-                        videos.append(video[-1].get_attribute("src"))
+                        videos.append(video[-1].get_attribute("src").replace("bolb:", ""))
                 data["videos"] = videos
 
     except Exception as e:

@@ -210,12 +210,12 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         in the filename.
         """
         try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
