@@ -1,7 +1,11 @@
 from crwtfinews import Crawler
 
-# crawler = Crawler(query={"type": "sitemap"})
-crawler = Crawler(query={"type": "article", "link": "https://www.tf1info.fr/international/etats-unis-un-grand-jury-a-new-york-a-vote-pour-inculper-au-penal-ex-president-donald-trump-dans-affaire-stormy-daniels-actrice-porno-2252626.html"})
-data = crawler.crawl()
+crawler = Crawler(query={"type": "link_feed"})
+links = crawler.crawl()
+for link in links[:5]:
+    article = Crawler(query={"type": "article", "link": link["link"]})
+    data = article.crawl()
+    print(data)
+    print("----------------------------------------------------")
 
 print(data)
