@@ -61,48 +61,6 @@
                     }
                 },
                 {
-                    "@context": "https://schema.org",
-                    "@type": "NewsArticle",
-                    "inLanguage": "en",
-                    "keywords": [
-                        "west bengal internet services",
-                        "rishra",
-                        "west bengal",
-                        "Hooghly",
-                        "ram navami procession",
-                        "bjp",
-                        "communal violence"
-                    ],
-                    "headline": "West Bengal: Internet services remain suspended, prohibitory order still in force in Rishra town",
-                    "description": " Things are under control. There is no incident of any disturbance from anywhere in the district. We have our forces deployed at crucial junctions and areas. Nobody is allowed to roam around without any purpose. We are trying to bring back life to normalcy,  a senior police officer of Chandannagore Police Commissionerate told PTI.",
-                    "datePublished": "2023-04-05T09:10:00+05:30",
-                    "dateModified": "2023-04-05T15:14:00+05:30",
-                    "url": "https://economictimes.indiatimes.com/news/india/west-bengal-internet-services-remain-suspended-prohibitory-order-still-in-force-in-rishra-town/articleshow/99255936.cms",
-                    "mainEntityOfPage": "https://m.economictimes.com/news/india/west-bengal-internet-services-remain-suspended-prohibitory-order-still-in-force-in-rishra-town/articleshow/99255936.cms",
-                    "articleSection": "News",
-                    "articleBody": "Rishra: Prohibitory order was still in force and internet services remained suspended amid heavy deployment of police force in violence hit Rishra town of West Bengal's Hooghly district on Wednesday, police said. No incident of violence or arson reported from anywhere in the district, the police said.   Things are under control. There is no incident of any disturbance from anywhere in the district. We have our forces deployed at crucial junctions and areas. Nobody is allowed to roam around without any purpose. We are trying to bring back life to normalcy,  a senior police officer of Chandannagore Police Commissionerate told PTI.  He also said that several people have been arrested for their alleged involvement in Sunday's violence.  A decision on withdrawing prohibitory orders and removal of the suspension of internet services in the area would be taken later in the day following an evaluation of the situation, he said.  Clashes were reported in Rishra town on Sunday evening during a Ram Navami procession in which BJP national vice president Dilip Ghosh and party's Pursurah MLA Biman Ghosh were present.  The MLA was injured and has been hospitalised.  Parts of nearby Serampore town also witnessed incidents of vandalism following which prohibitory orders were imposed and internet services suspended.  On Tuesday West Bengal Governor C V Ananda Bose cut short his Darjeeling trip to rush back to the city before visiting Rishra to take stock of the situation there.  He spoke to senior police officers and locals and assured them that the miscreants would be brought to book.",
-                    "image": {
-                        "@type": "ImageObject",
-                        "url": "https://img.etimg.com/thumb/msid-99255968,width-4800,height-2931,imgsize-811462,overlay-economictimes/photo.jpg",
-                        "height": 2931,
-                        "width": 4800
-                    },
-                    "author": {
-                        "@type": "Thing",
-                        "name": "PTI"
-                    },
-                    "publisher": {
-                        "@type": "NewsMediaOrganization",
-                        "name": "Economic Times",
-                        "logo": {
-                            "@type": "ImageObject",
-                            "url": "https://img.etimg.com/thumb/msid-76939477,width-600,height-60,quality-100/economictimes.jpg",
-                            "width": 600,
-                            "height": 60
-                        }
-                    }
-                },
-                {
                     "@context": "https://schema.org/",
                     "@type": "WebPage",
                     "name": "West Bengal: Internet services remain suspended, prohibitory order still in force in Rishra town",
@@ -135,6 +93,7 @@
             ],
             "publisher": [
                 {
+                    "@id": "economictimes.indiatimes.com",
                     "@type": "NewsMediaOrganization",
                     "name": "Economic Times",
                     "logo": {
@@ -154,12 +113,16 @@
             "text": [
                 "Rishra: Prohibitory order was still in force and internet services remained suspended amid heavy deployment of police force in violence hit Rishra town of West Bengal's Hooghly district on Wednesday, police said. No incident of violence or arson reported from anywhere in the district, the police said.   Things are under control. There is no incident of any disturbance from anywhere in the district. We have our forces deployed at crucial junctions and areas. Nobody is allowed to roam around without any purpose. We are trying to bring back life to normalcy,  a senior police officer of Chandannagore Police Commissionerate told PTI.  He also said that several people have been arrested for their alleged involvement in Sunday's violence.  A decision on withdrawing prohibitory orders and removal of the suspension of internet services in the area would be taken later in the day following an evaluation of the situation, he said.  Clashes were reported in Rishra town on Sunday evening during a Ram Navami procession in which BJP national vice president Dilip Ghosh and party's Pursurah MLA Biman Ghosh were present.  The MLA was injured and has been hospitalised.  Parts of nearby Serampore town also witnessed incidents of vandalism following which prohibitory orders were imposed and internet services suspended.  On Tuesday West Bengal Governor C V Ananda Bose cut short his Darjeeling trip to rush back to the city before visiting Rishra to take stock of the situation there.  He spoke to senior police officers and locals and assured them that the miscreants would be brought to book."
             ],
+            "thumbnail_image": [
+                "https://img.etimg.com/thumb/msid-99255968,width-4800,height-2931,imgsize-811462,overlay-economictimes/photo.jpg"
+            ],
             "title": [
                 "West Bengal: Internet services remain suspended, prohibitory order still in force in Rishra town"
             ],
             "images": [
                 {
-                    "link": "https://img.etimg.com/thumb/msid-99255968,width-4800,height-2931,imgsize-811462,overlay-economictimes/photo.jpg"
+                    "link": "https://img.etimg.com/thumb/msid-99245672,width-300,height-225,imgsize-67562,,resizemode-75/.jpg",
+                    "caption": ""
                 }
             ],
             "section": [

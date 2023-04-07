@@ -74,61 +74,6 @@
                     }
                 },
                 {
-                    "@context": "https://schema.org",
-                    "@type": "NewsArticle",
-                    "inLanguage": "en",
-                    "keywords": [
-                        "bel stocks",
-                        "stocks to buy",
-                        "shares to buy",
-                        "nifty",
-                        "Bharat Electronics Ltd.",
-                        "defence stocks to buy"
-                    ],
-                    "headline": "Buy Bharat Electronics Ltd., target price Rs 130.0 :  ICICI Direct ",
-                    "description": "Bharat Electronics, incorporated in the year 1954, is a Large Cap company (having a market cap of Rs 70612.46 Crore) operating in Defence sector.",
-                    "datePublished": "2023-04-05T09:11:00+05:30",
-                    "dateModified": "2023-04-05T09:13:00+05:30",
-                    "url": "https://economictimes.indiatimes.com/markets/stocks/recos/buy-bharat-electronics-ltd-target-price-rs-130-0-icici-direct/articleshow/99255971.cms",
-                    "mainEntityOfPage": "https://economictimes.indiatimes.com/markets/stocks/recos/buy-bharat-electronics-ltd-target-price-rs-130-0-icici-direct/articleshow/99255971.cms",
-                    "articleSection": "Markets",
-                    "articleBody": "ICICI Direct has buy call on Bharat Electronics with a target price of Rs 130. The current market price of Bharat Electronics is Rs 96.66 . Bharat Electronics, incorporated in the year 1954, is a Large Cap company (having a market cap of Rs 70612.46 Crore) operating in Defence sector.   Bharat Electronics key Products/Revenue Segments include Electronic Components & Equipments, Sale of services, Other Operating Revenue, Scrap and Rent for the year ending 31-Mar-2022.   Financials  For the quarter ended 31-12-2022, the company has reported a Consolidated Total Income of Rs 4211.76 Crore, up 4.37 % from last quarter Total Income of Rs 4035.38 Crore and up 11.97 % from last year same quarter Total Income of Rs 3761.56 Crore. Company has reported net profit after tax of Rs 603.01 Crore in latest quarter.   The company\u2019s top management includes Mr.Dinesh Kumar Batra, Mr.Gokulan Bangakandy, Mr.Shivnath Yadav, Mr.Prafulla Kumar Choudhury, Dr.N Santhoshkumar, Mr.Mansukhbhai S Khachariya, Dr.Binoy Kumar Das, Dr.P V Parthasarathi, Mr.Anurag Bajpai, Mr.Bhanu Prakash Srivastava, Mr.M V Rajasekhar, Mr.Vinay Kumar Katyal, Mrs.Anandi Ramalingam, Mrs.Shyama Singh. Company has Suri & Co. as its auditors. As on 31-12-2022, the company has a total of 731 Crore shares outstanding.Investment Rationale With the strong order backlog and healthy pipeline, the brokerage expects revenue, EBITDA to grow at a CAGR of 17.9%, 18.9%, respectively, in FY22-24Eaided by sustained margins in the range of ~22%.  Promoter/FII Holdings  Promoters held 51.14 per cent stake in the company as of 31-Dec-2022, while FIIs owned 17.34 per cent, DIIs 24.96 per cent.",
-                    "image": {
-                        "@type": "ImageObject",
-                        "url": "https://img.etimg.com/thumb/msid-99255994,width-1200,height-900,imgsize-15430,overlay-etmarkets/photo.jpg",
-                        "height": 900,
-                        "width": 1200
-                    },
-                    "author": {
-                        "@type": "Thing",
-                        "name": "ETMarkets.com"
-                    },
-                    "publisher": {
-                        "@type": "NewsMediaOrganization",
-                        "name": "Economic Times",
-                        "logo": {
-                            "@type": "ImageObject",
-                            "url": "https://img.etimg.com/thumb/msid-76939477,width-600,height-60,quality-100/economictimes.jpg",
-                            "width": 600,
-                            "height": 60
-                        }
-                    },
-                    "isAccessibleForFree": "false",
-                    "hasPart": {
-                        "@type": "WebPageElement",
-                        "isAccessibleForFree": "False",
-                        "cssSelector": ".paywall"
-                    },
-                    "isPartOf": {
-                        "@type": [
-                            "CreativeWork",
-                            "Product"
-                        ],
-                        "name": "Economic Times",
-                        "productID": "prime.economictimes.indiatimes.com:prime"
-                    }
-                },
-                {
                     "@context": "https://schema.org/",
                     "@type": "WebPage",
                     "name": "Buy Bharat Electronics Ltd., target price Rs 130.0 :  ICICI Direct ",
@@ -161,6 +106,7 @@
             ],
             "publisher": [
                 {
+                    "@id": "economictimes.indiatimes.com",
                     "@type": "NewsMediaOrganization",
                     "name": "Economic Times",
                     "logo": {
@@ -180,12 +126,16 @@
             "text": [
                 "ICICI Direct has buy call on Bharat Electronics with a target price of Rs 130. The current market price of Bharat Electronics is Rs 96.66 . Bharat Electronics, incorporated in the year 1954, is a Large Cap company (having a market cap of Rs 70612.46 Crore) operating in Defence sector.   Bharat Electronics key Products/Revenue Segments include Electronic Components & Equipments, Sale of services, Other Operating Revenue, Scrap and Rent for the year ending 31-Mar-2022.   Financials  For the quarter ended 31-12-2022, the company has reported a Consolidated Total Income of Rs 4211.76 Crore, up 4.37 % from last quarter Total Income of Rs 4035.38 Crore and up 11.97 % from last year same quarter Total Income of Rs 3761.56 Crore. Company has reported net profit after tax of Rs 603.01 Crore in latest quarter.   The company\u2019s top management includes Mr.Dinesh Kumar Batra, Mr.Gokulan Bangakandy, Mr.Shivnath Yadav, Mr.Prafulla Kumar Choudhury, Dr.N Santhoshkumar, Mr.Mansukhbhai S Khachariya, Dr.Binoy Kumar Das, Dr.P V Parthasarathi, Mr.Anurag Bajpai, Mr.Bhanu Prakash Srivastava, Mr.M V Rajasekhar, Mr.Vinay Kumar Katyal, Mrs.Anandi Ramalingam, Mrs.Shyama Singh. Company has Suri & Co. as its auditors. As on 31-12-2022, the company has a total of 731 Crore shares outstanding.Investment Rationale With the strong order backlog and healthy pipeline, the brokerage expects revenue, EBITDA to grow at a CAGR of 17.9%, 18.9%, respectively, in FY22-24Eaided by sustained margins in the range of ~22%.  Promoter/FII Holdings  Promoters held 51.14 per cent stake in the company as of 31-Dec-2022, while FIIs owned 17.34 per cent, DIIs 24.96 per cent."
             ],
+            "thumbnail_image": [
+                "https://img.etimg.com/thumb/msid-99255994,width-1200,height-900,imgsize-15430,overlay-etmarkets/photo.jpg"
+            ],
             "title": [
                 "Buy Bharat Electronics Ltd., target price Rs 130.0 :  ICICI Direct "
             ],
             "images": [
                 {
-                    "link": "https://img.etimg.com/thumb/msid-99255994,width-1200,height-900,imgsize-15430,overlay-etmarkets/photo.jpg"
+                    "link": "https://img.etimg.com/thumb/msid-99255994,width-210,height-158,imgsize-15430,,resizemode-75/bharat-electronics.jpg",
+                    "caption": "Bharat Electronics"
                 }
             ],
             "section": [

@@ -60,47 +60,6 @@
                     }
                 },
                 {
-                    "@context": "https://schema.org",
-                    "@type": "NewsArticle",
-                    "inLanguage": "en",
-                    "keywords": [
-                        "google ai supercomputer",
-                        "google",
-                        "tpu",
-                        "tensor processing unit",
-                        "openai s chatgpt",
-                        "nvidia"
-                    ],
-                    "headline": "Google says its AI supercomputer is faster, greener than Nvidia",
-                    "description": "Google has designed its own custom chip called the Tensor Processing Unit, or TPU. It uses those chips for more than 90% of the company's work on artificial intelligence training, the process of feeding data through models to make them useful at tasks like responding to queries with human-like text or generating images.",
-                    "datePublished": "2023-04-05T09:05:00+05:30",
-                    "dateModified": "2023-04-05T09:13:00+05:30",
-                    "url": "https://economictimes.indiatimes.com/tech/technology/google-says-its-ai-supercomputer-is-faster-greener-than-nvidia/articleshow/99255843.cms",
-                    "mainEntityOfPage": "https://economictimes.indiatimes.com/tech/technology/google-says-its-ai-supercomputer-is-faster-greener-than-nvidia/articleshow/99255843.cms",
-                    "articleSection": "Tech",
-                    "articleBody": "Alphabet Inc's Google on Tuesday released new details about the supercomputers it uses to train its artificial intelligence models, saying the systems are both faster and more power-efficient than comparable systems from Nvidia Corp.  Google has designed its own custom chip called the Tensor Processing Unit, or TPU. It uses those chips for more than 90% of the company's work on artificial intelligence training, the process of feeding data through models to make them useful at tasks like responding to queries with human-like text or generating images.  The Google TPU is now in its fourth generation. Google on Tuesday published a scientific paper detailing how it has strung more than 4,000 of the chips together into a supercomputer using its own custom-developed optical switches to help connect individual machines. Improving these connections has become a key point of competition among companies that build AI supercomputers because so-called large language models that power technologies like Google's Bard or OpenAI's ChatGPT have exploded in size, meaning they are far too large to store on a single chip.  The models must instead be split across thousands of chips, which must then work together for weeks or more to train the model. Google's PaLM model - its largest publicly disclosed language model to date - was trained by splitting it across two of the 4,000-chip supercomputers over 50 days. Google said its supercomputers make it easy to reconfigure connections between chips on the fly, helping avoid problems and tweak for performance gains.  Circuit switching makes it easy to route around failed components,  Google Fellow Norm Jouppi and Google Distinguished Engineer David Patterson wrote in a blog post about the system.  This flexibility even allows us to change the topology of the supercomputer interconnect to accelerate the performance of an ML (machine learning) model.  While Google is only now releasing details about its supercomputer, it has been online inside the company since 2020 in a data center in Mayes County, Oklahoma. Google said that startup Midjourney used the system to train its model, which generates fresh images after being fed a few words of text. In the paper, Google said that for comparably sized systems, its chips are up to 1.7 times faster and 1.9 times more power-efficient than a system based on Nvidia's A100 chip that was on the market at the same time as the fourth-generation TPU. An Nvidia spokesperson declined to comment.  Google said it did not compare its fourth-generation to Nvidia's current flagship H100 chip because the H100 came to the market after Google's chip and is made with newer technology. Google hinted that it might be working on a new TPU that would compete with the Nvidia H100 but provided no details, with Jouppi telling Reuters that Google has  a healthy pipeline of future chips. ",
-                    "image": {
-                        "@type": "ImageObject",
-                        "url": "https://img.etimg.com/thumb/msid-99255926,width-1280,height-720,imgsize-1489133,overlay-ettech/photo.jpg",
-                        "height": 720,
-                        "width": 1280
-                    },
-                    "author": {
-                        "@type": "Thing",
-                        "name": "Reuters"
-                    },
-                    "publisher": {
-                        "@type": "NewsMediaOrganization",
-                        "name": "Economic Times",
-                        "logo": {
-                            "@type": "ImageObject",
-                            "url": "https://img.etimg.com/thumb/msid-76939477,width-600,height-60,quality-100/economictimes.jpg",
-                            "width": 600,
-                            "height": 60
-                        }
-                    }
-                },
-                {
                     "@context": "https://schema.org/",
                     "@type": "WebPage",
                     "name": "Google says its AI supercomputer is faster, greener than Nvidia",
@@ -133,6 +92,7 @@
             ],
             "publisher": [
                 {
+                    "@id": "economictimes.indiatimes.com",
                     "@type": "NewsMediaOrganization",
                     "name": "Economic Times",
                     "logo": {
@@ -152,12 +112,16 @@
             "text": [
                 "Alphabet Inc's Google on Tuesday released new details about the supercomputers it uses to train its artificial intelligence models, saying the systems are both faster and more power-efficient than comparable systems from Nvidia Corp.  Google has designed its own custom chip called the Tensor Processing Unit, or TPU. It uses those chips for more than 90% of the company's work on artificial intelligence training, the process of feeding data through models to make them useful at tasks like responding to queries with human-like text or generating images.  The Google TPU is now in its fourth generation. Google on Tuesday published a scientific paper detailing how it has strung more than 4,000 of the chips together into a supercomputer using its own custom-developed optical switches to help connect individual machines. Improving these connections has become a key point of competition among companies that build AI supercomputers because so-called large language models that power technologies like Google's Bard or OpenAI's ChatGPT have exploded in size, meaning they are far too large to store on a single chip.  The models must instead be split across thousands of chips, which must then work together for weeks or more to train the model. Google's PaLM model - its largest publicly disclosed language model to date - was trained by splitting it across two of the 4,000-chip supercomputers over 50 days. Google said its supercomputers make it easy to reconfigure connections between chips on the fly, helping avoid problems and tweak for performance gains.  Circuit switching makes it easy to route around failed components,  Google Fellow Norm Jouppi and Google Distinguished Engineer David Patterson wrote in a blog post about the system.  This flexibility even allows us to change the topology of the supercomputer interconnect to accelerate the performance of an ML (machine learning) model.  While Google is only now releasing details about its supercomputer, it has been online inside the company since 2020 in a data center in Mayes County, Oklahoma. Google said that startup Midjourney used the system to train its model, which generates fresh images after being fed a few words of text. In the paper, Google said that for comparably sized systems, its chips are up to 1.7 times faster and 1.9 times more power-efficient than a system based on Nvidia's A100 chip that was on the market at the same time as the fourth-generation TPU. An Nvidia spokesperson declined to comment.  Google said it did not compare its fourth-generation to Nvidia's current flagship H100 chip because the H100 came to the market after Google's chip and is made with newer technology. Google hinted that it might be working on a new TPU that would compete with the Nvidia H100 but provided no details, with Jouppi telling Reuters that Google has  a healthy pipeline of future chips. "
             ],
+            "thumbnail_image": [
+                "https://img.etimg.com/thumb/msid-99255926,width-1280,height-720,imgsize-1489133,overlay-ettech/photo.jpg"
+            ],
             "title": [
                 "Google says its AI supercomputer is faster, greener than Nvidia"
             ],
             "images": [
                 {
-                    "link": "https://img.etimg.com/thumb/msid-99255926,width-1280,height-720,imgsize-1489133,overlay-ettech/photo.jpg"
+                    "link": "https://img.etimg.com/thumb/msid-99255926,width-650,height-488,imgsize-1489133,,resizemode-75/startups-collective-eye-legal-action-to-challenge-google.jpg",
+                    "caption": "Startups collective eye legal action to challenge Google"
                 }
             ],
             "section": [

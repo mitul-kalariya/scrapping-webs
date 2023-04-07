@@ -120,18 +120,19 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObjects":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
             )
-        elif key == "ImageObjects":
+        elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObject"]
             )
         else:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not
-                      in selector_and_key.keys() or json.loads(data).get('@type') != "NewsArticle"]
+                      in ["VidoeObject", "ImageObject", "ImageGallery"]
+                      and json.loads(data).get('@type') != "NewsArticle"]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())
@@ -165,7 +166,6 @@ def get_parsed_data_dict() -> dict:
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
 
     article_data = parsed_json_dict
-    parsed_data_dict = get_parsed_data_dict()
     mapper = {"en": "English"}
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["source_country"] = ["India"]
@@ -178,9 +178,9 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["description"] = [article_data.get("main").get('description')]
     parsed_data_dict["modified_at"] = [article_data.get("main")['dateModified']]
     parsed_data_dict["published_at"] = [article_data.get("main")['datePublished']]
-    # "retrieved_at": [datetime.today().strftime("%Y-%m-%d")],
     parsed_data_dict["publisher"] = [
         {
+            "@id": article_data.get('other')[0].get('url').split('/')[2],
             '@type': article_data.get("main").get('publisher').get('@type'),
             'name': article_data.get("main").get('publisher').get('name'),
             'logo': {
@@ -193,10 +193,26 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             }
         }
     ]
+
     parsed_data_dict["text"] = [article_data.get("main").get("articleBody")]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("img_url")]
+    parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get('main').get('headline')]
-    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image').get('url')}]
+    images_link = response.css('figure.imgBg img::attr("data-original")').getall()
+    images_caption = response.css('figure.imgBg img::attr("alt")').getall()
+    images_list = []
+    if images_link and images_caption:
+        for link, caption in zip(images_link, images_caption):
+            images_list.append({'link': link, 'caption': caption})
+    else:
+        images_link = response.css('figure.artImg img::attr("data-original")').getall()
+        images_caption = response.css('figure.artImg img::attr("alt")').getall()
+        if images_link and images_caption:
+            for link, caption in zip(images_link, images_caption):
+                images_list.append({'link': link, 'caption': caption})
+    if images_list:
+        parsed_data_dict["images"] = images_list
+    else:
+        parsed_data_dict['images'] = [{"link": article_data.get("main").get('image').get('url')}]
     parsed_data_dict["section"] = [article_data.get('main').get('articleSection')]
     parsed_data_dict["tags"] = article_data.get('main').get('keywords')
 

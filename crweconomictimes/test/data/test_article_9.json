@@ -62,49 +62,6 @@
                     }
                 },
                 {
-                    "@context": "https://schema.org",
-                    "@type": "NewsArticle",
-                    "inLanguage": "en",
-                    "keywords": [
-                        "2024 presidential elections",
-                        "trump",
-                        "wilson",
-                        "white house",
-                        "trump derangement syndrome",
-                        "talib",
-                        "senate",
-                        "senate judiciary committee"
-                    ],
-                    "headline": "Donald Trump's arraignment bitterly divides American lawmakers ahead of 2024 presidential elections",
-                    "description": "Scores of statements that came out from the US Capitol on Tuesday reflected that swords are out from both sides and there is unlikely to be much of the meeting ground between the Republicans and Democrats in the months ahead of the next year's presidential elections. \u201cAfter quickly reviewing the indictment and the statement of facts, I have no reason to second-guess the grand jury's assessment that there is enough evidence to put Donald Trump on trial,\u201d Democratic Senator Jack Reed said.",
-                    "datePublished": "2023-04-05T09:26:00+05:30",
-                    "dateModified": "2023-04-05T16:05:00+05:30",
-                    "url": "https://economictimes.indiatimes.com/news/international/world-news/donald-trumps-arraignment-bitterly-divides-american-lawmakers-ahead-of-2024-presidential-elections/articleshow/99256222.cms",
-                    "mainEntityOfPage": "https://m.economictimes.com/news/international/world-news/donald-trumps-arraignment-bitterly-divides-american-lawmakers-ahead-of-2024-presidential-elections/articleshow/99256222.cms",
-                    "articleSection": "News",
-                    "articleBody": "The arraignment of Donald Trump in a New York court appeared to have deepened the political divide as Republican lawmakers rallied behind the former president alleging this was nothing but  political prosecution , while the Democrats asserted that there is enough evidence to put him on trial.Scores of statements that came out from the US Capitol on Tuesday reflected that swords are out from both sides and there is unlikely to be much of the meeting ground between the Republicans and Democrats in the months ahead of the next year's presidential elections.\u201cAfter quickly reviewing the indictment and the statement of facts, I have no reason to second-guess the grand jury's assessment that there is enough evidence to put Donald Trump on trial,\u201d Democratic Senator Jack Reed said.\u201cThe question of guilt will be determined by a jury of Trump's peers. The information presented contains troubling actions by Donald Trump that includes falsifying business records in the furtherance of other crimes. Still, the full picture will need to be painted by the prosecution in open court,\u201d he said.\u201cThe American people see this for what it is \u2014 political prosecution,\u201d said Republican Senator Marsha Blackburn from Tennessee.\u201cSoros-backed District Attorney Alvin Bragg is allowing violent criminals to run free in his city while weaponising the legal system in an attempt to take down a former President. Make no mistake: if the former President's name were anything but \u2018Trump,' he would not be facing these charges,\u201d he said.\u201cToday's arraignment is proof that there are two tiers of justice. If they can do this to Trump, they can do it to you. This is fundamentally un-American,\u201d Blackburn said. His Republican Senatorial colleague Josh Hawley called the case against Trump  beyond absurd  and a  travesty. Senate Majority Leader Chuck Schumer said that Trump will have a fair trial that follows the facts and the law.\u201cThere's no place in our justice system for any outside influence or intimidation in the legal process. As the trial proceeds, protest is an American right but all protests must be peaceful,\u201d he said.Trump became the first former US president to be indicted, arrested and arraigned on criminal charges on Tuesday. The 76-year-old Republican, the leading candidate from the party for the 2024 race for the White House, pleaded not guilty to 34 criminal charges of falsifying business records in person before State Supreme Court Justice Juan M Merchan on Tuesday.\u201cThe beauty of the American justice system is that the law applies equally to everyone \u2013 even former presidents \u2013 and everyone has the right to a fair proceeding free of intimidation or outside influence,\u201d said Democratic Senator Sheldon Whitehouse, a senior member of the Senate Judiciary Committee.Democratic Congresswoman Rashida Tlaib said Trump has consistently proven that he was a lawless president and unfit for public office. History will remember Donald Trump not only as the first president to be impeached twice, but the first president to be indicted on criminal charges,\u201d she said.\u201cFalsifying business records to cover up hush money payments is only the beginning of the crimes Trump has committed. He must also be held to account for conspiring to overturn an election, inciting a fascist insurrection, and fuelling white supremacist violence,\u201d she said.\u201cToday, the law has finally caught up with Donald Trump and his corrupt and reckless behaviour. No one is above the law, no matter how rich or powerful they are. The American people deserve to see accountability handed down. Let justice be served,\u201d Talib said.Republican Congressman Joe Wilson described it as a subversion of the American judicial system.\u201cThe shamefully political subversion of the American judicial system by corrupt Democrats confirms my initial condemnation,\u201d he said.\u201cThe false prosecution of President Donald Trump is a disturbing revelation of Trump Derangement Syndrome where normally sane officials lose total control, consumed with hatred and insanity upon hearing his name,\u201d Wilson said.House Republican Conference Chair Elise Stefanik said that the \u201cshameful arrest of President Trump is an unprecedented and chilling chapter in the Left's weaponisation\u201d of the justice system against their leading political opponent.\u201cThis dangerous and illegal overreach by a radical DA has completely backfired for the corrupt Far Left Democrats who would rather desperately tear apart the fabric of our country than face President Trump at the ballot box,\u201d she said.\u201cThe American people are smart, and they know this is politically charged and that President Trump will defeat these charges in court and turn the tables on the Far Left Democrats by exposing their corruption and abuse of power,\u201d she said.\u201cPresident Trump continues to skyrocket in the polls, and just like with the Russia hoax and both sham impeachments, President Trump will defeat this latest witch-hunt, defeat Joe Biden, and will be sworn in as President of the United States of America in January 2025,\u201d Stefanik said. ",
-                    "image": {
-                        "@type": "ImageObject",
-                        "url": "https://img.etimg.com/thumb/msid-99256189,width-1898,height-1280,imgsize-329864,overlay-economictimes/photo.jpg",
-                        "height": 1280,
-                        "width": 1898
-                    },
-                    "author": {
-                        "@type": "Thing",
-                        "name": "PTI"
-                    },
-                    "publisher": {
-                        "@type": "NewsMediaOrganization",
-                        "name": "Economic Times",
-                        "logo": {
-                            "@type": "ImageObject",
-                            "url": "https://img.etimg.com/thumb/msid-76939477,width-600,height-60,quality-100/economictimes.jpg",
-                            "width": 600,
-                            "height": 60
-                        }
-                    }
-                },
-                {
                     "@context": "https://schema.org/",
                     "@type": "WebPage",
                     "name": "Donald Trump's arraignment bitterly divides American lawmakers ahead of 2024 presidential elections",
@@ -137,6 +94,7 @@
             ],
             "publisher": [
                 {
+                    "@id": "economictimes.indiatimes.com",
                     "@type": "NewsMediaOrganization",
                     "name": "Economic Times",
                     "logo": {
@@ -156,12 +114,16 @@
             "text": [
                 "The arraignment of Donald Trump in a New York court appeared to have deepened the political divide as Republican lawmakers rallied behind the former president alleging this was nothing but  political prosecution , while the Democrats asserted that there is enough evidence to put him on trial.Scores of statements that came out from the US Capitol on Tuesday reflected that swords are out from both sides and there is unlikely to be much of the meeting ground between the Republicans and Democrats in the months ahead of the next year's presidential elections.\u201cAfter quickly reviewing the indictment and the statement of facts, I have no reason to second-guess the grand jury's assessment that there is enough evidence to put Donald Trump on trial,\u201d Democratic Senator Jack Reed said.\u201cThe question of guilt will be determined by a jury of Trump's peers. The information presented contains troubling actions by Donald Trump that includes falsifying business records in the furtherance of other crimes. Still, the full picture will need to be painted by the prosecution in open court,\u201d he said.\u201cThe American people see this for what it is \u2014 political prosecution,\u201d said Republican Senator Marsha Blackburn from Tennessee.\u201cSoros-backed District Attorney Alvin Bragg is allowing violent criminals to run free in his city while weaponising the legal system in an attempt to take down a former President. Make no mistake: if the former President's name were anything but \u2018Trump,' he would not be facing these charges,\u201d he said.\u201cToday's arraignment is proof that there are two tiers of justice. If they can do this to Trump, they can do it to you. This is fundamentally un-American,\u201d Blackburn said. His Republican Senatorial colleague Josh Hawley called the case against Trump  beyond absurd  and a  travesty. Senate Majority Leader Chuck Schumer said that Trump will have a fair trial that follows the facts and the law.\u201cThere's no place in our justice system for any outside influence or intimidation in the legal process. As the trial proceeds, protest is an American right but all protests must be peaceful,\u201d he said.Trump became the first former US president to be indicted, arrested and arraigned on criminal charges on Tuesday. The 76-year-old Republican, the leading candidate from the party for the 2024 race for the White House, pleaded not guilty to 34 criminal charges of falsifying business records in person before State Supreme Court Justice Juan M Merchan on Tuesday.\u201cThe beauty of the American justice system is that the law applies equally to everyone \u2013 even former presidents \u2013 and everyone has the right to a fair proceeding free of intimidation or outside influence,\u201d said Democratic Senator Sheldon Whitehouse, a senior member of the Senate Judiciary Committee.Democratic Congresswoman Rashida Tlaib said Trump has consistently proven that he was a lawless president and unfit for public office. History will remember Donald Trump not only as the first president to be impeached twice, but the first president to be indicted on criminal charges,\u201d she said.\u201cFalsifying business records to cover up hush money payments is only the beginning of the crimes Trump has committed. He must also be held to account for conspiring to overturn an election, inciting a fascist insurrection, and fuelling white supremacist violence,\u201d she said.\u201cToday, the law has finally caught up with Donald Trump and his corrupt and reckless behaviour. No one is above the law, no matter how rich or powerful they are. The American people deserve to see accountability handed down. Let justice be served,\u201d Talib said.Republican Congressman Joe Wilson described it as a subversion of the American judicial system.\u201cThe shamefully political subversion of the American judicial system by corrupt Democrats confirms my initial condemnation,\u201d he said.\u201cThe false prosecution of President Donald Trump is a disturbing revelation of Trump Derangement Syndrome where normally sane officials lose total control, consumed with hatred and insanity upon hearing his name,\u201d Wilson said.House Republican Conference Chair Elise Stefanik said that the \u201cshameful arrest of President Trump is an unprecedented and chilling chapter in the Left's weaponisation\u201d of the justice system against their leading political opponent.\u201cThis dangerous and illegal overreach by a radical DA has completely backfired for the corrupt Far Left Democrats who would rather desperately tear apart the fabric of our country than face President Trump at the ballot box,\u201d she said.\u201cThe American people are smart, and they know this is politically charged and that President Trump will defeat these charges in court and turn the tables on the Far Left Democrats by exposing their corruption and abuse of power,\u201d she said.\u201cPresident Trump continues to skyrocket in the polls, and just like with the Russia hoax and both sham impeachments, President Trump will defeat this latest witch-hunt, defeat Joe Biden, and will be sworn in as President of the United States of America in January 2025,\u201d Stefanik said. "
             ],
+            "thumbnail_image": [
+                "https://img.etimg.com/thumb/msid-99256189,width-1898,height-1280,imgsize-329864,overlay-economictimes/photo.jpg"
+            ],
             "title": [
                 "Donald Trump's arraignment bitterly divides American lawmakers ahead of 2024 presidential elections"
             ],
             "images": [
                 {
-                    "link": "https://img.etimg.com/thumb/msid-99256189,width-1898,height-1280,imgsize-329864,overlay-economictimes/photo.jpg"
+                    "link": "https://img.etimg.com/thumb/msid-99253562,width-300,height-225,imgsize-21260,,resizemode-75/.jpg",
+                    "caption": ""
                 }
             ],
             "section": [
