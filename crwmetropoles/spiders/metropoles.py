@@ -135,7 +135,6 @@ class MetropolesSpider(scrapy.Spider):
                 "//xmlns:lastmod/text()",
                 namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
             )
-            # breakpoint()
             for url, pub_date in zip(urls, last_modified_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 if self.start_date and published_at < self.start_date:
@@ -151,7 +150,6 @@ class MetropolesSpider(scrapy.Spider):
                     if self.start_date and self.end_date:
                         data = {"link": url}
                         self.articles.append(data)
-            # breakpoint()
 
         except Exception as exception:
             self.log(
