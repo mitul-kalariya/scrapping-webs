@@ -37,9 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.asahi.com/ajw/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
+        "domain": "https://www.asahi.com/ajw/"
     },
     proxies=proxies
 )
