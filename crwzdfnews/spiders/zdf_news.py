@@ -2,8 +2,6 @@ import scrapy
 import logging
 from datetime import datetime
 from crwzdfnews import exceptions
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from crwzdfnews.constant import SITEMAP_URL, LOGGER
@@ -212,18 +210,12 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         in the filename.
         """
         try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR, )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(ZdfNewsSpider)
-    process.start()
+            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
