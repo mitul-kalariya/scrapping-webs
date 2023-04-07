@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.bild.de/bild-plus/regional/hamburg/hamburg-aktuell/techniker-von-kunde-eingesperrt-weil-internet-nicht-lief-83460238.bild.html",
+        "url": "https://www.bild.de/regional/stuttgart/stuttgart-aktuell/klinikbett-statt-buehne-musical-star-trevor-jackson-am-fuss-operiert-83482988.bild.html",
         "test_data_path": "crwbild/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.bild.de/regional/ruhrgebiet/ruhrgebiet-aktuell/umbenennung-nach-116-jahren-uni-muenster-jagt-kaiser-wilhelm-vom-hof-83461618.bild.html",
+        "url": "https://www.bild.de/regional/dresden/dresden-aktuell/unfall-in-graal-mueritz-sachse-34-faehrt-sich-mit-suv-am-ostseestrand-fest-83479420.bild.html",
         "test_data_path": "crwbild/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.bild.de/sport/mehr-sport/handball/wetzlar-trainer-horvat-weg-das-steckt-hinter-der-vertrauensbruch-rauswurf-83454824.bild.html",
+        "url": "https://www.bild.de/regional/frankfurt/frankfurt-aktuell/wiesbaden-fuer-alle-mit-brazilian-butt-lift-was-saugt-da-an-gina-lisas-po-83480988.bild.html",
         "test_data_path": "crwbild/test/data/test_article_3.json"
     }
 ]

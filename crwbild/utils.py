@@ -272,12 +272,8 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
 def get_parsed_data_dict() -> dict:
     """
     Return base data dictionary
-
-    Args:
-    None
-
-    Returns:
-        dict: Return base data dictionary
+    Args:None
+    Returns:dict: Return base data dictionary
     """
     return {
         "source_country": None,
@@ -332,11 +328,9 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
 def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     """
      Parsed data response from generated data using given response and selector
-
     Args:
         response: provided response
         parsed_json_main: A list of dictionary with applications/+ld data
-
     Returns:
         Dictionary with Parsed json response from generated data
     """
@@ -451,6 +445,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: text, title, section details
     """
+    # breakpoint()
     return {
         "title": response.css(
             "article h1.article-title span.article-title__headline::text"
@@ -458,7 +453,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
         "alternative_title": response.css(
             "article h1.article-title span.article-title__kicker::text"
         ).getall(),
-        "text": ["".join(response.css("div.article-body p::text").getall())],
+        "text": ["".join(response.css("div.article-body *::text").getall())],
         "section": response.selector.css(
             ".subnav__list li a::text,.subnav__list li span::text"
         ).getall()[:-1],
@@ -478,16 +473,7 @@ def get_thumbnail_image_video(response: str) -> dict:
     images = []
     videos = []
     captions = []
-    for link, caption in zip_longest(
-        response.css(
-            "article div.article-body figure div.video-teaser a::attr(href)"
-        ).getall(),
-        response.css(
-            "article div.article-body figure div.video-teaser "
-            + "a figure figcaption div.fig__caption__meta span::text"
-        ).getall(),
-    ):
-        videos.append({"link": link, "caption": caption})
+
     for first_coming_caption in response.css("article figure>figure figcaption"):
         caption_text = get_sub_caption(first_coming_caption)
         captions.append(caption_text)
@@ -507,7 +493,6 @@ def get_thumbnail_image_video(response: str) -> dict:
 
     return {
         "images": images,
-        "video": videos,
     }
 
 
