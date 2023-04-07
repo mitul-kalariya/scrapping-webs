@@ -7,15 +7,9 @@ import json
 import time
 import logging
 from datetime import datetime
-# from selenium import webdriver
-# from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.common.by import By
-# from selenium.webdriver.chrome.service import Service
-# from webdriver_manager.chrome import ChromeDriverManager
+
 from crwddnews import exceptions
 from crwddnews.constant import TODAYS_DATE, LOGGER
-# from selenium.webdriver.support import expected_conditions as EC
-# from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
@@ -139,8 +133,6 @@ def get_parsed_data(response):
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
-        # video = get_embed_video_link(response)
-        # main_dict["embed_video_link"] = video.get("videos")
 
         return remove_empty_elements(main_dict)
     except BaseException as e:
@@ -180,25 +172,6 @@ def get_main(response):
     except BaseException as e:
         LOGGER.error(f"error parsing ld+json main data{e}")
         raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
-
-
-def get_misc(response):
-    """
-    returns a list of misc data available in the article from application/json
-    Parameters:
-        response:
-    Returns:
-        misc data
-    """
-    try:
-        data = []
-        misc = response.css('script[type="application/json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json misc data {e}")
-        raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
 
 
 def get_images(response, parsed_json=False) -> list:

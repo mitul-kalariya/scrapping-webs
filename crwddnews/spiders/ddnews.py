@@ -59,14 +59,12 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             self.type = type.lower()
 
             if self.type == "sitemap":
-                print("------------------------------")
                 self.start_urls.append(SITEMAP_URL)
 
                 self.since = (datetime.strptime(since, "%Y-%m-%d").date() if since else None)
                 self.until = (datetime.strptime(until, "%Y-%m-%d").date() if until else None)
 
                 validate_sitemap_date_range(since, until)
-                print("+++++++++++++++++++++++++++")
 
             if self.type == "article":
                 if url:
@@ -92,7 +90,6 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         try:
             if self.type == "sitemap":
                 if self.since and self.until:
-                    print("=============================")
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -170,21 +167,43 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 if self.until
                 else None
             )
-            print(since)
-            print(until)
-            if since and until:
-                url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-
-            # current_date = date.today().isoformat()   
-            # days_before = (date.today()-timedelta(days=30)).isoformat()
-            # print(current_date)
-            # print(days_before)
-            # Create a list of dates within the range
+            if since:
+                since = since.strftime("%m/%d/%Y")
+                until = until.strftime("%m/%d/%Y")
+                if since and until:
+                    url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="+since+"&changed_2="+until
+                    yield scrapy.Request(url, callback=self.parse_archive_pagination_sitemap) 
+                
+                else:
+                    url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="+since
+                    yield scrapy.Request(url, callback=self.parse_archive_pagination_sitemap) 
+                    
+            else:
+                today = date.today().strftime("%m/%d/%Y")
+                url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="+today
+                yield scrapy.Request(url, callback=self.parse_archive_pagination_sitemap) 
             
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap: {e}")
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(e)}"
+            )
+        
+    def parse_archive_pagination_sitemap(self,response):
+        try:
+            pagination_exists = response.css("ul.pager")
+            if pagination_exists:
+                total_page = response.css("a[title='Go to last page']::attr(href)").get().split("page=")[1]
+                for page in range(int(total_page)+1):
+                    url = response.url+"&page="+str(page)
+                    yield scrapy.Request(url, callback=self.parse_sitemap_article) 
+
+            else:
+                yield scrapy.Request(response.url,dont_filter=True,callback=self.parse_sitemap_article) 
+        except BaseException as e:
+            # LOGGER.info(f"Error while parsing sitemap article: {e}")
+            raise exceptions.SitemapArticleScrappingException(
+                f"Error while parsing sitemap article: {str(e)}"
             )
 
     def parse_sitemap_article(self, response):
@@ -199,26 +218,18 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-            for link in response.css("a"):
-                url = link.css("::attr(href)").get()
-                title = link.css(".teaser-xs__headline, .hyphenate").get()
-                published_at = link.css(".teaser-xs__date::text").get()
-
-                if url and title and published_at:
-                    title = w3lib.html.remove_tags(title)
-                    data = {
-                        "link": url,
-                        "title": title.replace("\n", "").strip(),
+            links = response.css("span.field-content a::attr(href)").getall()
+            title = response.css("p.archive-title::text").getall()
+            for i,t in zip(links,title):
+                if i and t:
+                    self.articles.append(
+                    { 
+                    "link":'https://ddnews.gov.in/'+i,
+                    "title": t
                     }
 
-                    self.articles.append(data)
-            pagination = response.css(".paginierung__liste li a::attr(href)").getall()
-            for pagination_wise in pagination:
-                pagination_url = "https://www.tagesschau.de/archiv/" + pagination_wise
-                if len(pagination) > 1:
-                    yield scrapy.Request(
-                        pagination_url, callback=self.parse_sitemap_article
-                    )
+                )
+                
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap article: {e}")
             raise exceptions.SitemapArticleScrappingException(
@@ -236,8 +247,8 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
