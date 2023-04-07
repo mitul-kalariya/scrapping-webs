@@ -121,7 +121,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = get_parsed_data(response)
-            response_data["source_country"] = ["Germany"]
+            response_data["source_country"] = ["India"]
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
@@ -176,9 +176,10 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
+            namespaces = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = response.xpath("//sitemap:loc/text()", namespaces=namespaces).getall()
+            published_date = response.xpath('//sitemap:lastmod/text()', namespaces=namespaces).getall()
+
 
             for link, pub_date in zip(links, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
@@ -189,14 +190,15 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 if self.start_date and published_at > self.end_date:
                     return
 
-                if self.start_date and self.end_date:
+                if self.start_date and self.end_date and link != "https://www.ndtv.com/sitemap/google-news-sitemap":
                     data = {"link": link}
                     self.articles.append(data)
-                elif today_date == published_at:
+                elif today_date == published_at and link != "https://www.ndtv.com/sitemap/google-news-sitemap":
                     data = {"link": link}
                     self.articles.append(data)
                 else:
                     continue
+
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article:" + str(exception))
             raise exceptions.SitemapArticleScrappingException(
@@ -213,8 +215,8 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
