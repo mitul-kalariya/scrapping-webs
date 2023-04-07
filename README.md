@@ -20,31 +20,7 @@ This repo contains the code to scrap all article links and articles from https:/
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
 
-You can use the `Crawler` class and its `crawl` method to crawl the data.
-Quick example as shown below.
-```
-# To fetch all the article links
 
-from crwasahishimbundigital import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://www.asahi.com/ajw/"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
-```
 # To fetch all the article links from today's date only
 
 from crwasahishimbundigital import Crawler
@@ -58,7 +34,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.asahi.com/ajw/"
     },
     proxies=proxies
