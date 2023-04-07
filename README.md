@@ -21,6 +21,12 @@ Use the command `python setup.py install`. This will install the whole package i
 ### Usage
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
+
+### Use of Selenium
+
+Yes, we used selenium to fetch video urls. To manage the selenium we are using [Web-Driver]
+(https://pypi.org/project/webdriver-manager/) package 'and' we are using `ChromeDriverManager`.
+
 Quick example as shown below.
 ```
 # To fetch all the article links
