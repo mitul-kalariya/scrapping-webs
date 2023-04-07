@@ -25,12 +25,12 @@ def get_request_headers():
     """
     headers = {}
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get("https://www.zeit.de/index")
     try:
-        
+        time.sleep(2)
         element = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located(
                (By.CSS_SELECTOR,"div.option__accbtn")
@@ -40,6 +40,7 @@ def get_request_headers():
         if element:
             time.sleep(2)
             element.click()
+            time.sleep(2)
             article = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH , "/html/body/div[3]"))
             )
@@ -316,7 +317,7 @@ def get_main(response):
                 information["WebPage"] = data
             elif data.get("@type") == "VideoObject":
                 information["VideoObject"] = data
-            elif data.get("@type") == "NewsMediaOrganization":
+            elif data.get("@id") == "#publisher":
                 information["publisher_info"] = get_publisher_info(data)
         return information
     except BaseException as exception:
