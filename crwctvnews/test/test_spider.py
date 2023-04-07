@@ -1,6 +1,6 @@
 import logging
 import unittest
-
+from datetime import datetime, timedelta
 from crwctvnews.spiders.ct_news import CtvnewsSpider
 from crwctvnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwctvnews.test.helpers.utils import (get_article_content,
@@ -252,9 +252,14 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
-
+        TYPE = "sitemap"
+        DOMAIN = SITEMAP_URL
+        until_obj = datetime.now()
+        since_obj = until_obj - timedelta(days=7)
+        DATES_FORMAT = "%Y-%m-%d"
+        until = since = until_obj.strftime(DATES_FORMAT)
+        since = since_obj.strftime(DATES_FORMAT)
+        self.crawler = Crawler(query={"type": TYPE, "domain": DOMAIN, "since": since, "until": until})
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
         for article in self.article_urls:
