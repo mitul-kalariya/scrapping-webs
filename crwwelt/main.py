@@ -4,6 +4,8 @@ from scrapy.crawler import CrawlerProcess
 
 from crwwelt.spiders.welt import WeltSpider
 
+from multiprocessing import Process, Queue
+
 
 class Crawler:
     """
@@ -68,6 +70,8 @@ class Crawler:
         process = CrawlerProcess()
         process_settings = process.settings
         process_settings["DOWNLOAD_DELAY"] = 0.25
+        process_settings["REFERER_ENABLED"] = False
+        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
         process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
