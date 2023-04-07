@@ -2,7 +2,7 @@
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from https://news.rthk.hk/rthk/en/ website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://news.rthk.hk/rthk/ch/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://news.rthk.hk/rthk/en/",
+        "domain": "https://news.rthk.hk/rthk/ch/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://news.rthk.hk/rthk/en/"
+        "domain": "https://news.rthk.hk/rthk/ch/"
     },
     proxies=proxies
 )
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://news.rthk.hk/rthk/en/component/k2/1694227-20230330.htm"
+        "link": "https://news.rthk.hk/rthk/ch/component/k2/1694227-20230330.htm"
     },
     proxies=proxies
 )
