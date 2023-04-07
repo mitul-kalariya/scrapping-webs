@@ -209,14 +209,20 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
                 '@type': "Distance",
                 'name': str(article_data.get("main").get('publisher').get('logo').get('height')) + " Px"}}
     }]
+    cap = article_data.get('misc')[0].get('props').get('pageProps').get('newsItems').get('media').get('image')[0]\
+                      .get('image_title')
 
     parsed_data_dict["text"] = [article_data.get('misc')[0].get('props').get('pageProps').get('newsItems').get('desc')]
     parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get("main").get('headline')]
-    parsed_data_dict["images"] = [{"link": article_data.get('misc')[0].get('props').get('pageProps').get('newsItems')
-                                   .get('media').get('image')[0].get('medium'),
-                                   "caption": article_data.get('misc')[0].get('props').get('pageProps').get('newsItems')
-                                   .get('media').get('image')[0].get('image_title')}]
+    if cap:
+        parsed_data_dict["images"] = [{"link": article_data.get('misc')[0].get('props').get('pageProps').get('newsItems')
+                                    .get('media').get('image')[0].get('medium'),
+                                    "caption": article_data.get('misc')[0].get('props').get('pageProps').get('newsItems')
+                                    .get('media').get('image')[0].get('image_title')}]
+    else:
+        parsed_data_dict["images"] = [{"link": article_data.get('misc')[0].get('props').get('pageProps').get('newsItems')
+                                    .get('media').get('image')[0].get('medium')}]
     parsed_data_dict["section"] = [article_data.get('misc')[0].get('props').get('pageProps').get('categoryTitle')]
     parsed_data_dict["tags"] = article_data.get('main').get('keywords')
     parsed_data_dict['embed_video_link'] = [article_data.get('misc')[0].get('props').get('pageProps').get('newsItems')
