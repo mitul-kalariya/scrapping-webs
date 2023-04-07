@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 
 import json
 import os
+from itertools import zip_longest
 
 from scrapy.loader import ItemLoader
 
@@ -19,6 +20,8 @@ ERROR_MESSAGES = {
     "InvalidDateException": "Please provide valid date.",
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
+
+language_mapper = {"zh-tw": "Chinese"}
 
 
 def sitemap_validations(
@@ -247,7 +250,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -376,27 +379,36 @@ def get_article_json(response: str) -> dict:
     """
     parsed_data = {}
     pattern = r"[\r\n\t\"]+"
-    parsed_data["source_language"] = ["English"]
-    parsed_data["source_country"] = ["Chinese"]
+    parsed_data["source_language"] = [
+        language_mapper.get(response.css("html::attr(lang)").get(), None)
+    ]
+    parsed_data["source_country"] = ["China"]
     header = response.css("h2.itemTitle::text").get()
     time = response.css("div.createddate::text").get()
     description = response.css("div.itemFullText::text").extract()
     description = [re.sub(pattern, "", i) for i in description]
+    parsed_data["description"] = response.css(
+        "meta[name='description']::attr(content)"
+    ).getall()
     image = response.css("img.imgPhotoAfterLoad::attr(src)").get()
     parsed_data["title"] = [header.strip()]
     parsed_data["published_at"] = [time]
 
     if not image:
-        parsed_data["video"] = [get_video_json(response)]
+        video_object = get_video_json(response)
+        if video_object:
+            parsed_data["video"] = video_object
 
     else:
-        parsed_data["images"] = [get_image_json(response)]
+        image_object = get_image_json(response)
+        if image_object:
+            parsed_data["images"] = image_object
 
     parsed_data["text"] = [" ".join(description)]
     return remove_empty_elements(parsed_data)
 
 
-def get_image_json(response: str) -> dict:
+def get_image_json(response: str) -> list:
     """
     Create json of image of the article using the given response.
     :param response: Input response.
@@ -405,10 +417,19 @@ def get_image_json(response: str) -> dict:
     :rtype: dict
     """
 
-    image_json = {}
-    image_json["link"] = response.css("img.imgPhotoAfterLoad::attr(src)").getall()
-    image_json["caption"] = response.css("img.imgPhotoAfterLoad::attr(alt)").getall()
-    return image_json
+    images = []
+    if images_link := response.css("img.imgPhotoAfterLoad::attr(src)").getall():
+        for link, caption in zip_longest(
+            images_link, response.css("img.imgPhotoAfterLoad::attr(alt)").getall()
+        ):
+            images.append(
+                {
+                    "link": link,
+                    "caption": caption if caption else None,
+                }
+            )
+        return images
+    return None
 
 
 def get_video_json(response: str) -> dict:
@@ -422,8 +443,17 @@ def get_video_json(response: str) -> dict:
 
     video_json = {}
     video_script = response.css("div.itemSlideShow,script::text").getall()
-    video_texts = video_script[10]
-    video_json["link"] = [re.findall(r"http?.*?\.mp4", video_texts)[0]]
-    video_json["thumbnail"] = [re.findall(r"http?.*?\.jpg", video_texts)]
-    video_json["caption"] = response.css("div.detailNewsSlideTitleText::text").getall()
-    return video_json
+    if video_script:
+        video_texts = video_script[10]
+        if video_link := re.findall(r"http?.*?\.mp4", video_texts):
+            video_json["link"] = video_link[0]
+            video_json["thumbnail"] = (
+                re.findall(r"http?.*?\.jpg", video_texts)
+                if re.findall(r"http?.*?\.jpg", video_texts)
+                else None
+            )
+            video_json["caption"] = response.css(
+                "div.detailNewsSlideTitleText::text"
+            ).getall()
+            return video_json
+    return None

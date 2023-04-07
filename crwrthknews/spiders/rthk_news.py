@@ -16,12 +16,10 @@ from crwrthknews.utils import (
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    # export_data_to_json_file,
     get_article_json,
 )
 from crwrthknews.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -123,7 +121,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                     self.logger.debug("Parse function called on %s", response.url)
 
                     yield scrapy.Request(
-                        "https://news.rthk.hk/rthk/en/"
+                        "https://news.rthk.hk/rthk/ch/"
                         + f"news-archive.htm?archive_year={single_date.year}"
                         + f"&archive_month={single_date.month}"
                         + f"&archive_day={single_date.day}&archive_cat=all",
@@ -148,9 +146,12 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
 
-        for url, date in zip(
+        for url, title, date in zip(
             response.css(
                 "div.newsContainer div.item div span.title a::attr(href)"
+            ).getall(),
+            response.css(
+                "div.newsContainer div.item div span.title a::attr(title)"
             ).getall(),
             response.css(
                 "div.newsContainer div.item div span.newsArchiveLiveTime::text"
@@ -158,9 +159,10 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
         ):
             try:
                 date_datetime = datetime.strptime(date[:-10].strip(), "%Y-%m-%d")
-                url = BASE_URL.replace("/rthk/en/", "") + url
+                url = BASE_URL.replace("/rthk/ch/", "") + url
                 if date_in_date_range(date_datetime, self.date_range_lst):
-                    yield scrapy.Request(url, callback=self.parse_sitemap_article)
+                    data = {"link": url, "title": title}
+                    self.articles.append(data)
             except Exception as exception:
                 self.log(
                     f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -169,29 +171,6 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h2.itemTitle::text").get():
-                data = {"link": response.url, "title": title.strip("\r\n\t")}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -244,8 +223,6 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
