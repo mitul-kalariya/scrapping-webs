@@ -1,7 +1,8 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
+
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwstdnews.spiders.stdnews import STDNewsSpider
 
 
 class Crawler:
@@ -26,7 +27,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -68,7 +69,9 @@ class Crawler:
         process_settings = process.settings
         process_settings["DOWNLOAD_DELAY"] = 0.25
         process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process_settings[
+            "USER_AGENT"
+        ] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
         process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
