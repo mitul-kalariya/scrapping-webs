@@ -1,8 +1,7 @@
-from multiprocessing import Process, Queue
-
 from scrapy.crawler import CrawlerProcess
-
-from crw20minutesonline.spiders.crw20minutesonline import Crw20MinutesOnline
+from multiprocessing import Process, Queue
+# TODO: Change path and spider name here
+from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
 
 
 class Crawler:
@@ -27,7 +26,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={"type": None}, proxies={}):
+    def __init__(self, query={'type': None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -66,6 +65,11 @@ class Crawler:
         """
 
         process = CrawlerProcess()
+        process_settings = process.settings
+        process_settings["DOWNLOAD_DELAY"] = 0.25
+        process_settings["REFERER_ENABLED"] = False
+        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
@@ -74,9 +78,6 @@ class Crawler:
             }
         elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
-            if self.query.get("since") and self.query.get("until"):
-                spider_args["start_date"] = self.query["since"]
-                spider_args["end_date"] = self.query["until"]
         else:
             raise Exception("Invalid Type")
 
@@ -93,5 +94,6 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        process.crawl(Crw20MinutesOnline, **spider_args)
+        # TODO: Change path and spider name here
+        process.crawl(NTvSpider, **spider_args)
         process.start()
