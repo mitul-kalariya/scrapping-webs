@@ -7,7 +7,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'scrapy',
-        'webdriver_manager',
+        'selenium',
         'webdriver_manager',
     ],
 )

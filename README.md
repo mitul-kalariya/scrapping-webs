@@ -2,7 +2,7 @@
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from https://www.mbn.co.kr/ website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www.mbn.co.kr/news/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -19,9 +19,6 @@ This repo contains the code to scrap all article links and articles from https:/
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
-
-You can use the `Crawler` class and its `crawl` method to crawl the data.
-Quick example as shown below.
 ```
 # To fetch all the article links from today's date only
 
@@ -37,7 +34,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "link_feed",
-        "domain": "https://www.mbn.co.kr/"
+        "domain": "https://www.mbn.co.kr/news/"
     },
     proxies=proxies
 )
@@ -60,7 +57,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://www.mbn.co.kr/news/society/4917663"
+        "link": {Sample article URL from test case}
     },
     proxies=proxies
 )
