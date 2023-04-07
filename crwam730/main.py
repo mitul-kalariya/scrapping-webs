@@ -76,6 +76,9 @@ class Crawler:
                 "args": {"callback": output_queue.put},
             }
         elif self.query["type"] == "sitemap":
+            if self.query.get("since") and self.query.get("until"):
+                spider_args["start_date"] = self.query["since"]
+                spider_args["end_date"] = self.query["until"]
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
