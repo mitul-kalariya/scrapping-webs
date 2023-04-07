@@ -12,11 +12,8 @@ from crwam730.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
 )
 from crwam730.exception import (
-    SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -84,11 +81,11 @@ class Am730(scrapy.Spider, BaseSpider):
         """
         if self.type == "sitemap":
             article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                           namespaces=self.namespace).getall()
+                                                               namespaces=self.namespace).getall()
             published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
-                                                                namespaces=self.namespace).getall()
+                                                                  namespaces=self.namespace).getall()
             article_title = Selector(response, type='xml').xpath('//news:title/text()',
-                                                                namespaces=self.namespace).getall()
+                                                                 namespaces=self.namespace).getall()
             for url, date, title in zip(article_url, published_date, article_title):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
@@ -107,7 +104,7 @@ class Am730(scrapy.Spider, BaseSpider):
                                 "title": title,
                             }
                             self.articles.append(article)
-           
+
         if self.type == "article":
             yield self.parse_article(response)
 

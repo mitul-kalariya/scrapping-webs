@@ -2,7 +2,7 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.am730.com.hk/本地/大埔同秀坊住宅拖板短路起火-1死7傷-有片-/368937",
+        "url": "https://www.am730.com.hk/本地/政府聘殘疾公務員回歸後新低-狄志遠促立法或制定指引/370305",
         "test_data_path": "crwam730/test/data/test_article_1.json"
     },
     {

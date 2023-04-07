@@ -1,7 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwam730.spiders.am730 import Am730
 
 
 class Crawler:
@@ -94,6 +93,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(Am730, **spider_args)
         process.start()
