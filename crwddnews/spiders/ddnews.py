@@ -23,4 +23,5 @@ class BaseSpider(ABC):
 
 class DDNewsSpider(scrapy.Spider, BaseSpider):
     
+    name = 'ddnews'
     pass
