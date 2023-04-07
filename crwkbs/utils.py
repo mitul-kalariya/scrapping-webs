@@ -478,9 +478,7 @@ def get_thumbnail_image(parsed_data: list, response: str) -> dict:
         image = parsed_data.get("image", {}).get("url")
     return {
         "thumbnail": [parsed_data.get("image", {}).get("url")],
-        "images": [
-            {"link": image}
-        ]
+        "images": [{"link": image}],
     }
 
 
@@ -504,9 +502,7 @@ def get_videos(self, response: str) -> list:
                 (By.XPATH, '//*[@id="JW_PLAYER"]/div[2]/video')
             )
         )
-        return {"video": [
-            {"link": videos.get_attribute("src")}
-        ]}
+        return {"video": [{"link": videos.get_attribute("src")}]}
     except Exception as exception:
         self.error_msg_dict["error_msg"] = (
             "Error occurred while taking type, url, start_date and end_date args. "
