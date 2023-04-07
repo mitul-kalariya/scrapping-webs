@@ -60,7 +60,6 @@ class Crawler:
         """
 
         process = CrawlerProcess()
-        print(self.query)
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",

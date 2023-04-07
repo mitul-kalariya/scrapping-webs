@@ -40,6 +40,26 @@ TEST_ARTICLES = [
     {
         "url": "https://www.timesnownews.com/sports/cricket/yuzvendra-chahal-breaks-lasith-malingas-record-during-ipl-2023-match-between-rr-and-pbks-article-99281660",
         "test_data_path": "crwtimesnownews/test/data/test_article_10.json"
+    },
+    {
+        "url": "https://www.timesnownews.com/entertainment-news/balika-vadhus-neha-marda-gets-hospitalised-due-to-complications-in-last-phase-of-pregnancy-tv-news-article-99312067",
+        "test_data_path": "crwtimesnownews/test/data/test_article_11.json"
+    },
+    {
+        "url": "https://www.timesnownews.com/entertainment-news/gumraah-movie-review-aditya-roy-kapur-mrunal-thakur-deliver-perfect-crime-thriller-with-twisted-judwa-element-imdb-rating-public-review-article-99305550",
+        "test_data_path": "crwtimesnownews/test/data/test_article_12.json"
+    },
+    {
+        "url": "https://www.timesnownews.com/entertainment-news/shah-rukh-khan-celebrating-kkr-win-with-specially-abled-knight-harshul-will-make-your-heart-melt-watch-bollywood-news-article-99310800",
+        "test_data_path": "crwtimesnownews/test/data/test_article_13.json"
+    },
+    {
+        "url": "https://www.timesnownews.com/hyderabad/pm-modis-visit-to-hyderabad-traffic-police-issue-advisory-avoid-these-routes-on-saturday-article-99310221",
+        "test_data_path": "crwtimesnownews/test/data/test_article_14.json"
+    },
+    {
+        "url": "https://www.timesnownews.com/india/to-look-like-bhindranwale-amritpal-went-to-georgia-for-cosmetic-surgery-report-article-99311886",
+        "test_data_path": "crwtimesnownews/test/data/test_article_15.json"
     }
 ]
 

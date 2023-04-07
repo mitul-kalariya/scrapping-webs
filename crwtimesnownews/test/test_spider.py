@@ -65,7 +65,6 @@ class TestArticle(unittest.TestCase):
                     self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
                                           "parsed_json --> other must be list")
 
-
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
 

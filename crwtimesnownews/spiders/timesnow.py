@@ -17,7 +17,6 @@ from crwtimesnownews.utils import (
 )
 from crwtimesnownews.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -204,8 +203,8 @@ class TimesNow(scrapy.Spider, BaseSpider):
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict["ImageObjects"] = parsed_json_main
-                parsed_json_dict['VideoObjects'] = parsed_json_main
+                parsed_json_dict["imageObjects"] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc

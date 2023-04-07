@@ -127,13 +127,15 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObjects":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
             )
-        elif key == "ImageObjects":
+        elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObject"]
+                key, [json.loads(data) for data in value.getall()
+                      if (json.loads(data).get('@type') == "ImageObject"
+                          or json.loads(data).get('@type') == "ImageGallery")]
             )
         elif key == "misc":
             article_raw_parsed_json_loader.add_value(
@@ -141,8 +143,10 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"
-                      or json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall()
+                      if (json.loads(data).get('@type') not in
+                      ["VideoObject", "ImageObject"])
+                      and json.loads(data).get('@type') != "NewsArticle"]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())
@@ -178,7 +182,6 @@ def get_parsed_data_dict() -> dict:
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
 
     article_data = parsed_json_dict
-
     article_data["title"] = response.css('#readtrinity0  h1._1FcxJ::text').getall()
     article_data["sub_title"] = response.css('#readtrinity0 div.QA-An h2::text').get()
     article_data["img_url"] = response.css('#readtrinity0 div._3lDdd img::attr(src)').get()
@@ -191,12 +194,15 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["source_country"] = ["India"]
     parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
     article_data["main_copy"] = json.loads(article_data.get("main")[2].get())
+    article_data['other'] = json.loads(article_data.get("other")[0].get())
     parsed_data_dict["author"] = [article_data.get("main_copy").get('author')[0]]
     parsed_data_dict["description"] = [article_data.get("sub_title")]
     parsed_data_dict["modified_at"] = [article_data.get("main_copy").get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main_copy").get('datePublished')]
     parsed_data_dict["publisher"] = [{
+        '@id': article_data.get("other").get('url').split('/')[2],
         '@type': article_data.get("main_copy").get('publisher').get('@type'),
+        "name": article_data.get("main_copy").get('publisher').get('name'),
         'url': article_data.get("main_copy").get('publisher').get('url'),
         "logo": {
             "@type": article_data.get("main_copy").get('publisher').get("logo").get('@type'),
@@ -209,14 +215,20 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
                 'name': str(article_data.get("main_copy").get('publisher').get('logo').get('height')) + " Px"}}
     }]
 
-    parsed_data_dict["text"] = ["".join(article_data.get("text"))]
+    parsed_data_dict["text"] = [article_data.get("main_copy").get("articleBody")]
     parsed_data_dict["thumbnail_image"] = [article_data.get("main_copy").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get("title")[0]]
     parsed_data_dict["images"] = [{"link": article_data.get("main_copy").get('image').get('url'),
                                    "caption": article_data.get("main_copy").get('image').get('caption')}]
     parsed_data_dict["section"] = article_data.get("category")[1:]
     parsed_data_dict["tags"] = article_data.get("tags")
+    video_link = None
+    for type in article_data.get('main'):
 
+        if json.loads(type.get()).get("@type") == 'VideoObject':
+            video_link = json.loads(type.get()).get("ContentUrl")
+    if video_link:
+        parsed_data_dict['embed_video_link'] = [video_link]
     return remove_empty_elements(parsed_data_dict)
 
 
