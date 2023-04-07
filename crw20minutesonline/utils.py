@@ -448,78 +448,112 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: text, title, section details
     """
-    response_data = None
-    if "diaporama" in response.url:
-        response_data = response.css(
-            "article>div.content p::text,"
-            + " article>div.content>ul>li>div.slideshow-pages-page-content p::text").getall()
-    else:
-        response_data = response.css(
-            "article>div>div p::text,"
-            + " article>div>div h2::text,"
-            + "article>div>div ul li ::text,"
-            + "div[class^=live-intro] ul li::text,"
-            + "div[class^=live-list]>div.live-post>div ::text,"
-            + "article>div>div.live-intro h2::text,"
-            + "article>div>div.live-intro p::text"
-        ).getall()
+    # response_data = None
+    # if "diaporama" in response.url:
+    #     response_data = response.css(
+    #         "article>div.content p::text,"
+    #         + " article>div.content>ul>li>div.slideshow-pages-page-content p::text").getall()
+    text_body=[]
+    for figure in response.css("article div.content div:not([class*=sharebar-small])"):
+        for text in figure.css(" *::text").getall():
+            text_body.append(text)
+    # else:
+    #     response_data = response.css(
+    #         "article>div>div p::text,"
+    #         + " article>div>div h2::text,"
+    #         + "article>div>div ul li ::text,"
+    #         + "div[class^=live-intro] ul li::text,"
+    #         + "div[class^=live-list]>div.live-post>div ::text,"
+    #         + "article>div>div.live-intro h2::text,"
+    #         + "article>div>div.live-intro p::text"
+    #     ).getall()
     return {
         "title": [parsed_data.get("headline")],
         "text": [
-            "".join(response_data)
+            "".join(text_body)
         ],
         "section": [parsed_data.get("articleSection")],
         "tags": parsed_data.get("keywords", []),
     }
 
 
-def get_thumbnail_image_video(video_object: dict, response: str) -> dict:
+# def get_thumbnail_image_video(video_object: dict, response: str) -> dict:
+#     """
+#     Returns thumbnail images, images and video details
+#     Args:
+#         video_object: response of VideoObject data
+#         parsed_data: response of application/ld+json data
+#     Returns:
+#         dict: thumbnail images, images and video details
+#     """
+#     video = None
+#     description = None
+#     images = []
+#     captions = []
+#     if video_object:
+#         for videos in video_object:
+#             if video_url := videos.get("embedUrl"):
+#                 video = video_url
+#             description = videos.get("description")
+#     response_data = None
+#
+#     if "diaporama" in response.url:
+#         response_data = response.css(
+#             "article>div.content>figure>div:not([class*= media-wrap-video])~figcaption, article>div>ul>li>figure>figcaption")
+#     else:
+#         response_data = response.css(
+#             "article>div.content>figure>div:not([class*= media-wrap-video])~figcaption") or response.css(
+#             "article>div.content>div>div>figure>img~figcaption")
+#
+#     for caption in response_data:
+#         caption_em_text = caption.css("em::text").get()
+#         if caption_em_text is None:
+#             caption_em_text = ""
+#         else:
+#             caption_em_text = caption_em_text.strip()
+#
+#         caption_text = (
+#                 caption.css("::text").get().strip() + " " + caption_em_text + "\n"
+#         )
+#         captions.append(caption_text)
+#
+#     for link, caption in zip_longest(
+#             response.css("div.content figure img::attr(src)").getall(),
+#             captions,
+#     ):
+#         images.append({"link": link, "caption": caption})
+#
+#     return {
+#         "images": images,
+#         "video": [{"link": video, "caption": description}],
+#     }
+
+
+def get_thumbnail_image_video(video_object: dict,
+                              response: str) -> dict:
     """
     Returns thumbnail images, images and video details
-    Args:
-        video_object: response of VideoObject data
-        parsed_data: response of application/ld+json data
-    Returns:
-        dict: thumbnail images, images and video details
+    Args: video_object: response of VideoObject data
+    parsed_data: response of application/ld+json data
+    Returns: dict: thumbnail images, images and video details
     """
+
+
     video = None
     description = None
     images = []
     captions = []
-    if video_object:
-        for videos in video_object:
-            if video_url := videos.get("embedUrl"):
-                video = video_url
-            description = videos.get("description")
-    response_data = None
-
-    if "diaporama" in response.url:
-        response_data = response.css(
-            "article>div.content>figure>div:not([class*= media-wrap-video])~figcaption, article>div>ul>li>figure>figcaption")
-    else:
-        response_data = response.css(
-            "article>div.content>figure>div:not([class*= media-wrap-video])~figcaption") or response.css(
-            "article>div.content>div>div>figure>img~figcaption")
-
-    for caption in response_data:
-        caption_em_text = caption.css("em::text").get()
-        if caption_em_text is None:
-            caption_em_text = ""
-        else:
-            caption_em_text = caption_em_text.strip()
-
-        caption_text = (
-                caption.css("::text").get().strip() + " " + caption_em_text + "\n"
+    # if video_object:
+    #     if video_url := video_object.get("embedUrl"):
+    #         video = video_url
+    #     description = video_object.get("description")
+    for figure in response.css("article figure"):
+        caption_text = ""
+        for caption_part in figure.css("figcaption *::text").getall():
+            caption_text += caption_part.strip()
+        images.append({
+            "link": figure.css("img::attr(src)").get(),
+            "caption": caption_text if caption_text else None, }
         )
-        captions.append(caption_text)
-
-    for link, caption in zip_longest(
-            response.css("div.content figure img::attr(src)").getall(),
-            captions,
-    ):
-        images.append({"link": link, "caption": caption})
-
-    return {
-        "images": images,
-        "video": [{"link": video, "caption": description}],
-    }
+    return {"images": images, "video": [{"link": video, "caption": description}],
+            }
