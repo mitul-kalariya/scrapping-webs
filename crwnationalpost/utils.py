@@ -363,6 +363,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "text": [" ".join(text)],
         "section": [data_dict.get("section")],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
+        "tags": [data_dict.get("tags")]
         
     }
     parsed_data_dict |= {
