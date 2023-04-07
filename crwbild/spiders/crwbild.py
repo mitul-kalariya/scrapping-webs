@@ -1,29 +1,28 @@
 """Spider to scrap TVA news website"""
 
 import logging
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 import scrapy
-
 from scrapy.exceptions import CloseSpider
 from scrapy.loader import ItemLoader
-from crwbild.constant import BASE_URL, SITEMAP_URL
 
+from crwbild.constant import BASE_URL, SITEMAP_URL
+from crwbild.exceptions import (
+    ArticleScrappingException,
+    CrawlerClosingException,
+    SitemapArticleScrappingException,
+    SitemapScrappingException,
+)
 from crwbild.items import ArticleData
 from crwbild.utils import (
     based_on_scrape_type,
-    get_raw_response,
-    get_parsed_json,
     export_data_to_json_file,
     get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
     remove_empty_elements,
-)
-from crwbild.exceptions import (
-    SitemapScrappingException,
-    SitemapArticleScrappingException,
-    ArticleScrappingException,
-    CrawlerClosingException
 )
 
 # Setting the threshold of logger to DEBUG
@@ -60,7 +59,7 @@ class BildSpider(scrapy.Spider, BaseSpider):
     start_urls = [BASE_URL]
 
     def __init__(
-            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """init method to take date, type and validating it"""
 
@@ -88,8 +87,8 @@ class BildSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                    "Error occurred while taking type, url, start_date and end_date args. "
-                    + str(exception)
+                "Error occurred while taking type, url, start_date and end_date args. "
+                + str(exception)
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. "
@@ -146,8 +145,10 @@ class BildSpider(scrapy.Spider, BaseSpider):
         """
         try:
             for link, title in zip(
-                    response.css("article>a::attr(href)").getall(),
-                    response.css("article a div span.stage-feed-item__headline::text").getall(),
+                response.css("article>a::attr(href)").getall(),
+                response.css(
+                    "article a div span.stage-feed-item__headline::text"
+                ).getall(),
             ):
                 data = {"link": BASE_URL + link[1:], "title": title.strip()}
                 self.articles.append(data)
@@ -223,8 +224,6 @@ class BildSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler REASON:- {reason}",

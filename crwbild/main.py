@@ -1,6 +1,7 @@
-from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
+
+from scrapy.crawler import CrawlerProcess
+
 from crwbild.spiders.crwbild import BildSpider
 
 
@@ -26,7 +27,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -73,6 +74,9 @@ class Crawler:
             }
         elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
+            if self.query.get("since") and self.query.get("until"):
+                spider_args["start_date"] = self.query["since"]
+                spider_args["end_date"] = self.query["until"]
         else:
             raise Exception("Invalid Type")
 
