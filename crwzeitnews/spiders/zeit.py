@@ -112,7 +112,16 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             callback=self.parse,
         )
 
-    def parse(self, response, **kwargs):
+    def parse(self, response):
+        """
+        Parses the given Scrapy response based on the specified type of parsing.
+
+        Returns:
+            A generator that yields a scrapy.Request object to parse a sitemap or an article.
+
+        Example Usage:
+            parse(scrapy.http.Response(url="https://example.com", body="..."))
+        """
         if self.type == "sitemap":
             if self.since and self.until:
                 LOGGER.info("Parse function called on %s", response.url)
