@@ -1,4 +1,4 @@
-# {ScrapperName} Scrapping
+# GlobalNews Scrapping
 
 #### Setup and execution instructions: - 
 
