@@ -86,30 +86,9 @@ def get_parsed_json(response):
     """
     try:
         parsed_json = {}
-        imageObjects = []
-        videoObjects = []
-        other_data = []
-        ld_json_data = response.css(
-            'script[type="application/ld+json"]::text').getall()
-        for a_block in ld_json_data:
-            data = json.loads(a_block)
-            if data.get("@type") == "NewsArticle":
-                parsed_json["main"] = data
-            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
-                imageObjects.append(data)
-            elif data.get("@type") == "VideoObject":
-                videoObjects.append(data)
-            else:
-                other_data.append(data)
 
-        parsed_json["imageObjects"] = imageObjects
-        parsed_json["videoObjects"] = videoObjects
-        parsed_json["other"] = other_data
-        misc = get_misc(response)
-        if misc:
-            parsed_json["misc"] = misc
 
-        return remove_empty_elements(parsed_json)
+        return parsed_json
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting parsed json {exception}")
         raise exceptions.ArticleScrappingException(
@@ -131,32 +110,21 @@ def get_parsed_data(response):
         main_dict = {}
         main_data = get_main(response)
 
-        topline = main_data[0].get("description")
+        topline = response.css("p.heading_small::text").get()
         main_dict["description"] = [topline]
 
-        title = response.css("h2#main-content").get()
-        if title:
-            title = re.sub(pattern, "", title.split("</span>")[2]).strip()
-            main_dict["title"] = [title]
+        title = response.css("h1.news_heading.detail_title::text").get()
+        main_dict["title"] = [title]
 
-        published_on = main_data[1].get("datePublished")
+        published_on = response.css("p.date::text").get()
         main_dict["published_at"] = [published_on]
-
-        modified_on = main_data[1].get("dateModified")
-        main_dict["modified_at"] = [modified_on]
-
-        author = main_data[1].get("author")
-        if author:
-            main_dict["author"] = [author]
 
         section = get_section(response)
         if section:
             main_dict["section"] = [section]
 
-        publisher = main_data[1].get("publisher")
-        main_dict["publisher"] = [publisher]
 
-        display_text = response.css("p::text").getall()
+        display_text = response.css("div.news_content p[class!='heading_small']::text").getall()
         main_dict["text"] = [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])]
 
         images = get_images(response)
@@ -190,7 +158,7 @@ def get_thumbnail(response):
 
 
 def get_section(response):
-    breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
+    breadcrumb_list = response.css("div.easy-breadcrumb a.easy-breadcrumb_segment-1::text").getall()
     if breadcrumb_list[-1]:
         return breadcrumb_list[-1]
 
@@ -235,13 +203,13 @@ def get_misc(response):
 
 def get_images(response, parsed_json=False) -> list:
     try:
-        images = response.css("figure.content-image")
+        images = response.css("span.field-content img")
         pattern = r"[\r\n\t]"
         data = []
         for image in images:
             temp_dict = {}
-            link = image.css("img::attr(data-src)").get()
-            caption = image.css("figcaption::text").get()
+            link = image.css("img::attr(src)").get()
+            caption = image.css("img::attr(alt)").get()
             if parsed_json:
                 if link:
                     temp_dict["@type"] = "ImageObject"
@@ -257,41 +225,6 @@ def get_images(response, parsed_json=False) -> list:
         LOGGER.error(f"image fetching exception {e}")
         raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
 
-
-# def get_embed_video_link(response) -> list:
-#     options = Options()
-#     options.headless = True
-#     service = Service(executable_path=ChromeDriverManager().install())
-#     driver = webdriver.Chrome(service=service, options=options)
-#     driver.get(response.url)
-#     data = {}
-#     try:
-#         banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
-#             By.XPATH, "//div[@class='banner-actions-container']//button")))
-#         if banner_button:
-#             banner_button.click()
-#             time.sleep(3)
-#             video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
-#                 By.XPATH,
-#                 "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
-#             if video_button:
-#                 videos = []
-#                 for i in video_button:
-#                     i.click()
-#                     time.sleep(3)
-#                     video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
-#                         By.XPATH,
-#                         "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
-#                     )))
-#                     if video:
-#                         videos.append(video[-1].get_attribute("src"))
-#                 data["videos"] = videos
-
-#     except Exception as e:
-#         LOGGER.error(f"exception while fetching video data {e}")
-#         raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
-#     driver.quit()
-#     return data
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
