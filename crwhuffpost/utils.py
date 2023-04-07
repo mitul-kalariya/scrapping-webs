@@ -499,16 +499,22 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
     Returns:
         dict: text, title, section, tag details
     """
+    title = "".join(
+        response.css(
+            "div.article-content p::text, div.article-content p a::text, div.article-content p em::text,div.article-content p strong::text, div.article-content h2::text, div.article-content h2 em::text"
+        ).extract()
+    )
+
     if "NewsArticle" in parsed_data.get("@type"):
         return {
             "title": [parsed_data.get("headline")],
-            "text": ["".join(response.css("div.article-content p::text").extract())],
+            "text": [title],
             "section": [parsed_data.get("articleSection")],
             "tags": [parsed_data.get("keywords")],
         }
     return {
         "title": response.css("header.article-header > h1::text").getall(),
-        "text": ["".join(response.css("div.article-content p::text").extract())],
+        "text": [title],
         "section": response.css("div.breadcrumb a::text").getall(),
         "tags": response.css("div.articleTags > div > a::text").getall(),
     }
