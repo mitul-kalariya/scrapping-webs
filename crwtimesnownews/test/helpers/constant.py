@@ -6,7 +6,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwtimesnownews/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.timesnownews.com/hyderabad/vizag-secunderabad-vande-bharat-express-resceduled-to-depart-4-hours-late-due-to-stone-pelting-damage-article-99281087",
+        "url": "https://www.timesnownews.com/india/jail-me-but-my-leaders-wont-back-an-inch-navjot-singh-sidhu-meets-mentor-rahul-gandhi-article-99293768",
         "test_data_path": "crwtimesnownews/test/data/test_article_2.json"
     },
     {
@@ -54,7 +54,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwtimesnownews/test/data/test_article_13.json"
     },
     {
-        "url": "https://www.timesnownews.com/hyderabad/pm-modis-visit-to-hyderabad-traffic-police-issue-advisory-avoid-these-routes-on-saturday-article-99310221",
+        "url": "https://www.timesnownews.com/delhi/video-delhi-fire-breaks-out-in-godown-of-lumber-store-in-sonia-gandhi-camp-article-99309174",
         "test_data_path": "crwtimesnownews/test/data/test_article_14.json"
     },
     {

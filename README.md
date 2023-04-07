@@ -1,45 +1,92 @@
-## Times Now Scraper
-
-This repo contains the code to scrap all sitemaps (if available) and articles from [times now news](https://www.timesnownews.com/) website and the Tech stacks used are:-
--  Python 3.10
--  Scrapy 
-
-### Environment Setup 
- 
-Create a Virtual Environment using Python3 and activate the environment. 
+# Times Now News Scrapping
+Setup and execution instructions: -
+This repo contains the code to scrap all article links and articles from https://www.timesnownews.com/ website and the tech stacks used are
+- Python 3.10
+- Scrapy
+## Environment Setup
+Create a Virtual Environment using Python3 and activate the environment.
 ```bash
 python3 -m venv venv
 ```
+
 ```bash
 source venv/bin/activate
 ```
+Note: Make sure to activate the virtual environment before executing code or installing the package.
 
-### Sitemap file available:- Yes
+## Installation
+Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 
-### Package Information
-A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
+## Usage
+You can use the `Crawler` class and its `crawl` method to crawl the data. Quick example as shown below.
+Getting data for more then one month
 ```
-python setup.py sdist
-```
-
-### Installation
-
-Use the command `pip install <path_to_package>`. for example `pip install dist/crwtimesnownews-0.1.tar.gz`
-
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
-- Python 3.10
-- Scrapy
-
-You can use the `Crawler` class and its `crawl` method to crawl the data.
-Quick example as shown below.
-```
+# To fetch all the article links
 from crwtimesnownews import Crawler
 
-crawler = Crawler(query={"type": "article", "link": "https://www.timesnownews.com/business-economy/companies/tiktok-can-still-access-years-of-indians-data-despite-ban-this-is-ceo-shou-zi-chews-response-when-grilled-by-the-us-congress-article-98955792"})
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "https://www.timesnownews.com/",
+        "since": "2023-02-25",
+        "until": "2023-03-26"
+    },
+    proxies=proxies
+)
+
 data = crawler.crawl()
 ```
-The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
 
+```
+# To fetch all the article links from today's date only
+from crwtimesnownews import Crawler
+
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "https://www.timesnownews.com/"
+    },
+    proxies=proxies
+)
+
+data = crawler.crawl()
+```
+```
+#  To fetch the specific article details
+
+from crwtimesnownews import Crawler
+
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "article",
+        "link": "https://www.timesnownews.com/india/to-look-like-bhindranwale-amritpal-went-to-georgia-for-cosmetic-surgery-report-article-99311886"
+    },
+    proxies=proxies
+)
+
+data = crawler.crawl()
+```
 ## Test Cases
 We have used Python's in-built module `unittest`.
 We have covered mainly two test cases.
