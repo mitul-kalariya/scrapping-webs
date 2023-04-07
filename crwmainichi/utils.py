@@ -4,12 +4,8 @@ import logging
 import os
 from datetime import datetime
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-
 from crwmainichi import exceptions
-from crwmainichi.constant import BASE_URL, LOGGER, TODAYS_DATE
+from crwmainichi.constant import LOGGER, TODAYS_DATE
 
 
 def create_log_file():
@@ -303,30 +299,6 @@ def get_thumbnail_image(response) -> list:
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting thumbnail image: {str(exception)}")
-
-
-def get_embed_video_link(response) -> list:
-    """
-    A list of video objects containing information about the videos on the webpage.
-    """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
-    try:
-        embed_videos = driver.find_elements(By.XPATH, "//section[@class='container_c1suc6un']//iframe")
-        data = []
-        if embed_videos:
-            for video in embed_videos:
-                link = video.get_attribute("src").replace("blob:", "")
-                temp_dict = {"link": link}
-                data.append(temp_dict)
-    except exceptions.ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting embed video: {str(exception)}")
-    driver.quit()
-    return data
 
 
 def get_publisher(response) -> list:
