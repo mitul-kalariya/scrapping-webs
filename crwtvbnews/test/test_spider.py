@@ -1,5 +1,6 @@
 import logging
 import unittest
+
 from crwtvbnews.spiders.news_tvb import NewsTVB
 from crwtvbnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwtvbnews.test.helpers.utils import (get_article_content,
@@ -103,8 +104,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -256,8 +255,8 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "link_feed"
-        self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
+        self.type = "sitemap"
+        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

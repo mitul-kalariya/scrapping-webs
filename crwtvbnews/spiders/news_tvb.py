@@ -10,7 +10,6 @@ from crwtvbnews.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
 )
 
 from crwtvbnews.exceptions import (
@@ -74,7 +73,7 @@ class NewsTVB(scrapy.Spider):
                         }
                         self.articles.append(article)
         elif self.type == "article":
-            yield scrapy.Request(self.url, callback=self.parse_article)
+            yield self.parse_article(response)
 
     def parse_sitemap(self, response):
         """
@@ -148,12 +147,10 @@ class NewsTVB(scrapy.Spider):
             :param reason: the reason for the spider's closure
             """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(
