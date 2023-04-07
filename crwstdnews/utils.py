@@ -1,1 +1,340 @@
 """Utility Functions"""
+import os
+import json
+import logging
+import time
+from datetime import datetime
+
+
+from crwstdnews import exceptions
+from crwstdnews.constant import TODAYS_DATE, LOGGER
+
+"""
+article functions
+"""
+
+
+def get_raw_response(response):
+    """parsing raw response
+    returns: raw response
+    """
+    raw_resopnse = {
+        "content_type": "text/html; charset=utf-8",
+        "content": response.css("html").get(),
+    }
+    return raw_resopnse
+
+
+def get_parsed_json(response):
+    """
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
+    try:
+        parsed_json = {}
+        image_objects = []
+        video_objects = []
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "Article":
+                parsed_json["main"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                image_objects.append(data)
+            elif data.get("@type") == "VideoObject":
+                video_objects.append(data)
+            else:
+                other_data.append(data)
+
+        parsed_json["imageObjects"] = image_objects
+        parsed_json["videoObjects"] = video_objects
+        parsed_json["other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+        return remove_empty_elements(parsed_json)
+
+    except BaseException as exception:
+        LOGGER.info("Error occured while getting parsed json %s ", exception)
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while getting parsed json {exception}"
+        )
+
+
+def get_misc(response):
+    """
+    returns a list of misc data available in the article from application/json
+    Parameters:
+        response:
+    Returns:
+        misc data
+    """
+    try:
+        data = []
+        misc = response.css('script[type="application/json"]::text').getall()
+        for block in misc:
+            data.append(json.loads(block))
+        return data
+    except BaseException as exception:
+        LOGGER.error("error while getting misc: %s ", exception)
+        raise exceptions.ArticleScrappingException(
+            f"Error while getting misc: {exception}"
+        )
+
+
+def get_parsed_data_dict() -> dict:
+    """
+    Return base data dictionary
+
+    Args:
+    None
+
+    Returns:
+        dict: Return base data dictionary
+    """
+    return {
+        "source_country": None,
+        "source_language": None,
+        "author": [{"@type": None, "name": None, "url": None}],
+        "description": None,
+        "modified_at": None,
+        "published_at": None,
+        "publisher": None,
+        "text": None,
+        "thumbnail_image": None,
+        "title": None,
+        "images": None,
+        "section": None,
+        "embed_video_link": None,
+    }
+
+
+def get_parsed_data(response: str) -> dict:
+    """
+     Parsed data response from generated data using given response and selector
+
+    Args:
+        response: provided response
+        parsed_json_main: A list of dictionary with applications/+ld data
+
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
+
+    parsed_data_dict = get_parsed_data_dict()
+    parsed_data_dict |= get_country_language_details(response)
+    parsed_data_dict |= get_author_details(response)
+    parsed_data_dict |= get_descriptions_date_details(response)
+    parsed_data_dict |= get_publisher_details(response)
+    parsed_data_dict |= get_text_title_section_tag_details(response)
+    parsed_data_dict |= get_thumbnail_image_video(response)
+    final_dict = format_dictionary(parsed_data_dict)
+    return remove_empty_elements(final_dict)
+
+
+def get_country_language_details(response) -> dict:
+    """
+    Return country related details
+    Args:
+        parsed_data: response of application/ld+json data
+    Returns:
+        dict: country related details
+    """
+    mapper = {
+        "zh-hk": "Chinese (Hong Kong)",
+        "zh-sg": "Chinese (Singapore)",
+        "zh-tw": "Chinese (Taiwan)",
+        "zh-cn": "Chinese (PRC)",
+        "zh-hant-hk": "Chinese (Traditional)",
+    }
+    lang = (response.css("html::attr(lang)").get()).lower()
+
+    return {"source_country": ["China"], "source_language": mapper.get(lang)}
+
+
+def get_author_details(parsed_data: list, response: str) -> dict:
+    """
+    Return author related details
+    Args:
+        parsed_data: response of application/ld+json data
+        response: provided response
+    Returns:
+        dict: author related details
+    """
+    author_details = response.css("meta[name=\"author\"]").getall()
+    return {"author": author_details}
+
+
+def get_descriptions_date_details(response: list) -> dict:
+    """
+    Returns description, modified date, published date details
+    Args:
+        parsed_data: response of application/ld+json data
+    Returns:
+        dict: description, modified date, published date related details
+    """
+    data_dict = {}
+    if response.css("meta[name=\"description\"]").get():
+        data_dict["description"] = response.css("meta[name=\"description\"]").get()
+    pub_date = response.css("header span.date::text").get()
+    data_dict['datePublished'] = pub_date
+
+    return data_dict
+
+
+def get_publisher_details(parsed_data: list) -> dict:
+    """
+    Returns publisher details like name, type, id
+    Args:
+        parsed_data: response of application/ld+json data
+        response: provided response
+    Returns:
+        dict: publisher details like name, type, id related details
+    """
+    return {"publisher": parsed_data}
+
+
+def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict:
+    """
+    Returns text, title, section details
+    Args:
+        parsed_data: response of application/ld+json data
+        response: provided response
+    Returns:
+        dict: text, title, section, tag details
+    """
+    if parsed_data.get("@type")[0] in {"Article", "VideoObject"}:
+        return {
+            "title": parsed_data.get("headline"),
+            "text": parsed_data.get("articleBody"),
+            "section": parsed_data.get("articleSection"),
+            "tags": parsed_data.get("keywords"),
+        }
+    return {
+        "title": response.css("header.article-header > h1::text").getall(),
+        "tags": response.css("ul.article-tags__list > li > a::text").getall(),
+    }
+
+
+def get_thumbnail_image_video(
+    response: str, webpage_json: dict, parsed_data: dict
+) -> dict:
+    """
+    Returns thumbnail images, images and video details
+    Args:
+        parsed_data: response of application/ld+json data
+        response: provided response
+    Returns:
+        dict: thumbnail images, images and video details
+    """
+    video_urls = []
+    thumbnail_url = []
+    if webpage_json:
+        thumbnail_json = webpage_json.get("primaryImageOfPage")
+        if thumbnail_json:
+            thumbnail_url.append(thumbnail_json.get("url"))
+    if parsed_data.get("@type")[0] == "VideoObject":
+        video_urls.append(response.url)
+    elif parsed_data.get("@type")[0] == "Article":
+        raw_sources = response.css('script[class="raw__source"]').getall()
+        if raw_sources:
+            for a_response in raw_sources:
+                link_data = ((a_response.split("src="))[1]).split('"')[1::2]
+                video_urls.append(link_data[0])
+
+    return {"embed_video_link": video_urls, "thumbnail_image": thumbnail_url}
+
+
+"""
+common functions
+"""
+
+
+def format_dictionary(raw_dictionary):
+    """Formatting dictionary with all the values converted to list
+
+    Args:
+        raw_dictionary (dict)
+
+    Returns:
+        dict: formatted dictionary
+    """
+    for key, value in raw_dictionary.items():
+        if not isinstance(value, list):
+            raw_dictionary[key] = [value]
+    return raw_dictionary
+
+
+def remove_empty_elements(parsed_data_dict):
+    """
+    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
+    :param d: Input dictionary.
+    :type d: dict
+    :return: Dictionary with all empty lists, and empty dictionaries removed.
+    :rtype: dict
+    """
+
+    def empty(value):
+        return value is None or value == {} or value == []
+
+    if not isinstance(parsed_data_dict, (dict, list)):
+        data_dict = parsed_data_dict
+    elif isinstance(parsed_data_dict, list):
+        data_dict = [
+            value
+            for value in (remove_empty_elements(value) for value in parsed_data_dict)
+            if not empty(value)
+        ]
+    else:
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value))
+                for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
+    return data_dict
+
+
+def create_log_file():
+    """creating log file"""
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        )
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4)
