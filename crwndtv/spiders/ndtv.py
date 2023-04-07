@@ -34,15 +34,15 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
 
     name = "ndtv"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
             type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
-            start_date (str): A string representing the start date of the sitemap to be scraped.
+            since (str): A string representing the start date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
             url (str): A string representing the URL of the webpage to be scraped.
-            end_date (str): A string representing the end date of the sitemap to be scraped.
+            until (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
             **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
         Raises:
@@ -64,9 +64,9 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
-                self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-                self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
-                validate_sitemap_date_range(start_date, end_date)
+                self.since = (datetime.strptime(since, "%Y-%m-%d").date() if since else None)
+                self.until = (datetime.strptime(until, "%Y-%m-%d").date() if until else None)
+                validate_sitemap_date_range(since, until)
 
             if self.type == "article":
                 if url:
@@ -91,7 +91,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
+                if self.since and self.until:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -182,15 +182,16 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
 
 
             for link, pub_date in zip(links, published_date):
-                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                publish_date = pub_date.split("T")
+                published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
                 today_date = datetime.today().date()
 
-                if self.start_date and published_at < self.start_date:
+                if self.since and published_at < self.since:
                     return
-                if self.start_date and published_at > self.end_date:
+                if self.since and published_at > self.until:
                     return
 
-                if self.start_date and self.end_date and link != "https://www.ndtv.com/sitemap/google-news-sitemap":
+                if self.since and self.until and link != "https://www.ndtv.com/sitemap/google-news-sitemap":
                     data = {"link": link}
                     self.articles.append(data)
                 elif today_date == published_at and link != "https://www.ndtv.com/sitemap/google-news-sitemap":
