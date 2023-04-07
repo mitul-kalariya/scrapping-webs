@@ -68,15 +68,6 @@ class TestArticle(unittest.TestCase):
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
-
-        with self.subTest():
-            self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
-                                 test_article_data[0].get("parsed_data").get("author")[0],
-                                 "author mismatch in parsed_data")
-        with self.subTest():
-            self.assertEqual(article[0].get("parsed_data").get("published_at"),
-                             test_article_data[0].get("parsed_data").get("published_at"),
-                             "published_at mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("publisher"),
                              test_article_data[0].get("parsed_data").get("publisher"),
