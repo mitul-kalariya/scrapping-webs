@@ -1,6 +1,6 @@
 from crwglobalnews import Crawler
 
-crawler = Crawler(query={"type": "link_feed"})
+crawler = Crawler(query={"type": "sitemap"})
 links = crawler.crawl()
 
 for link in links[:2]:
