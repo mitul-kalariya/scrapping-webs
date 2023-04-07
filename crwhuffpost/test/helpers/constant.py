@@ -2,7 +2,7 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.huffingtonpost.fr/politique/article/contre-les-jets-prives-ce-tout-petit-pas-du-gouvernement_216275.html",
+        "url": "https://www.huffingtonpost.fr/international/article/xxxtentacion-les-trois-meurtriers-du-rappeur-condamnes-a-la-perpetuite_216274.html",
         "test_data_path": "crwhuffpost/test/data/test_article_1.json"
     },
     {
@@ -10,7 +10,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwhuffpost/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.huffingtonpost.fr/divertissement/article/pekin-express-l-elimination-de-ce-binome-a-ete-la-goutte-de-trop-pour-ces-internautes_216271.html",
+        "url": "https://www.huffingtonpost.fr/politique/article/au-conseil-constitutionnel-la-reforme-des-retraites-est-entre-les-mains-de-ces-9-sages_216189.html",
         "test_data_path": "crwhuffpost/test/data/test_article_3.json"
     },
 ]

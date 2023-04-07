@@ -1,1 +1,1 @@
-from crwhuffpost.main import Crawler
+from crwhuffpost.main import Crawler  # noqa: F401
