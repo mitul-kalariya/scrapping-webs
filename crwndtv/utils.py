@@ -8,42 +8,50 @@ import time
 import logging
 from datetime import datetime
 
-# from selenium import webdriver
-# from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.common.by import By
-# from selenium.webdriver.chrome.service import Service
-# from webdriver_manager.chrome import ChromeDriverManager
-
 from crwndtv import exceptions
 from crwndtv.constant import TODAYS_DATE, LOGGER
 
-# from selenium.webdriver.support import expected_conditions as EC
-# from selenium.webdriver.support.ui import WebDriverWait
-
 
 def create_log_file():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-                        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
-            raise exceptions.InvalidDateException("end_date must be specified if start_date is provided")
+            raise exceptions.InvalidDateException(
+                "end_date must be specified if start_date is provided"
+            )
 
         if not start_date and end_date:
-            raise exceptions.InvalidDateException("start_date must be specified if end_date is provided")
+            raise exceptions.InvalidDateException(
+                "start_date must be specified if end_date is provided"
+            )
 
         if start_date and end_date and start_date > end_date:
-            raise exceptions.InvalidDateException("start_date should not be later than end_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be later than end_date"
+            )
 
         if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be greater than today_date"
+            )
 
         if start_date and end_date and end_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be greater than today_date"
+            )
 
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
@@ -65,17 +73,28 @@ def remove_empty_elements(parsed_data_dict):
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
     elif isinstance(parsed_data_dict, list):
-        data_dict = [value for value in (remove_empty_elements(value) for value in parsed_data_dict) if
-                     not empty(value)]
+        data_dict = [
+            value
+            for value in (remove_empty_elements(value) for value in parsed_data_dict)
+            if not empty(value)
+        ]
     else:
-        data_dict = {key: value for key, value in
-                     ((key, remove_empty_elements(value)) for key, value in parsed_data_dict.items()) if
-                     not empty(value)}
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value))
+                for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
     return data_dict
 
 
 def get_raw_response(response):
-    raw_resopnse = {"content_type": "text/html; charset=utf-8", "content": response.css("html").get(), }
+    raw_resopnse = {
+        "content_type": "text/html; charset=utf-8",
+        "content": response.css("html").get(),
+    }
     return raw_resopnse
 
 
@@ -110,10 +129,11 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-        
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
-        main_data = json.loads(response.css('script:contains("description")::text').get())
+        main_data = json.loads(
+            response.css('script:contains("description")::text').get()
+        )
 
         main_dict["description"] = [main_data["description"]]
 
@@ -125,7 +145,7 @@ def get_parsed_data(response):
         published_on = response.css("meta[name='publish-date']::attr(content)").get()
         main_dict["published_at"] = [published_on]
 
-        modified_on = response.css( 
+        modified_on = response.css(
             ".pst-by_ul span.pst-by_lnk span[itemprop]::attr(content)"
         ).get()
         main_dict["modified_at"] = [modified_on]
@@ -134,7 +154,9 @@ def get_parsed_data(response):
         if author:
             main_dict["author"] = [author]
 
-        section = response.css('span.brd-nv_li.current span[itemprop="name"]::text').get()
+        section = response.css(
+            'span.brd-nv_li.current span[itemprop="name"]::text'
+        ).get()
         if section:
             main_dict["section"] = [section]
 
@@ -146,154 +168,36 @@ def get_parsed_data(response):
 
         tags = [main_data["keywords"]]
         main_dict["tags"] = tags
-        # images = get_images(response)
-        # if images:
-        #     main_dict["images"] = images
 
         thumbnail_image = response.css("#story_image_main::attr(src)").get()
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
 
-        # mapper = {"en": "English"}
-        # article_lang = response.css("html::attr(lang)").get()
-        # main_dict["source_language"] = [mapper.get(article_lang)]
-
-        video = response.css("meta[itemprop=\"ContentUrl\"]::attr(content)").get()
-        main_dict["embed_video_link"] = video.get("videos")
-
+        video = response.css('meta[itemprop="ContentUrl"]::attr(content)').get()
+        main_dict["embed_video_link"] = video
         return remove_empty_elements(main_dict)
     except BaseException as e:
         LOGGER.error(f"while scrapping parsed data {e}")
         raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
 
 
-def get_author(self, response):
-        author = {}
-        author_name = response.css("div.pst-by_ul span[itemprop='name']::text").get()
-        author_url = response.css(".pst-by_li a[class!='pst-by_lnk']::attr(href)").get()
-        author["name"] = author_name
-        author["url"] = author_url
+def get_author(response):
+    author = {}
+    author_name = response.css("div.pst-by_ul span[itemprop='name']::text").get()
+    author_url = response.css(".pst-by_li a[class!='pst-by_lnk']::attr(href)").get()
+    author["name"] = author_name
+    author["url"] = author_url
 
-        return [author]
-
-def get_content(self, response):
-        pattern = r"[\n\t\r\"]"
-        article_content = response.css(
-            "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
-        ).getall()
-        description = " ".join(article_content)
-        return [re.sub(pattern, "", description).strip()]
-
-# def get_thumbnail(response):
-#     data = get_main(response)
-#     for data_block in data:
-#         if data_block.get('@type') == "WebPage":
-#             thumbnail = data_block.get('thumbnailUrl')
-#             if thumbnail:
-#                 return thumbnail
+    return [author]
 
 
-# def get_section(response):
-#     breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
-#     if breadcrumb_list[-1]:
-#         return breadcrumb_list[-1]
-
-
-# def get_main(response):
-#     """
-#     returns a list of main data available in the article from application/ld+json
-#     Parameters:
-#         response:
-#     Returns:
-#         main data
-#     """
-#     try:
-#         data = []
-#         data = json.loads(response.css('script:contains("description")::text').get())
-#         return data
-#     except BaseException as e:
-#         LOGGER.error(f"error parsing ld+json main data{e}")
-#         raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
-
-
-# def get_misc(response):
-#     """
-#     returns a list of misc data available in the article from application/json
-#     Parameters:
-#         response:
-#     Returns:
-#         misc data
-#     """
-#     try:
-#         data = []
-#         misc = response.css('script[type="application/json"]::text').getall()
-#         for block in misc:
-#             data.append(json.loads(block))
-#         return data
-#     except BaseException as e:
-#         LOGGER.error(f"error parsing ld+json misc data {e}")
-#         raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
-
-
-# def get_images(response, parsed_json=False) -> list:
-#     try:
-#         images = response.css("figure.content-image")
-#         pattern = r"[\r\n\t]"
-#         data = []
-#         for image in images:
-#             temp_dict = {}
-#             link = image.css("img::attr(data-src)").get()
-#             caption = image.css("figcaption::text").get()
-#             if parsed_json:
-#                 if link:
-#                     temp_dict["@type"] = "ImageObject"
-#                     temp_dict["link"] = link
-#             else:
-#                 if link:
-#                     temp_dict["link"] = link
-#                     if caption:
-#                         temp_dict["caption"] = re.sub(pattern, "", caption).strip()
-#             data.append(temp_dict)
-#         return data
-#     except BaseException as e:
-#         LOGGER.error(f"image fetching exception {e}")
-#         raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
-
-
-# def get_embed_video_link(response) -> list:
-#     options = Options()
-#     options.headless = True
-#     service = Service(executable_path=ChromeDriverManager().install())
-#     driver = webdriver.Chrome(service=service, options=options)
-#     driver.get(response.url)
-#     data = {}
-#     try:
-#         banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
-#             By.XPATH, "//div[@class='banner-actions-container']//button")))
-#         if banner_button:
-#             banner_button.click()
-#             time.sleep(3)
-#             video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
-#                 By.XPATH,
-#                 "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
-#             if video_button:
-#                 videos = []
-#                 for i in video_button:
-#                     i.click()
-#                     time.sleep(3)
-#                     video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
-#                         By.XPATH,
-#                         "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
-#                     )))
-#                     if video:
-#                         videos.append(video[-1].get_attribute("src"))
-#                 data["videos"] = videos
-
-#     except Exception as e:
-#         LOGGER.error(f"exception while fetching video data {e}")
-#         raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
-#     driver.quit()
-#     return data
+def get_content(response):
+    pattern = r"[\n\t\r\"]"
+    article_content = response.css(
+        "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
+    ).getall()
+    description = " ".join(article_content)
+    return [re.sub(pattern, "", description).strip()]
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -312,10 +216,14 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         folder_structure = ""
         if scrape_type == "sitemap":
             folder_structure = "Links"
-            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            filename = (
+                f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
         elif scrape_type == "article":
             folder_structure = "Article"
-            filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+            filename = (
+                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
 
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
@@ -323,4 +231,6 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             json.dump(file_data, file, indent=4)
     except BaseException as e:
         LOGGER.error(f"error while creating json file: {e}")
-        raise exceptions.ExportOutputFileException(f"error while creating json file: {e}")
+        raise exceptions.ExportOutputFileException(
+            f"error while creating json file: {e}"
+        )

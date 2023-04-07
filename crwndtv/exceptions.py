@@ -21,6 +21,8 @@ class InputMissingException(Exception):
     pass
 
 
+
+
 class SitemapScrappingException(Exception):
     """Raise when exception arise while fetching sitemap"""
 
@@ -62,4 +64,10 @@ class URLNotFoundException(Exception):
 
     # Use URLNotFoundException(f"Given {url} not found for website {website_name}
     # with status code{response.status_code}")
+    pass
+
+class ParseFunctionFailedException(Exception):
+    """An exception raised when parse function fails."""
+
+    # use ParseFunctionFailedException(f"Error occured in parse function: {e}")
     pass
