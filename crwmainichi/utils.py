@@ -183,7 +183,7 @@ def get_parsed_data(response):
 
         # Article Text
         article_text = response.css(
-            "#articledetail-body h2 , #articledetail-body p::text"
+            "#articledetail-body h2::text, #articledetail-body p::text"
         ).getall()
         main_dict["text"] = [" ".join(article_text)]
 
@@ -296,6 +296,8 @@ def get_thumbnail_image(response) -> list:
     try:
         data = []
         thumbnails = response.css(".articledetail-image-left picture img::attr(src)").get()
+        if not thumbnails:
+            thumbnails = response.css("#articledetail-body .image-mask img::attr(src)").get()
         data.append(thumbnails)
         return data
     except exceptions.ArticleScrappingException as exception:
@@ -372,7 +374,6 @@ def get_images(response, parsed_json=False) -> list:
     such as image link.
     """
     try:
-        breakpoint()
         data = []
         images = response.css(".articledetail-image-left picture img")[1:]
         if images:

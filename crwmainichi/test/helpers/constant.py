@@ -14,5 +14,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwmainichi/test/data/test_article_3.json"
     }
 ]
-# TODO:Update below sitemap URL
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+
+SITEMAP_URL = "https://mainichi.jp/shimen/tokyo/"

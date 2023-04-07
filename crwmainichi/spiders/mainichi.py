@@ -95,7 +95,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             if url:
                 self.start_urls.append(url)
             else:
-                LOGGER.error("Error while")
+                LOGGER.error("Must have a URL to scrap")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
