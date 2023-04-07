@@ -1,4 +1,5 @@
-from crwam730 import Crawler
+# TODO: Change the path below
+from crwsueddeutsche import Crawler
 
 crawler = Crawler(query={"type": "sitemap"})
 data = crawler.crawl()
