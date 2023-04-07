@@ -7,15 +7,18 @@ import json
 import time
 import logging
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+
+# from selenium import webdriver
+# from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.chrome.service import Service
+# from webdriver_manager.chrome import ChromeDriverManager
+
 from crwndtv import exceptions
 from crwndtv.constant import TODAYS_DATE, LOGGER
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+
+# from selenium.webdriver.support import expected_conditions as EC
+# from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
@@ -86,28 +89,8 @@ def get_parsed_json(response):
     """
     try:
         parsed_json = {}
-        imageObjects = []
-        videoObjects = []
-        other_data = []
-        ld_json_data = response.css(
-            'script[type="application/ld+json"]::text').getall()
-        for a_block in ld_json_data:
-            data = json.loads(a_block)
-            if data.get("@type") == "NewsArticle":
-                parsed_json["main"] = data
-            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
-                imageObjects.append(data)
-            elif data.get("@type") == "VideoObject":
-                videoObjects.append(data)
-            else:
-                other_data.append(data)
-
-        parsed_json["imageObjects"] = imageObjects
-        parsed_json["videoObjects"] = videoObjects
-        parsed_json["other"] = other_data
-        misc = get_misc(response)
-        if misc:
-            parsed_json["misc"] = misc
+        ld_json_data = response.css('script:contains("description")::text').get()
+        parsed_json["main"] = json.loads(ld_json_data)
 
         return remove_empty_elements(parsed_json)
     except BaseException as exception:
@@ -127,16 +110,16 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
+        ld_json = json.loads(response.css('script:contains("description")::text').get())
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         main_data = get_main(response)
 
-        topline = main_data[0].get("description")
-        main_dict["description"] = [topline]
+        main_dict["description"] = [ld_json["description"]]
 
-        title = response.css("h2#main-content").get()
+        title = response.css("div.sp-ttl-wrp h1::text").get()
         if title:
-            title = re.sub(pattern, "", title.split("</span>")[2]).strip()
+            title = re.sub(r"[\n\t\r\"]", "", title).strip()
             main_dict["title"] = [title]
 
         published_on = main_data[1].get("datePublished")
@@ -171,8 +154,8 @@ def get_parsed_data(response):
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
-        video = get_embed_video_link(response)
-        main_dict["embed_video_link"] = video.get("videos")
+        # video = get_embed_video_link(response)
+        # main_dict["embed_video_link"] = video.get("videos")
 
         return remove_empty_elements(main_dict)
     except BaseException as e:
@@ -214,23 +197,23 @@ def get_main(response):
         raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
 
 
-def get_misc(response):
-    """
-    returns a list of misc data available in the article from application/json
-    Parameters:
-        response:
-    Returns:
-        misc data
-    """
-    try:
-        data = []
-        misc = response.css('script[type="application/json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json misc data {e}")
-        raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
+# def get_misc(response):
+#     """
+#     returns a list of misc data available in the article from application/json
+#     Parameters:
+#         response:
+#     Returns:
+#         misc data
+#     """
+#     try:
+#         data = []
+#         misc = response.css('script[type="application/json"]::text').getall()
+#         for block in misc:
+#             data.append(json.loads(block))
+#         return data
+#     except BaseException as e:
+#         LOGGER.error(f"error parsing ld+json misc data {e}")
+#         raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
 
 
 def get_images(response, parsed_json=False) -> list:
@@ -258,40 +241,40 @@ def get_images(response, parsed_json=False) -> list:
         raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
 
 
-def get_embed_video_link(response) -> list:
-    options = Options()
-    options.headless = True
-    service = Service(executable_path=ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(response.url)
-    data = {}
-    try:
-        banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
-            By.XPATH, "//div[@class='banner-actions-container']//button")))
-        if banner_button:
-            banner_button.click()
-            time.sleep(3)
-            video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
-                By.XPATH,
-                "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
-            if video_button:
-                videos = []
-                for i in video_button:
-                    i.click()
-                    time.sleep(3)
-                    video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
-                        By.XPATH,
-                        "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
-                    )))
-                    if video:
-                        videos.append(video[-1].get_attribute("src"))
-                data["videos"] = videos
+# def get_embed_video_link(response) -> list:
+#     options = Options()
+#     options.headless = True
+#     service = Service(executable_path=ChromeDriverManager().install())
+#     driver = webdriver.Chrome(service=service, options=options)
+#     driver.get(response.url)
+#     data = {}
+#     try:
+#         banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
+#             By.XPATH, "//div[@class='banner-actions-container']//button")))
+#         if banner_button:
+#             banner_button.click()
+#             time.sleep(3)
+#             video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
+#                 By.XPATH,
+#                 "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
+#             if video_button:
+#                 videos = []
+#                 for i in video_button:
+#                     i.click()
+#                     time.sleep(3)
+#                     video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
+#                         By.XPATH,
+#                         "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
+#                     )))
+#                     if video:
+#                         videos.append(video[-1].get_attribute("src"))
+#                 data["videos"] = videos
 
-    except Exception as e:
-        LOGGER.error(f"exception while fetching video data {e}")
-        raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
-    driver.quit()
-    return data
+#     except Exception as e:
+#         LOGGER.error(f"exception while fetching video data {e}")
+#         raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
+#     driver.quit()
+#     return data
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
