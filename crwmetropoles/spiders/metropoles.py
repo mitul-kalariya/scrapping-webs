@@ -1,13 +1,12 @@
 import scrapy
 import logging
-import re, requests
 from datetime import datetime
-from scrapy.http import XmlResponse
-from scrapy.http import HtmlResponse
+from lxml import etree
+from scrapy.http import XmlResponse, HtmlResponse
 from scrapy.selector import Selector
 from crwmetropoles import exceptions
 from scrapy.loader import ItemLoader
-from crwmetropoles.constant import LOGGER, SITEMAP_URL
+from crwmetropoles.constant import LOGGER, SITEMAP_URL, BASE_URL, TODAYS_DATE
 from abc import ABC, abstractmethod
 from crwmetropoles.items import ArticleData
 from crwmetropoles.utils import (
@@ -101,12 +100,11 @@ class MetropolesSpider(scrapy.Spider):
         """
 
         try:
-            breakpoint()
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                root = etree.fromstring(response.body)
+                links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},)
+                for link in links[3:5]:
+                    yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -128,45 +126,39 @@ class MetropolesSpider(scrapy.Spider):
         """
 
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            root = etree.fromstring(response.body)
+            urls = root.xpath(
+                "//xmlns:loc/text()",
+                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+            )
+            last_modified_date = root.xpath(
+                "//xmlns:lastmod/text()",
+                namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
+            )
+            # breakpoint()
+            for url, pub_date in zip(urls, last_modified_date):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                if self.start_date and published_at < self.start_date:
+                    return
+                if self.start_date and published_at > self.end_date:
+                    return
 
-            date_lastmod = xml_selector.xpath("//xmlns:lastmod/text()", namespaces=xml_namespaces)
-            for i in date_lastmod.getall():
-                print(i)
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == published_at:
+                        data = {"link": url}
+                        self.articles.append(data)
+                else:
+                    if self.start_date and self.end_date:
+                        data = {"link": url}
+                        self.articles.append(data)
+            # breakpoint()
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching article details from sitemap:- {str(exception)}",
                 level=logging.ERROR,
             )
             raise exceptions.SitemapScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.m-title-single::text").getall():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise exceptions.SitemapArticleScrappingException(
                 f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
