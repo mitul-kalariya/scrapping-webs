@@ -110,52 +110,56 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-        ld_json = json.loads(response.css('script:contains("description")::text').get())
+        
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
-        main_data = get_main(response)
+        main_data = json.loads(response.css('script:contains("description")::text').get())
 
-        main_dict["description"] = [ld_json["description"]]
+        main_dict["description"] = [main_data["description"]]
 
         title = response.css("div.sp-ttl-wrp h1::text").get()
         if title:
             title = re.sub(r"[\n\t\r\"]", "", title).strip()
             main_dict["title"] = [title]
 
-        published_on = main_data[1].get("datePublished")
+        published_on = response.css("meta[name='publish-date']::attr(content)").get()
         main_dict["published_at"] = [published_on]
 
-        modified_on = main_data[1].get("dateModified")
+        modified_on = response.css( 
+            ".pst-by_ul span.pst-by_lnk span[itemprop]::attr(content)"
+        ).get()
         main_dict["modified_at"] = [modified_on]
 
-        author = main_data[1].get("author")
+        author = get_author(response)
         if author:
             main_dict["author"] = [author]
 
-        section = get_section(response)
+        section = response.css('span.brd-nv_li.current span[itemprop="name"]::text').get()
         if section:
             main_dict["section"] = [section]
 
-        publisher = main_data[1].get("publisher")
+        publisher = main_data["publisher"]
         main_dict["publisher"] = [publisher]
 
-        display_text = response.css("p::text").getall()
-        main_dict["text"] = [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])]
+        display_text = get_content(response)
+        main_dict["text"] = display_text
 
-        images = get_images(response)
-        if images:
-            main_dict["images"] = images
+        tags = [main_data["keywords"]]
+        main_dict["tags"] = tags
+        # images = get_images(response)
+        # if images:
+        #     main_dict["images"] = images
 
-        thumbnail_image = get_thumbnail(response)
+        thumbnail_image = response.css("#story_image_main::attr(src)").get()
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
 
-        mapper = {"de": "German"}
-        article_lang = response.css("html::attr(lang)").get()
-        main_dict["source_language"] = [mapper.get(article_lang)]
+        # mapper = {"en": "English"}
+        # article_lang = response.css("html::attr(lang)").get()
+        # main_dict["source_language"] = [mapper.get(article_lang)]
 
-        # video = get_embed_video_link(response)
-        # main_dict["embed_video_link"] = video.get("videos")
+        video = response.css("meta[itemprop=\"ContentUrl\"]::attr(content)").get()
+        main_dict["embed_video_link"] = video.get("videos")
 
         return remove_empty_elements(main_dict)
     except BaseException as e:
@@ -163,38 +167,53 @@ def get_parsed_data(response):
         raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
 
 
-def get_thumbnail(response):
-    data = get_main(response)
-    for data_block in data:
-        if data_block.get('@type') == "WebPage":
-            thumbnail = data_block.get('thumbnailUrl')
-            if thumbnail:
-                return thumbnail
+def get_author(self, response):
+        author = {}
+        author_name = response.css("div.pst-by_ul span[itemprop='name']::text").get()
+        author_url = response.css(".pst-by_li a[class!='pst-by_lnk']::attr(href)").get()
+        author["name"] = author_name
+        author["url"] = author_url
+
+        return [author]
+
+def get_content(self, response):
+        pattern = r"[\n\t\r\"]"
+        article_content = response.css(
+            "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
+        ).getall()
+        description = " ".join(article_content)
+        return [re.sub(pattern, "", description).strip()]
+
+# def get_thumbnail(response):
+#     data = get_main(response)
+#     for data_block in data:
+#         if data_block.get('@type') == "WebPage":
+#             thumbnail = data_block.get('thumbnailUrl')
+#             if thumbnail:
+#                 return thumbnail
 
 
-def get_section(response):
-    breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
-    if breadcrumb_list[-1]:
-        return breadcrumb_list[-1]
+# def get_section(response):
+#     breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
+#     if breadcrumb_list[-1]:
+#         return breadcrumb_list[-1]
 
 
-def get_main(response):
-    """
-    returns a list of main data available in the article from application/ld+json
-    Parameters:
-        response:
-    Returns:
-        main data
-    """
-    try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json main data{e}")
-        raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
+# def get_main(response):
+#     """
+#     returns a list of main data available in the article from application/ld+json
+#     Parameters:
+#         response:
+#     Returns:
+#         main data
+#     """
+#     try:
+#         data = []
+#         data = json.loads(response.css('script:contains("description")::text').get())
+#         return data
+#     except BaseException as e:
+#         LOGGER.error(f"error parsing ld+json main data{e}")
+#         raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
 
 
 # def get_misc(response):
@@ -216,29 +235,29 @@ def get_main(response):
 #         raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
 
 
-def get_images(response, parsed_json=False) -> list:
-    try:
-        images = response.css("figure.content-image")
-        pattern = r"[\r\n\t]"
-        data = []
-        for image in images:
-            temp_dict = {}
-            link = image.css("img::attr(data-src)").get()
-            caption = image.css("figcaption::text").get()
-            if parsed_json:
-                if link:
-                    temp_dict["@type"] = "ImageObject"
-                    temp_dict["link"] = link
-            else:
-                if link:
-                    temp_dict["link"] = link
-                    if caption:
-                        temp_dict["caption"] = re.sub(pattern, "", caption).strip()
-            data.append(temp_dict)
-        return data
-    except BaseException as e:
-        LOGGER.error(f"image fetching exception {e}")
-        raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
+# def get_images(response, parsed_json=False) -> list:
+#     try:
+#         images = response.css("figure.content-image")
+#         pattern = r"[\r\n\t]"
+#         data = []
+#         for image in images:
+#             temp_dict = {}
+#             link = image.css("img::attr(data-src)").get()
+#             caption = image.css("figcaption::text").get()
+#             if parsed_json:
+#                 if link:
+#                     temp_dict["@type"] = "ImageObject"
+#                     temp_dict["link"] = link
+#             else:
+#                 if link:
+#                     temp_dict["link"] = link
+#                     if caption:
+#                         temp_dict["caption"] = re.sub(pattern, "", caption).strip()
+#             data.append(temp_dict)
+#         return data
+#     except BaseException as e:
+#         LOGGER.error(f"image fetching exception {e}")
+#         raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
 
 
 # def get_embed_video_link(response) -> list:
