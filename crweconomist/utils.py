@@ -129,9 +129,38 @@ def get_parsed_json(selector_and_key: dict) -> dict:
     )
 
     for key, value in selector_and_key.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
+
+        if key == "main":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
+            )
+        elif key == "ImageGallery":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
+            )
+
+        elif key == "videoObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall()
+                      if (json.loads(data).get('@type') == "ImageObject"
+                          or json.loads(data).get('@type') == "ImageGallery")]
+            )
+        elif key == "misc":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall()]
+            )
+        else:
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall()
+                      if (json.loads(data).get('@type') not in
+                      ["VideoObject", "ImageObject"])
+                      and json.loads(data).get('@type') != "NewsArticle"]
+            )
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -170,17 +199,28 @@ def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
     main = parsed_json_data.get("main")
 
     parsed_data_dict["author"] = get_author(main)
-
     parsed_data_dict["description"] = [main.get('description')]
     parsed_data_dict["modified_at"] = [main.get('dateModified')]
     parsed_data_dict["published_at"] = [main.get('datePublished')]
 
-    parsed_data_dict["publisher"] = get_publisher(main, logo_width, logo_height)
+    parsed_data_dict["publisher"] = get_publisher(main, logo_width, logo_height, parsed_json_data)
     parsed_data_dict["text"] = [main.get("articleBody")]
     parsed_data_dict["thumbnail_image"] = [main.get("thumbnailUrl")]
 
     parsed_data_dict["title"] = [headline]
-    parsed_data_dict["images"] = [{"link": main.get("image"), "caption": response.css('span.css-1a0w51d::text').get()}]
+
+    try:
+        caption = parsed_json_data.get('misc')[0].get('props').get('pageProps').get('content').get('image').get('main')\
+                                                 .get('description')
+    except:
+        caption = response.css('span.css-1a0w51d::text').get()
+    if not caption:
+        caption = response.css('span.css-1a0w51d::text').get()
+    if caption:
+        parsed_data_dict["images"] = [{"link": main.get("image"),
+                                       "caption": caption}]
+    else:
+        parsed_data_dict["images"] = [{"link": main.get("image")}]
     parsed_data_dict["section"] = [main.get("articleSection")]
 
     parsed_data_dict["tags"] = main.get("keywords")
@@ -206,9 +246,10 @@ def get_author(main: dict) -> list:
     return author_list
 
 
-def get_publisher(main, logo_width, logo_height):
+def get_publisher(main, logo_width, logo_height, parsed_json_data):
     publisher_list = []
     publisher_dict = {
+        "@id": parsed_json_data.get('other')[0].get('url').split('//')[1],
         TYPE: main.get('publisher').get(TYPE),
         'name': main.get('publisher').get('name'),
 
