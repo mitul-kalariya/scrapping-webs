@@ -1,28 +1,32 @@
 # Times Now News Scrapping
-Setup and execution instructions: -
-This repo contains the code to scrap all article links and articles from https://www.timesnownews.com/ website and the tech stacks used are
+
+#### Setup and execution instructions: - 
+
+This repo contains the code to scrap all article links and articles from https://economictimes.indiatimes.com/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
-## Environment Setup
-Create a Virtual Environment using Python3 and activate the environment.
-```bash
-python3 -m venv venv
-```
 
-```bash
-source venv/bin/activate
-```
-Note: Make sure to activate the virtual environment before executing code or installing the package.
 
-## Installation
+#### Environment Setup
+
+- Create a Virtual Environment using Python3 and activate the environment.
+- `python3 -m venv venv`
+- `source venv/bin/activate`
+
+*Note:* Make sure to activate the virtual environment before executing code or installing the package.
+
+### Installation
+
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
+### Usage
 
-## Usage
-You can use the `Crawler` class and its `crawl` method to crawl the data. Quick example as shown below.
-Getting data for more then one month
+You can use the `Crawler` class and its `crawl` method to crawl the data.
+Quick example as shown below.
+Article data is available for more than 1 month
 ```
 # To fetch all the article links
-from crwtimesnownews import Crawler
+
+from crweconomictimes import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -34,7 +38,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.timesnownews.com/",
+        "domain": "https://economictimes.indiatimes.com/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -43,10 +47,10 @@ crawler = Crawler(
 
 data = crawler.crawl()
 ```
-
 ```
 # To fetch all the article links from today's date only
-from crwtimesnownews import Crawler
+
+from crweconomictimes import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -58,17 +62,18 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.timesnownews.com/"
+        "domain": "https://economictimes.indiatimes.com/"
     },
     proxies=proxies
 )
 
 data = crawler.crawl()
 ```
+
 ```
 #  To fetch the specific article details
 
-from crwtimesnownews import Crawler
+from crweconomictimes import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -80,13 +85,14 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://www.timesnownews.com/india/to-look-like-bhindranwale-amritpal-went-to-georgia-for-cosmetic-surgery-report-article-99311886"
+        "link": https://economictimes.indiatimes.com/markets/stocks/recos/buy-cochin-shipyard-target-price-rs-620-icici-direct/articleshow/99256239.cms
     },
     proxies=proxies
 )
 
 data = crawler.crawl()
 ```
+
 ## Test Cases
 We have used Python's in-built module `unittest`.
 We have covered mainly two test cases.
