@@ -1,6 +1,7 @@
 from scrapy.crawler import CrawlerProcess
-from crwmbnnewsonline.spiders.mbn_news import Mbn_news
 from multiprocessing import Process, Queue
+# TODO: Change path and spider name here
+from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
 
 
 class Crawler:
@@ -64,22 +65,21 @@ class Crawler:
         """
 
         process = CrawlerProcess()
+        process_settings = process.settings
+        process_settings["DOWNLOAD_DELAY"] = 0.25
+        process_settings["REFERER_ENABLED"] = False
+        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
-
-        process_settings = process.settings
-        process_settings["DOWNLOAD_DELAY"] = 0.25
-        process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
-        process.settings = process_settings
 
         if self.proxies:
             process_settings = process.settings
@@ -94,5 +94,6 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        process.crawl(Mbn_news, **spider_args)
+        # TODO: Change path and spider name here
+        process.crawl(NTvSpider, **spider_args)
         process.start()
