@@ -47,7 +47,7 @@
                     "https://post.naver.com/mbcnews_official"
                 ]
             },
-            "Other": [
+            "other": [
                 {
                     "@context": "http://schema.org",
                     "@type": "BreadcrumbList",

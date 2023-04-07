@@ -179,9 +179,9 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "ImageObjects": None,
+        "VideoObjects": None,
+        "other": [],
         "misc": [],
     }
     
@@ -190,11 +190,11 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         if "NewsArticle" in json5.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json5.loads(block)
         elif "ImageGallery" in json5.loads(block).get("@type", [{}]) or "ImageObject" in json5.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageObject"] = json5.loads(block)
+            parsed_json_flter_dict["ImageObjects"] = json5.loads(block)
         elif "VideoObject" in json5.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json5.loads(block)
+            parsed_json_flter_dict["VideoObjects"] = json5.loads(block)
         else:
-            parsed_json_flter_dict["Other"].append(json5.loads(block))
+            parsed_json_flter_dict["other"].append(json5.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
