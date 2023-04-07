@@ -69,10 +69,7 @@ def get_parsed_json(response):
         imageObjects = []
         videoObjects = []
         other_data = []
-        ld_json_data = response.css(
-            'script[type="application/ld+json"]::text'
-        ).getall()[0]
-        ld_json_list = [json.loads(ld_json_data)]
+        ld_json_list = [get_ld_json(response)]
 
         for data in ld_json_list:
             if data.get("@type") == "NewsArticle":
@@ -85,7 +82,7 @@ def get_parsed_json(response):
                 other_data.append(data)
         parsed_json["imageObjects"] = imageObjects
         parsed_json["videoObjects"] = videoObjects
-        parsed_json["Other"] = other_data
+        parsed_json["other"] = other_data
         misc = get_misc(response)
         if misc:
             parsed_json["misc"] = misc
@@ -157,6 +154,8 @@ def get_parsed_data(response):
     try:
         main_dict = {}
 
+        json_data = get_ld_json(response)
+
         # Author
         authors = get_author(response)
         main_dict["author"] = authors
@@ -170,7 +169,7 @@ def get_parsed_data(response):
         main_dict["published_at"] = [published]
 
         # Description
-        description = get_meta_information(response, "og:description")
+        description = json_data.get("description")
         main_dict["description"] = [description]
 
         # Publisher
@@ -265,8 +264,7 @@ def get_author(response) -> list:
         if authors:
             data = [dict((("@type", "Person"), ("name", author.css("::text").get()), ("url", f'https:{author.attrib.get("href")}'))) for author in authors]
         else:
-            ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-            json_data = json.loads(ld_json_data)
+            json_data = get_ld_json(response)
 
             data = []
             publisher_data = json_data.get("author")
@@ -311,8 +309,7 @@ def get_publisher(response) -> list:
         - "name": The name of the publisher.
     """
     try:
-        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-        json_data = json.loads(ld_json_data)
+        json_data = get_ld_json(response)
         publisher_data = json_data.get("publisher")
         logo = publisher_data.get("logo")
         a_dict = {
@@ -372,8 +369,7 @@ def get_tags(response) -> list:
         list: List of tags
     """
     try:
-        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-        json_data = json.loads(ld_json_data)
+        json_data = get_ld_json(response)
         tags = json_data.get("keywords")
         return tags
     except exceptions.ArticleScrappingException as exception:
@@ -389,8 +385,7 @@ def get_section(response) -> list:
         list: List of sections
     """
     try:
-        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-        json_data = json.loads(ld_json_data)
+        json_data = get_ld_json(response)
         sections = json_data.get("articleSection")
         return sections
     except exceptions.ArticleScrappingException as exception:
@@ -401,7 +396,7 @@ def get_section(response) -> list:
 def get_meta_information(response, property, key="property"):
     """Extract information from meta tag
     Args:
-        response (_type_): (scrapy.http.Response): The response object containing the HTML of the article page.
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
         property (str): meta property
     Returns:
         str: Requested meta tag content
@@ -418,6 +413,20 @@ def get_meta_information(response, property, key="property"):
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting article details (meta info): {str(exception)}")
+
+
+def get_ld_json(response) -> json:
+    """Extract ld+json data
+
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+
+    Returns:
+        json: ld+json data
+    """
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+    json_data = json.loads(ld_json_data)
+    return json_data
 
 
 def remove_empty_elements(parsed_data_dict):
