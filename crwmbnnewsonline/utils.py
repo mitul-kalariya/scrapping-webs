@@ -2,9 +2,13 @@ import json
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from crwmbnnewsonline.constant import SITEMAP_URL
 from crwmbnnewsonline.items import (
     ArticleRawResponse,
@@ -189,7 +193,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     texts = []
     for data in response.css('#newsViewArea::text'):
         texts.append(data.get().strip())
-    parsed_data_dict["text"] = " ".join([data for data in texts if data])
+    parsed_data_dict["text"] = [" ".join(data for data in texts if data)]
     parsed_data_dict['thumbnail_image'] = [response.css('h1 a:nth-child(1) img::attr(src)').get()]
     parsed_data_dict['title'] = [response.css('#container h1::text').get()]
     parsed_data_dict['section'] = [response.css('.section::text').get().split('>')[1]]
@@ -272,9 +276,10 @@ def get_images(response, parsed_json=False) -> list:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)
 
     try:
@@ -304,6 +309,6 @@ def get_images(response, parsed_json=False) -> list:
             return data
     except Exception as e:
         LOGGER.error(f"{str(e)}")
-    driver.quit()
+    driver.close()
     return data
 

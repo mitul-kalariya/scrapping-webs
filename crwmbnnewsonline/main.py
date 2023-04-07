@@ -1,7 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwmbnnewsonline.spiders.mbn_news import Mbn_news
 
 
 class Crawler:
@@ -70,6 +70,7 @@ class Crawler:
         process_settings["REFERER_ENABLED"] = False
         process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
         process.settings = process_settings
+        print(self.query["type"])
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
@@ -94,6 +95,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(Mbn_news, **spider_args)
         process.start()
