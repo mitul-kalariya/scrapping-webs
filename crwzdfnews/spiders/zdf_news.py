@@ -78,7 +78,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                     LOGGER.info("Must have a URL to scrap")
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
-        except Exception as exception:
+        except BaseException as exception:
             LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
