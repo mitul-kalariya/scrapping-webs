@@ -2,11 +2,9 @@ import scrapy
 import logging
 from datetime import datetime
 from lxml import etree
-from scrapy.http import XmlResponse, HtmlResponse
-from scrapy.selector import Selector
 from crwmetropoles import exceptions
 from scrapy.loader import ItemLoader
-from crwmetropoles.constant import LOGGER, SITEMAP_URL, BASE_URL, TODAYS_DATE
+from crwmetropoles.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from abc import ABC, abstractmethod
 from crwmetropoles.items import ArticleData
 from crwmetropoles.utils import (
@@ -102,13 +100,15 @@ class MetropolesSpider(scrapy.Spider):
         try:
             if self.type == "sitemap":
                 root = etree.fromstring(response.body)
-                links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},)
+                links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas"
+                                                                              "/sitemap/0.9"},)
                 for link in links[3:5]:
                     yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
-                article_data = self.parse_article(response)
-                yield article_data
+                yield self.parse_article(response)
+                # article_data = self.parse_article(response)
+                # yield article_data
 
         except BaseException as e:
             print(f"Error: {e}")

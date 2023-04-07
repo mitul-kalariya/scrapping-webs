@@ -1,4 +1,4 @@
-# {ScrapperName} Scrapping
+# {MetropolesSpider} Scrapping
 
 #### Setup and execution instructions: - 
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwmetropoles import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwmetropoles import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://www.metropoles.com/"
     },
     proxies=proxies
 )
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwmetropoles import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://www.metropoles.com/colunas/leo-dias/mari-fernandez-revela-que-ja-pensou-em-desistir-da-carreira"
     },
     proxies=proxies
 )

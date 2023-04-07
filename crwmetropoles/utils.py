@@ -3,14 +3,11 @@
 
 import os
 import json
-import re
 import logging
 from datetime import datetime
 from crwmetropoles import exceptions
 from crwmetropoles.constant import TODAYS_DATE, LOGGER
 import itertools
-from bs4 import BeautifulSoup
-import requests
 
 
 def create_log_file():
@@ -97,7 +94,6 @@ def get_main(response):
         main data
     """
     try:
-        breakpoint()
         data = []
         misc = response.css('script[type="application/ld+json"]::text').getall()
         for block in misc:
@@ -155,7 +151,6 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     try:
-        # breakpoint()
         parsed_json = {}
         imageObjects = []
         videoObjects = []
@@ -207,12 +202,9 @@ def get_parsed_data(response):
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
     try:
-        breakpoint()
-        pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
-        breakpoint()
 
         headline = response.css("div.m-head-single h1::text").getall()
         main_dict["title"] = headline
@@ -220,17 +212,16 @@ def get_parsed_data(response):
         authors = get_author(response)
         main_dict["author"] = authors
 
+        description = response.css("meta[name='description']::attr(content)").getall()
+        main_dict["description"] = description
+
         main_data = get_main(response)
         for block in main_data.get("@graph"):
-            # breakpoint()
-            if "description" in block:
-                main_dict["description"] = block.get("description")
             if "datePublished" in block:
-                main_dict["published_at"] = block.get("datePublished")
+                main_dict["published_at"] = [block.get("datePublished")]
             if "dateModified" in block:
-                main_dict["modified_at"] = block.get("dateModified")
+                main_dict["modified_at"] = [block.get("dateModified")]
 
-        # extract section information
         section = get_section(response)
         main_dict["section"] = section
 
@@ -242,7 +233,7 @@ def get_parsed_data(response):
         main_dict["text"] = [" ".join(article_text)]
 
         tags = get_tags(response)
-        main_dict["tags"] = tags
+        main_dict["tags"] = [tags]
 
         images = get_images(response)
         if images:
@@ -336,25 +327,13 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-        breakpoint()
-        try:
-            response = response.css('script[type="application/ld+json"]::text').getall()
-            json_loads = json.loads(response[0])
-            data = []
-            for block in json_loads.get("@graph"):
-                if "publisher" in block.keys():
-                    data.append(block.get("publisher"))
-                    return data
-        except:
-            response = requests.get(response)
-            soup = BeautifulSoup(response.text, "html.parser")
-            ee = soup.find_all("script", {"type": "application/ld+json"})
-
-            data = []
-            for block in ee:
-                if "publisher" in block:
-                    data.append(block.get("publisher"))
-                    return data
+        response = response.css('script[type="application/ld+json"]::text').getall()
+        json_loads = json.loads(response[0])
+        data = []
+        for block in json_loads.get("@graph"):
+            if "publisher" in block.keys():
+                data.append(block.get("publisher"))
+                return data
 
     except BaseException as e:
         LOGGER.error(f"{e}")
@@ -371,7 +350,6 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        breakpoint()
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in parsed_data:
             for data in json.loads(a_block).get("@graph"):
@@ -398,22 +376,16 @@ def get_author(response) -> list:
 
 
 def get_section(response) -> list:
-    try:
-        section = get_main(response)
-        for block in section.get("@graph"):
-            articleSection = []
-            if "articleSection" in block:
-                articleSection.append(block.get("articleSection"))
-                return articleSection
-    except:
-        breadcrumb_list = response.css("ul.article-breadcrumb li")
-        for i in breadcrumb_list:
-            text = i.css("li a::text").get()
-            if text:
-                text = text.split()
-                text = "".join(text)
-                if text:
-                    return [text]
+    """
+    This functions finds the section from the response
+    and returns the articleSection list
+    """
+    section = get_main(response)
+    for block in section.get("@graph"):
+        articleSection = []
+        if "articleSection" in block:
+            articleSection.append(block.get("articleSection"))
+            return articleSection
 
 
 def get_thumbnail_image(response) -> list:
@@ -426,8 +398,7 @@ def get_thumbnail_image(response) -> list:
     image = get_main(response)
     for block in image.get("@graph"):
         if "image" in block.keys():
-            thumbnail_image = []
-            thumbnail_image.append(block.get("image").get("url"))
+            thumbnail_image = [block.get("image").get("url")]
             return thumbnail_image
 
 
@@ -465,15 +436,32 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
+        pictures = []
+        res_1 = response.css("article figure")
+        res_2 = response.css("div.m-image-carousel img::attr(data-src)").getall()
+
+        if res_1:
+            for result in res_1:
+                for image in result.css("img::attr(data-src)").getall():
+                    print(image)
+                    pictures.append(image)
+        if res_2:
+            pictures.append(res_2)
+
+        captions = []
+        cap_1 = response.css("article figcaption::text").getall()
+        cap_2 = response.css("div.siema-item > div.m-image-carousel span::text").getall()
+        if cap_1:
+            captions.append(cap_1)
+        if cap_2:
+            captions.append(cap_2)
+
         temp_dict = {
             "images": [
                 {"link": img, "caption": cap}
                 for img, cap in itertools.zip_longest(
-                    response.css(".wp-caption a::attr(href)").getall(),
-                    response.css(".wp-caption-text::text").getall()
-                    + response.css("span.custom-caption::text").getall(),
+                    pictures[0], captions[0],
                     fillvalue=None,
-                # caption: response.css("div.m-subtitle-carousel p::text").getall() " https://www.metropoles.com/distrito-federal/na-mira/homem-que-atropelou-e-matou-sargento-da-fab-e-conhecido-receptador-no-df>"
                 )
             ]
         }
