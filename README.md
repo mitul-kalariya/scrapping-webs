@@ -1,48 +1,96 @@
-# Newton Scrapping
-This is the scrapping project to scrap news from different website.
-
+# CTV News Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all sitemaps (if available) and articles from {website name} website and the Tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www.ctvnews.ca/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
 
-#### Environment Setup 
+#### Environment Setup
 
-- Create Virtual Environment using Python3 and activate environment.
+- Create a Virtual Environment using Python3 and activate the environment.
 - `python3 -m venv venv`
 - `source venv/bin/activate`
-- Install Requirements using requirements.txt file available in a main directory.
-- `pip install -r requirements.txt `
 
-## CTV News
-
-#### Sitemap file available: - Yes
-
-
-### Package Information
-A package is already created inside the `dist` directory and if you want to create a new package after any changes then run the below command
-```
-python setup.py sdist
-```
+*Note:* Make sure to activate the virtual environment before executing code or installing the package.
 
 ### Installation
 
-Use the command `pip install <path_to_package>`. for example `pip install dist/crwctvnews-0.1.tar.gz`
-
+Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 ```
+# To fetch all the article links
+
 from crwctvnews import Crawler
 
-crawler = Crawler(query={"type": "article", "link": https://example.com/articles/test.html"})
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "https://www.ctvnews.ca/",
+        "since": "2023-02-25",
+        "until": "2023-03-26"
+    },
+    proxies=proxies
+)
+
 data = crawler.crawl()
 ```
-The `query` argument will be changed as per the type like `sitemap`, `article`, and `link_feed`. More details are added in the code documentation.
+```
+# To fetch all the article links from today's date only
+
+from crwctvnews import Crawler
+
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "https://www.ctvnews.ca/"
+    },
+    proxies=proxies
+)
+
+data = crawler.crawl()
+```
+
+```
+#  To fetch the specific article details
+
+from crwctvnews import Crawler
+
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "article",
+        "link": {Sample article URL from test case}
+    },
+    proxies=proxies
+)
+
+data = crawler.crawl()
+```
 
 ## Test Cases
 We have used Python's in-built module `unittest`.
@@ -50,4 +98,3 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
-
