@@ -1,5 +1,8 @@
-"""constants"""
+from datetime import datetime
+import logging
 
-SITEMAP_URL = ""
-# In case when sitemap, RSS feed or archive is not available.
-BASE_URL = ""
+TODAYS_DATE = datetime.today().date()
+BASE_URL = "https://ddnews.gov.in/"
+SITEMAP_URL = "https://ddnews.gov.in/about/news-archive"
+
+LOGGER = logging.getLogger()
