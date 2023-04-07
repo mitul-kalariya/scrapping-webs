@@ -1,7 +1,7 @@
 import logging
 import scrapy
 import w3lib.html
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,date
 from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 from crwddnews.items import ArticleData
@@ -30,7 +30,7 @@ class BaseSpider(ABC):
 
 
 class DDNewsSpider(scrapy.Spider, BaseSpider):
-
+    name = "dd_news"
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -59,12 +59,14 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             self.type = type.lower()
 
             if self.type == "sitemap":
+                print("------------------------------")
                 self.start_urls.append(SITEMAP_URL)
 
                 self.since = (datetime.strptime(since, "%Y-%m-%d").date() if since else None)
                 self.until = (datetime.strptime(until, "%Y-%m-%d").date() if until else None)
 
                 validate_sitemap_date_range(since, until)
+                print("+++++++++++++++++++++++++++")
 
             if self.type == "article":
                 if url:
@@ -90,6 +92,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         try:
             if self.type == "sitemap":
                 if self.since and self.until:
+                    print("=============================")
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -167,34 +170,17 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 if self.until
                 else None
             )
-
-            # Create a list of dates within the range
-            date_wise = []
+            print(since)
+            print(until)
             if since and until:
-                while since <= until:
-                    date_wise.append(since.date())
-                    since += timedelta(days=1)
+                url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
 
-            if self.since is None and self.until is None:
-                for link in response.css("a"):
-                    url = link.css("::attr(href)").get()
-                    title = link.css(".teaser-xs__headline , .hyphenate").get()
-                    published_at = link.css(".teaser-xs__date::text").get()
-
-                    if url and title and published_at:
-                        title = w3lib.html.remove_tags(title)
-                        data = {
-                            "link": url,
-                            "title": title.replace("\n", "").strip(),
-                        }
-
-                        self.articles.append(data)
-            elif self.since and self.until:
-                for i in date_wise:
-                    date_wise_url = f"https://www.tagesschau.de/archiv/?datum={i}"
-                    yield scrapy.Request(
-                        date_wise_url, callback=self.parse_sitemap_article
-                    )
+            # current_date = date.today().isoformat()   
+            # days_before = (date.today()-timedelta(days=30)).isoformat()
+            # print(current_date)
+            # print(days_before)
+            # Create a list of dates within the range
+            
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap: {e}")
             raise exceptions.SitemapScrappingException(
