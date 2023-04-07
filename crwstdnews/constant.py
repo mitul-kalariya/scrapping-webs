@@ -1,5 +1,8 @@
 """constants"""
+from datetime import datetime
+import logging
 
-SITEMAP_URL = ""
-# In case when sitemap, RSS feed or archive is not available.
-BASE_URL = ""
+TODAYS_DATE = datetime.today().date()
+LOGGER = logging.getLogger()
+BASE_URL = "https://std.stheadline.com/"
+SITEMAP_URL = "https://std.stheadline.com/realtime/get_more_instant_news"

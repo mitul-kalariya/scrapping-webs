@@ -1,14 +1,98 @@
-import scrapy
+"""Spider to scrap ZEIT news website"""
+import re
+import logging
 import requests
-import json
+from abc import ABC, abstractmethod
+from datetime import datetime
+
+import scrapy
+
+from crwstdnews.constant import (
+    TODAYS_DATE,
+    LINK_FEED,
+    LOGGER,
+)
+from crwstdnews import exceptions
+from crwstdnews.items import ArticleData
+from crwstdnews.utils import (
+    create_log_file,
+    validate_sitemap_date_range,
+    export_data_to_json_file,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
+    get_request_headers,
+)
 
 
-class STDNewsSpider(scrapy.Spider):
+
+class BaseSpider(ABC):
+    """Abstract Base class for scrapy spider
+
+    Args:
+        ABC : Abstract
+    """
+    # pylint disable=unnecessary-pass
+    @abstractmethod
+    def parse(self,response):
+        """parse function responsible for calling individual methods for each request"""
+        pass
+
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        """called by parse function when response is sitemap"""
+        pass
+
+    def parse_sitemap_article(self, response: str) -> None:
+        """called by parse function when response is sitemap article"""
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        """called by parse function when response is article"""
+        pass
+
+
+class STDNewsSpider(scrapy.Spider, BaseSpider):
     name = "stdnews"
     start_urls = ["https://std.stheadline.com/realtime/get_more_instant_news"]
 
-    def __init__(self, *args, **kwargs):
-        super(STDNewsSpider, self).__init__(*args, **kwargs)
+    def __init__(self, *args, type=None, url=None, **kwargs):
+        # pylint: disable=redefined-builtin
+        """
+        A spider to crawl globalnews.ca for news articles.
+        The spider can be initialized with two modes:
+        1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
+        and scrape articles within a specified date range.
+        2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
+
+        Attributes:
+            name (str): The name of the spider.
+            type (str): The mode of the spider.
+                        Possible values are 'sitemap' and 'article'.
+            start_date (str): The start date of the date range for sitemap mode.
+                              Should be in 'YYYY-MM-DD' format.
+            end_date (str): The end date of the date range for sitemap mode.
+                            Should be in 'YYYY-MM-DD' format.
+            url (str): The URL of the article to scrape in article mode.
+        """
+        super().__init__(*args, **kwargs)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
+        self.start_urls = []
+        self.articles = []
+        self.article_url = url
+        self.type = type.lower()
+
+        if self.type == "sitemap":
+            self.start_urls.append(LINK_FEED)
+
+        if self.type == "article":
+            if url:
+                self.start_urls.append(url)
+            else:
+                LOGGER.error("Must have a URL to scrap")
+                raise Exception("Must have a URL to scrap")
+
         self.request_headers = {
             "authority": "std.stheadline.com",
             "accept": "application/json, text/javascript, */*; q=0.01",
@@ -25,11 +109,10 @@ class STDNewsSpider(scrapy.Spider):
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
             "x-requested-with": "XMLHttpRequest",
         }
-        self.articles = []
 
     def parse(self, response):
+        if self.type
         self.get_sitemap(response)
-        yield self.articles
 
     def get_sitemap(self, response):
         today_flag = True
