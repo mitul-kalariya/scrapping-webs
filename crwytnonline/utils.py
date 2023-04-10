@@ -15,35 +15,6 @@ def create_log_file():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-
-def validate_sitemap_date_range(since, until):
-    """validated date range given by user
-    Args:
-        since (str): since
-        until (str): until
-    """
-    since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
-    until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
-    try:
-        if (since and not until) or (not since and until):
-            raise exceptions.InvalidDateException(
-                "since or until must be specified"
-            )
-
-        if since and until and since > until:
-            raise exceptions.InvalidDateException(
-                "since should not be later than until"
-            )
-
-        if since > TODAYS_DATE or until > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "since and until should not be greater than today_date"
-            )
-    except exceptions.InvalidDateException as exception:
-        LOGGER.error(f"Error in __init__: {str(exception)}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {str(exception)}")
-
-
 def get_raw_response(response):
     try:
         raw_resopnse = {
