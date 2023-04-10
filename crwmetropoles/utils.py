@@ -48,9 +48,13 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as expception:
+        LOGGER.info(
+            f"Error occured while checking date range: {expception}"
+        )
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -103,7 +107,7 @@ def get_main(response):
         LOGGER.info(f"Error occured while getting main: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting main: {exception}"
-        ) from exception
+        )
 
 
 def get_misc(response):
@@ -124,7 +128,7 @@ def get_misc(response):
         LOGGER.info(f"Error occured while getting misc: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting misc: {exception}"
-        ) from exception
+        )
 
 
 def get_raw_response(response):
@@ -182,10 +186,10 @@ def get_parsed_json(response):
 
         return remove_empty_elements(parsed_json)
 
-    except BaseException as exception:
-        LOGGER.info(f"Error occured while getting parsed json {exception}")
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting tags: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting parsed json {exception}"
+            f"Error while extracting tags: {exception}"
         )
 
 
@@ -274,51 +278,31 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+    try:
+        folder_structure = ""
+        if scrape_type == "sitemap":
+            folder_structure = "Links"
+            filename = (
+                f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+            )
+
+        elif scrape_type == "article":
+            folder_structure = "Article"
+            filename = (
+                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+            )
+
+        if not os.path.exists(folder_structure):
+            os.makedirs(folder_structure)
+
+        with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+            json.dump(file_data, file, indent=4, ensure_ascii=False)
+
+    except Exception as exception:
+        LOGGER.info(f"Error occurred while writing json file {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while writing json file {str(exception)}"
         )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
-def get_parsed_data_dict() -> dict:
-    """
-    Return base data dictionary
-
-    Args:
-    None
-
-    Returns:
-        dict: Return base data dictionary
-    """
-    return {
-        "source_country": None,
-        "source_language": None,
-        "author": [{"@type": None, "name": None, "url": None}],
-        "description": None,
-        "modified_at": None,
-        "published_at": None,
-        "publisher": None,
-        "text": None,
-        "thumbnail_image": None,
-        "title": None,
-        "images": None,
-        "section": None,
-        "video": None,
-    }
 
 
 def get_publisher(response):
@@ -341,9 +325,11 @@ def get_publisher(response):
                 data.append(block.get("publisher"))
                 return data
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching publisher data: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching publisher data {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching publisher data {str(exception)}"
+        )
 
 
 def get_author(response) -> list:
@@ -365,9 +351,11 @@ def get_author(response) -> list:
                         author_data.append(data.get("author"))
                         return author_data
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching author {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching author {str(exception)}"
+        )
 
 
 def get_section(response) -> list:
@@ -382,9 +370,11 @@ def get_section(response) -> list:
             if "articleSection" in block:
                 articleSection.append(block.get("articleSection"))
                 return articleSection
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching section: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching section {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching section {str(exception)}"
+        )
 
 
 def get_thumbnail_image(response) -> list:
@@ -400,9 +390,11 @@ def get_thumbnail_image(response) -> list:
             if "image" in block.keys():
                 thumbnail_image = [block.get("image").get("url")]
                 return thumbnail_image
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching thumbnail image: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching thumbnail image {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching thumbnail image {str(exception)}"
+        )
 
 
 def get_tags(response) -> list:
@@ -426,9 +418,11 @@ def get_tags(response) -> list:
             else:
                 data.append(temp_dict)
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching tags: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching tags {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching tags {str(exception)}"
+        )
 
 
 def get_images(response) -> list:
@@ -440,23 +434,14 @@ def get_images(response) -> list:
     """
     try:
         pictures = []
-        res_1 = response.css("article figure")
-        res_2 = response.css("div.m-image-carousel img::attr(data-src)").getall()
-
-        if res_1:
-            for result in res_1:
-                for image in result.css("img::attr(data-src)").getall():
-                    pictures.append(image)
-        if res_2:
-            pictures.append(res_2)
+        picture_links = response.css("article figure img::attr(src), div.m-image-carousel img::attr(data-src)").getall()
+        if picture_links:
+            pictures.append(picture_links)
 
         captions = []
-        cap_1 = response.css("article figcaption::text").getall()
-        cap_2 = response.css("div.siema-item > div.m-image-carousel span::text").getall()
-        if cap_1:
-            captions.append(cap_1)
-        if cap_2:
-            captions.append(cap_2)
+        cap = response.css("article figure figcaption::text, div.siema-item > div.m-image-carousel span::text").getall()
+        if cap:
+            captions.append(cap)
 
         temp_dict = {
             "images": [
@@ -469,9 +454,11 @@ def get_images(response) -> list:
         }
         return temp_dict.get("images")
 
-    except BaseException as e:
-        LOGGER.error(f"Error: {e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching image {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching image {str(exception)}"
+        )
 
 
 def get_embed_video_link(response) -> list:
@@ -496,6 +483,8 @@ def get_embed_video_link(response) -> list:
             if link:
                 data.append(link)
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching video links {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching video links {str(exception)}"
+        )

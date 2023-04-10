@@ -82,7 +82,7 @@ class MetropolesSpider(scrapy.Spider):
                 if url:
                     self.start_urls.append(url)
                 else:
-                    LOGGER.error("Error while")
+                    LOGGER.info("Must have a URL to scrap")
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         except Exception as exception:
@@ -114,8 +114,7 @@ class MetropolesSpider(scrapy.Spider):
 
             elif self.type == "article":
                 yield self.parse_article(response)
-                # article_data = self.parse_article(response)
-                # yield article_data
+
         except BaseException as e:
             LOGGER.info(f"Error occured in parse function: {e}")
             raise exceptions.ParseFunctionFailedException(
@@ -159,10 +158,10 @@ class MetropolesSpider(scrapy.Spider):
                         data = {"link": url}
                         self.articles.append(data)
 
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+        except Exception as exception:
+            LOGGER.info("Error while parsing sitemap: {}".format(exception))
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_article(self, response: str) -> None:
