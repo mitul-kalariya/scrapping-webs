@@ -4,7 +4,7 @@ from datetime import datetime
 from crwzdfnews import exceptions
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
-from crwzdfnews.constant import SITEMAP_URL, LOGGER
+from crwzdfnews.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
 from scrapy.loader import ItemLoader
 from crwzdfnews.items import ArticleData
 from abc import ABC, abstractmethod
@@ -187,17 +187,20 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
 
             for link, pub_date in zip(links, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-                today_date = datetime.today().date()
 
                 if self.start_date and published_at < self.start_date:
                     return
                 if self.start_date and published_at > self.end_date:
                     return
-
-                if self.start_date and self.end_date:
+                
+                if ".html" not in link:
+                    continue
+                
+                if TODAYS_DATE == published_at:
                     data = {"link": link}
                     self.articles.append(data)
-                elif today_date == published_at:
+
+                if self.start_date and self.end_date:
                     data = {"link": link}
                     self.articles.append(data)
                 else:
