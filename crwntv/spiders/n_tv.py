@@ -27,8 +27,6 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
@@ -133,8 +131,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 f"Error while parsing sitemap: {str(e)}"
             )
 
-    def parse_sitemap_article(self, response):
-        pass
 
     def parse_article(self, response):
         """
