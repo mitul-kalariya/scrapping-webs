@@ -7,7 +7,6 @@ from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.items import ArticleData
 from crwntv.utils import (
     create_log_file,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -25,7 +24,6 @@ class BaseSpider(ABC):
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
         pass
-
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
@@ -129,7 +127,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
-
 
     def parse_article(self, response):
         """
