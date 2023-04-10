@@ -9,7 +9,6 @@ from crwglobalnews.items import ArticleData
 from crwglobalnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
