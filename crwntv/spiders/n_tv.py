@@ -1,5 +1,4 @@
 import scrapy
-import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from scrapy.loader import ItemLoader
@@ -102,10 +101,10 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_sitemap(self, response):  # noqa: C901
@@ -125,10 +124,10 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                     if TODAYS_DATE == published_at:
                         self.articles.append(data)
 
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+        except Exception as exception:
+            LOGGER.info("Error while parsing sitemap: {}".format(exception))
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
 
@@ -185,9 +184,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+                LOGGER.info("No articles or sitemap url scrapped.")
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
