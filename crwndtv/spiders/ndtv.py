@@ -1,6 +1,6 @@
 """NDTV spider"""
 import logging
-from datetime import datetime
+from datetime import datetime,timedelta
 from abc import ABC, abstractmethod
 import scrapy
 
@@ -111,6 +111,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             super(NDTVSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
+            self.date_range_lst = []
             self.articles = []
             self.article_url = url
             self.type = type.lower()
@@ -139,6 +140,20 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
 
+    def date_range(self, start_date, end_date):
+        """
+        return range of all date between given date
+        if not end_date then take start_date as end date
+        """
+        try:
+            for date in range(int((end_date - start_date).days) + 1):
+                yield start_date + timedelta(date)
+        except Exception as exception:
+            self.log(
+                "Error occured while generating date range. " + str(exception),
+                level=logging.ERROR,
+            )
+
     def parse(self, response):
         """
         Parses the given Scrapy response based on the specified type of parsing.
@@ -149,10 +164,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                if self.since and self.until:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -213,23 +225,24 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException: If there is an error 
             while parsing the sitemap page.
         """
-        try:
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
 
-        except BaseException as e:
-            LOGGER.info("Error while parsing sitemap: %s",e)
-            raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
-            )
+        # self.logger.info("Parse function called on %s", response.url)
+        if "sitemap.xml" in response.url:
+
+            for single_date in self.date_range(self.since, self.until):
+
+                try:
+                    # url info : https://www.ndtv.com/sitemap.xml/?yyyy=2023&mm=04&dd=05&sitename=&category=
+                    yield scrapy.Request(
+                        f"https://www.ndtv.com/sitemap.xml/?yyyy={single_date.year}&mm={single_date.month}&dd={single_date.day}&sitename=&category=",
+                        callback=self.parse_sitemap_article,
+                    )
+
+                except BaseException as e:
+                    LOGGER.info("Error while parsing sitemap: %s",e)
+                    raise exceptions.SitemapScrappingException(
+                        f"Error while parsing sitemap: {str(e)}"
+                    )
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object 
@@ -253,28 +266,26 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             ).getall()
 
             for link, pub_date in zip(links, published_date):
-                publish_date = pub_date.split("T")
-                published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
-                today_date = datetime.today().date()
-
-                if self.since and published_at < self.since:
-                    return
-                if self.since and published_at > self.until:
-                    return
+                # publish_date = pub_date.split("T")
+                # published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
+                # today_date = datetime.today().date()
+                #
+                # if self.since and published_at < self.since:
+                #     return
+                # if self.since and published_at > self.until:
+                #     return
 
                 if (
-                    self.since
-                    and self.until
-                    and link != "https://www.ndtv.com/sitemap/google-news-sitemap"
+                    link != "https://www.ndtv.com/sitemap/google-news-sitemap"
                 ):
                     data = {"link": link}
                     self.articles.append(data)
-                elif (
-                    today_date == published_at
-                    and link != "https://www.ndtv.com/sitemap/google-news-sitemap"
-                ):
-                    data = {"link": link}
-                    self.articles.append(data)
+                # elif (
+                #     today_date == published_at
+                #     and link != "https://www.ndtv.com/sitemap/google-news-sitemap"
+                # ):
+                #     data = {"link": link}
+                #     self.articles.append(data)
                 else:
                     continue
 
@@ -285,22 +296,28 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
 
     def closed(self, reason: any) -> None:
         """
-        Method called when the spider is finished scraping.
-        Saves the scraped data to a JSON file with a timestamp
-        in the filename.
+        store all scrapped data into json file with given date in filename
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
         try:
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
+                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
+                breakpoint()
         except BaseException as exception:
-            LOGGER.info(
-                "Error occurred while writing json file %s - %s",str(exception),reason
+            exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )
-            raise exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+            self.log(
+                f"Error occurred while closing crawler{str(exception)} - {reason}",
+                level=logging.ERROR,
             )
         
