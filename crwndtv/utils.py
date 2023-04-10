@@ -110,10 +110,20 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     try:
+
         parsed_json = {}
-        ld_json_data = response.css('script:contains("description")::text').get()
-        parsed_json["main"] = json.loads(ld_json_data)
+        other_data = []
+        ld_json_data = response.css(
+            'script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            else:
+                other_data.append(data)
+        parsed_json["other"] = other_data
         return remove_empty_elements(parsed_json)
+    
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting parsed json {exception}")
         raise exceptions.ArticleScrappingException(
