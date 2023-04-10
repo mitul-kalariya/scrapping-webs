@@ -1,6 +1,6 @@
 """NDTV spider"""
 import logging
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta, date
 from abc import ABC, abstractmethod
 import scrapy
 
@@ -115,6 +115,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             self.articles = []
             self.article_url = url
             self.type = type.lower()
+            self.today = date.today().strftime("%Y-%m-%d")
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -122,9 +123,10 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 self.since = (
                     datetime.strptime(since, "%Y-%m-%d").date() if since else None
                 )
-                self.until = (
-                    datetime.strptime(until, "%Y-%m-%d").date() if until else None
-                )
+                if self.since:
+                    self.until = (
+                        datetime.strptime(until, "%Y-%m-%d").date() if until else None
+                    )
                 validate_sitemap_date_range(since, until)
 
             if self.type == "article":
@@ -227,22 +229,29 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         """
 
         # self.logger.info("Parse function called on %s", response.url)
-        if "sitemap.xml" in response.url:
+        try:
+            if "sitemap.xml" in response.url:
+                if self.since and self.until:
+                    for single_date in self.date_range(self.since, self.until):
 
-            for single_date in self.date_range(self.since, self.until):
-
-                try:
-                    # url info : https://www.ndtv.com/sitemap.xml/?yyyy=2023&mm=04&dd=05&sitename=&category=
+                        # url info : https://www.ndtv.com/sitemap.xml/?yyyy=2023&mm=04&dd=05&sitename=&category=
+                        yield scrapy.Request(
+                            f"https://www.ndtv.com/sitemap.xml/?yyyy={single_date.year}&mm={single_date.month}&dd={single_date.day}&sitename=&category=",
+                            callback=self.parse_sitemap_article,
+                        )
+                else:
+                    today_date = self.today.split("-")
                     yield scrapy.Request(
-                        f"https://www.ndtv.com/sitemap.xml/?yyyy={single_date.year}&mm={single_date.month}&dd={single_date.day}&sitename=&category=",
+                        f"https://www.ndtv.com/sitemap.xml/?yyyy={today_date[0]}&mm={today_date[1]}&dd={today_date[2]}&sitename=&category=",
                         callback=self.parse_sitemap_article,
                     )
 
-                except BaseException as e:
-                    LOGGER.info("Error while parsing sitemap: %s",e)
-                    raise exceptions.SitemapScrappingException(
-                        f"Error while parsing sitemap: {str(e)}"
-                    )
+
+        except BaseException as e:
+            LOGGER.info("Error while parsing sitemap: %s",e)
+            raise exceptions.SitemapScrappingException(
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object 
