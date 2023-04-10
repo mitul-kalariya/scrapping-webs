@@ -103,24 +103,6 @@ def get_raw_response(response):
     return raw_resopnse
 
 
-def get_parsed_json(response):
-    """
-    extracts json data from web page and returns a dictionary
-    Parameters:
-        response(object): web page
-    Returns
-        parsed_json(dictionary): available json data
-    """
-    try:
-        parsed_json = {}
-        return parsed_json
-    except BaseException as exception:
-        LOGGER.info("Error occured while getting parsed json %s", exception)
-        raise exceptions.ArticleScrappingException(
-            "Error occured while getting parsed json %s", exception
-        ) from exception
-
-
 def get_parsed_data(response):
     """generate required data as response json and response data
 
@@ -136,24 +118,27 @@ def get_parsed_data(response):
         topline = response.css("p.heading_small::text").get()
         main_dict["description"] = [topline]
 
-        # title = response.css("h1.news_heading.detail_title::text").get()
         title = response.css("meta[name='title']::attr(content)").get()
         main_dict["title"] = [title]
 
         published_on = response.css("p.date::text").get()
         main_dict["published_at"] = [published_on]
 
-        section = get_section(response)
+        keyword = get_keywords(response)
+        main_dict["keywords"] = keyword
 
+        section = get_section(response)
         if section:
             main_dict["section"] = [section]
+
         display_text = response.css(
             "div.news_content p[class!='heading_small']::text"
         ).getall()
-
         if display_text:
             main_dict["text"] = [
-                " ".join([re.sub("[\r\n\t]+", "", text).strip() for text in display_text])
+                " ".join(
+                    [re.sub("[\r\n\t]+", "", text).strip() for text in display_text]
+                )
             ]
 
         images = get_images(response)
@@ -195,10 +180,20 @@ def get_section(response):
     returns : breaedcrumb list
     """
     breadcrumb_list = response.css(
-        "div.easy-breadcrumb a.easy-breadcrumb_segment-1::text"
+        "div.easy-breadcrumb a.easy-breadcrumb_segment::text"
     ).getall()
     if breadcrumb_list:
         return breadcrumb_list[-1]
+
+
+def get_keywords(response):
+    """
+    parsing a keyword
+    returns : Keywords list
+    """
+    keyword = response.css("meta[name='keywords']::attr(content)").get()
+    if keyword:
+        return keyword.split(",")
 
 
 def get_main(response):
@@ -251,7 +246,6 @@ def get_images(response, parsed_json=False) -> list:
         raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
 
 
-
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """
     Export data to json file
@@ -280,7 +274,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4)
+            json.dump(file_data, file, indent=4, ensure_ascii=False)
     except BaseException as e:
         LOGGER.error("error while creating json file: %s", e)
         raise exceptions.ExportOutputFileException(

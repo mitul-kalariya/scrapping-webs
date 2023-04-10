@@ -12,7 +12,6 @@ from crwddnews.utils import (
     validate_sitemap_date_range,
     get_raw_response,
     get_parsed_data,
-    get_parsed_json,
     export_data_to_json_file,
 )
 
@@ -33,11 +32,11 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         """called by parse function when response is sitemap"""
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_archive_article(self, response: str) -> None:
         """called by parse function when response is sitemap article"""
         pass
 
@@ -122,9 +121,9 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         try:
             if self.type == "sitemap":
                 if self.since and self.until:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                    yield scrapy.Request(response.url, callback=self.parse_archive)
                 else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                    yield scrapy.Request(response.url, callback=self.parse_archive)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -150,13 +149,13 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         """
         try:
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
-            # raw_response = get_raw_response(response)
-            response_json = get_parsed_json(response)
+            raw_response = get_raw_response(response)
+            response_json = {}
             response_data = get_parsed_data(response)
             response_data["source_country"] = ["India"]
             response_data["time_scraped"] = [str(datetime.now())]
 
-            # articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value("raw_response", raw_response)
             articledata_loader.add_value(
                 "parsed_json",
                 response_json,
@@ -175,7 +174,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_archive(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
             response (scrapy.http.Response): The HTTP response object containing the sitemap page.
@@ -196,28 +195,17 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 datetime.strptime(str(self.until), "%Y-%m-%d").strftime("%m/%d/%Y")
                 if self.until else None
             )
-            if since:
 
-                if since and until:
-                    url = (
-                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-                        + since
-                        + "&changed_2="
-                        + until
-                    )
-                    yield scrapy.Request(
-                        url, callback=self.parse_archive_pagination_sitemap
-                    )
-
-                else:
-                    url = (
-                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-                        + since
-                    )
-                    yield scrapy.Request(
-                        url, callback=self.parse_archive_pagination_sitemap
-                    )
-
+            if since and until:
+                url = (
+                    "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
+                    + since
+                    + "&changed_2="
+                    + until
+                )
+                yield scrapy.Request(
+                    url, callback=self.parse_archive_pagination_sitemap
+                )
             else:
                 today = date.today().strftime("%m/%d/%Y")
                 url = (
@@ -254,11 +242,11 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 )
                 for page in range(int(total_page) + 1):
                     url = response.url + "&page=" + str(page)
-                    yield scrapy.Request(url, callback=self.parse_sitemap_article)
+                    yield scrapy.Request(url, callback=self.parse_archive_article)
 
             else:
                 yield scrapy.Request(
-                    response.url, dont_filter=True, callback=self.parse_sitemap_article
+                    response.url, dont_filter=True, callback=self.parse_archive_article
                 )
         except BaseException as e:
             # LOGGER.info(f"Error while parsing sitemap article: {e}")
@@ -266,25 +254,25 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error while parsing sitemap article: {str(e)}"
             )
 
-    def parse_sitemap_article(self, response):
+    def parse_archive_article(self, response):
         """Extracts article titles and links from the response object and
         yields a Scrapy request for each article.
         Args:
             self: The Scrapy spider instance calling this method.
             response: The response object obtained after making a request to a sitemap URL.
         Yields:
-            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
+            A Scrapy request for each article URL in the sitemap, with the `parse_archive_datewise`
             method as the callback and the article link and title as metadata.
         Raises:
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
             links = response.css("span.field-content a::attr(href)").getall()
-            title = response.css("p.archive-title::text").getall()
-            for i, t in zip(links, title):
-                if i and t:
+            titles = response.css("p.archive-title::text").getall()
+            for link, title in zip(links, titles):
+                if link and title:
                     self.articles.append(
-                        {"link": "https://ddnews.gov.in/" + i, "title": t}
+                        {"link": "https://ddnews.gov.in/" + link, "title": title}
                     )
 
         except BaseException as e:
