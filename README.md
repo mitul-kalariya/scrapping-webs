@@ -71,3 +71,7 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
+
+### Use of Selenium
+
+Yes, we used selenium to fetch Images from the website. To manage the selenium we are using webdriver_manager(https://pypi.org/project/webdriver-manager/) package and we are using `ChromeDriverManager`.
