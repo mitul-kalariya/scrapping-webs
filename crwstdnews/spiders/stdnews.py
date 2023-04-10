@@ -1,4 +1,4 @@
-"""Spider to scrap ZEIT news website"""
+"""Spider to scrap STD.stheadline news website"""
 import re
 import logging
 import requests
@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 import scrapy
+from scrapy.loader import ItemLoader
 
 from crwstdnews.constant import (
-    TODAYS_DATE,
     LINK_FEED,
     LOGGER,
 )
@@ -16,15 +16,14 @@ from crwstdnews import exceptions
 from crwstdnews.items import ArticleData
 from crwstdnews.utils import (
     create_log_file,
-    validate_sitemap_date_range,
     export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
-    get_request_headers,
 )
 
-
+#create logs
+create_log_file()
 
 class BaseSpider(ABC):
     """Abstract Base class for scrapy spider

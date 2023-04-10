@@ -2,10 +2,13 @@
 import os
 import json
 import logging
-import time
+import re
 from datetime import datetime
+import requests
+from scrapy.selector import Selector
+from bs4 import BeautifulSoup
 
-
+# requests.get(response.url)
 from crwstdnews import exceptions
 from crwstdnews.constant import TODAYS_DATE, LOGGER
 
@@ -151,12 +154,16 @@ def get_country_language_details(response) -> dict:
         "zh-cn": "Chinese (PRC)",
         "zh-hant-hk": "Chinese (Traditional)",
     }
-    lang = (response.css("html::attr(lang)").get()).lower()
-
+    page = requests.get(response.url)
+    soup = BeautifulSoup(page.content, "html.parser")
+    html_tags = soup.select("html")
+    for html_tag in html_tags:
+        lang = (html_tag.attrs["lang"]).lower()
+    breakpoint()
     return {"source_country": ["China"], "source_language": mapper.get(lang)}
 
 
-def get_author_details(parsed_data: list, response: str) -> dict:
+def get_author_details(response: str) -> dict:
     """
     Return author related details
     Args:
@@ -165,7 +172,7 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: author related details
     """
-    author_details = response.css("meta[name=\"author\"]").getall()
+    author_details = response.css('meta[name="author"]::attr(content)').getall()
     return {"author": author_details}
 
 
@@ -178,15 +185,17 @@ def get_descriptions_date_details(response: list) -> dict:
         dict: description, modified date, published date related details
     """
     data_dict = {}
-    if response.css("meta[name=\"description\"]").get():
-        data_dict["description"] = response.css("meta[name=\"description\"]").get()
+    if response.css('meta[name="description"]').get():
+        data_dict["description"] = response.css(
+            'meta[name="description"]::attr(content)'
+        ).get()
     pub_date = response.css("header span.date::text").get()
-    data_dict['datePublished'] = pub_date
+    data_dict["datePublished"] = pub_date
 
     return data_dict
 
 
-def get_publisher_details(parsed_data: list) -> dict:
+def get_publisher_details(response: list) -> dict:
     """
     Returns publisher details like name, type, id
     Args:
@@ -195,10 +204,12 @@ def get_publisher_details(parsed_data: list) -> dict:
     Returns:
         dict: publisher details like name, type, id related details
     """
-    return {"publisher": parsed_data}
+    publisher = response.css('meta[name="publisher"]::attr(content)').get()
+    if publisher:
+        return {"publisher": publisher}
 
 
-def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict:
+def get_text_title_section_tag_details(response: str) -> dict:
     """
     Returns text, title, section details
     Args:
@@ -207,22 +218,17 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
     Returns:
         dict: text, title, section, tag details
     """
-    if parsed_data.get("@type")[0] in {"Article", "VideoObject"}:
-        return {
-            "title": parsed_data.get("headline"),
-            "text": parsed_data.get("articleBody"),
-            "section": parsed_data.get("articleSection"),
-            "tags": parsed_data.get("keywords"),
-        }
+
     return {
-        "title": response.css("header.article-header > h1::text").getall(),
-        "tags": response.css("ul.article-tags__list > li > a::text").getall(),
+        "title": response.css("header > h1::text").getall(),
+        "text": [re.sub(r"[\r\t\n]", "", " ".join(response.css("p::text").getall())).strip()],
+        "tags": response.css(
+            'sb-body div form input[type="submit"]::attr(title)'
+        ).getall(),
     }
 
 
-def get_thumbnail_image_video(
-    response: str, webpage_json: dict, parsed_data: dict
-) -> dict:
+def get_thumbnail_image_video(response: str) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -231,22 +237,21 @@ def get_thumbnail_image_video(
     Returns:
         dict: thumbnail images, images and video details
     """
-    video_urls = []
     thumbnail_url = []
-    if webpage_json:
-        thumbnail_json = webpage_json.get("primaryImageOfPage")
-        if thumbnail_json:
-            thumbnail_url.append(thumbnail_json.get("url"))
-    if parsed_data.get("@type")[0] == "VideoObject":
-        video_urls.append(response.url)
-    elif parsed_data.get("@type")[0] == "Article":
-        raw_sources = response.css('script[class="raw__source"]').getall()
-        if raw_sources:
-            for a_response in raw_sources:
-                link_data = ((a_response.split("src="))[1]).split('"')[1::2]
-                video_urls.append(link_data[0])
+    images_list = []
+    thumbnail = response.css('article[class ="content"] figure img::attr(src)').get()
+    if thumbnail:
+        thumbnail_url.append(thumbnail)
 
-    return {"embed_video_link": video_urls, "thumbnail_image": thumbnail_url}
+    images = response.css('article[class="align-center"]')
+    for image in images:
+        url = image.css("div div img::attr(src)").get()
+        caption = image.css("div div.media-library-item__name::text").get()
+        images_list.append({"link": url, "caption": re.sub(r"[\r\t\n]","",caption).strip()})
+    breakpoint()
+    return remove_empty_elements(
+        {"images": images_list, "thumbnail_image": thumbnail_url}
+    )
 
 
 """
