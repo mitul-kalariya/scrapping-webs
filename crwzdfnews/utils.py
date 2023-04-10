@@ -21,8 +21,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-                        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def validate_sitemap_date_range(start_date, end_date):
@@ -44,9 +49,13 @@ def validate_sitemap_date_range(start_date, end_date):
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException("start_date should not be greater than today_date")
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as expception:
+        LOGGER.info(
+            f"Error occured while checking date range: {expception}"
+        )
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -74,8 +83,11 @@ def remove_empty_elements(parsed_data_dict):
 
 
 def get_raw_response(response):
-    raw_resopnse = {"content_type": "text/html; charset=utf-8", "content": response.css("html").get(), }
-    return raw_resopnse
+    raw_resopnse = {
+        "content_type": "text/html; charset=utf-8",
+        "content": response.css("html").get(),
+    }
+    return remove_empty_elements(raw_resopnse)
 
 
 def get_parsed_json(response):
@@ -112,11 +124,12 @@ def get_parsed_json(response):
             parsed_json["misc"] = misc
 
         return remove_empty_elements(parsed_json)
-    except BaseException as exception:
-        LOGGER.info(f"Error occured while getting parsed json {exception}")
+    
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting tags: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting parsed json {exception}"
-        ) from exception
+            f"Error while extracting tags: {exception}"
+        )
 
 
 def get_parsed_data(response):
@@ -165,7 +178,7 @@ def get_parsed_data(response):
         if images:
             main_dict["images"] = images
 
-        thumbnail_image = get_thumbnail(response)
+        thumbnail_image = get_thumbnail_image(response)
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
 
@@ -177,24 +190,41 @@ def get_parsed_data(response):
         main_dict["embed_video_link"] = video.get("videos")
 
         return remove_empty_elements(main_dict)
-    except BaseException as e:
-        LOGGER.error(f"while scrapping parsed data {e}")
-        raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
+
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        )
 
 
-def get_thumbnail(response):
-    data = get_main(response)
-    for data_block in data:
-        if data_block.get('@type') == "WebPage":
-            thumbnail = data_block.get('thumbnailUrl')
-            if thumbnail:
-                return thumbnail
+def get_thumbnail_image(response):
+    try:
+        data = get_main(response)
+        for data_block in data:
+            if data_block.get('@type') == "WebPage":
+                thumbnail = data_block.get('thumbnailUrl')
+                if thumbnail:
+                    return thumbnail
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting thumbnail image: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting thumbnail image: {exception}"
+        )
 
 
 def get_section(response):
-    breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
-    if breadcrumb_list[-1]:
-        return breadcrumb_list[-1]
+    try:
+        breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
+        if breadcrumb_list[-1]:
+            return breadcrumb_list[-1]
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting section: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting section: {exception}"
+        )
 
 
 def get_main(response):
@@ -211,9 +241,12 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json main data{e}")
-        raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        )
 
 
 def get_misc(response):
@@ -230,9 +263,12 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json misc data {e}")
-        raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        )
 
 
 def get_images(response, parsed_json=False) -> list:
@@ -255,19 +291,22 @@ def get_images(response, parsed_json=False) -> list:
                         temp_dict["caption"] = re.sub(pattern, "", caption).strip()
             data.append(temp_dict)
         return data
-    except BaseException as e:
-        LOGGER.error(f"image fetching exception {e}")
-        raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article images: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting article images: {exception}"
+        )
 
 
 def get_embed_video_link(response) -> list:
-    options = Options()
-    options.headless = True
-    service = Service(executable_path=ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(response.url)
-    data = {}
     try:
+        options = Options()
+        options.headless = True
+        service = Service(executable_path=ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.get(response.url)
+        data = {}
         banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
             By.XPATH, "//div[@class='banner-actions-container']//button")))
         if banner_button:
@@ -286,12 +325,15 @@ def get_embed_video_link(response) -> list:
                         "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
                     )))
                     if video:
-                        videos.append(video[-1].get_attribute("src").replace("bolb:", ""))
+                        videos.append(video[-1].get_attribute("src").replace("blob:", ""))
                 data["videos"] = videos
 
-    except Exception as e:
-        LOGGER.error(f"exception while fetching video data {e}")
-        raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting video links: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting video links: {exception}"
+        )
+
     driver.quit()
     return data
 
@@ -321,6 +363,9 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
             json.dump(file_data, file, indent=4)
-    except BaseException as e:
-        LOGGER.error(f"error while creating json file: {e}")
-        raise exceptions.ExportOutputFileException(f"error while creating json file: {e}")
+
+    except Exception as exception:
+            LOGGER.info(f"Error occurred while writing json file {str(exception)}")
+            raise exceptions.ArticleScrappingException(
+            f"Error occurred while writing json file {str(exception)}"
+            )
