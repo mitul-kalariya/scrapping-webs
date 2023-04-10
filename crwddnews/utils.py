@@ -115,21 +115,31 @@ def get_parsed_data(response):
     try:
 
         main_dict = {}
+
+        main_dict["source_country"] = "India"
+        mapper = {"en": "English"}
+        article_lang = response.css("html::attr(lang)").get()
+        main_dict["source_language"] = [mapper.get(article_lang)]
+
         topline = response.css("p.heading_small::text").get()
         main_dict["description"] = [topline]
-
-        title = response.css("meta[name='title']::attr(content)").get()
-        main_dict["title"] = [title]
 
         published_on = response.css("p.date::text").get()
         main_dict["published_at"] = [published_on]
 
-        keyword = get_keywords(response)
-        main_dict["keywords"] = keyword
+        thumbnail_image = get_thumbnail(response)
+        if thumbnail_image:
+            main_dict["thumbnail_image"] = [thumbnail_image]
+
+        title = response.css("meta[name='title']::attr(content)").get()
+        main_dict["title"] = [title]
 
         section = get_section(response)
         if section:
             main_dict["section"] = [section]
+
+        keyword = get_keywords(response)
+        main_dict["tags"] = keyword
 
         display_text = response.css(
             "div.news_content p[class!='heading_small']::text"
@@ -145,16 +155,12 @@ def get_parsed_data(response):
         if images:
             main_dict["images"] = images
 
-        thumbnail_image = get_thumbnail(response)
-        if thumbnail_image:
-            main_dict["thumbnail_image"] = [thumbnail_image]
-        video = response.css(".views-field-field-video iframe::attr(src)").getall()
+        video={}
+        video["links"] = response.css(".views-field-field-video iframe::attr(src)").get()
         if video:
-            main_dict["embeded_video_url"] = video
+            main_dict["embeded_video_url"] = [video]
 
-        mapper = {"en": "English"}
-        article_lang = response.css("html::attr(lang)").get()
-        main_dict["source_language"] = [mapper.get(article_lang)]
+        
         return remove_empty_elements(main_dict)
     except BaseException as e:
         LOGGER.error("while scrapping parsed data %s", e)
