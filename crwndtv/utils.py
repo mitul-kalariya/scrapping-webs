@@ -4,7 +4,6 @@
 import os
 import re
 import json
-import time
 import logging
 from datetime import datetime
 
@@ -13,6 +12,7 @@ from crwndtv.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
+    """creating log file"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -23,6 +23,9 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """
+        validating date range given for sitemap
+        """
     start_date = (
         datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     )
@@ -110,7 +113,6 @@ def get_parsed_json(response):
         parsed_json = {}
         ld_json_data = response.css('script:contains("description")::text').get()
         parsed_json["main"] = json.loads(ld_json_data)
-
         return remove_empty_elements(parsed_json)
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting parsed json {exception}")
@@ -139,7 +141,7 @@ def get_parsed_data(response):
 
         title = response.css("div.sp-ttl-wrp h1::text").get()
         if title:
-            title = re.sub(r"[\n\t\r\"]", "", title).strip()
+            title = re.sub(pattern, "", title).strip()
             main_dict["title"] = [title]
 
         published_on = response.css("meta[name='publish-date']::attr(content)").get()
@@ -185,6 +187,14 @@ def get_parsed_data(response):
 
 
 def get_author(response):
+    """
+        Return author related details
+        Args:
+            parsed_data: response of application/ld+json data
+            response: provided response
+        Returns:
+            dict: author related details
+        """
     author = {}
     author_name = response.css("div.pst-by_ul span[itemprop='name']::text").get()
     author_url = response.css(".pst-by_li a[class!='pst-by_lnk']::attr(href)").get()
