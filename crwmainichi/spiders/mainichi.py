@@ -6,7 +6,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 
 from crwmainichi import exceptions
-from crwmainichi.constant import LOGGER, SITEMAP_URL, TODAYS_DATE, FORMATTED_DATE
+from crwmainichi.constant import LOGGER, SITEMAP_URL, FORMATTED_DATE
 from crwmainichi.items import ArticleData
 from crwmainichi.utils import (
     create_log_file,
@@ -14,7 +14,6 @@ from crwmainichi.utils import (
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
-    validate_sitemap_date_range
 )
 
 
@@ -24,10 +23,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_homepage_link(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -77,6 +73,8 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
+            if since != None or until != None:
+                raise Exception('Date Filter is not available for this website')
             full_url = [
                 'm/?sd=' + str(FORMATTED_DATE),
                 'e/?sd=' + str(FORMATTED_DATE),
@@ -84,13 +82,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             for url in full_url:
                 sitemap_link = SITEMAP_URL + url
                 self.start_urls.append(sitemap_link)
-            self.since = (
-                datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
-            )
-            self.until = (
-                datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
-            )
-            validate_sitemap_date_range(since, until)
+
         if self.type == "article":
             if url:
                 self.start_urls.append(url)
@@ -109,10 +101,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
         self.logger.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                if self.since and self.until:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_homepage_link)
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
@@ -123,7 +112,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_homepage_link(self, response):
         try:
             links = response.css('.articlelist a::attr(href)').getall()
             titles = response.css('.articlelist a h3::text').getall()
@@ -138,9 +127,6 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
-
-    def parse_sitemap_article(self, response):
-        pass
 
     def parse_article(self, response) -> list:
         """
