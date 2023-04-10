@@ -15,7 +15,6 @@ from crwytnonline.utils import (
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
-    validate_sitemap_date_range
 )
 
 
@@ -25,7 +24,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_homepage_link(self, response: str) -> None:
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
@@ -64,19 +63,10 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
-            if self.type == "sitemap":
-                self.start_urls.append(SITEMAP_URL)
-                self.since = (
-                    datetime.strptime(since, "%Y-%m-%d").date()
-                    if since
-                    else TODAYS_DATE
-                )
-                self.until = (
-                    datetime.strptime(until, "%Y-%m-%d").date()
-                    if until
-                    else TODAYS_DATE
-                )
-                validate_sitemap_date_range(since, until)
+            if since != None or until != None:
+                raise Exception('Date Filter is not available for this website')
+            self.start_urls.append(SITEMAP_URL)
+
         elif self.type == "article":
             if url:
                 self.start_urls.append(url)
@@ -95,10 +85,7 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
         self.logger.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                if self.since and self.until:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_homepage_link)
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
@@ -109,14 +96,16 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_homepage_link(self, response):
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            PAGINATION = 50
+            links = []
+            for page_no in range(1, PAGINATION+1):
+                full_url = SITEMAP_URL + '?page=' + str(page_no) + '&mcd=recentnews'
+                links.append(full_url)
+            for link in links:
+                yield scrapy.Request(link, callback=self.parse_sitemap_article)
+
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
             raise exceptions.SitemapScrappingException(
@@ -128,26 +117,17 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
         try:
-            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            title = response.xpath('//*[local-name()="title"]/text()').getall()
-            published_date = response.xpath('//*[local-name()="publication_date"]/text()').getall()
-
-            for link, title, pub_date in zip(links, title, published_date):
+            links = response.css('.newslist_wrap a::attr(href)').getall()
+            titles = response.css('.til::text').getall()
+            published_dates = response.css('.date::text').getall()
+            for link, title, pub_date in zip(links, titles, published_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-
-                data = {
-                    'link': link,
-                    'title': title
-                }
-                if self.since is None and self.until is None:
-                    if TODAYS_DATE == published_at:
-                        self.articles.append(data)
-                elif self.since and self.until and self.since <= published_at <= self.until:
+                if published_at == TODAYS_DATE:
+                    data =  {
+                        'link': link,
+                        'title': title,
+                    }
                     self.articles.append(data)
-                elif self.since and self.until:
-                    if published_at == self.since and published_at == self.until:
-                        self.articles.append(data)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap article:: {str(exception)}")
             raise exceptions.SitemapArticleScrappingException(
