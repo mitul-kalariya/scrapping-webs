@@ -3,7 +3,6 @@ import re
 from datetime import timedelta, datetime
 
 import json
-import os
 from itertools import zip_longest
 
 from scrapy.loader import ItemLoader
@@ -218,68 +217,6 @@ def get_parsed_json(response) -> dict:
     return dict(article_raw_parsed_json_loader.load_item())
 
 
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
-def get_parsed_data_dict() -> dict:
-    """
-    Return base data dictionary
-
-    Args:
-    None
-
-    Returns:
-        dict: Return base data dictionary
-    """
-    return {
-        "country": None,
-        "language": None,
-        "author": [{"@type": None, "name": None, "url": None}],
-        "description": None,
-        "modified_at": None,
-        "published_at": None,
-        "publisher": None,
-        "text": None,
-        "thumbnail_image": None,
-        "title": None,
-        "images": None,
-        "section": None,
-        "video": None,
-    }
-
-
 def remove_empty_elements(parsed_data_dict: dict) -> dict:
     """
     Recursively remove empty lists, empty dicts, or None elements from a dictionary.
@@ -310,63 +247,6 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
-
-
-def get_author_details(parsed_data: list, response: str) -> dict:
-    """
-    Return author related details
-    Args:
-        parsed_data: response of application/ld+json data
-        response: provided response
-    Returns:
-        dict: author related details
-    """
-    return next(
-        (
-            {
-                "author": [
-                    {
-                        "@type": json.loads(block).get("author")[0].get("@type"),
-                        "name": json.loads(block).get("author")[0].get("name"),
-                        "url": json.loads(block)
-                        .get("author")[0]
-                        .get("image", None)
-                        .get("url", None),
-                    }
-                ]
-            }
-            for block in parsed_data
-            if json.loads(block).get("author")
-        ),
-        {
-            "author": [
-                {"name": response.css("#detailContent > div.byline > div::text").get()}
-            ]
-        },
-    )
-
-
-def get_publihser_details(parsed_data: list, response: str) -> dict:
-    """
-    Returns publisher details like name, type, id
-    Args:
-        parsed_data: response of application/ld+json data
-        response: provided response
-    Returns:
-        dict: publisher details like name, type, id related details
-    """
-    for block in parsed_data:
-        return {
-            "publisher": [
-                {
-                    "@id": response.css("#menuButton::attr(href)")
-                    .get()
-                    .split("/sitemap")[0][2:],
-                    "@type": json.loads(block).get("publisher", {}).get("@type"),
-                    "name": response.css("head > title::text").get().split("|")[1],
-                }
-            ]
-        }
 
 
 def get_article_json(response: str) -> dict:

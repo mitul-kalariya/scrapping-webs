@@ -42,10 +42,10 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_archive_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -125,7 +125,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                         + f"news-archive.htm?archive_year={single_date.year}"
                         + f"&archive_month={single_date.month}"
                         + f"&archive_day={single_date.day}&archive_cat=all",
-                        callback=self.parse_sitemap,
+                        callback=self.parse_archive,
                     )
                 except Exception as exception:
                     self.log(
@@ -135,7 +135,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         """
         parse sitemap from sitemap url and callback parser to parse title and link
         Args:
