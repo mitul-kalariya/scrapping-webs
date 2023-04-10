@@ -24,10 +24,10 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_archive_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -121,13 +121,11 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
         try:
             LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_archive)
 
             elif self.type == "article":
                 yield self.parse_article(response)
+
         except BaseException as e:
             LOGGER.info(f"Error occured in parse function: {e}")
             raise exceptions.ParseFunctionFailedException(
@@ -173,7 +171,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_archive(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
 
         Args:
@@ -225,7 +223,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 for i in date_wise:
                     date_wise_url = f"https://www.tagesschau.de/archiv/?datum={i}"
                     yield scrapy.Request(
-                        date_wise_url, callback=self.parse_sitemap_article
+                        date_wise_url, callback=self.parse_archive_article
                     )
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap: {e}")
@@ -233,7 +231,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error while parsing sitemap: {str(e)}"
             )
 
-    def parse_sitemap_article(self, response):
+    def parse_archive_article(self, response):
         """Extracts article titles and links from the response object and yields a Scrapy request for each article.
 
         Args:
@@ -242,7 +240,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
 
         Yields:
             A Scrapy request for each article URL in the sitemap,
-                with the `parse_sitemap_datewise` method as the callback and the article link and title as metadata.
+                with the `parse_archive_datewise` method as the callback and the article link and title as metadata.
 
         Raises:
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
@@ -266,8 +264,9 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                 pagination_url = "https://www.tagesschau.de/archiv/" + pagination_wise
                 if len(pagination) > 1:
                     yield scrapy.Request(
-                        pagination_url, callback=self.parse_sitemap_article
+                        pagination_url, callback=self.parse_archive_article
                     )
+
         except BaseException as e:
             LOGGER.info(f"Error while parsing sitemap article: {e}")
             raise exceptions.SitemapArticleScrappingException(

@@ -141,7 +141,6 @@ def get_parsed_json(response):
 
 def get_parsed_data(response):
     try:
-
         pattern = r"[\r\n\t\"]+"
         main_dict = {}
         video = []
@@ -196,6 +195,7 @@ def get_parsed_data(response):
         main_dict["source_language"] = [mapper.get(article_lang)]
 
         return remove_empty_elements(main_dict)
+
     except Exception as exception:
         LOGGER.info(f"Error while extracting parsed data: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -217,11 +217,12 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting main: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting main: {exception}"
-        ) from exception
+        )
 
 
 def get_misc(response):
@@ -238,11 +239,12 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting misc: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting misc: {exception}"
-        ) from exception
+        )
 
 
 def get_embed_video_link(response) -> list:
@@ -261,6 +263,7 @@ def get_embed_video_link(response) -> list:
                 if video_link:
                     info.append(video_link)
         return info
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting article video link: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -286,6 +289,7 @@ def get_article_images(response) -> list:
 
             info.append(remove_empty_elements(a_dict))
         return info
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting article images: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -294,14 +298,21 @@ def get_article_images(response) -> list:
 
 
 def get_section(response) -> list:
-    breadcrumb_list = response.css("ul.article-breadcrumb li")
-    for i in breadcrumb_list:
-        text = i.css("li a::text").get()
-        if text:
-            text = text.split()
-            text = "".join(text)
+    try:
+        breadcrumb_list = response.css("ul.article-breadcrumb li")
+        for i in breadcrumb_list:
+            text = i.css("li a::text").get()
             if text:
-                return [text]
+                text = text.split()
+                text = "".join(text)
+                if text:
+                    return [text]
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting section: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting section: {exception}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -316,18 +327,24 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
+    try:
+        folder_structure = ""
+        if scrape_type == "sitemap":
+            folder_structure = "Links"
+            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        elif scrape_type == "article":
+            folder_structure = "Article"
+            filename = (
+                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
 
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        )
+        if not os.path.exists(folder_structure):
+            os.makedirs(folder_structure)
+        with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
+            json.dump(file_data, file, indent=4)
 
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+    except Exception as exception:
+            LOGGER.info(f"Error occurred while writing json file {str(exception)}")
+            raise exceptions.ArticleScrappingException(
+            f"Error occurred while writing json file {str(exception)}"
+            )
