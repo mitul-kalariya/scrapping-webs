@@ -1,1 +1,1 @@
-from crwnhkorjp.main import Crawler
+from crwnhkorjp.main import Crawler  # noqa: F401

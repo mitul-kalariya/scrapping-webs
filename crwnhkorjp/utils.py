@@ -14,7 +14,7 @@ from crwnhkorjp.exceptions import (
 )
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
     Args:
@@ -110,7 +110,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     )
 
     for key, value in selector_and_key.items():
-
         if key == "main":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
@@ -163,14 +162,15 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
-    parsed_data_dict = get_parsed_data_dict()
 
+    parsed_data_dict = get_parsed_data_dict()
     text = response.css('p.content--summary-more::text').getall()
     text_summary = response.css('p.content--summary::text').getall()
     body_text = response.css('div.body-text::text').getall()
     body_img = response.css('figure.body-img img::attr("data-src")').getall()
     mapper = {"ja": "Japanse"}
-    if len(list(parsed_json_dict.keys())) <= 2:
+    if "other" not in list(parsed_json_dict.keys()):
+        section = response.css('a.c-header-menu__link::text').getall()[1]
         parsed_data_dict["source_country"] = ["Japan"]
         parsed_data_dict["source_language"] = [mapper.get(response.css('meta[name="content-language"]\
                                                                     ::attr(content)').get())]
@@ -203,7 +203,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
                                       for img in body_img]
         parsed_data_dict["images"].append({"link": parsed_json_dict.get("main").get("url").split('/')[2]
                                            + parsed_json_dict.get("main").get('image').get('url')})
-        parsed_data_dict["section"] = [parsed_json_dict.get("main").get('articleSection')]
+        parsed_data_dict["section"] = [section]
         parsed_data_dict["tags"] = parsed_json_dict.get('main').get('keywords')
         if "videoObjects" in list(parsed_json_dict.keys()):
             parsed_data_dict["embed_video_link"] = [parsed_json_dict.get("other")[1].get("url")[:-1] + response.css(

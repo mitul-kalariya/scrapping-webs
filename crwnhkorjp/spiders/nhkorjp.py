@@ -3,22 +3,22 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 import scrapy
 from scrapy.selector import Selector
-from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
 from crwnhkorjp.items import ArticleData
+from scrapy.loader import ItemLoader
 
 from crwnhkorjp.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crwnhkorjp.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    InvalidArgumentException
 )
 
 logging.basicConfig(
@@ -82,6 +82,9 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
+            )
+            raise InvalidArgumentException(
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
             )
 
     def parse(self, response):
@@ -209,7 +212,6 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
                 parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
-
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
@@ -221,13 +223,11 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
                     "parsed_json",
                     parsed_json_data,
                 )
-
             articledata_loader.add_value(
                 "parsed_data", get_parsed_data(response, parsed_json_data)
             )
-
             self.articles.append(dict(articledata_loader.load_item()))
-            return articledata_loader.item
+            return dict(articledata_loader.load_item())
 
         except Exception as exception:
             self.log(

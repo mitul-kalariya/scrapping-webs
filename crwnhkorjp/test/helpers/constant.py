@@ -30,18 +30,18 @@ TEST_ARTICLES = [
         "test_data_path": "crwnhkorjp/test/data/test_article_7.json"
     },
     {
-        "url": "https://www3.nhk.or.jp/news/html/20230403/k10014027501000.html",
+        "url": "https://www3.nhk.or.jp/news/html/20230404/k10014028931000.html",
         "test_data_path": "crwnhkorjp/test/data/test_article_8.json"
     },
     {
-        "url": "https://www3.nhk.or.jp/news/html/20230403/k10014027561000.html",
+        "url": "https://www3.nhk.or.jp/news/html/20230404/k10014028891000.html",
         "test_data_path": "crwnhkorjp/test/data/test_article_9.json"
     },
     {
-        "url": "https://www3.nhk.or.jp/news/html/20230402/k10014027241000.html",
+        "url": "https://www3.nhk.or.jp/news/html/20230404/k10014028941000.html",
         "test_data_path": "crwnhkorjp/test/data/test_article_10.json"
     }
     
 ]
 
-SITEMAP_URL = "https://www.lemonde.fr/sitemap_index.xml"
+SITEMAP_URL = "https://www3.nhk.or.jp/news/sitemap-news-index.xml"
