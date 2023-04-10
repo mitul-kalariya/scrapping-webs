@@ -104,37 +104,42 @@ def get_raw_response(response):
 
 def get_parsed_json(response):
     """
-        Extracts relevant information from a news article web page using the given
-        Scrapy response object and the URL of the page.
-
-        Args:
-        - response: A Scrapy response object representing the web page to extract
-          information from.
-        - current_url: A string representing the URL of the web page.
-
-        Returns:
-        - A dictionary representing the extracted information from the web page.
+    extracts json data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
-        elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
-        else:
-            other_data.append(data)
+    try:
+        parsed_json = {}
+        imageObjects = []
+        videoObjects = []
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                imageObjects.append(data)
+            elif data.get("@type") == "VideoObject":
+                videoObjects.append(data)
+            else:
+                other_data.append(data)
 
-    parsed_json["Other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
+        parsed_json["other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+        return remove_empty_elements(parsed_json)
 
-    return remove_empty_elements(parsed_json)
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while getting parsed json {exception}"
+        )
 
 
 def get_parsed_data(response):

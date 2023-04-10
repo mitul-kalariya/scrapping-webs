@@ -1,8 +1,12 @@
+from multiprocessing import Process, Queue
+
 from scrapy.crawler import CrawlerProcess
+
 from crwmediapart.spiders.media_part import MediaPartSpider
 from multiprocessing import Process, Queue
 # TODO: Change path and spider name here
 from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+
 
 
 class Crawler:
@@ -27,7 +31,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n

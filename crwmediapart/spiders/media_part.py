@@ -1,16 +1,24 @@
-import scrapy
-from datetime import datetime
-from scrapy.http import XmlResponse
-from scrapy.selector import Selector
-from scrapy.crawler import CrawlerProcess
-from crwmediapart import exceptions
-from crwmediapart.constant import SITEMAP_URL, TODAYS_DATE, LOGGER
-from scrapy.utils.project import get_project_settings
 from abc import ABC, abstractmethod
+from datetime import datetime
+
+import scrapy
+from scrapy.crawler import CrawlerProcess
+from scrapy.http import XmlResponse
 from scrapy.loader import ItemLoader
+from scrapy.selector import Selector
+from scrapy.utils.project import get_project_settings
+
+from crwmediapart import exceptions
+from crwmediapart.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwmediapart.items import ArticleData
-from crwmediapart.utils import (create_log_file, validate_sitemap_date_range, export_data_to_json_file,
-                                get_raw_response, get_parsed_data, get_parsed_json, )
+from crwmediapart.utils import (
+    create_log_file,
+    export_data_to_json_file,
+    get_parsed_data,
+    get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range,
+)
 
 # create log file
 create_log_file()
@@ -36,7 +44,9 @@ class BaseSpider(ABC):
 class MediaPartSpider(scrapy.Spider, BaseSpider):
     name = "media_part"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         A spider to crawl mediapart.fr for news articles.
         The spider can be initialized with two modes:
@@ -53,7 +63,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         """
         try:
             super(MediaPartSpider, self).__init__(*args, **kwargs)
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.article_url = url
@@ -61,8 +71,14 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
-                self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-                self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date()
+                    if start_date
+                    else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
                 validate_sitemap_date_range(start_date, end_date)
             if self.type == "article":
                 if url:
@@ -118,13 +134,17 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         """
         try:
             # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             # Create a Selector object from the XmlResponse
             xml_selector = Selector(xmlresponse)
             # Define the XML namespaces used in the sitemap
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             # Loop through each sitemap URL in the XML response
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+            for sitemap in xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ):
                 # Loop through each link in the sitemap and create a scrapy request for it
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
@@ -152,7 +172,9 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
             # Extract the links and published dates from the sitemap
             links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
+            published_date = response.xpath(
+                '//*[local-name()="lastmod"]/text()'
+            ).getall()
 
             # Loop through the links and published dates
             for link, pub_date in zip(links, published_date):
@@ -160,7 +182,11 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
                 # If the published date falls within the specified date range, make a request to the link
-                if (self.start_date and self.end_date and self.start_date <= published_at <= self.end_date):
+                if (
+                    self.start_date
+                    and self.end_date
+                    and self.start_date <= published_at <= self.end_date
+                ):
                     data = {"link": link}
                     self.articles.append(data)
                 # If the published date is today's date, make a request to the link
@@ -196,7 +222,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value("parsed_json", response_json, )
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
@@ -227,15 +256,13 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            LOGGER.info(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
             raise exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}")
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
 
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(MediaPartSpider)
-    process.start()

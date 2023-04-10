@@ -1,10 +1,11 @@
-# {ScrapperName} Scrapping
+# MediaPart Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www.mediapart.fr website and the tech stacks used are
 - Python 3.10
 - Scrapy
+- Pillow
 
 
 #### Environment Setup
@@ -91,12 +92,61 @@ crawler = Crawler(
 
 data = crawler.crawl()
 
-# For Sitemap
-crawler = Crawler(query={"type": "sitemap", "domain": "https://example.com", "since": "2022-03-01", "until": "2022-03-26"})
-data = crawler.crawl()
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "https://www.mediapart.fr",
+        "since": "2023-02-25",
+        "until": "2023-03-26"
+    },
+    proxies=proxies
+)
 
-# For Link Feed
-crawler = Crawler(query={"type": "link_feed"})
+data = crawler.crawl()
+```
+```
+# To fetch all the article links from today's date only
+
+from crwmediapart import Crawler
+
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "sitemap",
+        "domain": "https://www.mediapart.fr"
+    },
+    proxies=proxies
+)
+
+data = crawler.crawl()
+```
+
+```
+#  To fetch the specific article details
+
+from crwmediapart import Crawler
+
+proxies = {
+    "proxyIp": "168.92.23.26", # just added dummy IP
+    "proxyPort": "yourport", # example 3199
+    "proxyUsername": "yourusername",
+    "proxyPassword": "yourpassword"
+}
+
+crawler = Crawler(
+    query={
+        "type": "article",
+        "link": "https://www.mediapart.fr/journal/international/280323/la-finance-internationale-prend-ses-distances-avec-macron"
+    },
+    proxies=proxies
+)
+
 data = crawler.crawl()
 ```
 
