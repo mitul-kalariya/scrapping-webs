@@ -16,6 +16,7 @@ from crwindianexpress.utils import (
     get_raw_response,
     get_parsed_json,
     get_parsed_data,
+    export_data_to_json_file,
 )
 from crwindianexpress.exceptions import (
     SitemapArticleScrappingException,
@@ -246,6 +247,8 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

@@ -216,8 +216,8 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> description",
                 )
-        # else:
-        #     raise AssertionError("missing object:- parsed_data--> description")
+        else:
+            raise AssertionError("missing object:- parsed_data--> description")
 
         if article[0].get("parsed_data").get("source_country"):
             with self.subTest():
@@ -353,9 +353,9 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> section",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> section")
+        else:
+            with self.subTest():
+                raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -370,9 +370,9 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> tags",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> tags")
+        else:
+            with self.subTest():
+                raise AssertionError("missing object:- parsed_data--> tags")
 
 
 class TestSitemap(unittest.TestCase):
@@ -388,7 +388,9 @@ class TestSitemap(unittest.TestCase):
                     article.get("link"), "missing object:- sitemap articles --> link"
                 )
             # with self.subTest():
-            #     self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
+            #     self.assertIsNotNone(
+            #         article.get("title"), "missing object:- sitemap articles --> title"
+            #     )
 
     def _test_sitemap_results(self):
         with self.subTest():

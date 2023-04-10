@@ -353,15 +353,20 @@ def get_parsed_data(
     parsed_data_dict |= get_country_details()
     parsed_data_dict |= get_language_details(response)
     parsed_data_dict |= get_author_details(parsed_json_main, response)
-    parsed_data_dict |= get_descriptions_date_details(parsed_json_main, response)
+    parsed_data_dict |= get_descriptions_date_details(
+        parsed_json_main, response, article_url
+    )
     parsed_data_dict |= get_publihser_details(parsed_json_main, response)
-    parsed_data_dict |= get_text_title_section_details(parsed_json_main)
+    parsed_data_dict |= get_text_title_section_details(
+        parsed_json_main, response, article_url
+    )
     parsed_data_dict |= get_thumbnail_image_video(
         response,
         article_url,
         parsed_json_images,
         parsed_json_videos,
     )
+    parsed_data_dict |= {"time_parsed": [str(datetime.now())]}
 
     return remove_empty_elements(parsed_data_dict)
 
@@ -425,7 +430,9 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     return {"author": author_details}
 
 
-def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
+def get_descriptions_date_details(
+    parsed_data: list, response: str, article_url: str
+) -> dict:
     """
     Returns description, modified date, published date details
     Args:
@@ -434,19 +441,41 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
         dict: description, modified date, published date related details
     """
 
-    article_data = {
-        "description": response.css("h2.synopsis::text").getall(),
-        "modified_at": response.css("div.editor-date-logo div span::text").getall()
-        or response.css("span.updated-date::attr(content)").getall(),
-        "published_at": response.css("div.ie-first-publish span::text").getall(),
+    description = []
+    modified_at = []
+    published_at = []
+
+    if "/videos/" in article_url:
+        description = [response.css("meta[name^=description]::attr(content)").get()]
+        published_at = [
+            response.css(
+                "meta[property^='article:published_time']::attr(content)"
+            ).get()
+        ]
+        modified_at = [
+            response.css("meta[property^='article:modified_time']::attr(content)").get()
+        ]
+    elif "/photos/" in article_url:
+        description = [response.css("meta[name^=description]::attr(content)").get()]
+        modified_at = [parsed_data.get("dateModified")]
+        published_at = [parsed_data.get("datePublished")]
+    elif "NewsArticle" in parsed_data.get("@type"):
+        description = [parsed_data.get("description")]
+        modified_at = [parsed_data.get("dateModified")]
+        published_at = [parsed_data.get("datePublished")]
+    else:
+        description = response.css("h2.synopsis::text").getall()
+        modified_at = (
+            response.css("div.editor-date-logo div span::text").getall()
+            or response.css("span.updated-date::attr(content)").getall()
+        )
+        published_at = response.css("div.ie-first-publish span::text").getall()
+
+    return {
+        "description": description,
+        "modified_at": modified_at,
+        "published_at": published_at,
     }
-    if "NewsArticle" in parsed_data.get("@type"):
-        article_data |= {
-            "description": [parsed_data.get("description")],
-            "modified_at": [parsed_data.get("dateModified")],
-            "published_at": [parsed_data.get("datePublished")],
-        }
-    return article_data
 
 
 def get_publihser_details(parsed_data: list, response: str) -> dict:
@@ -494,19 +523,35 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
     return {"publisher": publisher_details}
 
 
-def get_text_title_section_details(parsed_data: list) -> dict:
+def get_text_title_section_details(
+    parsed_data: list, response: str, article_url: str
+) -> dict:
     """
     Returns text, title, section details
     Args:
         parsed_data: response of application/ld+json data
+        response: provided response
+        article_url: url of article
     Returns:
         dict: text, title, section details
     """
+    section = None
+    tag = None
+    if "/photos/" in article_url:
+        section = response.css(".m-breadcrumb>li *::text").getall()
+        section = section[-1] if len(section) > 1 else section
+        tag = "".join(
+            response.css("meta[name=news_keywords]::attr(content)").getall()
+        ).split(",")
+    elif "/videos/" in article_url:
+        tag = "".join(
+            response.css("meta[name=news_keywords]::attr(content)").getall()
+        ).split(",")
     return {
         "title": [parsed_data.get("headline")],
         "text": ["".join(parsed_data.get("articleBody", []))],
-        "section": [parsed_data.get("articleSection")],
-        "tags": parsed_data.get("keywords", []),
+        "section": [section or parsed_data.get("articleSection")],
+        "tags": tag or parsed_data.get("keywords"),
     }
 
 
@@ -544,7 +589,7 @@ def get_thumbnail_image_video(
     caption = []
     videos = []
 
-    if "photos" in article_url:
+    if "/photos/" in article_url:
         caption = remove_tags_spaces(
             response.css(".caption-summary>p:first-of-type").getall()
         )
@@ -552,7 +597,7 @@ def get_thumbnail_image_video(
         for img in parsed_json_images:
             images = img.get("image", {}).get("url", [])
 
-    elif "video" in article_url:
+    elif "/videos/" in article_url:
         for video in parsed_json_videos:
             videos = video.get("contentUrl", [])
     else:
@@ -577,4 +622,7 @@ def get_thumbnail_image_video(
                 "link": videos,
             }
         ],
+        "thumbnail_image": response.css(
+            "meta[property='og:image']::attr(content)"
+        ).getall(),
     }
