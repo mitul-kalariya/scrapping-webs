@@ -22,6 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
+Article data is available for more than 30 days
 ```
 # To fetch all the article links
 
@@ -84,7 +85,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://www.economist.com/asia/2023/04/02/global-warming-is-killing-indians-and-pakistanis"
     },
     proxies=proxies
 )
