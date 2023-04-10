@@ -4,6 +4,7 @@ from datetime import datetime
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from crwtvbnews.items import ArticleData
+from abc import ABC, abstractmethod
 
 from crwtvbnews.utils import (
     check_cmd_args,
@@ -17,8 +18,24 @@ from crwtvbnews.exceptions import (
     ExportOutputFileException,
 )
 
+class BaseSpider(ABC):
+    @abstractmethod
+    def parse(self, response):
+        pass
 
-class NewsTVB(scrapy.Spider):
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_sitemap_article(self, response: str) -> None:
+        pass
+
+    @abstractmethod
+    def parse_article(self, response: str) -> list:
+        pass
+
+class NewsTVB(scrapy.Spider, BaseSpider):
     name = "tvb"
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
