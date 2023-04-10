@@ -446,7 +446,6 @@ def get_images(response) -> list:
         if res_1:
             for result in res_1:
                 for image in result.css("img::attr(data-src)").getall():
-                    print(image)
                     pictures.append(image)
         if res_2:
             pictures.append(res_2)
