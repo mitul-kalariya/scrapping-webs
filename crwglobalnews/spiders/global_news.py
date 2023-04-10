@@ -28,9 +28,6 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
     @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
@@ -97,11 +94,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         try:
             LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    LOGGER.info("Parse function called on %s", response.url)
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -159,9 +152,6 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
-    def parse_sitemap_article(self, response):
-        pass
-
     def parse_article(self, response) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
@@ -214,11 +204,11 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         try:
             if self.output_callback is not None:
                 self.output_callback(self.articles)
-
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
             # else:
             #     export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file {str(exception)} - {reason}"

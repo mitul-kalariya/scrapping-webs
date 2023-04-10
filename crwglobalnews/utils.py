@@ -60,9 +60,13 @@ def validate_sitemap_date_range(start_date, end_date):
                 "end_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as expception:
+        LOGGER.info(
+            f"Error occured while checking date range: {expception}"
+        )
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -102,7 +106,7 @@ def get_raw_response(response):
         "content_type": "text/html; charset=utf-8",
         "content": response.css("html").get(),
     }
-    return raw_resopnse
+    return remove_empty_elements(raw_resopnse)
 
 
 def get_parsed_json(response):
@@ -113,29 +117,36 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    parsed_json = {}
-    imageObjects = []
-    videoObjects = []
-    other_data = []
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    for a_block in ld_json_data:
-        data = json.loads(a_block)
-        if data.get("@type") == "NewsArticle":
-            parsed_json["main"] = data
-        elif data.get("@type") in {"ImageGallery", "ImageObject"}:
-            imageObjects.append(data)
-        elif data.get("@type") == "VideoObject":
-            videoObjects.append(data)
-        else:
-            other_data.append(data)
+    try:
+        parsed_json = {}
+        imageObjects = []
+        videoObjects = []
+        other_data = []
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            data = json.loads(a_block)
+            if data.get("@type") == "NewsArticle":
+                parsed_json["main"] = data
+            elif data.get("@type") in {"ImageGallery", "ImageObject"}:
+                imageObjects.append(data)
+            elif data.get("@type") == "VideoObject":
+                videoObjects.append(data)
+            else:
+                other_data.append(data)
 
-    parsed_json["imageObjects"] = imageObjects
-    parsed_json["videoObjects"] = videoObjects
-    parsed_json["other"] = other_data
-    misc = get_misc(response)
-    if misc:
-        parsed_json["misc"] = misc
-    return remove_empty_elements(parsed_json)
+        parsed_json["imageObjects"] = imageObjects
+        parsed_json["videoObjects"] = videoObjects
+        parsed_json["other"] = other_data
+        misc = get_misc(response)
+        if misc:
+            parsed_json["misc"] = misc
+        return remove_empty_elements(parsed_json)
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting parsed json {exception}"
+        )
 
 
 def get_main(response):
@@ -153,10 +164,12 @@ def get_main(response):
 
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
 
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        )
 
 def get_misc(response):
     """
@@ -172,9 +185,12 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        )
 
 
 def get_parsed_data(response):
@@ -246,10 +262,11 @@ def get_parsed_data(response):
 
         return remove_empty_elements(main_dict)
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
-
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        )
 
 def get_publisher(response):
     """
@@ -277,10 +294,14 @@ def get_publisher(response):
                 "height": {"@type": "Distance", "name": str(height) + " px"},
             },
         }
+        a_dict = remove_empty_elements(a_dict)
         return [a_dict]
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
+
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting publisher: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting publisher: {exception}"
+        )
 
 
 def get_author(response) -> list:
@@ -316,9 +337,12 @@ def get_author(response) -> list:
 
                 data.append(temp_dict)
             return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
+
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting author name: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting author name: {exception}"
+        )
 
 
 def get_thumbnail_image(response) -> list:
@@ -328,10 +352,17 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    image = get_main(response)
-    thumbnail_image = []
-    thumbnail_image.append(image[0].get("thumbnailUrl"))
-    return thumbnail_image
+    try:
+        image = get_main(response)
+        thumbnail_image = []
+        thumbnail_image.append(image[0].get("thumbnailUrl"))
+        return thumbnail_image
+
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting thumbnail image: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting thumbnail image: {exception}"
+        )
 
 
 def get_tags(response) -> list:
@@ -353,9 +384,12 @@ def get_tags(response) -> list:
             else:
                 data.append(block.css("a::text").get())
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching tags: {e}")
+
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting tags: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting tags: {exception}"
+        )
 
 
 def get_images(response) -> list:
@@ -382,9 +416,12 @@ def get_images(response) -> list:
                         temp_dict["caption"] = re.sub(pattern, "", caption).strip()
                     data.append(temp_dict)
             return data
-    except BaseException as e:
-        LOGGER.error(f"Error: {e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article images: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting article images: {exception}"
+        )
 
 
 def get_embed_video_link(response) -> list:
@@ -403,9 +440,12 @@ def get_embed_video_link(response) -> list:
             if link:
                 data.append(link)
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting video links: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting video links: {exception}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
