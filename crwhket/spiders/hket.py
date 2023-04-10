@@ -19,6 +19,8 @@ from crwhket.utils import (
     export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
+    get_all_data_from_selenium,
+    get_parsed_data_using_selenium,
 )
 from crwhket.exceptions import (
     SitemapScrappingException,
@@ -196,14 +198,27 @@ class HKETSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            raw_response_dict = {
-                "content_type": response.headers.get("Content-Type").decode("utf-8"),
-                "content": response.text,
-            }
+            use_selenium = False
+            if "https://invest.hket.com/" in response.url or "https://ps.hket.com/" in response.url:
+                use_selenium = True
+                data = get_all_data_from_selenium(response.url)
+            if use_selenium:
+                raw_response_dict = {
+                    "content_type": data.get("content-type"),
+                    "content": data.get("content"),
+                }
+                parsed_json_data = data.get("parsed_json")
+                parsed_data = get_parsed_data_using_selenium(response, parsed_json_data, data)
+            else:
+                raw_response_dict = {
+                    "content_type": response.headers.get("Content-Type").decode("utf-8"),
+                    "content": response.text,
+                }
+                parsed_json_data = get_parsed_json(response)
+                parsed_data = get_parsed_data(response, parsed_json_data)
+
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
-
-            parsed_json_data = get_parsed_json(response)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
                 articledata_loader.add_value(
@@ -211,7 +226,7 @@ class HKETSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
+                "parsed_data", parsed_data
             )
 
             self.articles.append(
@@ -244,8 +259,8 @@ class HKETSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

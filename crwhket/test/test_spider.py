@@ -4,7 +4,7 @@ import unittest
 from crwhket.spiders.hket import HKETSpider
 from crwhket.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwhket.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+                                        online_response_from_url)
 from crwhket import Crawler
 
 # Creating an object
@@ -49,6 +49,23 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 if test_article_data[0].get("parsed_json").get("misc"):
                     self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("imageObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("imageObjects"), list,
+                                          "parsed_json --> imageObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("videoObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("videoObjects"), list,
+                                          "parsed_json --> videoObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
+                                          "parsed_json --> other must be list")
+                # For old website in which it is `Other`
+                if test_article_data[0].get("parsed_json").get("Other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
+                                          "parsed_json --> other must be list")
+
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object

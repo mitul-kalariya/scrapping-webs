@@ -3,6 +3,15 @@ from datetime import timedelta, datetime
 import json
 import os
 import re
+import itertools
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+# from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from scrapy.loader import ItemLoader
 
@@ -23,7 +32,7 @@ ERROR_MESSAGES = {
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
 
-language_mapper = {"en": "English", "zh-hk": "Chinese"}
+language_mapper = {"en": "English", "zh-hk": "Chinese", "zh-hant": "Chinese (Traditional)"}
 
 
 def sitemap_validations(
@@ -189,21 +198,21 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": [],
+        "videoObjects": [],
+        "other": [],
         "misc": [],
     }
     for block in blocks:
-        block_dict = json.loads(block)
-        if "NewsArticle" in block_dict.get("@type", [{}]):
-            parsed_json_flter_dict["main"] = block_dict
-        elif "ImageGallery" in block_dict.get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = block_dict
-        elif "VideoObject" in block_dict.get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = block_dict
+        if "NewsArticle" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(block)
+        elif ("ImageGallery" in json.loads(block).get("@type", [{}])
+              or "ImageObject" in json.loads(block).get("@type", [{}])):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(block))
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["videoObjects"].append(json.loads(block))
         else:
-            parsed_json_flter_dict["Other"].append(block_dict)
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
@@ -326,7 +335,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
+def get_parsed_data(response: str, parsed_json: dict) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -337,14 +346,13 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
+    parsed_json_images = parsed_json.get("imageObjects")
+    parsed_json_main = parsed_json.get("main")
     data_dict = get_all_details_of_block(parsed_json_main)
-    text = " ".join(response.css("div.article-detail p::text").getall())
+    text = " ".join(response.css("div.article-detail p::text, div.article-detail p a::text").getall())
     space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
-    if not text:
-        text = " ".join(response.css("div.paragraph div.content::text").getall())
-    article_date = response.css("div.article-meta-upper time::attr(datetime)").get()
 
-    images = get_formated_images(response, parsed_json_main)
+    images = get_formated_images(response, parsed_json_main, parsed_json_images)
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
@@ -360,7 +368,7 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
         else response.xpath("//meta[@name='description']/@content").extract()
     }
     parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
-    parsed_data_dict |= {"published_at": [data_dict.get("published_at") or article_date]}
+    parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
     parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
     parsed_data_dict |= {
         "title": [data_dict.get("title")] if data_dict.get("title")
@@ -368,6 +376,56 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
         "text": [space_removed_text],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
         "section": response.css("li.article-header-section-list-item a::text").getall(),
+        "tags": data_dict.get("tags")
+    }
+    parsed_data_dict |= {
+        "images": images,
+    }
+    return parsed_data_dict
+
+
+def get_parsed_data_using_selenium(response: str, parsed_json: dict, selenium_data: dict) -> dict:
+    """
+     Parsed data response from generated data using given response and selector
+
+    Args:
+        response: provided response
+        parsed_json_main: A list of dictionary with applications/+ld data
+        selenium_data: data fetched using selenium
+
+    Returns:
+        Dictionary with Parsed json response from generated data
+    """
+    parsed_json_images = parsed_json.get("imageObjects")
+    parsed_json_main = parsed_json.get("main")
+    data_dict = get_all_details_of_block(parsed_json_main)
+    image_data = {
+        "image_urls": selenium_data.get("images")
+    }
+    images = get_formated_images(response, parsed_json_main, parsed_json_images, image_data)
+
+    parsed_data_dict = get_parsed_data_dict()
+    parsed_data_dict |= {
+        "source_country": ["China"],
+        "source_language": [language_mapper.get(
+            response.css("html::attr(lang)").get("").lower(),
+            response.css("html::attr(lang)").get()
+        )],
+    }
+    parsed_data_dict |= {"author": data_dict.get("author")}
+    parsed_data_dict |= {
+        "description": [data_dict.get("description")] if data_dict.get("description")
+        else response.xpath("//meta[@name='description']/@content").extract()
+    }
+    parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
+    parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
+    parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
+    parsed_data_dict |= {
+        "title": [data_dict.get("title").strip()] if data_dict.get("title")
+        else response.css("title::text").getall(),
+        "text": [selenium_data.get("text")],
+        "thumbnail_image": [data_dict.get("thumbnail_image")],
+        "section": data_dict.get("sections") or response.css("li.article-header-section-list-item a::text").getall(),
         "tags": data_dict.get("tags")
     }
     parsed_data_dict |= {
@@ -401,17 +459,19 @@ def get_all_details_of_block(block: dict) -> dict:
         "thumbnail_image": block.get("thumbnailUrl"),
         "headline": block.get("headline"),
         "tags": block.get("keywords"),
+        "sections": block.get("articleSection")
     }
     data_dict["author"] = []
     if block.get("author"):
+        author_name = block.get("author").get("name")
         data_dict["author"].append({
             "@type": block.get("author").get("@type"),
-            "name": block.get("author").get("name")
+            "name": author_name[0] if isinstance(author_name, list) else author_name
         })
     return data_dict
 
 
-def get_formated_images(response, block) -> str:
+def get_formated_images(response, block, image_block, image_url_data=None) -> str:
     """return formated images response using block and response
 
     Args:
@@ -420,34 +480,28 @@ def get_formated_images(response, block) -> str:
     Returns:
         str: return link of image
     """
+    image_links = []
+    if block:
+        if block.get("image", {}).get("url"):
+            image_links.append(block.get("image", {}).get("url"))
+    for image in image_block:
+        if image and (image.get("url") not in image_links):
+            image_links.append(image.get("url"))
+    if image_url_data:
+        images_urls_from_response = image_url_data.get("image_urls")
+    else:
+        images_urls_from_response = response.css('picture.image-gallery-img img::attr(src)').getall()
+    for image_link in images_urls_from_response:
+        if image_link and (image_link not in image_links):
+            image_links.append(image_link)
+
+    captions = response.css('span.article-detail_caption::text').getall()
     formated_images = []
-    for link, caption in zip(
-        response.css('figure.article-image a::attr(href)').getall(),
-        response.css('figure.article-image figcaption::text').getall()
-    ):
+    for link, caption in itertools.zip_longest(image_links, captions):
         formated_images.append({
             "link": get_full_url(link),
             "caption": caption,
         })
-    if formated_images:
-        return formated_images
-    if response.css('figure.article-image figcaption::text').get() and block.get("image", [{}])[0].get("url"):
-        formated_images.append({
-            "link": get_full_url(block.get("image", [{}])[0].get("url")),
-            "caption": response.css('figure.article-image figcaption::text').get(),
-        })
-    elif response.css('figure.article-image a::attr(href)').get() and block.get("headline", {}):
-        formated_images.append({
-            "link": get_full_url(response.css('figure.article-image a::attr(href)').get()),
-            "caption": block.get("headline", {}),
-        })
-    elif response.css('picture.image-gallery-img').get():
-        for image_link in response.css('picture.image-gallery-img img::attr(src)').getall():
-            formated_images.append({
-                "link": image_link,
-                "caption": block.get("headline", {}),
-            })
-            break
     return formated_images
 
 
@@ -460,7 +514,7 @@ def get_full_url(link: str) -> str:
     Returns:
         str: Full url including base url
     """
-    if "sankei.com" not in link and len(link) > 20:
+    if link and "hket.com" not in link and len(link) > 20:
         return BASE_URL + link[1:]
     return link
 
@@ -491,3 +545,51 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
                     "name": f"{data_dict.get('logo_height')} px"
                 } if data_dict.get("logo_width") else None
             }}]
+
+
+def get_all_data_from_selenium(url: str) -> dict:
+    """return all data_scrapped using selenium
+
+    Args:
+        url (str): url of article
+
+    Returns:
+        dict: data with key, value pair
+    """
+    driver = webdriver.Chrome()
+    # chrome_options = Options()
+    # chrome_options.add_argument("--headless")
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))   # , options=chrome_options)
+    driver.get(url)
+
+    ld_json_blocks = WebDriverWait(driver, 20).until(
+        EC.presence_of_all_elements_located((By.XPATH, '//script[@type="application/ld+json"]'))
+    )
+    misc = driver.find_elements(By.XPATH, '//script[@type="application/json"]')
+    ld_json_blocks_list = []
+    for ld_json_block in ld_json_blocks:
+        ld_json_blocks_list.append(ld_json_block.get_attribute("innerHTML"))
+    misc_lst = [element.get_attribute("innerHTML") for element in misc]
+    parsed_json = get_parsed_json_filter(ld_json_blocks_list, misc_lst)
+    text_elements = WebDriverWait(driver, 50).until(
+        EC.presence_of_all_elements_located((
+            By.CSS_SELECTOR,
+            'div.article-detail p, div.article-detail p a, div.article-detail p span, div.article-detail p'
+        ))
+    )
+    text = " ".join([text_element.text for text_element in text_elements])
+    space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
+
+    image_data = [img.get_property("src") for img in driver.find_elements(By.CSS_SELECTOR, 'div.photo-group-item img')]
+
+    data = {
+        "ld_json_blocks": ld_json_blocks_list,
+        "misc": misc_lst,
+        "content-type": "text/html;charset=UTF-8",
+        'content': driver.page_source,
+        "parsed_json": parsed_json,
+        "text": space_removed_text,
+        "images": image_data,
+    }
+    driver.close()
+    return data
