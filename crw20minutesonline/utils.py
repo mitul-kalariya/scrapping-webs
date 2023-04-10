@@ -350,6 +350,7 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
     parsed_data_dict |= get_thumbnail_image_video(video_object, response)
+    parsed_data_dict |= {"time_parsed": [str(datetime.now())]}
     return remove_empty_elements(parsed_data_dict)
 
 
