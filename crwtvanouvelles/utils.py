@@ -183,9 +183,9 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": None,
+        "videoObjects": None,
+        "other": [],
         "misc": [],
     }
     for block in blocks:
@@ -193,12 +193,13 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
             for sub_block in json.loads(block).get("@graph", [{}]):
                 if "NewsArticle" in sub_block.get("@type", [{}]):
                     parsed_json_flter_dict["main"] = sub_block
-                elif "ImageGallery" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["ImageGallery"] = sub_block
+                elif "ImageGallery" in sub_block.get("@type", [{}]
+                 )or "ImageObject" in sub_block.get("@type", [{}]):
+                    parsed_json_flter_dict["imageObjects"].append(sub_block)
                 elif "VideoObject" in sub_block.get("@type", [{}]):
-                    parsed_json_flter_dict["VideoObject"] = sub_block
+                    parsed_json_flter_dict["videoObject"].append(sub_block)
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
     return parsed_json_flter_dict
 
@@ -257,7 +258,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
 
     with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -337,7 +338,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "source_language": ["French"],
     }
     parsed_data_dict |= get_author_details(parsed_json_main, response)
-    parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
+    parsed_data_dict |= get_descriptions_date_details(parsed_json_main, response)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
     parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response)
@@ -369,11 +370,12 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     return {"author": author_details}
 
 
-def get_descriptions_date_details(parsed_data: list) -> dict:
+def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
     """
     Returns description, modified date, published date details
     Args:
         parsed_data: response of application/ld+json data
+        response: provided response
     Returns:
         dict: description, modified date, published date related details
     """
@@ -381,12 +383,14 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
         "description": None,
         "modified_at": None,
         "published_at": None,
+        "time_scraped": None,
     }
     if "NewsArticle" in parsed_data.get("@type"):
         article_data |= {
-            "description": [parsed_data.get("description")],
+            "description": response.css("meta[name='description']::attr(content)").getall(),
             "modified_at": [parsed_data.get("dateModified")],
             "published_at": [parsed_data.get("datePublished")],
+            "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
         }
     return article_data
 
@@ -396,7 +400,6 @@ def get_publihser_details(parsed_data: list) -> dict:
     Returns publisher details like name, type, id
     Args:
         parsed_data: response of application/ld+json data
-        response: provided response
     Returns:
         dict: publisher details like name, type, id related details
     """
@@ -425,7 +428,10 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     return {
         "title": [parsed_data.get("headline")],
-        "text": ["".join(response.css(".story-body>p::text").getall())],
+        "text": [
+                "".join(
+                    x.strip() for x in response.css('.story-body *::text').extract()
+                )],
         "section": response.css("li.breadcrumb_section>a>span::text").getall()[1:],
     }
 

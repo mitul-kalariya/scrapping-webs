@@ -22,7 +22,6 @@ from crwtvanouvelles.utils import (
     remove_empty_elements,
 )
 from crwtvanouvelles.exceptions import (
-    SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
@@ -128,7 +127,7 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response: str) -> None:
         """
-        parse sitemap and scrap article url
+        parse sitemap from sitemap url and callback parser to parse title and link
         Args:
             response: generated response
         Raises:
@@ -136,10 +135,13 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        for link, date in zip(
+        for link, title, date in zip(
             Selector(response, type="xml")
             .xpath("//sitemap:loc/text()", namespaces=self.namespace)
             .getall(),
+            Selector(response, type="xml")
+                    .xpath("//sitemap:title/text()", namespaces=self.namespace_news)
+                    .getall(),
             Selector(response, type="xml")
             .xpath("//sitemap:publication_date/text()", namespaces=self.namespace_news)
             .getall(),
@@ -149,40 +151,17 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
                     date.strip()[:-6], "%Y-%m-%dT%H:%M:%S"
                 )
                 if date_in_date_range(date_datetime_obj, self.date_range_lst):
-                    yield scrapy.Request(
-                        link.strip(), callback=self.parse_sitemap_article
-                    )
-            except Exception as exception:  # pylint: disable=broad-except
+                    data = {"link": link, "title": title}
+                    self.articles.append(data)
+            except Exception as exception:
                 self.log(
-                    f"Error occurred while fetching sitemap:- {str(exception)}",
+                    "Error occurred while scrapping urls from given sitemap url. "
+                    + str(exception),
                     level=logging.ERROR,
                 )
-                raise SitemapScrappingException(
-                    f"Error occurred while fetching sitemap:- {str(exception)}"
+                raise SitemapArticleScrappingException(
+                    f"Error occurred while fetching article url:- {str(exception)}"
                 ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css(".story-title h1::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -244,8 +223,8 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
