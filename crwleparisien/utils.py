@@ -1,10 +1,8 @@
 import json
 import os
-import pdb
 from datetime import datetime
 from urllib.parse import urlparse
 from scrapy.loader import ItemLoader
-from scrapy.http import Response
 from crwleparisien.exceptions import (
     InputMissingException,
     InvalidDateException,
@@ -153,7 +151,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
         else:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') not in
-                      ['VideoObject', 'ImageObject', 'ImageGallery'] and json.loads(data)[0].get('@type') != "NewsArticle"]
+                      ['VideoObject', 'ImageObject', 'ImageGallery']
+                      and json.loads(data)[0].get('@type') != "NewsArticle"]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())

@@ -15,9 +15,9 @@ class NewtonScrappingItem(scrapy.Item):
 
 
 class ArticleData(Item):
-    raw_response = Field()
-    parsed_json = Field()
-    parsed_data = Field()
+    raw_response = Field(output_processor=TakeFirst())
+    parsed_json = Field(output_processor=TakeFirst())
+    parsed_data = Field(output_processor=TakeFirst())
 
 
 class ArticleRawResponse(Item):

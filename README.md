@@ -22,31 +22,8 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Article data available for more than 1 month
-```
-# To fetch all the article links
+Article data available for 3-4 days only
 
-from crwleparisien import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://www.leparisien.fr/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 

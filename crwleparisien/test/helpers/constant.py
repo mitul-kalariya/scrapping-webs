@@ -19,7 +19,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwleparisien/test/data/test_article_4.json"
     },
     {
-        "url": "https://www.leparisien.fr/seine-et-marne-77/meaux-un-homme-de-28-ans-perd-la-vie-apres-avoir-recu-un-seul-coup-de-couteau-au-thorax-07-04-2023-EMNTIGKBTFBR5CNKP5CDQ6KSPU.php",
+        "url": "https://www.leparisien.fr/info-paris-ile-de-france-oise/transports/transports-en-ile-de-france-les-perturbations-du-week-end-de-paques-du-8-au-10-avril-07-04-2023-5LVGUDMJFZEGVBRJH4V3MIVYYU.php",
         "test_data_path": "crwleparisien/test/data/test_article_5.json"
     },
     {
@@ -27,7 +27,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwleparisien/test/data/test_article_6.json"
     },
     {
-        "url": "https://www.leparisien.fr/martinique-972/deux-membres-du-raid-martinique-racontent-leur-engagement-il-faut-etre-solide-dans-la-tete-07-04-2023-SX4KTYHKKNCC5DDY5FB45Z3WM4.php",
+        "url": "https://www.leparisien.fr/economie/consommation/difference-de-prix-en-rayon-et-sur-le-ticket-de-caisse-quels-sont-les-droits-des-consommateurs-07-04-2023-A5WHN7KLJJGTRIZCMZOHWGDQ54.php",
         "test_data_path": "crwleparisien/test/data/test_article_7.json"
     },
     {
