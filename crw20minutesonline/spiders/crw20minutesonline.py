@@ -42,10 +42,10 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_archive_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -124,18 +124,18 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(
                         f"https://www.20minutes.fr/archives/{single_date.year}/"
                         f"{single_date.month}-{single_date.day}",
-                        callback=self.parse_sitemap,
+                        callback=self.parse_archive,
                     )
                 except Exception as exception:
                     self.log(
                         f"Error occurred while iterating sitemap url. {str(exception)}",
                         level=logging.ERROR,
                     )
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            yield scrapy.Request(response.url, callback=self.parse_archive)
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         """
         parse sitemap and scrap article url
         Args:

@@ -2,8 +2,8 @@
 from datetime import timedelta, datetime
 import json
 import os
-from itertools import zip_longest
 
+from bs4 import BeautifulSoup
 from scrapy.loader import ItemLoader
 
 from crw20minutesonline.items import (
@@ -448,16 +448,22 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: text, title, section details
     """
+    soup = BeautifulSoup(response.body, "html.parser")
+    content_div = soup.find("div", class_="content")
+    text = ""
+    class_names = ["sharebar", "tags", "box", "enclose", "toolbar", "media-caption"]
+    for class_name in class_names:
+        for elem in content_div.find_all(class_=class_name):
+            elem.decompose()
 
-    text_body = response.css("article div.content")
-    text = text_body.css(" div:not([class*=sharebar ])")
-    text = '\n'.join(text.css('::text').getall())
+    for elem in content_div.find_all("script"):
+        elem.decompose()
+
+    text = content_div.get_text(strip=True)
 
     return {
         "title": [parsed_data.get("headline")],
-        "text":
-            text
-        ,
+        "text": [text],
         "section": [parsed_data.get("articleSection")],
         "tags": parsed_data.get("keywords", []),
     }
@@ -475,15 +481,32 @@ def get_thumbnail_image_video(video_object: dict,
     video = None
     description = None
     images = []
-    captions = []
+    if len(video_object[0]) > 0:
+        # breakpoint()
+        for videos in video_object:
+            if video_url := videos.get("embedUrl"):
+                video = video_url
+            description = videos.get("description")
+    else:
+        video = response.selector.css("iframe.digitekaPlayer::attr('src')").getall()
 
     for figure in response.css("article div.content figure"):
         caption_text = ""
         for caption_part in figure.css("figcaption *::text").getall():
             caption_text += caption_part.strip()
-        images.append({
-            "link": figure.css("img::attr(src)").get(),
-            "caption": caption_text if caption_text else None, }
-        )
-    return {"images": images, "video": [{"link": video, "caption": description}],
-            }
+        if link := figure.css("img::attr(src)").get():
+            images.append(
+                {
+                    "link": link,
+                    "caption": caption_text if caption_text else None,
+                }
+            )
+    thumbnail_image_url = response.css(
+        "meta[property='og:image']::attr(content)"
+    ).getall()
+
+    return {
+        "thumbnail_image": thumbnail_image_url,
+        "images": images,
+        "video": [{"link": video, "caption": description}],
+    }
