@@ -3,7 +3,7 @@ import os
 import pdb
 from datetime import datetime
 from urllib.parse import urlparse
-
+from scrapy.loader import ItemLoader
 from scrapy.http import Response
 from crwleparisien.exceptions import (
     InputMissingException,
@@ -118,7 +118,7 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
     return dict(article_raw_response_loader.load_item())
 
 
-def get_parsed_json(selector_and_key: dict) -> dict:
+def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     """
      Parsed json response from generated data using given response and selector
     Args:
@@ -131,11 +131,31 @@ def get_parsed_json(selector_and_key: dict) -> dict:
     article_raw_parsed_json_loader = ArticleRawParsedJsonLoader(
         item=ArticleRawParsedJson()
     )
-
     for key, value in selector_and_key.items():
-        article_raw_parsed_json_loader.add_value(
-            key, [json.loads(data) for data in value.getall()]
-        )
+        if key == "main":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data)[1].get('@type') == "NewsArticle"]
+            )
+        elif key == "ImageGallery":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') == "ImageGallery"]
+            )
+
+        elif key == "videoObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') == "VideoObject"]
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') == "ImageObject"
+                      or json.loads(data)[0].get('@type') == "ImageGallery"]
+            )
+        else:
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') not in
+                      ['VideoObject', 'ImageObject', 'ImageGallery'] and json.loads(data)[0].get('@type') != "NewsArticle"]
+            )
+
     return dict(article_raw_parsed_json_loader.load_item())
 
 
@@ -150,24 +170,42 @@ def get_parsed_data_dict() -> dict:
     return dict.fromkeys(PARSED_DATA_KEYS_LIST, None)
 
 
-def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
+def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
+
+    article_raw_parsed_json_loader = ItemLoader(
+        item=ArticleRawParsedJson(), response=response
+    )
+
+    for key, value in parsed_json_dict.items():
+        article_raw_parsed_json_loader.add_value(
+            key, [json.loads(data) for data in value.getall()]
+        )
+    article_data = dict(article_raw_parsed_json_loader.load_item())
+
     parsed_data_dict = get_parsed_data_dict()
     published_date = response.css('meta[property="article:published_time"]::attr(content)').get()
     modified_date = response.css('meta[property="article:modified_time"]::attr(content)').get()
     img_url = response.css("div.width_full >figure > div.pos_rel > img::attr('src')").getall()
-    text = response.css('section.content > p::text').getall()
+    texts = []
+    for p in response.css('section.content > p'):
+        text = ''
+        for a in p.css('a'):
+            text += a.css('::text').get().strip() + ' '
+        for t in p.css('::text'):
+            if t.get().strip():
+                text += t.get().strip() + ' '
+        texts.append(text.strip())
     mapper = {"FRA": "France", "fr-FR": "French"}
     title = response.css('header.article_header > h1::text').getall()
     category = response.css('div.breadcrumb > a::text').getall()
     language = response.css("html::attr(lang)").get()
-
     parsed_data_dict["source_country"] = [mapper.get("FRA")]
     parsed_data_dict["source_language"] = [mapper.get(language)]
 
     article_author_url = response.css('a.author_link::attr(href)').getall()
-    main = parsed_json_data.get("main")
-    other = parsed_json_data.get("other")
-    if is_live_blog(other[0]):
+    main = article_data.get('main')[1]
+    other = article_data.get('other')
+    if is_live_blog(other[0][0]):
         main = other[0]
     parsed_data_dict["author"] = get_author(main, other, article_author_url)
     parsed_data_dict["description"] = [main.get('description')]
@@ -176,7 +214,7 @@ def get_parsed_data(self, response: Response, parsed_json_data: dict) -> dict:
     parsed_data_dict["published_at"] = get_published_at(main, published_date)
     parsed_data_dict["publisher"] = get_publisher(main)
 
-    parsed_data_dict["text"] = get_text(main, text)
+    parsed_data_dict["text"] = get_text(main, texts)
 
     parsed_data_dict["thumbnail_image"] = get_thumbnail_image(main, other,
                                                               img_url)
@@ -198,7 +236,7 @@ def get_thumbnail_image(main, other, img_url):
     if is_live_blog(main):
         return main.get("thumbnailUrl")
     else:
-        return [other[1].get('url') + img_url[0][1:]]
+        return [other[0][2].get('url') + img_url[0][1:]]
 
 
 def get_tags(main):

@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from crwleparisien.itemLoader import ArticleDataLoader
+from scrapy.loader import ItemLoader
 import scrapy
 
 from datetime import datetime
@@ -171,52 +172,41 @@ class LeParisien(scrapy.Spider, BaseSpider):
         :param response: HTTP response from the sitemap URL.
         :return: None
         """
-        try:
-            title = response.css('#top > header > h1::text').getall()
-            if title:
-                article = {
-                    "link": response.url,
-                    "title": title,
-                }
-                self.articles.append(article)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response):
         """
-            This function takes the response object of the news article page and extracts the necessary information
-            using get_article_data() function and constructs a dictionary using set_article_dict() function
-            :param response: scrapy.http.Response object
-            :return: None
+        parse article and append related data to class's articles variable
+        Args:
+            response: generated response
+        Raises:
+            ValueError if not provided
+        Returns:
+            Values of parameters
         """
+
         try:
             raw_response_dict = {
                 "content_type": response.headers.get("Content-Type").decode("utf-8"),
                 "content": response.text,
             }
             raw_response = get_raw_response(response, raw_response_dict)
-            articledata_loader = ArticleDataLoader(item=ArticleData())
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
             parsed_json_dict = {}
 
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
             parsed_json_misc = response.css('script[type="application/json"]::text')
-
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
 
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
-            parsed_json_data = get_parsed_json(parsed_json_dict)
+            parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
                 articledata_loader.add_value(
@@ -224,13 +214,16 @@ class LeParisien(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(self, response, parsed_json_data)
+                "parsed_data", get_parsed_data(response, parsed_json_dict)
             )
+
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
+
         except Exception as exception:
-            self.logger.exception(
-                f"Error occurred while fetching article details:- {str(exception)}"
+            self.log(
+                f"Error occurred while fetching article details:- {str(exception)}",
+                level=logging.ERROR,
             )
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
@@ -248,7 +241,8 @@ class LeParisien(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
+            if self.articles:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

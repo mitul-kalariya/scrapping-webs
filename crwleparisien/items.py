@@ -6,6 +6,7 @@
 
 import scrapy
 from scrapy import Item, Field
+from itemloaders.processors import TakeFirst
 
 
 class NewtonScrappingItem(scrapy.Item):
@@ -25,8 +26,9 @@ class ArticleRawResponse(Item):
 
 
 class ArticleRawParsedJson(Item):
-    main = Field()
+    main = Field(output_processor=TakeFirst())
     misc = Field()
     ImageGallery = Field()
-    VideoObject = Field()
+    imageObjects = Field()
+    videoObjects = Field()
     other = Field()
