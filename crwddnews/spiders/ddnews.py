@@ -6,7 +6,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 from crwddnews.items import ArticleData
 from crwddnews import exceptions
-from crwddnews.constant import SITEMAP_URL, LOGGER 
+from crwddnews.constant import SITEMAP_URL, LOGGER
 from crwddnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
@@ -26,7 +26,7 @@ class BaseSpider(ABC):
     Args:
         ABC : Abstract
     """
-
+    # pylint: disable=unnecessary-pass
     @abstractmethod
     def parse(self, response):
         """parse function responsible for calling individual methods for each request"""
@@ -53,6 +53,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
     name = "dd_news"
 
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
+        # pylint: disable=redefined-builtin
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -149,13 +150,13 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         """
         try:
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
-            raw_response = get_raw_response(response)
+            # raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = get_parsed_data(response)
             response_data["source_country"] = ["India"]
             response_data["time_scraped"] = [str(datetime.now())]
 
-            articledata_loader.add_value("raw_response", raw_response)
+            # articledata_loader.add_value("raw_response", raw_response)
             articledata_loader.add_value(
                 "parsed_json",
                 response_json,
@@ -188,14 +189,15 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
 
             # Get the start and end dates as datetime objects
             since = (
-                datetime.strptime(str(self.since), "%Y-%m-%d") if self.since else None
+                datetime.strptime(str(self.since), "%Y-%m-%d").strftime("%m/%d/%Y")
+                if self.since else None
             )
             until = (
-                datetime.strptime(str(self.until), "%Y-%m-%d") if self.until else None
+                datetime.strptime(str(self.until), "%Y-%m-%d").strftime("%m/%d/%Y")
+                if self.until else None
             )
             if since:
-                since = since.strftime("%m/%d/%Y")
-                until = until.strftime("%m/%d/%Y")
+
                 if since and until:
                     url = (
                         "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="

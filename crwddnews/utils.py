@@ -136,21 +136,25 @@ def get_parsed_data(response):
         topline = response.css("p.heading_small::text").get()
         main_dict["description"] = [topline]
 
-        title = response.css("h1.news_heading.detail_title::text").get()
+        # title = response.css("h1.news_heading.detail_title::text").get()
+        title = response.css("meta[name='title']::attr(content)").get()
         main_dict["title"] = [title]
 
         published_on = response.css("p.date::text").get()
         main_dict["published_at"] = [published_on]
 
         section = get_section(response)
+
         if section:
             main_dict["section"] = [section]
         display_text = response.css(
             "div.news_content p[class!='heading_small']::text"
         ).getall()
-        main_dict["text"] = [
-            " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])
-        ]
+
+        if display_text:
+            main_dict["text"] = [
+                " ".join([re.sub("[\r\n\t]+", "", text).strip() for text in display_text])
+            ]
 
         images = get_images(response)
         if images:
@@ -159,6 +163,9 @@ def get_parsed_data(response):
         thumbnail_image = get_thumbnail(response)
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
+        video = response.css(".views-field-field-video iframe::attr(src)").getall()
+        if video:
+            main_dict["embeded_video_url"] = video
 
         mapper = {"en": "English"}
         article_lang = response.css("html::attr(lang)").get()
@@ -242,6 +249,7 @@ def get_images(response, parsed_json=False) -> list:
     except BaseException as e:
         LOGGER.error("image fetching exception %s", e)
         raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
+
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
