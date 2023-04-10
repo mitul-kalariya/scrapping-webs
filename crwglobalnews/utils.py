@@ -171,6 +171,7 @@ def get_main(response):
             f"Error occured while getting main: {exception}"
         )
 
+
 def get_misc(response):
     """
     returns a list of misc data available in the article from application/json
@@ -267,6 +268,7 @@ def get_parsed_data(response):
         raise exceptions.ArticleScrappingException(
             f"Error while extracting parsed data: {exception}"
         )
+
 
 def get_publisher(response):
     """
