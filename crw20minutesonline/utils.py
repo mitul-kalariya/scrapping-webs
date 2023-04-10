@@ -1,7 +1,6 @@
 """ General functions """
 from datetime import timedelta, datetime
 import json
-import os
 
 from bs4 import BeautifulSoup
 from scrapy.loader import ItemLoader
@@ -29,7 +28,7 @@ SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
 
 
 def sitemap_validations(
-        scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
+    scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
     Validate the sitemap arguments
@@ -67,7 +66,7 @@ def sitemap_validations(
 
 
 def article_validations(
-        article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
+    article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
 ) -> None:
     """
     Validate the article arguments
@@ -128,7 +127,7 @@ def validate_arg(param_name, param_value, custom_msg="") -> None:
 
 
 def based_on_scrape_type(
-        scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
 ) -> datetime:
     """
     check scrape type and based on the type pass it to the validated function,
@@ -195,11 +194,11 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     }
     for block in blocks:
         if "LiveBlogPosting" in json.loads(block).get(
-                "@type", [{}]
+            "@type", [{}]
         ) or "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
         elif "ImageGallery" in json.loads(block).get(
-                "@type", [{}]
+            "@type", [{}]
         ) or "ImageObject" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["imageObjects"].append(json.loads(block))
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
@@ -224,47 +223,12 @@ def get_parsed_json(response) -> dict:
     )
 
     for key, value in get_parsed_json_filter(
-            response.css('script[type="application/ld+json"]::text').getall(),
-            response.css('script[type="application/json"]::text').getall(),
+        response.css('script[type="application/ld+json"]::text').getall(),
+        response.css('script[type="application/json"]::text').getall(),
     ).items():
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
 
 
 def get_parsed_data_dict() -> dict:
@@ -399,7 +363,7 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
         "published_at": None,
     }
     if "NewsArticle" in parsed_data.get(
-            "@type"
+        "@type"
     ) or "LiveBlogPosting" in parsed_data.get("@type"):
         article_data |= {
             "description": [parsed_data.get("description")],
@@ -428,11 +392,11 @@ def get_publihser_details(parsed_data: list) -> dict:
                 "logo": {
                     "url": parsed_data.get("publisher").get("logo").get("url"),
                     "width": str(parsed_data.get("publisher").get("logo").get("width"))
-                             + " px",
+                    + " px",
                     "height": str(
                         parsed_data.get("publisher").get("logo").get("height")
                     )
-                              + " px",
+                    + " px",
                 },
             }
             for publisher in [parsed_data.get("publisher")]
@@ -470,8 +434,7 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     }
 
 
-def get_thumbnail_image_video(video_object: dict,
-                              response: str) -> dict:
+def get_thumbnail_image_video(video_object: dict, response: str) -> dict:
     """
     Returns thumbnail images, images and video details
     Args: video_object: response of VideoObject data

@@ -17,7 +17,6 @@ from crw20minutesonline.exceptions import (
 from crw20minutesonline.items import ArticleData
 from crw20minutesonline.utils import (
     based_on_scrape_type,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -225,8 +224,6 @@ class Crw20MinutesOnline(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
