@@ -299,7 +299,10 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         data = []
-        thumbnails = response.css(".articledetail-image-left picture img::attr(src)").get()
+        thumbnails = response.css(
+            ".articledetail-image-left picture img::attr(src), .articledetail-image2-left picture img::attr(src)"
+        ).get()
+
         if not thumbnails:
             thumbnails = response.css("#articledetail-body .image-mask img::attr(src)").get()
         data.append(thumbnails)
