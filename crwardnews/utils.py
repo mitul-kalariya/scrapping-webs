@@ -51,8 +51,8 @@ def validate_sitemap_date_range(start_date, end_date):
             )
 
     except exceptions.InvalidDateException as expception:
-        LOGGER.error(
-            f"Error occured while checking date range: {expception}", exc_info=True
+        LOGGER.info(
+            f"Error occured while checking date range: {expception}"
         )
         raise exceptions.InvalidDateException(
             f"Error occured while checking date range: {expception}"
