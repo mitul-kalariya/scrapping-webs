@@ -37,7 +37,7 @@ class BaseSpider(ABC):
 
 
 class YTNOnlineSpider(scrapy.Spider, BaseSpider):
-    name = "nikkei_news"
+    name = "ytn_online"
 
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
@@ -169,7 +169,7 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = get_parsed_data(response)
-            response_data["source_country"] = ["Japan"]
+            response_data["source_country"] = ["Korea"]
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)

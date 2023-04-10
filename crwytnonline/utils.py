@@ -4,6 +4,9 @@ import logging
 import os
 from datetime import datetime
 
+import requests
+from bs4 import BeautifulSoup
+
 from crwytnonline import exceptions
 from crwytnonline.constant import LOGGER, TODAYS_DATE
 
@@ -161,11 +164,11 @@ def get_parsed_data(response):
         main_dict["author"] = authors
 
         # Last Updated Date
-        last_updated_date = get_meta_information(response, "article:modified_time")
+        last_updated_date = json_data.get("dateModified")
         main_dict["modified_at"] = [last_updated_date]
 
         # Published Date
-        published = get_meta_information(response, "cXenseParse:recs:publishtime", key="name")
+        published = json_data.get("datePublished")
         main_dict["published_at"] = [published]
 
         # Description
@@ -173,12 +176,12 @@ def get_parsed_data(response):
         main_dict["description"] = [description]
 
         # Publisher
-        publisher = get_publisher(response)
+        publisher = get_publisher(json_data)
         main_dict["publisher"] = publisher
 
         # Article Text
         article_text = response.css(
-            "#articledetail-body h2::text, #articledetail-body p::text"
+            "#CmAdContent span::text"
         ).getall()
         main_dict["text"] = [" ".join(article_text)]
 
@@ -187,19 +190,21 @@ def get_parsed_data(response):
         main_dict["thumbnail_image"] = thumbnail
 
         # Title
-        title = response.css(".title-page::text").get().strip()
+        title = response.css(".top h3::text").get()
+        if isinstance(title, str):
+            title.strip()
         main_dict["title"] = [title]
 
         # Images
         article_images = get_images(response)
         main_dict["images"] = article_images
 
-        # # Videos
-        # video = get_embed_video_link(response)
-        # main_dict["embed_video_link"] = video
+        # Videos
+        video = get_embed_video_link(response)
+        main_dict["embed_video_link"] = video
 
         # Language
-        mapper = {"ja": "Japanese"}
+        mapper = {"ko": "Korean"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
@@ -262,8 +267,9 @@ def get_author(response) -> list:
         authors = response.css(".articletag-author")
         temp_dict = {}
         if authors:
-            data = [dict((("@type", "Person"), ("name", author.css("::text").get()), ("url", f'https:{author.attrib.get("href")}'))) for author in authors]
-        else:
+            data = [dict((("@type", "Person"), ("name", author.css("::text").get()),
+                         ("url", f'https:{author.attrib.get("href")}'))) for author in authors]
+        else:   
             json_data = get_ld_json(response)
 
             data = []
@@ -289,10 +295,15 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         data = []
-        thumbnails = response.css(".articledetail-image-left picture img::attr(src)").get()
-        if not thumbnails:
-            thumbnails = response.css("#articledetail-body .image-mask img::attr(src)").get()
-        data.append(thumbnails)
+        json_data = get_ld_json(response)
+        article_link = json_data.get("mainEntityOfPage")
+        response_data = requests.get(article_link)
+        thumbnail_image = BeautifulSoup(response_data.content, "html.parser")
+        image_area = thumbnail_image.find(class_="imgArea")
+        if image_area:
+            image = image_area.find("img")
+            image_link = image.get("src")
+            data.append(image_link)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -303,27 +314,17 @@ def get_embed_video_link(response) -> list:
     """
     A list of video objects containing information about the videos on the webpage.
     """
-    pass
-    # options = Options()
-    # options.headless = True
-    # service = Service(executable_path=ChromeDriverManager().install())
-    # driver = webdriver.Chrome(service=service, options=options)
-    # driver = webdriver.Chrome(options=options)
-    # driver.get(response.url)
+    json_data = get_ld_json(response)
+    article_link = json_data.get("mainEntityOfPage")
 
-    # try:
-    #     embed_videos = driver.find_elements(By.XPATH, "//section[@class='container_c1suc6un']//iframe")
-    #     data = []
-    #     if embed_videos:
-    #         for video in embed_videos:
-    #             link = video.get_attribute("src").replace("blob:", "")
-    #             temp_dict = {"link": link}
-    #             data.append(temp_dict)
-    # except exceptions.ArticleScrappingException as exception:
-    #     LOGGER.error(f"{str(exception)}")
-    #     print(f"Error while getting embed video: {str(exception)}")
-    # driver.quit()
-    # return data
+    response_data = requests.get(article_link)
+    embed_videos = BeautifulSoup(response_data.content, "html.parser")
+    iframes = []
+    article_data = embed_videos.find(class_="article")
+    if article_data:
+        iframes = article_data.find_all("iframe")
+    video_links = [iframe.get("src") for iframe in iframes]
+    return video_links
 
 
 def get_publisher(response) -> list:
@@ -336,13 +337,12 @@ def get_publisher(response) -> list:
         - "name": The name of the publisher.
     """
     try:
-        json_data = get_ld_json(response)
-        publisher_data = json_data.get("publisher")
+        publisher_data = response.get("publisher")
         logo = publisher_data.get("logo")
         a_dict = {
-            "@id": "mainichi.jp",
+            "@id": "ytn.co.kr",
             "@type": publisher_data.get("@type"),
-            "name": publisher_data.get("@name"),
+            "name": publisher_data.get("name"),
             "logo": {
                 "@type": logo.get("@type"),
                 "url": logo.get("url"),
@@ -412,8 +412,7 @@ def get_section(response) -> list:
         list: List of sections
     """
     try:
-        json_data = get_ld_json(response)
-        sections = json_data.get("articleSection")
+        sections = response.css('meta[property^="article:section"]::attr(content)').extract()
         return sections
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
