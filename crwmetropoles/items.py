@@ -9,11 +9,11 @@ from itemloaders.processors import TakeFirst, MapCompose
 from w3lib.html import remove_tags
 
 
-
 class NewtonScrappingItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     pass
+
 
 class ArticleData(Item):
     raw_response = Field(output_processor=TakeFirst())

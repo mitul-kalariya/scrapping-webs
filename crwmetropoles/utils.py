@@ -99,9 +99,11 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data[0]
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        ) from exception
 
 
 def get_misc(response):
@@ -118,9 +120,11 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        ) from exception
 
 
 def get_raw_response(response):
@@ -248,9 +252,11 @@ def get_parsed_data(response):
 
         return remove_empty_elements(main_dict)
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -337,7 +343,7 @@ def get_publisher(response):
 
     except BaseException as e:
         LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching publisher data: {e}")
 
 
 def get_author(response) -> list:
@@ -353,23 +359,12 @@ def get_author(response) -> list:
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in parsed_data:
             for data in json.loads(a_block).get("@graph"):
-                try:
-                    author_data = []
-                    if data.get("@type") == "NewsArticle":
-                        if "author" in data.keys():
-                            author_data.append(data.get("author"))
-                            return author_data
-                except:
-                    list_of_ele = []
-                    var = {
-                        "@type": data.get("author", [{}]).get("@type"),
-                        "name": data.get("author", [{}]).get("name"),
-                        "url": data
-                        .get("author", [{}])
-                        .get("url", None),
-                    }
-                    list_of_ele.append(var)
-                    return list_of_ele
+                author_data = []
+                if data.get("@type") == "NewsArticle":
+                    if "author" in data.keys():
+                        author_data.append(data.get("author"))
+                        return author_data
+
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
@@ -380,12 +375,16 @@ def get_section(response) -> list:
     This functions finds the section from the response
     and returns the articleSection list
     """
-    section = get_main(response)
-    for block in section.get("@graph"):
-        articleSection = []
-        if "articleSection" in block:
-            articleSection.append(block.get("articleSection"))
-            return articleSection
+    try:
+        section = get_main(response)
+        for block in section.get("@graph"):
+            articleSection = []
+            if "articleSection" in block:
+                articleSection.append(block.get("articleSection"))
+                return articleSection
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching section: {e}")
 
 
 def get_thumbnail_image(response) -> list:
@@ -395,11 +394,15 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    image = get_main(response)
-    for block in image.get("@graph"):
-        if "image" in block.keys():
-            thumbnail_image = [block.get("image").get("url")]
-            return thumbnail_image
+    try:
+        image = get_main(response)
+        for block in image.get("@graph"):
+            if "image" in block.keys():
+                thumbnail_image = [block.get("image").get("url")]
+                return thumbnail_image
+    except BaseException as e:
+        LOGGER.error(f"{e}")
+        raise exceptions.ArticleScrappingException(f"Error while fetching thumbnail image: {e}")
 
 
 def get_tags(response) -> list:

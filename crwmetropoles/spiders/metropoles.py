@@ -56,34 +56,40 @@ class MetropolesSpider(scrapy.Spider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
+        try:
+            super(MetropolesSpider, self).__init__(*args, **kwargs)
 
-        super(MetropolesSpider, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.start_urls = []
+            self.articles = []
+            self.article_url = url
+            self.type = type.lower()
 
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
-        self.start_urls = []
-        self.articles = []
-        self.article_url = url
-        self.type = type.lower()
+            create_log_file()
 
-        create_log_file()
+            if self.type == "sitemap":
+                self.start_urls.append(SITEMAP_URL)
 
-        if self.type == "sitemap":
-            self.start_urls.append(SITEMAP_URL)
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
+                validate_sitemap_date_range(start_date, end_date)
 
-            self.start_date = (
-                datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+            if self.type == "article":
+                if url:
+                    self.start_urls.append(url)
+                else:
+                    LOGGER.error("Error while")
+                    raise exceptions.InvalidInputException("Must have a URL to scrap")
+
+        except Exception as exception:
+            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            raise exceptions.InvalidInputException(
+                f"Error occured in init function in {self.name}:-- {exception}"
             )
-            self.end_date = (
-                datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-            )
-            validate_sitemap_date_range(start_date, end_date)
-
-        if self.type == "article":
-            if url:
-                self.start_urls.append(url)
-            else:
-                LOGGER.error("Error while")
-                raise exceptions.InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response: str, **kwargs) -> None:
         """
@@ -98,6 +104,7 @@ class MetropolesSpider(scrapy.Spider):
         """
 
         try:
+            LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
                 root = etree.fromstring(response.body)
                 links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas"
@@ -109,10 +116,11 @@ class MetropolesSpider(scrapy.Spider):
                 yield self.parse_article(response)
                 # article_data = self.parse_article(response)
                 # yield article_data
-
         except BaseException as e:
-            print(f"Error: {e}")
-            self.logger.error(f"{e}")
+            LOGGER.info(f"Error occured in parse function: {e}")
+            raise exceptions.ParseFunctionFailedException(
+                f"Error occured in parse function: {e}"
+            )
 
     def parse_sitemap(self, response: str) -> None:
         """
@@ -151,14 +159,11 @@ class MetropolesSpider(scrapy.Spider):
                         data = {"link": url}
                         self.articles.append(data)
 
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
             raise exceptions.SitemapScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+                f"Error while parsing sitemap: {str(e)}"
+            )
 
     def parse_article(self, response: str) -> None:
         """
@@ -186,14 +191,13 @@ class MetropolesSpider(scrapy.Spider):
             return articledata_loader.item
 
         except Exception as exception:
-            self.log(
+            LOGGER.info(
                 f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception),
-                level=logging.ERROR,
+                + str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -213,10 +217,9 @@ class MetropolesSpider(scrapy.Spider):
                 export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
-            exceptions.ExportOutputFileException(
+            LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
-            self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
             )

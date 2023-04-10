@@ -4,7 +4,7 @@ import unittest
 from crwmetropoles.spiders.metropoles import MetropolesSpider
 from crwmetropoles.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwmetropoles.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+                                              online_response_from_url)
 from crwmetropoles import Crawler
 
 # Creating an object
