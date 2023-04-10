@@ -266,26 +266,11 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             ).getall()
 
             for link, pub_date in zip(links, published_date):
-                # publish_date = pub_date.split("T")
-                # published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
-                # today_date = datetime.today().date()
-                #
-                # if self.since and published_at < self.since:
-                #     return
-                # if self.since and published_at > self.until:
-                #     return
-
                 if (
                     link != "https://www.ndtv.com/sitemap/google-news-sitemap"
                 ):
                     data = {"link": link}
                     self.articles.append(data)
-                # elif (
-                #     today_date == published_at
-                #     and link != "https://www.ndtv.com/sitemap/google-news-sitemap"
-                # ):
-                #     data = {"link": link}
-                #     self.articles.append(data)
                 else:
                     continue
 
@@ -311,7 +296,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-                breakpoint()
+
         except BaseException as exception:
             exceptions.ExportOutputFileException(
                 f"Error occurred while closing crawler{str(exception)} - {reason}"
