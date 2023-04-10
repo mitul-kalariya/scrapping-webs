@@ -92,7 +92,7 @@ def remove_empty_elements(parsed_data_dict):
 
 def get_raw_response(response):
     raw_resopnse = {
-        "content_type": "text/html; charset=utf-8",
+        "content_type": "text/html; charset=UTF-8",
         "content": response.css("html").get(),
     }
     return raw_resopnse
@@ -173,6 +173,9 @@ def get_parsed_data(response):
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
 
+        source_language = "English"
+        main_dict["source_language"] = [source_language]
+
         video = response.css('meta[itemprop="ContentUrl"]::attr(content)').get()
         main_dict["embed_video_link"] = video
         return remove_empty_elements(main_dict)
@@ -188,7 +191,7 @@ def get_author(response):
     author["name"] = author_name
     author["url"] = author_url
 
-    return [author]
+    return author
 
 
 def get_content(response):
