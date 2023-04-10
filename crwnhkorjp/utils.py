@@ -120,9 +120,14 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObject":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type')
+                      in ["ImageObject", "ImageGallery"]]
             )
         else:
             article_raw_parsed_json_loader.add_value(
@@ -165,42 +170,83 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     body_text = response.css('div.body-text::text').getall()
     body_img = response.css('figure.body-img img::attr("data-src")').getall()
     mapper = {"ja": "Japanse"}
-    parsed_data_dict["source_country"] = ["Japan"]
-    parsed_data_dict["source_language"] = [mapper.get(response.css('meta[name="content-language"]\
-                                                                   ::attr(content)').get())]
+    if len(list(parsed_json_dict.keys())) <= 2:
+        parsed_data_dict["source_country"] = ["Japan"]
+        parsed_data_dict["source_language"] = [mapper.get(response.css('meta[name="content-language"]\
+                                                                    ::attr(content)').get())]
 
-    parsed_data_dict["author"] = [{"@type": parsed_json_dict.get("other")[1].get("@type"),
-                                   "name": parsed_json_dict.get("other")[1].get("name"),
-                                   "url": parsed_json_dict.get("other")[1].get("url")}]
-    parsed_data_dict["description"] = [parsed_json_dict.get("main").get('description')]
-    parsed_data_dict["modified_at"] = [parsed_json_dict.get("main").get("dateModified")]
-    parsed_data_dict["published_at"] = [parsed_json_dict.get("main").get('datePublished')]
-    parsed_data_dict["publisher"] = [
-        {
-            '@id': parsed_json_dict.get("other")[1].get("url").split('/')[2],
-            '@type': parsed_json_dict.get("other")[0].get('@type'),
-            'name': parsed_json_dict.get("other")[0].get('name'),
-            'logo': {
-                "@type": parsed_json_dict.get("other")[0].get('logo').get('@type'),
-                "url": parsed_json_dict.get("other")[0].get('logo').get('url'),
-                'width': {
-                    '@type': "Distance",
-                    "name": str(parsed_json_dict.get("other")[0].get('logo').get('width')) + " Px"},
-                'height': {
-                    '@type': "Distance",
-                    'name': str(parsed_json_dict.get("other")[0].get('logo').get('height')) + " Px"}}
-        }
-    ]
-    parsed_data_dict["text"] = [" ".join(text + text_summary + body_text)]
-    parsed_data_dict["thumbnail_image"] = [parsed_json_dict.get("main").get('image')[0].get('url')]
-    parsed_data_dict["title"] = [parsed_json_dict.get('main').get('headline')]
-    parsed_data_dict["images"] = [{"link": parsed_json_dict.get("other")[1].get("url")[:-1] + img} for img in body_img]
-    parsed_data_dict["images"].append({"link": parsed_json_dict.get("main").get('image')[0].get('url')})
-    parsed_data_dict["section"] = [parsed_json_dict.get("main").get('articleSection')]
-    parsed_data_dict["tags"] = parsed_json_dict.get('main').get('keywords')
-    if "VideoObject" in list(parsed_json_dict.keys()):
-        parsed_data_dict["embed_video_link"] = [parsed_json_dict.get("other")[1].get("url")[:-1] + response.css(
-            "iframe.video-player-fixed::attr('src')").get()]
+        parsed_data_dict["author"] = [parsed_json_dict.get('main').get('author')]
+        parsed_data_dict["description"] = [parsed_json_dict.get('main').get('description')]
+        parsed_data_dict["modified_at"] = [parsed_json_dict.get('main').get('dateModified')]
+        parsed_data_dict["published_at"] = [parsed_json_dict.get("main").get('datePublished')]
+        parsed_data_dict["publisher"] = [
+            {
+                '@id': parsed_json_dict.get("main").get("url").split('/')[2],
+                '@type': parsed_json_dict.get("main").get('@type'),
+                'name': parsed_json_dict.get("main").get('name'),
+                'logo': {
+                    "@type": parsed_json_dict.get("main").get('publisher').get('logo').get('@type'),
+                    "url": parsed_json_dict.get("main").get('publisher').get('logo').get('url'),
+                    'width': {
+                        '@type': "Distance",
+                        "name": str(parsed_json_dict.get("main").get('publisher').get('logo').get('width')) + " Px"},
+                    'height': {
+                        '@type': "Distance",
+                        'name': str(parsed_json_dict.get("main").get('publisher').get('logo').get('height')) + " Px"}}
+            }
+        ]
+        parsed_data_dict["text"] = [" ".join(text + text_summary + body_text)]
+        parsed_data_dict["thumbnail_image"] = [parsed_json_dict.get("main").get("url").split('/')[2]
+                                               + parsed_json_dict.get("main").get('image').get('url')]
+        parsed_data_dict["title"] = [parsed_json_dict.get('main').get('headline')]
+        parsed_data_dict["images"] = [{"link": parsed_json_dict.get("main").get("url").split('/')[2] + img}
+                                      for img in body_img]
+        parsed_data_dict["images"].append({"link": parsed_json_dict.get("main").get("url").split('/')[2]
+                                           + parsed_json_dict.get("main").get('image').get('url')})
+        parsed_data_dict["section"] = [parsed_json_dict.get("main").get('articleSection')]
+        parsed_data_dict["tags"] = parsed_json_dict.get('main').get('keywords')
+        if "videoObjects" in list(parsed_json_dict.keys()):
+            parsed_data_dict["embed_video_link"] = [parsed_json_dict.get("other")[1].get("url")[:-1] + response.css(
+                "iframe.video-player-fixed::attr('src')").get()]
+
+    else:
+        parsed_data_dict["source_country"] = ["Japan"]
+        parsed_data_dict["source_language"] = [mapper.get(response.css('meta[name="content-language"]\
+                                                                    ::attr(content)').get())]
+
+        parsed_data_dict["author"] = [{"@type": parsed_json_dict.get("other")[1].get("@type"),
+                                       "name": parsed_json_dict.get("other")[1].get("name"),
+                                       "url": parsed_json_dict.get("other")[1].get("url")}]
+        parsed_data_dict["description"] = [parsed_json_dict.get("main").get('description')]
+        parsed_data_dict["modified_at"] = [parsed_json_dict.get("main").get("dateModified")]
+        parsed_data_dict["published_at"] = [parsed_json_dict.get("main").get('datePublished')]
+        parsed_data_dict["publisher"] = [
+            {
+                '@id': parsed_json_dict.get("other")[1].get("url").split('/')[2],
+                '@type': parsed_json_dict.get("other")[0].get('@type'),
+                'name': parsed_json_dict.get("other")[0].get('name'),
+                'logo': {
+                    "@type": parsed_json_dict.get("other")[0].get('logo').get('@type'),
+                    "url": parsed_json_dict.get("other")[0].get('logo').get('url'),
+                    'width': {
+                        '@type': "Distance",
+                        "name": str(parsed_json_dict.get("other")[0].get('logo').get('width')) + " Px"},
+                    'height': {
+                        '@type': "Distance",
+                        'name': str(parsed_json_dict.get("other")[0].get('logo').get('height')) + " Px"}}
+            }
+        ]
+        parsed_data_dict["text"] = [" ".join(text + text_summary + body_text)]
+        parsed_data_dict["thumbnail_image"] = [parsed_json_dict.get("main").get('image')[0].get('url')]
+        parsed_data_dict["title"] = [parsed_json_dict.get('main').get('headline')]
+        parsed_data_dict["images"] = [{"link": parsed_json_dict.get("other")[1].get("url")[:-1] + img}
+                                      for img in body_img]
+        parsed_data_dict["images"].append({"link": parsed_json_dict.get("main").get('image')[0].get('url')})
+        parsed_data_dict["section"] = [parsed_json_dict.get("main").get('articleSection')]
+        parsed_data_dict["tags"] = parsed_json_dict.get('main').get('keywords')
+        if "videoObjects" in list(parsed_json_dict.keys()):
+            parsed_data_dict["embed_video_link"] = [parsed_json_dict.get("other")[1].get("url")[:-1] + response.css(
+                "iframe.video-player-fixed::attr('src')").get()]
     return remove_empty_elements(parsed_data_dict)
 
 

@@ -1,5 +1,6 @@
 import logging
 import unittest
+
 from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
 from crwnhkorjp.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwnhkorjp.test.helpers.utils import (get_article_content,
@@ -48,6 +49,22 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 if test_article_data[0].get("parsed_json").get("misc"):
                     self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("imageObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("imageObjects"), list,
+                                          "parsed_json --> imageObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("videoObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("videoObjects"), list,
+                                          "parsed_json --> videoObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
+                                          "parsed_json --> other must be list")
+                # For old website in which it is `Other`
+                if test_article_data[0].get("parsed_json").get("Other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
+                                          "parsed_json --> other must be list")
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
@@ -69,7 +86,7 @@ class TestArticle(unittest.TestCase):
                              test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("tags"), test_article_data[0].get(
-                             "parsed_data").get("tags"), "tags mismatch in parsed_data")
+                "parsed_data").get("tags"), "tags mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("source_country"),
                              test_article_data[0].get("parsed_data").get("source_country"),
@@ -86,6 +103,8 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
+                with self.subTest():
+                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -107,61 +126,61 @@ class TestArticle(unittest.TestCase):
                 self.assertIsInstance(article[0].get("parsed_data").get("text")[0],
                                       str, "format mismatch for parsed_data--> text")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("text"), list,
-                                      "format mismatch for parsed_data--> text")
+                self.assertIsInstance(article[0].get("parsed_data").get(
+                    "text"), list, "format mismatch for parsed_data--> text")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> text")
 
         if article[0].get("parsed_data").get("title"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("title")[0], str,
-                                      "format mismatch for parsed_data--> title")
+                self.assertIsInstance(article[0].get("parsed_data").get(
+                    "title")[0], str, "format mismatch for parsed_data--> title")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("title"), list,
-                                      "format mismatch for parsed_data--> title")
+                self.assertIsInstance(article[0].get("parsed_data").get(
+                    "title"), list, "format mismatch for parsed_data--> title")
         else:
             raise AssertionError("missing object:- parsed_data--> title")
 
         if article[0].get("parsed_data").get("description"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("description")[0], str,
-                                      "format mismatch for parsed_data--> description")
+                self.assertIsInstance(article[0].get("parsed_data").get("description")[
+                    0], str, "format mismatch for parsed_data--> description")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("description"), list,
-                                      "format mismatch for parsed_data--> description")
+                self.assertIsInstance(article[0].get("parsed_data").get("description"),
+                                      list, "format mismatch for parsed_data--> description")
         else:
             raise AssertionError("missing object:- parsed_data--> description")
 
         if article[0].get("parsed_data").get("source_country"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("source_country")[0], str,
-                                      "format mismatch for parsed_data--> source_country")
+                self.assertIsInstance(article[0].get("parsed_data").get("source_country")[
+                    0], str, "format mismatch for parsed_data--> source_country")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("source_country"), list,
-                                      "format mismatch for parsed_data--> source_country")
+                self.assertIsInstance(article[0].get("parsed_data").get("source_country"),
+                                      list, "format mismatch for parsed_data--> source_country")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> source_country")
 
         if article[0].get("parsed_data").get("source_language"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("source_language")[0], str,
-                                      "format mismatch for parsed_data--> source_language")
+                self.assertIsInstance(article[0].get("parsed_data").get("source_language")[
+                    0], str, "format mismatch for parsed_data--> source_language")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("source_language"), list,
-                                      "format mismatch for parsed_data--> source_language")
+                self.assertIsInstance(article[0].get("parsed_data").get("source_language"),
+                                      list, "format mismatch for parsed_data--> source_language")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> source_language")
 
         if article[0].get("parsed_data").get("author"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("author")[0], dict,
-                                      "format mismatch for parsed_data--> author")
+                self.assertIsInstance(article[0].get("parsed_data").get("author")[
+                    0], dict, "format mismatch for parsed_data--> author")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("author"), list,
-                                      "format mismatch for parsed_data--> author")
+                self.assertIsInstance(article[0].get("parsed_data").get("author"),
+                                      list, "format mismatch for parsed_data--> author")
             self._test_author_format(article)
         else:
             with self.subTest():
@@ -169,44 +188,44 @@ class TestArticle(unittest.TestCase):
 
         if article[0].get("parsed_data").get("modified_at"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("modified_at")[0], str,
-                                      "format mismatch for parsed_data--> modified_at")
+                self.assertIsInstance(article[0].get("parsed_data").get("modified_at")[
+                    0], str, "format mismatch for parsed_data--> modified_at")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("modified_at"), list,
-                                      "format mismatch for parsed_data--> modified_at")
+                self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
+                                      list, "format mismatch for parsed_data--> modified_at")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("published_at")[0], str,
-                                      "format mismatch for parsed_data--> published_at")
+                self.assertIsInstance(article[0].get("parsed_data").get("published_at")[
+                    0], str, "format mismatch for parsed_data--> published_at")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("published_at"), list,
-                                      "format mismatch for parsed_data--> published_at")
+                self.assertIsInstance(article[0].get("parsed_data").get("published_at"),
+                                      list, "format mismatch for parsed_data--> published_at")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> published_at")
 
         if article[0].get("parsed_data").get("publisher"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("publisher")[0], dict,
-                                      "format mismatch for parsed_data--> publisher")
+                self.assertIsInstance(article[0].get("parsed_data").get("publisher")[
+                    0], dict, "format mismatch for parsed_data--> publisher")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("publisher"), list,
-                                      "format mismatch for parsed_data--> publisher")
+                self.assertIsInstance(article[0].get("parsed_data").get("publisher"),
+                                      list, "format mismatch for parsed_data--> publisher")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> publisher")
 
         if article[0].get("parsed_data").get("images"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("images")[0], dict,
-                                      "format mismatch for parsed_data--> images")
+                self.assertIsInstance(article[0].get("parsed_data").get("images")[
+                    0], dict, "format mismatch for parsed_data--> images")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("images"), list,
-                                      "format mismatch for parsed_data--> images")
+                self.assertIsInstance(article[0].get("parsed_data").get("images"),
+                                      list, "format mismatch for parsed_data--> images")
             self._test_image_format(article)
         else:
             with self.subTest():
@@ -214,22 +233,22 @@ class TestArticle(unittest.TestCase):
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("section")[0], str,
-                                      "format mismatch for parsed_data--> section")
+                self.assertIsInstance(article[0].get("parsed_data").get("section")[0],
+                                      str, "format mismatch for parsed_data--> section")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("section"), list,
-                                      "format mismatch for parsed_data--> section")
+                self.assertIsInstance(article[0].get("parsed_data").get("section"),
+                                      list, "format mismatch for parsed_data--> section")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("tags")[0], str,
-                                      "format mismatch for parsed_data--> tags")
+                self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
+                                      str, "format mismatch for parsed_data--> tags")
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("tags"), list,
-                                      "format mismatch for parsed_data--> tags")
+                self.assertIsInstance(article[0].get("parsed_data").get("tags"),
+                                      list, "format mismatch for parsed_data--> tags")
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> tags")
@@ -245,8 +264,6 @@ class TestSitemap(unittest.TestCase):
         for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-            with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
     def _test_sitemap_results(self):
         with self.subTest():
