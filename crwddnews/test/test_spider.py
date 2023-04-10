@@ -16,7 +16,11 @@ logger = logging.getLogger()
 class TestArticle(unittest.TestCase):
 
     def _test_article_results(self, articles, test_data_path):
+        print("------------------------------article in")
+        print(articles)
         article = [article for article in articles]
+        print(article)
+        print("-----------------",article)
         test_article_data = get_article_content(test_data_path)
         self._test_raw_response(article, test_article_data)
         self._test_parse_json(article, test_article_data)
@@ -26,9 +30,13 @@ class TestArticle(unittest.TestCase):
     # This is first function called by crawler so testing the main function will cover all scenarios
     def test_parse(self):
         for article in TEST_ARTICLES:
+            print("--------------------test_parse in")
             logger.info(f"Testing article with URL:- {article['url']}")
             spider = DDNewsSpider(type="article", url=article["url"])
+
+            print(spider)
             articles = spider.parse(online_response_from_url(spider.article_url))
+            print(articles)
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
 

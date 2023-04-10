@@ -151,7 +151,7 @@ def get_thumbnail(response):
 
 def get_section(response):
     breadcrumb_list = response.css("div.easy-breadcrumb a.easy-breadcrumb_segment-1::text").getall()
-    if breadcrumb_list[-1]:
+    if breadcrumb_list:
         return breadcrumb_list[-1]
 
 

@@ -89,16 +89,21 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
+                print("-----------------sitemap")
                 if self.since and self.until:
+                    print("-----------------sitemap 1")
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
+                    print("-----------------sitemap 2")
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
+                print("-----------------article")
                 article_data = self.parse_article(response)
                 yield article_data
 
         except BaseException as e:
+            print("------------error")
             LOGGER.info(f"Error occured in parse function: {e}")
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
