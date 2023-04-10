@@ -1,52 +1,77 @@
+"""Spider to scrap DD news website"""
 import logging
-import scrapy
-import w3lib.html
-from datetime import datetime,timedelta,date
+from datetime import datetime, date
 from abc import ABC, abstractmethod
+import scrapy
 from scrapy.loader import ItemLoader
 from crwddnews.items import ArticleData
 from crwddnews import exceptions
-from crwddnews.constant import SITEMAP_URL, LOGGER
-from crwddnews.utils import (create_log_file, validate_sitemap_date_range, get_raw_response, get_parsed_data,
-                              get_parsed_json, export_data_to_json_file, )
+from crwddnews.constant import SITEMAP_URL, LOGGER 
+from crwddnews.utils import (
+    create_log_file,
+    validate_sitemap_date_range,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
+    export_data_to_json_file,
+)
 
+# create logs
+create_log_file()
 
 
 class BaseSpider(ABC):
+    """Abstract Base class for scrapy spider
+
+    Args:
+        ABC : Abstract
+    """
+
     @abstractmethod
     def parse(self, response):
+        """parse function responsible for calling individual methods for each request"""
         pass
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
+        """called by parse function when response is sitemap"""
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
+        """called by parse function when response is sitemap article"""
         pass
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
+        """called by parse function when response is article"""
         pass
 
 
 class DDNewsSpider(scrapy.Spider, BaseSpider):
+    """main spider for parsing sitemap or article"""
+
     name = "dd_news"
+
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
-            type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
+            type (str): A string indicating the type of data to scrape.
+            Must be either "sitemap" or "article".
             since (str): A string representing the start date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
             url (str): A string representing the URL of the webpage to be scraped.
             until (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
-            **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
+            **kwargs: Additional keyword arguments
+            that can be used to pass information to the web scraper.
         Raises:
             InvalidInputException: If a URL is not provided for an "article" type scraper.
         Notes:
-            This function initializes a web scraper object and sets various properties based on the arguments passed.
-            If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
+            This function initializes a web scraper object and
+            sets various properties based on the arguments passed.
+            If the type argument is "sitemap", the start and end dates of
+            the sitemap are validated and set.
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
@@ -61,8 +86,12 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
-                self.since = (datetime.strptime(since, "%Y-%m-%d").date() if since else None)
-                self.until = (datetime.strptime(until, "%Y-%m-%d").date() if until else None)
+                self.since = (
+                    datetime.strptime(since, "%Y-%m-%d").date() if since else None
+                )
+                self.until = (
+                    datetime.strptime(until, "%Y-%m-%d").date() if until else None
+                )
 
                 validate_sitemap_date_range(since, until)
 
@@ -74,11 +103,13 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            LOGGER.info(
+                "Error occured in init function in %s:-- %s", self.name, exception
+            )
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
-        
+
     def parse(self, response):
         """
         Parses the given Scrapy response based on the specified type of parsing.
@@ -99,11 +130,11 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+            LOGGER.info("Error occured in parse function: %s", e)
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
-        
+
     def parse_article(self, response) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
@@ -136,14 +167,12 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception)
+                "Error occurred while scrapping an article for this link %s.",
+                response.url + str(exception),
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
-
-
 
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
@@ -152,54 +181,83 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         Yields:
             scrapy.http.Request: A request object for each link on the sitemap page.
         Raises:
-            exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
+            exceptions.SitemapScrappingException: If there is an error while
+            parsing the sitemap page.
         """
         try:
 
             # Get the start and end dates as datetime objects
             since = (
-                datetime.strptime(str(self.since), "%Y-%m-%d")
-                if self.since
-                else None
+                datetime.strptime(str(self.since), "%Y-%m-%d") if self.since else None
             )
             until = (
-                datetime.strptime(str(self.until), "%Y-%m-%d")
-                if self.until
-                else None
+                datetime.strptime(str(self.until), "%Y-%m-%d") if self.until else None
             )
             if since:
                 since = since.strftime("%m/%d/%Y")
                 until = until.strftime("%m/%d/%Y")
                 if since and until:
-                    url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="+since+"&changed_2="+until
-                    yield scrapy.Request(url, callback=self.parse_archive_pagination_sitemap) 
-                
+                    url = (
+                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
+                        + since
+                        + "&changed_2="
+                        + until
+                    )
+                    yield scrapy.Request(
+                        url, callback=self.parse_archive_pagination_sitemap
+                    )
+
                 else:
-                    url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="+since
-                    yield scrapy.Request(url, callback=self.parse_archive_pagination_sitemap) 
-                    
+                    url = (
+                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
+                        + since
+                    )
+                    yield scrapy.Request(
+                        url, callback=self.parse_archive_pagination_sitemap
+                    )
+
             else:
                 today = date.today().strftime("%m/%d/%Y")
-                url = f"https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="+today
-                yield scrapy.Request(url, callback=self.parse_archive_pagination_sitemap) 
-            
+                url = (
+                    "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
+                    + today
+                )
+                yield scrapy.Request(
+                    url, callback=self.parse_archive_pagination_sitemap
+                )
+
         except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+            LOGGER.info("Error while parsing sitemap: %s", e)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(e)}"
             )
-        
-    def parse_archive_pagination_sitemap(self,response):
+
+    def parse_archive_pagination_sitemap(self, response):
+        """Parses a archive page and extracts page links and titles for further processing.
+        Args:
+            response (scrapy.http.Response): The HTTP response object containing the archive page.
+        Yields:
+            scrapy.http.Request: A request object for each article link on the page.
+        Raises:
+            exceptions.SitemapScrappingException: If there is an error while
+            parsing the archive page.
+        """
         try:
             pagination_exists = response.css("ul.pager")
             if pagination_exists:
-                total_page = response.css("a[title='Go to last page']::attr(href)").get().split("page=")[1]
-                for page in range(int(total_page)+1):
-                    url = response.url+"&page="+str(page)
-                    yield scrapy.Request(url, callback=self.parse_sitemap_article) 
+                total_page = (
+                    response.css("a[title='Go to last page']::attr(href)")
+                    .get()
+                    .split("page=")[1]
+                )
+                for page in range(int(total_page) + 1):
+                    url = response.url + "&page=" + str(page)
+                    yield scrapy.Request(url, callback=self.parse_sitemap_article)
 
             else:
-                yield scrapy.Request(response.url,dont_filter=True,callback=self.parse_sitemap_article) 
+                yield scrapy.Request(
+                    response.url, dont_filter=True, callback=self.parse_sitemap_article
+                )
         except BaseException as e:
             # LOGGER.info(f"Error while parsing sitemap article: {e}")
             raise exceptions.SitemapArticleScrappingException(
@@ -207,7 +265,8 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             )
 
     def parse_sitemap_article(self, response):
-        """Extracts article titles and links from the response object and yields a Scrapy request for each article.
+        """Extracts article titles and links from the response object and
+        yields a Scrapy request for each article.
         Args:
             self: The Scrapy spider instance calling this method.
             response: The response object obtained after making a request to a sitemap URL.
@@ -220,18 +279,14 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         try:
             links = response.css("span.field-content a::attr(href)").getall()
             title = response.css("p.archive-title::text").getall()
-            for i,t in zip(links,title):
+            for i, t in zip(links, title):
                 if i and t:
                     self.articles.append(
-                    { 
-                    "link":'https://ddnews.gov.in/'+i,
-                    "title": t
-                    }
+                        {"link": "https://ddnews.gov.in/" + i, "title": t}
+                    )
 
-                )
-                
         except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap article: {e}")
+            LOGGER.info("Error while parsing sitemap article: %s", e)
             raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {str(e)}"
             )
@@ -250,5 +305,9 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            exceptions.ExportOutputFileException(
+                "Error occurred while writing json file %s - %s", str(exception), reason
+            )
+            LOGGER.info(
+                "Error occurred while writing json file %s - %s", str(exception), reason
+            )
