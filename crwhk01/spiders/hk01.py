@@ -27,9 +27,6 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
     @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
@@ -174,9 +171,6 @@ class HK01Spider(scrapy.Spider, BaseSpider):
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
-
-    def parse_sitemap_article(self, response):
-        pass
 
     def closed(self, reason: any) -> None:
         """
