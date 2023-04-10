@@ -262,7 +262,17 @@ def get_author(response) -> list:
         authors = response.css(".articletag-author")
         temp_dict = {}
         if authors:
-            data = [dict((("@type", "Person"), ("name", author.css("::text").get()), ("url", f'https:{author.attrib.get("href")}'))) for author in authors]
+            data = [
+                dict(
+                    (
+                        ("@type", "Person"),
+                        ("name", author.css("::text").get()),
+                        ("url", f'https:{author.attrib.get("href")}'),
+                    )
+                )
+                for author in authors
+            ]
+
         else:
             json_data = get_ld_json(response)
 
@@ -344,7 +354,7 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         data = []
-        images = response.css(".articledetail-image-left picture img")[1:]
+        images = response.css(".articledetail-image-left picture img, .articledetail-image2-left picture img")[1:]
         if images:
             for image in images:
                 temp_dict = {}
