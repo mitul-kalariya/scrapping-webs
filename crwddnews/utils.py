@@ -129,7 +129,7 @@ def get_parsed_data(response):
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
 
-        mapper = {"de": "German"}
+        mapper = {"en": "English"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
