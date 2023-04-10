@@ -1,3 +1,4 @@
+"""NDTV spider"""
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -21,19 +22,60 @@ from crwndtv.utils import (
 
 
 class BaseSpider(ABC):
+    """
+    Base class for making abstract methods
+    """
     @abstractmethod
     def parse(self, response):
+        # pylint disable=W0107
+        """
+        Parses the given Scrapy response based on the specified type of parsing.
+        Returns:
+            A generator that yields a scrapy.Request object to parse a sitemap or an article.
+        Example Usage:
+            parse(scrapy.http.Response(url="https://example.com", body="..."))
+        """
         pass
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
+        """Parses a sitemap page and extracts links and titles for further processing.
+        Args:
+            response (scrapy.http.Response): The HTTP response object 
+            containing the sitemap page.
+        Yields:
+            scrapy.http.Request: A request object for each link on the sitemap page.
+        Raises:
+            exceptions.SitemapScrappingException: If there is an error 
+            while parsing the sitemap page.
+        """
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
+        """Extracts article titles and links from the response object 
+        and yields a Scrapy request for each article.
+        Args:
+            self: The Scrapy spider instance calling this method.
+            response: The response object obtained after making a request to a sitemap URL.
+        Yields:
+            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
+            method as the callback and the article link and title as metadata.
+        Raises:
+            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+        """
         pass
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
         pass
 
 
@@ -46,18 +88,22 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
-            type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
+            type (str): A string indicating the type of data to scrape. Must be either
+            "sitemap" or "article".
             since (str): A string representing the start date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
             url (str): A string representing the URL of the webpage to be scraped.
             until (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
-            **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
+            **kwargs: Additional keyword arguments that can be used to pass 
+            information to the web scraper.
         Raises:
             InvalidInputException: If a URL is not provided for an "article" type scraper.
         Notes:
-            This function initializes a web scraper object and sets various properties based on the arguments passed.
-            If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
+            This function initializes a web scraper object and sets various 
+            properties based on the arguments passed.
+            If the type argument is "sitemap", the start and end dates of 
+            the sitemap are validated and set.
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
@@ -88,7 +134,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            LOGGER.info("Error occured in init function in %s :-- %s",self.name,exception)
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
@@ -113,7 +159,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+            LOGGER.info("Error occured in parse function: %s",e)
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
@@ -149,7 +195,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                f"Error occurred while scrapping an article for this link {response.url}."
+                "Error occurred while scrapping an article for this link %s.",response.url
                 + str(exception)
             )
             raise exceptions.ArticleScrappingException(
@@ -159,11 +205,13 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
-            response (scrapy.http.Response): The HTTP response object containing the sitemap page.
+            response (scrapy.http.Response): The HTTP response object 
+            containing the sitemap page.
         Yields:
             scrapy.http.Request: A request object for each link on the sitemap page.
         Raises:
-            exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
+            exceptions.SitemapScrappingException: If there is an error 
+            while parsing the sitemap page.
         """
         try:
             xmlresponse = XmlResponse(
@@ -178,13 +226,14 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
 
         except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+            LOGGER.info("Error while parsing sitemap: %s",e)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(e)}"
             )
 
     def parse_sitemap_article(self, response):
-        """Extracts article titles and links from the response object and yields a Scrapy request for each article.
+        """Extracts article titles and links from the response object 
+        and yields a Scrapy request for each article.
         Args:
             self: The Scrapy spider instance calling this method.
             response: The response object obtained after making a request to a sitemap URL.
@@ -230,10 +279,9 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                     continue
 
         except Exception as exception:
-            LOGGER.info("Error while parsing sitemap article:" + str(exception))
+            LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                "Error while parsing sitemap article::%s-",str(exception)
-            )
+                "Error while parsing sitemap article::%s-",str(exception))
 
     def closed(self, reason: any) -> None:
         """
@@ -255,4 +303,4 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
             )
-            
+        

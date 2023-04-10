@@ -71,3 +71,9 @@ class ParseFunctionFailedException(Exception):
 
     # use ParseFunctionFailedException(f"Error occured in parse function: {e}")
     pass
+
+class InvalidInputException(Exception):
+    """An exception raised when input is invalid."""
+
+    # use InvalidInputException(f"Invalid input: {e}")
+    pass
