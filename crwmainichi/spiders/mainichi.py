@@ -6,7 +6,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 
 from crwmainichi import exceptions
-from crwmainichi.constant import LOGGER, SITEMAP_URL, FORMATTED_DATE
+from crwmainichi.constant import FORMATTED_DATE, LOGGER, SITEMAP_URL
 from crwmainichi.items import ArticleData
 from crwmainichi.utils import (
     create_log_file,
@@ -64,7 +64,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
             A log file is created for the web scraper.
         """
         super(MainichiSpider, self).__init__(*args, **kwargs)
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
         self.article_url = url
@@ -73,11 +73,12 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
+            # TODO : No Need to add explicit check for None, This will be updated in ReadMe
             if since != None or until != None:
-                raise Exception('Date Filter is not available for this website')
+                raise Exception("Date Filter is not available for this website")
             full_url = [
-                'm/?sd=' + str(FORMATTED_DATE),
-                'e/?sd=' + str(FORMATTED_DATE),
+                "m/?sd=" + str(FORMATTED_DATE),
+                "e/?sd=" + str(FORMATTED_DATE),
             ]
             for url in full_url:
                 sitemap_link = SITEMAP_URL + url
@@ -114,13 +115,10 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
 
     def parse_homepage_link(self, response):
         try:
-            links = response.css('.articlelist a::attr(href)').getall()
-            titles = response.css('.articlelist a h3::text').getall()
+            links = response.css(".articlelist a::attr(href)").getall()
+            titles = response.css(".articlelist a h3::text").getall()
             for link, title in zip(links, titles):
-                data = {
-                    'link': 'https:' + link,
-                    'title': title
-                }
+                data = {"link": "https:" + link, "title": title}
                 self.articles.append(data)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
@@ -179,6 +177,8 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+
+            # TODO : Comment/Remove Export to JSON file
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
