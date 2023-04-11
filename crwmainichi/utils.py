@@ -166,10 +166,6 @@ def get_parsed_data(response):
         article_images = get_images(response)
         main_dict["images"] = article_images
 
-        # # Videos
-        # video = get_embed_video_link(response)
-        # main_dict["embed_video_link"] = video
-
         # Language
         mapper = {"ja": "Japanese"}
         article_lang = response.css("html::attr(lang)").get()
@@ -320,7 +316,7 @@ def get_publisher(response) -> list:
         print(f"Error while getting publisher details: {str(exception)}")
 
 
-def get_images(response, parsed_json=False) -> list:
+def get_images(response) -> list:
     """
     Extracts all the images present in the web page.
     Returns:
@@ -409,9 +405,13 @@ def get_ld_json(response) -> json:
     Returns:
         json: ld+json data
     """
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-    json_data = json.loads(ld_json_data)
-    return json_data
+    try:
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+        json_data = json.loads(ld_json_data)
+        return json_data
+    except BaseException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting parsed json: {str(exception)}")
 
 
 def remove_empty_elements(parsed_data_dict):
