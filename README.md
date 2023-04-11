@@ -1,4 +1,4 @@
-# Chosun-IBO_Online Scrapping
+# Chosun-IBO-Online Scrapping
 
 #### Setup and execution instructions: - 
 
