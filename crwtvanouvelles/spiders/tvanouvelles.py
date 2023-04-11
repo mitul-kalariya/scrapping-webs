@@ -8,8 +8,8 @@ import scrapy
 
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
-from crwtvanouvelles.constant import BASE_URL, SITEMAP_URL
 from scrapy.loader import ItemLoader
+from crwtvanouvelles.constant import BASE_URL, SITEMAP_URL
 
 from crwtvanouvelles.items import ArticleData
 from crwtvanouvelles.utils import (
@@ -17,7 +17,6 @@ from crwtvanouvelles.utils import (
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -140,8 +139,8 @@ class TvanouvellesSpider(scrapy.Spider, BaseSpider):
             .xpath("//sitemap:loc/text()", namespaces=self.namespace)
             .getall(),
             Selector(response, type="xml")
-                    .xpath("//sitemap:title/text()", namespaces=self.namespace_news)
-                    .getall(),
+            .xpath("//sitemap:title/text()", namespaces=self.namespace_news)
+            .getall(),
             Selector(response, type="xml")
             .xpath("//sitemap:publication_date/text()", namespaces=self.namespace_news)
             .getall(),
