@@ -1,5 +1,3 @@
-from multiprocessing import Process, Queue
-
 from scrapy.crawler import CrawlerProcess
 
 from crwwelt.spiders.welt import WeltSpider
