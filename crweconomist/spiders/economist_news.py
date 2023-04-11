@@ -2,22 +2,20 @@ from abc import ABC, abstractmethod
 import logging
 import scrapy
 from datetime import datetime
-
 from crweconomist.itemLoader import ArticleDataLoader
 from crweconomist.items import ArticleData
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from crweconomist.exceptions import (
-    SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    SitemapScrappingException,
 )
 from crweconomist.utils import (
     check_cmd_args,
     get_parsed_data,
-    get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
+    get_raw_response
 )
 
 logging.basicConfig(
@@ -38,10 +36,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -77,14 +71,17 @@ class Economist(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse(self, response):
-        if response.status != 200:
-            raise CloseSpider(
-                f"Unable to scrape due to getting this status code {response.status}"
-            )
-        if self.type == "sitemap":
-            try:
+        try:
+            if response.status != 200:
+                raise CloseSpider(
+                    f"Unable to scrape due to getting this status code {response.status}"
+                )
+            if self.type == "sitemap":
                 for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                          namespaces=self.namespace).getall()[4:]:
                     if self.today_date:
@@ -93,19 +90,17 @@ class Economist(scrapy.Spider, BaseSpider):
                     else:
                         if self.start_date.year <= int(site_map_url.split('-')[-2]) <= self.end_date.year:
                             yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-            except Exception as exception:
-                self.log(
-                    f"Error occurred while iterating sitemap url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-        if self.type == "article":
-            try:
+            if self.type == "article":
                 yield self.parse_article(response)
-            except Exception as exception:
-                self.log(
-                    f"Error occurred while parsing article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
+
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating sitemap url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         article_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
@@ -129,9 +124,6 @@ class Economist(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response):
-        pass
 
     def parse_article(self, response):
         try:
