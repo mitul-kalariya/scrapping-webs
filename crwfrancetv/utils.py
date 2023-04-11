@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
+from crwfrancetv.videos import get_video
 from crwfrancetv.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -188,6 +189,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         )
     parsed_data_dict = get_parsed_data_dict()
     article_data = dict(article_raw_parsed_json_loader.load_item())
+    if article_data.get("main").get('video'):
+        article_data["video"] = get_video(self, response.url)
+
     mapper = {"FRA": "France", "fr": "French"}
     article_data["title"] = response.css('h1.c-title ::text').get()
     article_data["section"] = response.css('li.breadcrumb__item a::text').getall()
@@ -235,8 +239,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
 
     parsed_data_dict["publisher"] = [
         {
+            '@id': article_data.get("main").get(key).get("logo").get('url').split('/')[2],
             '@type': article_data.get("main").get(key).get('@type'),
-            'url': article_data.get("main").get(key).get('url'),
+            'name': article_data.get("main").get(key).get('name'),
             "logo": {
                 "@type": article_data.get("main").get(key).get("logo").get('@type'),
                 "url": article_data.get("main").get(key).get("logo").get('url'),

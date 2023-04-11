@@ -24,32 +24,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-```
-# To fetch all the article links
-
-from crwefrancetv import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://www.francetvinfo.fr/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-# For Article
-crawler = Crawler(query={"type": "article", "link": "https://www.francetvinfo.fr/culture/spectacles/theatre/julie-deliquet-une-des-rares-femmes-a-ouvrir-le-festival-d-avignon-ca-me-parait-fou-reagit-la-metteuse-en-scene_5754221.html"})
-data = crawler.crawl()
-```
+Articles data is available for 2-3 days
 ```
 # To fetch all the article links from today's date only
 
@@ -71,7 +46,7 @@ crawler = Crawler(
 )
 
 # For Sitemap
-crawler = Crawler(query={"type": "sitemap", "domain": "https://www.francetvinfo.fr/sitemap_news.xml", "since": "2022-03-01", "until": "2022-03-26"})
+crawler = Crawler(query={"type": "sitemap", "domain": "https://www.francetvinfo.fr/", "since": "2022-03-01", "until": "2022-03-26"})
 data = crawler.crawl()
 ```
 
