@@ -10,7 +10,6 @@ from crwmainichi.constant import FORMATTED_DATE, LOGGER, SITEMAP_URL
 from crwmainichi.items import ArticleData
 from crwmainichi.utils import (
     create_log_file,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -73,9 +72,6 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
-            # TODO : No Need to add explicit check for None, This will be updated in ReadMe
-            if since != None or until != None:
-                raise Exception("Date Filter is not available for this website")
             full_url = [
                 "m/?sd=" + str(FORMATTED_DATE),
                 "e/?sd=" + str(FORMATTED_DATE),
@@ -177,10 +173,6 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
-            # TODO : Comment/Remove Export to JSON file
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
