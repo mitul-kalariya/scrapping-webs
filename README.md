@@ -2,7 +2,7 @@
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from http://www.sueddeutsche.de/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwsueddeutsche import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "http://www.sueddeutsche.de/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwsueddeutsche import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "http://www.sueddeutsche.de/"
     },
     proxies=proxies
 )
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwsueddeutsche import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": https://www.sueddeutsche.de/politik/konflikte-london-russland-will-mehr-mit-luftlandetruppen-operieren-dpa.urn-newsml-dpa-com-20090101-230411-99-272808
     },
     proxies=proxies
 )

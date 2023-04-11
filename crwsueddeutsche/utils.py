@@ -189,20 +189,22 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": [],
+        "videoObjects": [],
+        "other": [],
         "misc": [],
     }
     for block in blocks:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get(
+           "@type", [{}]
+        ) or "ImageObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(block))
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"].append(json.loads(block))
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
     return parsed_json_flter_dict
 
@@ -229,41 +231,6 @@ def get_parsed_json(response) -> dict:
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
 
 
 def get_parsed_data_dict() -> dict:
@@ -349,7 +316,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         parsed_json_main.getall(), response
     )
     parsed_data_dict |= get_thumbnail_image_video(response)
-    return parsed_data_dict
+    return remove_empty_elements(parsed_data_dict)
 
 
 def get_country_details(parsed_data: list) -> dict:
@@ -444,6 +411,7 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
     Returns description, modified date, published date details
     Args:
         parsed_data: response of application/ld+json data
+        response: provided response
     Returns:
         dict: description, modified date, published date related details
     """
@@ -453,6 +421,7 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
                 "description": [json.loads(block).get("description")],
                 "modified_at": [json.loads(block).get("dateModified")],
                 "published_at": [json.loads(block).get("datePublished")],
+                "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
             }
             for block in parsed_data
             if "NewsArticle" in json.loads(block).get("@type")
@@ -461,6 +430,7 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
             "description": response.css("article > div.css-19akfyr > p::text").getall(),
             "modified_at": None,
             "published_at": response.css(".css-1r5gb7q::attr('datetime')").getall(),
+            "time_scraped": [datetime.today().strftime("%Y-%m-%d")],
         },
     )
 
@@ -495,17 +465,17 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
                             .get("url", None),
                             "width": {
                                 "type": "Distance",
-                                "name": json.loads(block)
+                                "name": str(json.loads(block)
                                 .get("publisher", {})
                                 .get("logo", {})
-                                .get("width", None),
+                                .get("width", None)) + " px",
                             },
                             "height": {
                                 "type": "Distance",
-                                "name": json.loads(block)
+                                "name": str(json.loads(block)
                                 .get("publisher", {})
                                 .get("logo", {})
-                                .get("height", None),
+                                .get("height", None)) + " px",
                             },
                         },
                     }
@@ -533,12 +503,15 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
         if "NewsArticle" in json.loads(block).get("@type"):
             return {
                 "title": [json.loads(block).get("headline", [])],
-                "text": ["".join(response.css("article .css-13wylk3::text").getall())],
+                "text": ["".join(response.css(".css-1485smx::text, .css-yo1hy4 .sz-article-body__paragraph--reduced *::text, .css-13wylk3::text").getall())],
                 "section": [json.loads(block).get("articleSection", [])],
+                "tags": [json.loads(block).get("keywords", [])]
             }
     return {
         "title": response.css("article .css-1bhnxuf::text").getall(),
-        "section": [],
+        "text": ["".join(response.css(".css-1485smx::text, .css-yo1hy4 .sz-article-body__paragraph--reduced *::text").getall())],
+        "section": [json.loads(block).get("articleSection", [])],
+        "tags": [json.loads(block).get("keywords", [])]
     }
 
 

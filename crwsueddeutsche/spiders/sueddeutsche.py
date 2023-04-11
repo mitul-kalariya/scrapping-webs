@@ -12,20 +12,18 @@ from scrapy.loader import ItemLoader
 from crwsueddeutsche.items import ArticleData
 from crwsueddeutsche.utils import (
     based_on_scrape_type,
-    date_range,
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
 from crwsueddeutsche.exceptions import (
-    SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
+from crwsueddeutsche.constant import ARCHIVE_URL, BASE_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
@@ -45,10 +43,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_archive(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -60,7 +55,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of Suddeutsche site"""
 
     name = "sueddeutsche"
-    start_urls = ["http://www.sueddeutsche.de/"]
+    start_urls = [BASE_URL]
 
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
@@ -88,7 +83,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
             )
 
             self.start_urls.append(
-                url if self.type == "article" else "https://www.sueddeutsche.de/archiv"
+                url if self.type == "article" else ARCHIVE_URL
             )
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -129,7 +124,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
                         yield scrapy.Request(
                             f"https://www.sueddeutsche.de{category}/{single_date.year}/"
                             + f"{single_date.month}",
-                            callback=self.parse_sitemap,
+                            callback=self.parse_archive,
                             meta={"date": single_date},
                         )
                     except Exception as exception:
@@ -141,7 +136,7 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response):
+    def parse_archive(self, response):
         """
         parse sitemap from sitemap url and callback parser to parse title and link
         Args:
@@ -152,46 +147,26 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
             None
         """
         try:
-            for date, link in zip(
+            for date, link ,title in zip(
                 response.css(".entrylist__time::text").getall(),
                 response.css(".entrylist__content a::attr(href)").getall(),
+                response.css('.entrylist__title::text').getall()
             ):
                 if len(date) > 18:
                     date_datetime = datetime.strptime(date.strip(), "%d.%m.%Y | %H:%M")
                 else:
                     date_datetime = datetime.now()
                 if date_in_date_range(date_datetime, self.date_range_lst):
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                    data = {"link": link, "title": title}
+                    self.articles.append(data)
         except Exception as exception:
             self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h2 > span.css-1bhnxuf::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
+                "Error occurred while scrapping urls from given sitemap url. "
+                + str(exception),
                 level=logging.ERROR,
             )
             raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
+                f"Error occurred while fetching article url:- {str(exception)}"
             ) from exception
 
     def parse_article(self, response: str) -> None:
@@ -255,8 +230,6 @@ class SueddeutscheSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

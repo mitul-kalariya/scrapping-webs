@@ -1,13 +1,11 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
+from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwsueddeutsche.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwsueddeutsche.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
-# TODO: Update below path here
-from crwindianexpress import Crawler
+from crwsueddeutsche import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -17,6 +15,7 @@ class TestArticle(unittest.TestCase):
 
     def _test_article_results(self, articles, test_data_path):
         article = [article for article in articles]
+
         test_article_data = get_article_content(test_data_path)
         self._test_raw_response(article, test_article_data)
         self._test_parse_json(article, test_article_data)
@@ -27,7 +26,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = SueddeutscheSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
