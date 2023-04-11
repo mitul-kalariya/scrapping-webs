@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 from crwchosunIboOnline.constant import SITEMAP_URL
 from crwchosunIboOnline.items import (
     ArticleRawResponse,
@@ -176,7 +177,8 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
         )
     parsed_data_dict = get_parsed_data_dict()
     scrapped_data_dict = get_scrapped_data(response, parsed_data_dict)
-    scrapped_data_dict['Source language'] = ['Korean(Johab)']
+    scrapped_data_dict['source_language'] = ['Korean(Johab)']
+    scrapped_data_dict['source_country'] = ['South Korea']
     return remove_empty_elements(scrapped_data_dict)
 
 
@@ -255,7 +257,12 @@ def get_scrapped_data(response, parsed_data_dict, parsed_json=False) -> list:
     chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.get(response.url)
+    driver.set_page_load_timeout(5)
+
+    try:
+        driver.get(response.url)
+    except TimeoutException:
+        driver.execute_script("window.stop();")
 
     try:
         total_height = int(driver.execute_script("return document.body.scrollHeight"))
@@ -291,8 +298,8 @@ def get_scrapped_data(response, parsed_data_dict, parsed_json=False) -> list:
         parsed_data_dict['description'] = [driver.find_elements(By.CSS_SELECTOR,
                                                                 'meta[name="description"]')[0].get_attribute("content")]
         parsed_data_dict['published_at'] = [driver.find_elements(By.CSS_SELECTOR,
-                                                                'meta[name="article:published_time"]')[0]
-                                                                .get_attribute("content")]
+                                                                 'meta[name="article:published_time"]')[0]
+                                                                 .get_attribute("content")]
         modified_at = driver.find_elements(By.CSS_SELECTOR, '.upDate')[0].text.split(' ')
         if modified_at:
             modified_date_and_time = modified_at[1] + 'T' + modified_at[2]

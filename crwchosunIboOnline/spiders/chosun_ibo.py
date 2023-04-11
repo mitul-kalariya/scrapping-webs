@@ -11,8 +11,7 @@ from crwchosunIboOnline.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crwchosunIboOnline.exceptions import (
     SitemapScrappingException,
@@ -248,8 +247,6 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(
