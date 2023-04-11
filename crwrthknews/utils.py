@@ -285,6 +285,7 @@ def get_article_json(response: str) -> dict:
             parsed_data["images"] = image_object
 
     parsed_data["text"] = [" ".join(description)]
+    parsed_data["time_parsed"] = str(datetime.now())
     return remove_empty_elements(parsed_data)
 
 
