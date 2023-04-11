@@ -10,19 +10,18 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
+from crwcbcnews.constant import BASE_URL, SITEMAP_URL
 from crwcbcnews.items import ArticleData
 from crwcbcnews.utils import (
     based_on_scrape_type,
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
 from crwcbcnews.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -44,10 +43,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_rss_feed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -59,7 +55,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of CBC News site"""
 
     name = "cbc_news"
-    start_urls = ["http://www.cbc.ca/"]
+    start_urls = [BASE_URL]
 
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
@@ -68,7 +64,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
 
         super(CbcNewsSpider, self).__init__(*args, **kwargs)
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -87,9 +83,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
             )
             if self.current_date:
                 self.scrape_start_date = self.scrape_end_date = self.current_date
-            self.start_urls.append(
-                url if self.type == "article" else "https://www.cbc.ca/rss/"
-            )
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -125,7 +119,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
                 try:
                     yield scrapy.Request(
                         link,
-                        callback=self.parse_sitemap,
+                        callback=self.parse_rss_feed,
                     )
                 except Exception as exception:
                     self.log(
@@ -135,7 +129,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_rss_feed(self, response: str) -> None:
         """
         parse sitemap from sitemap url and callback parser to parse title and link
         Args:
@@ -146,8 +140,9 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
 
-        for url, date in zip(
+        for url, title, date in zip(
             Selector(response, type="xml").xpath("//item/link/text()").getall(),
+            Selector(response, type="xml").xpath("//item/title/text()").getall(),
             Selector(response, type="xml").xpath("//item/pubDate/text()").getall(),
         ):
             try:
@@ -155,9 +150,8 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
                     date[:-3].strip(), "%a, %d %b %Y %H:%M:%S"
                 )
                 if date_in_date_range(date_datetime, self.date_range_lst):
-                    yield scrapy.Request(
-                        url.strip(), callback=self.parse_sitemap_article
-                    )
+                    data = {"link": url.replace("?cmp=rss", ""), "title": title}
+                    self.articles.append(data)
             except Exception as exception:
                 self.log(
                     f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -166,29 +160,6 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.detailHeadline::text").get():
-                data = {"link": response.url.replace("?cmp=rss", ""), "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -250,8 +221,6 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

@@ -2,8 +2,6 @@
 from datetime import timedelta, datetime
 import itertools
 import json
-import os
-
 
 from scrapy.loader import ItemLoader
 
@@ -26,7 +24,7 @@ language_mapper = {"en": "English"}
 
 
 def sitemap_validations(
-    scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
+        scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
     Validate the sitemap arguments
@@ -38,6 +36,11 @@ def sitemap_validations(
         date: return current date if user not passed any date parameter
     """
     if scrape_start_date and scrape_end_date:
+        validate_arg(
+            InvalidDateException,
+            scrape_start_date <= datetime.now().date()
+            and scrape_end_date <= datetime.now().date(),
+        )
         validate_arg(InvalidDateException, not scrape_start_date > scrape_end_date)
         validate_arg(
             InvalidDateException,
@@ -59,7 +62,7 @@ def sitemap_validations(
 
 
 def article_validations(
-    article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
+        article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
 ) -> None:
     """
     Validate the article arguments
@@ -116,11 +119,11 @@ def validate_arg(param_name, param_value, custom_msg=None) -> None:
           Value of parameter
     """
     if not param_value:
-        raise param_name(f"{ERROR_MESSAGES[param_name.__name__]} {custom_msg}")
+        raise param_name(ERROR_MESSAGES[param_name.__name__].format(custom_msg))
 
 
 def based_on_scrape_type(
-    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+        scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
 ) -> datetime:
     """
     check scrape type and based on the type pass it to the validated function,
@@ -180,18 +183,19 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
+        "imageObjects": None,
+        "videoObjects": None,
         "Other": [],
         "misc": [],
     }
     for block in blocks:
-        if "NewsArticle" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
-        elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+        if "ReportageNewsArticle" in json.loads(block).get("@type", [{}]):
+            ld_json = json.loads(block)
+            if ld_json.get("image"):
+                parsed_json_flter_dict["imageObjects"] = ld_json.pop("image")
+            if ld_json.get("video"):
+                parsed_json_flter_dict["videoObjects"] = ld_json.pop("video")
+            parsed_json_flter_dict["main"] = ld_json
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
@@ -212,55 +216,19 @@ def get_parsed_json(response) -> dict:
     )
 
     for key, value in get_parsed_json_filter(
-        response.css('script[type="application/ld+json"]::text').getall(),
-        response.css('script[type="application/json"]::text').getall(),
+            response.css('script[type="application/ld+json"]::text').getall(),
+            response.css('script[type="application/json"]::text').getall(),
     ).items():
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
 
 
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
-
-
 def get_parsed_data_dict() -> dict:
     """
     Return base data dictionary
 
-    Args:
-    None
+    Args:None
 
     Returns:
         dict: Return base data dictionary
@@ -292,7 +260,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     """
 
     def empty(value):
-        return value is None or value == {} or value == [] or value == ""
+        return value is None or value == {} or value == [] or value == "" or value == None
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
@@ -340,7 +308,8 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         parsed_json_main.getall(), response
     )
     parsed_data_dict |= get_thumbnail_image_video(parsed_json_main.getall(), response)
-    return parsed_data_dict
+    parsed_data_dict |= {"time_parsed": [str(datetime.now())]}
+    return remove_empty_elements(parsed_data_dict)
 
 
 def get_author_details(parsed_data: list, response: str) -> dict:
@@ -417,8 +386,8 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
             "publisher": [
                 {
                     "@id": response.css("#menuButton::attr(href)")
-                    .get()
-                    .split("/sitemap")[0][2:],
+                           .get()
+                           .split("/sitemap")[0][2:],
                     "@type": json.loads(block).get("publisher", {}).get("@type"),
                     "name": response.css("head > title::text").get().split("|")[1],
                 }
