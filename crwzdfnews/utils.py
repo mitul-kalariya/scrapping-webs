@@ -145,42 +145,50 @@ def get_parsed_data(response):
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         main_data = get_main(response)
+        article_json = main_data.get("article")
+        videoobject_json = main_data.get("VideoObject")
+        web_page = main_data.get("WebPage")
+        if article_json:
+            main_data = article_json
+        else:
+            main_data = videoobject_json
 
-        topline = main_data[0].get("description")
-        main_dict["description"] = [topline]
+        description = main_data.get("description")
+        main_dict["description"] = [description]
 
-        title = response.css("h2#main-content").get()
-        if title:
-            title = re.sub(pattern, "", title.split("</span>")[2]).strip()
-            main_dict["title"] = [title]
+        if article_json:
+            title = main_data.get("headline",None)
+        else:
+            title = main_data.get("name",None)
+        main_dict["title"] = [title]
 
-        published_on = main_data[1].get("datePublished")
+
+        if article_json:
+            published_on = main_data.get("datePublished",None)
+        else:
+            published_on = main_data.get("uploadDate",None)
         main_dict["published_at"] = [published_on]
 
-        modified_on = main_data[1].get("dateModified")
+        modified_on = main_data.get("dateModified",None)
         main_dict["modified_at"] = [modified_on]
 
-        author = main_data[1].get("author")
-        if author:
-            main_dict["author"] = [author]
+        author = main_data.get("author",None)
+        main_dict["author"] = [author]
 
         section = get_section(response)
-        if section:
-            main_dict["section"] = [section]
+        main_dict["section"] = [section]
 
-        publisher = main_data[1].get("publisher")
+        publisher = main_data.get("publisher")
         main_dict["publisher"] = [publisher]
 
         display_text = response.css("p::text").getall()
         main_dict["text"] = [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])]
 
         images = get_images(response)
-        if images:
-            main_dict["images"] = images
+        main_dict["images"] = images
 
-        thumbnail_image = get_thumbnail_image(response)
-        if thumbnail_image:
-            main_dict["thumbnail_image"] = [thumbnail_image]
+        thumbnail_image = web_page.get('thumbnailUrl')
+        main_dict["thumbnail_image"] = [thumbnail_image]
 
         mapper = {"de": "German"}
         article_lang = response.css("html::attr(lang)").get()
@@ -236,16 +244,22 @@ def get_main(response):
         main data
     """
     try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
 
+        information = {}
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        for block in main:
+            data = json.loads(block)
+            if data.get("@type") == "NewsArticle":
+                information["article"] = data
+            elif data.get("@type") == "WebPage":
+                information["WebPage"] = data
+            elif data.get("@type") == "VideoObject":
+                information["VideoObject"] = data
+        return information
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting main: {exception}")
+        LOGGER.error("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting main: {exception}"
+            f"Error while getting main: {exception}"
         )
 
 
