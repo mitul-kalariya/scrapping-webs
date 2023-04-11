@@ -174,7 +174,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             ).getall()
 
             # Loop through the links and published dates
-            for link, pub_date in zip(links, published_date):
+            for link, pub_date in zip(links[1:], published_date[1:]):
                 # Convert the published date to a datetime object
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
@@ -252,8 +252,8 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
