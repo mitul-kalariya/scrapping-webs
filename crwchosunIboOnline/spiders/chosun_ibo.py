@@ -211,7 +211,7 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
                 "parsed_data", get_parsed_data(response, parsed_json_dict)
             )
             self.articles.append(dict(articledata_loader.load_item()))
-            return self.articles[0]
+            return dict(articledata_loader.load_item())
 
         except Exception as exception:
             self.log(
