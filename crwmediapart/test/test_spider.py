@@ -1,19 +1,17 @@
 import logging
 import unittest
-
-from crwmediapart import Crawler
 from crwmediapart.spiders.media_part import MediaPartSpider
 from crwmediapart.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwmediapart.test.helpers.utils import (
-    get_article_content,
-    online_response_from_url,
-)
+from crwmediapart.test.helpers.utils import (get_article_content,
+                                                 online_response_from_url)
+from crwmediapart import Crawler
 
 # Creating an object
 logger = logging.getLogger()
 
 
 class TestArticle(unittest.TestCase):
+
     def _test_article_results(self, articles, test_data_path):
         article = [article for article in articles]
         test_article_data = get_article_content(test_data_path)
@@ -104,15 +102,9 @@ class TestArticle(unittest.TestCase):
         if article_images:
             for image in article_images:
                 with self.subTest():
-                    self.assertIsNotNone(
-                        image.get("link"),
-                        "missing object:- parsed_data--> images --> link",
-                    )
+                    self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
                 with self.subTest():
-                    self.assertIsNotNone(
-                        image.get("caption"),
-                        "missing object:- parsed_data--> images --> caption",
-                    )
+                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -120,20 +112,11 @@ class TestArticle(unittest.TestCase):
         if article_authors:
             for author in article_authors:
                 with self.subTest():
-                    self.assertIsNotNone(
-                        author.get("@type"),
-                        "missing object:- parsed_data--> author --> @type",
-                    )
+                    self.assertIsNotNone(author.get("@type"), "missing object:- parsed_data--> author --> @type")
                 with self.subTest():
-                    self.assertIsNotNone(
-                        author.get("name"),
-                        "missing object:- parsed_data--> author --> name",
-                    )
+                    self.assertIsNotNone(author.get("name"), "missing object:- parsed_data--> author --> name")
                 with self.subTest():
-                    self.assertIsNotNone(
-                        author.get("url"),
-                        "missing object:- parsed_data--> author --> url",
-                    )
+                    self.assertIsNotNone(author.get("url"), "missing object:- parsed_data--> author --> url")
 
     def _test_parse_json_data_format(self, article, test_article_data):  # noqa: C901
         # Since the content of article can be modified at anytime so not checkering exact text
@@ -199,6 +182,9 @@ class TestArticle(unittest.TestCase):
                 self.assertIsInstance(article[0].get("parsed_data").get("author"),
                                       list, "format mismatch for parsed_data--> author")
             self._test_author_format(article)
+        else:
+            with self.subTest():
+                raise AssertionError("missing object:- parsed_data--> author")
 
         if article[0].get("parsed_data").get("modified_at"):
             with self.subTest():
@@ -252,9 +238,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                       list, "format mismatch for parsed_data--> section")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -277,25 +260,15 @@ class TestSitemap(unittest.TestCase):
         # Testing the sitemap article object
         for article in self.article_urls:
             with self.subTest():
-                self.assertIsNotNone(
-                    article.get("link"), "missing object:- sitemap articles --> link"
-                )
+                self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
 
     def _test_sitemap_results(self):
         with self.subTest():
-            self.assertGreater(
-                len(self.article_urls),
-                0,
-                "Crawler did not fetched single article form sitemap",
-            )
+            self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
         with self.subTest():
-            self.assertIsInstance(
-                self.article_urls, list, "Sitemap Article format mismatch"
-            )
+            self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
         with self.subTest():
-            self.assertIsInstance(
-                self.article_urls[0], dict, "Sitemap Article format mismatch"
-            )
+            self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
         self._test_sitemap_article_format()
 
     def test_parse(self):

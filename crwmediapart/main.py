@@ -1,19 +1,12 @@
-from multiprocessing import Process, Queue
-
 from scrapy.crawler import CrawlerProcess
-
-from crwmediapart.spiders.media_part import MediaPartSpider
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
-
+from crwmediapart.spiders.media_part import MediaPartSpider
 
 
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
     ...
-
     Attributes
     ----------
     query : dict
@@ -22,7 +15,6 @@ class Crawler:
         dictionary that contains proxy related information
     output : int
         Data returned by crawl method
-
     Methods
     -------
     crawl()
@@ -31,7 +23,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={"type": None}, proxies={}):
+    def __init__(self, query={'type': None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -60,10 +52,8 @@ class Crawler:
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
-
         Raises:
             Exception: Raised exception for unknown Type
-
         Returns:
             list[dict]: list of dictionary of the article data or article links
             as per expected_article.json or expected_sitemap.json
@@ -102,6 +92,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(MediaPartSpider, **spider_args)
         process.start()

@@ -1,13 +1,9 @@
+import scrapy
 from abc import ABC, abstractmethod
 from datetime import datetime
-
-import scrapy
-from scrapy.crawler import CrawlerProcess
 from scrapy.http import XmlResponse
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
-from scrapy.utils.project import get_project_settings
-
 from crwmediapart import exceptions
 from crwmediapart.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwmediapart.items import ArticleData
@@ -104,6 +100,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         Raises:
             BaseException: If an error occurs during parsing, an error is logged and printed to the console.
         """
+        LOGGER.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
@@ -251,7 +248,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:

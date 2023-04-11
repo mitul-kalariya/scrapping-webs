@@ -55,9 +55,13 @@ def validate_sitemap_date_range(start_date, end_date):
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException("end_date should not be greater than today_date")
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as expception:
+        LOGGER.info(
+            f"Error occured while checking date range: {expception}"
+        )
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -98,7 +102,10 @@ def get_raw_response(response):
     Returns:
         raw_response (dict): targeted data
     """
-    raw_resopnse = {"content_type": "text/html; charset=utf-8", "content": response.css("html").get(), }
+    raw_resopnse = {
+        "content_type": "text/html; charset=utf-8",
+        "content": response.css("html").get(),
+        }
     return raw_resopnse
 
 
@@ -192,9 +199,11 @@ def get_parsed_data(response):
 
         return remove_empty_elements(main_dict)
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        )
 
 
 def get_main(response) -> list:
@@ -211,9 +220,12 @@ def get_main(response) -> list:
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while getting main: {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        )
 
 
 def get_misc(response) -> list:
@@ -230,9 +242,12 @@ def get_misc(response) -> list:
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while getting misc: {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting misc: {exception}"
+        )
 
 
 def get_publisher(response) -> list:
@@ -263,10 +278,12 @@ def get_publisher(response) -> list:
             },
         }
         return [a_dict]
-    except BaseException as e:
-        LOGGER.error(f"while fetching publisher{e}")
-        raise exceptions.ArticleScrappingException(f"Error: while fetching publisher {e}")
 
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting publisher: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting publisher: {exception}"
+        )
 
 def get_author(response) -> list:
     """
@@ -298,9 +315,11 @@ def get_author(response) -> list:
                     data.append(temp_dict)
             return data
 
-    except BaseException as e:
-        LOGGER.error(f"while fetching author {e}")
-        raise exceptions.ArticleScrappingException(f"Error: while fetching author {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting author: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting author: {exception}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -315,20 +334,15 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
-    try:
-        folder_structure = ""
-        if scrape_type == "sitemap":
-            folder_structure = "Links"
-            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        elif scrape_type == "article":
-            folder_structure = "Article"
-            filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
 
-        if not os.path.exists(folder_structure):
-            os.makedirs(folder_structure)
-        with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4)
-
-    except BaseException as e:
-        LOGGER.error(f"while fetching author {e}")
-        raise exceptions.ExportOutputFileException(f"Error: while fetching author {e}")
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4)

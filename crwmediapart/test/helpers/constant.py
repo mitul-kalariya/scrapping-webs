@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.mediapart.fr/journal/international/280323/la-finance-internationale-prend-ses-distances-avec-macron",
