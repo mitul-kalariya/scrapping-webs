@@ -316,7 +316,7 @@ def get_images(response, parsed_json=False) -> list:
 def get_embed_video_link(response) -> list:
     try:
         options = Options()
-        # options.headless = True
+        options.headless = True
         service = Service(executable_path=ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(response.url)
