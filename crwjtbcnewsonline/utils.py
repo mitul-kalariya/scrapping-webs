@@ -41,8 +41,7 @@ def get_parsed_json(response):
         imageObjects = []
         videoObjects = []
         other_data = []
-        ld_json_list = [get_ld_json(response)]
-
+        ld_json_list = response.css('script[type="application/ld+json"]::text').getall()
         for data in ld_json_list:
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
@@ -129,15 +128,15 @@ def get_parsed_data(response):
         json_data = get_ld_json(response)
 
         # Author
-        authors = get_author(response)
+        authors = get_author(json_data)
         main_dict["author"] = authors
 
         # Last Updated Date
-        last_updated_date = get_meta_information(response, "article:modified_time")
+        last_updated_date = json_data.get('dateModified')
         main_dict["modified_at"] = [last_updated_date]
 
         # Published Date
-        published = get_meta_information(response, "cXenseParse:recs:publishtime", key="name")
+        published = json_data.get('datePublished')
         main_dict["published_at"] = [published]
 
         # Description
@@ -159,8 +158,8 @@ def get_parsed_data(response):
         main_dict["thumbnail_image"] = thumbnail
 
         # Title
-        title = response.css(".title-page::text").get().strip()
-        main_dict["title"] = [title]
+        # title = response.css(".title-page::text").get().strip()
+        # main_dict["title"] = [title]
 
         # Images
         article_images = get_images(response)
@@ -231,30 +230,10 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        authors = response.css(".articletag-author")
-        temp_dict = {}
+        authors = response.get('author')
+        data = []
         if authors:
-            data = [
-                dict(
-                    (
-                        ("@type", "Person"),
-                        ("name", author.css("::text").get()),
-                        ("url", f'https:{author.attrib.get("href")}'),
-                    )
-                )
-                for author in authors
-            ]
-
-        else:
-            json_data = get_ld_json(response)
-
-            data = []
-            publisher_data = json_data.get("author")
-            temp_dict["@type"] = publisher_data.get("@type")
-            temp_dict["name"] = publisher_data.get("name")
-            temp_dict["url"] = publisher_data.get("url")
-
-            data.append(temp_dict)
+            data.append(authors)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -409,8 +388,11 @@ def get_ld_json(response) -> json:
     Returns:
         json: ld+json data
     """
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-    json_data = json.loads(ld_json_data)
+    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    if len(ld_json_data) == 1:
+        json_data = json.loads(ld_json_data[0])
+    else:
+        json_data = json.loads(ld_json_data[1])
     return json_data
 
 
