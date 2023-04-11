@@ -437,22 +437,16 @@ def get_formated_images(response, block) -> str:
             "figure.o-element__main figcaption div.o-element__text[data-qa='Element.Caption.text']::text")
         .getall()
     ):
-        if not link:
-            continue
-        dupliate = False
-        for formated_image in formated_images:
-            if link == formated_image.get("link"):
-                dupliate = True
-        if dupliate:
-            continue
-        formated_images.append({
-            "link": link,
-            "caption": caption,
-        })
+        if not link_in_images(formated_images, link):
+            formated_images.append({
+                "link": link,
+                "caption": caption,
+            })
     if formated_images:
         return formated_images
     captions = []
-    for captions_block in json.loads(response.css("div.aem-Grid--default--7 related-images::attr(content)").get()):
+    caption_blocks = response.css("div.aem-Grid--default--7 related-images::attr(content)").get()
+    for captions_block in json.loads(caption_blocks):
         captions.append(captions_block.get("description"))
     if block:
         image_url_from_block = block.get("image", {}).get("url")

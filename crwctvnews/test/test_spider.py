@@ -66,7 +66,6 @@ class TestArticle(unittest.TestCase):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
 
-
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
 
@@ -260,6 +259,7 @@ class TestSitemap(unittest.TestCase):
         until = since = until_obj.strftime(DATES_FORMAT)
         since = since_obj.strftime(DATES_FORMAT)
         self.crawler = Crawler(query={"type": TYPE, "domain": DOMAIN, "since": since, "until": until})
+
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
         for article in self.article_urls:
