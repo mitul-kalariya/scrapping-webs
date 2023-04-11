@@ -25,7 +25,7 @@ def get_request_headers():
     """
     headers = {}
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get("https://www.zeit.de/index")
@@ -317,8 +317,10 @@ def get_main(response):
                 information["WebPage"] = data
             elif data.get("@type") == "VideoObject":
                 information["VideoObject"] = data
-            elif data.get("@id") == "#publisher":
+            elif "Organization" in str(data.get("@id")):
                 information["publisher_info"] = get_publisher_info(data)
+            else:
+                pass
         return information
     except BaseException as exception:
         LOGGER.error("Error while getting main %s ", exception)
