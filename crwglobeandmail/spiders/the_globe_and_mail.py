@@ -15,7 +15,7 @@ from crwglobeandmail.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
+    # export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -25,6 +25,7 @@ from crwglobeandmail.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
 )
+from crwglobeandmail.constant import BASE_URL, SITEMAP_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
@@ -60,8 +61,9 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of Globe and Mail online (EN) site"""
 
     name = "the_globe_and_mail"
-    start_urls = ["http://www.theglobeandmail.com/"]
+    start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    news_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
@@ -93,7 +95,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
             self.start_urls.append(
                 url
                 if self.type == "article"
-                else "https://www.theglobeandmail.com/web-sitemap.xml"
+                else SITEMAP_URL
             )
 
         except Exception as exception:
@@ -125,8 +127,9 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
                 f"Unable to scrape due to getting this status code {response.status}"
             )
         self.logger.info("Parse function called on %s", response.url)
-        if "web-sitemap.xml" in response.url:
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
+        if "news-sitemap-index" in response.url:
+            for url in  Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall():
+                yield scrapy.Request(url, callback=self.parse_sitemap)
         else:
             yield self.parse_article(response)
 
@@ -140,16 +143,16 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        for url, date in zip(
+        for url, date, title in zip(
             Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-            Selector(response, type="xml").xpath("//sitemap:lastmod/text()", namespaces=self.namespace).getall(),
+            Selector(response, type="xml").xpath("//sitemap:publication_date/text()", namespaces=self.news_namespace).getall(),
+            Selector(response, type="xml").xpath("//sitemap:title/text()", namespaces=self.news_namespace).getall()
         ):
             try:
                 date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
                 if date_datetime.date() in self.date_range_lst:
-                    yield scrapy.Request(
-                        url.strip(), callback=self.parse_sitemap_article
-                    )
+                    data = {"link": url, "title": title}
+                    self.articles.append(data)
             except Exception as exception:
                 self.log(
                     "Error occurred while scrapping urls from given sitemap url. "
@@ -159,29 +162,6 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.c-primary-title::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -209,7 +189,7 @@ class TheGlobeAndMailSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"))
+                "parsed_data", get_parsed_data(response, parsed_json_data)
             )
 
             self.articles.append(

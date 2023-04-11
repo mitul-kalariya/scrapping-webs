@@ -3,7 +3,7 @@
 # Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://www.theglobeandmail.com/business/article-bombardier-news-financial-targets/",
+        "url": "https://www.theglobeandmail.com/business/article-first-capital-hazelton-hotel-toronto/",
         "test_data_path": "crwglobeandmail/test/data/test_article_1.json"
     },
     {

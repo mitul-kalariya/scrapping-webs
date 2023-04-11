@@ -9,7 +9,7 @@ from crwglobeandmail.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwglobeandmail.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
@@ -187,18 +187,19 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
+        "imageObjects": [],
+        "videoObjects": [],
         "Other": [],
         "misc": [],
     }
     for block in blocks:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif ("ImageGallery" in json.loads(block).get("@type", [{}])
+              or "ImageObject" in json.loads(block).get("@type", [{}])):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(block))
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"].append(json.loads(block))
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
@@ -285,6 +286,7 @@ def get_parsed_data_dict() -> dict:
         "text": None,
         "thumbnail_image": None,
         "title": None,
+        "alternative_title": None,
         "images": None,
         "section": None,
         "video": None,
@@ -323,7 +325,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list) -> dict:
+def get_parsed_data(response: str, parsed_json: dict) -> dict:
     """
      Parsed data response from generated data using given response and selector
 
@@ -334,6 +336,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
+    parsed_json_main = parsed_json.get("main")
     data_dict = get_author_and_publisher_details(parsed_json_main)
     text = response.css("p.c-article-body__text::text").getall()
     image = {
@@ -365,7 +368,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     parsed_data_dict |= {
         "images": [image] or [{"link": image, "caption": caption}],
     }
-    return parsed_data_dict
+    return remove_empty_elements(parsed_data_dict)
 
 
 def get_author_and_publisher_details(block: dict) -> dict:
@@ -376,6 +379,8 @@ def get_author_and_publisher_details(block: dict) -> dict:
     Returns:
         str : author and publisher details
     """
+    if not block:
+        return {}
     data_dict = {
         "description": block.get("description"),
         "modified_at": block.get("dateModified"),

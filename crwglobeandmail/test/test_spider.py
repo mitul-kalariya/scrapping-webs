@@ -5,7 +5,7 @@ from crwglobeandmail.spiders.the_globe_and_mail import TheGlobeAndMailSpider
 from crwglobeandmail.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwglobeandmail.test.helpers.utils import (get_article_content,
                                                 online_response_from_url)
-from crwtheglobeandmail import Crawler
+from crwglobeandmail import Crawler
 # Creating an object
 logger = logging.getLogger()
 
