@@ -90,7 +90,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 level=logging.ERROR,
             )
             raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
             ) from exception
 
     def parse_sitemap(self, response):
@@ -133,7 +133,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 level=logging.ERROR,
             )
             raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
             ) from exception
 
     def parse_article(self, response):

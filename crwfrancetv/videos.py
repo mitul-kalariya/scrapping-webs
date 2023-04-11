@@ -36,11 +36,9 @@ def get_video(self, url):
             )
             play_button.click()
         except ElementClickInterceptedException:
-            # Handle the exception by waiting for any overlay to disappear
             WebDriverWait(driver, 10).until_not(EC.presence_of_element_located((By.XPATH,
                                                                                 '//div[@class="ftv-magneto--btn \
                                                                                     ftv-magneto--focusable-item"]')))
-            # Try clicking the play button again
             play_button.click()
 
         iframe_text = driver.find_element(By.XPATH, '//div[@role="dialog"]//div[@role="presentation"]/span')
