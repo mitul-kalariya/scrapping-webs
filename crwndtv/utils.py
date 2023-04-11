@@ -188,8 +188,9 @@ def get_parsed_data(response):
         source_language = "English"
         main_dict["source_language"] = [source_language]
 
-        video = response.css('meta[itemprop="ContentUrl"]::attr(content)').get()
-        main_dict["embed_video_link"] = video
+        video = get_video(response)
+        if video:
+            main_dict["embed_video_link"] = [video]
         return remove_empty_elements(main_dict)
     except BaseException as e:
         LOGGER.error(f"while scrapping parsed data {e}")
@@ -221,6 +222,12 @@ def get_content(response):
     ).getall()
     description = " ".join(article_content)
     return [re.sub(pattern, "", description).strip()]
+
+def get_video(response):
+    video = {}
+    video_link = response.css('meta[itemprop="ContentUrl"]::attr(content)').get()
+    video["link"] = video_link
+    return video
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
