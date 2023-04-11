@@ -111,10 +111,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
-        except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_sitemap(self, response):
@@ -146,10 +146,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
         # If there's any error during the above process, log it and print
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error while parsing sitemap: {exception}")
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_sitemap_article(self, response):
@@ -192,10 +192,10 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                     self.articles.append(data)
                 else:
                     continue  # If there's any error during the above process, log it and print
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap article: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error while parsing sitemap article: {exception}")
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap article: {str(e)}"
+                f"Error while parsing sitemap article: {str(exception)}"
             )
 
     def parse_article(self, response):
