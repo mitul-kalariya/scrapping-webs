@@ -98,5 +98,5 @@ class Crawler:
             process.settings = process_settings
 
         # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(STDNewsSpider, **spider_args)
         process.start()

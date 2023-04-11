@@ -159,7 +159,7 @@ def get_country_language_details(response) -> dict:
     html_tags = soup.select("html")
     for html_tag in html_tags:
         lang = (html_tag.attrs["lang"]).lower()
-    breakpoint()
+
     return {"source_country": ["China"], "source_language": mapper.get(lang)}
 
 
@@ -173,7 +173,7 @@ def get_author_details(response: str) -> dict:
         dict: author related details
     """
     author_details = response.css('meta[name="author"]::attr(content)').getall()
-    return {"author": author_details}
+    return {"author": {"name": author_details}}
 
 
 def get_descriptions_date_details(response: list) -> dict:
@@ -190,7 +190,7 @@ def get_descriptions_date_details(response: list) -> dict:
             'meta[name="description"]::attr(content)'
         ).get()
     pub_date = response.css("header span.date::text").get()
-    data_dict["datePublished"] = pub_date
+    data_dict["published_at"] = pub_date
 
     return data_dict
 
@@ -206,7 +206,7 @@ def get_publisher_details(response: list) -> dict:
     """
     publisher = response.css('meta[name="publisher"]::attr(content)').get()
     if publisher:
-        return {"publisher": publisher}
+        return {"publisher": {"name": publisher}, "publisher_name": publisher}
 
 
 def get_text_title_section_tag_details(response: str) -> dict:
@@ -218,12 +218,13 @@ def get_text_title_section_tag_details(response: str) -> dict:
     Returns:
         dict: text, title, section, tag details
     """
-
     return {
         "title": response.css("header > h1::text").getall(),
-        "text": [re.sub(r"[\r\t\n]", "", " ".join(response.css("p::text").getall())).strip()],
+        "text": [
+            re.sub(r"[\r\t\n]", "", " ".join(response.css("p::text").getall())).strip()
+        ],
         "tags": response.css(
-            'sb-body div form input[type="submit"]::attr(title)'
+            '.sb-body div form input[type="submit"]::attr(title)'
         ).getall(),
     }
 
@@ -247,8 +248,9 @@ def get_thumbnail_image_video(response: str) -> dict:
     for image in images:
         url = image.css("div div img::attr(src)").get()
         caption = image.css("div div.media-library-item__name::text").get()
-        images_list.append({"link": url, "caption": re.sub(r"[\r\t\n]","",caption).strip()})
-    breakpoint()
+        images_list.append(
+            {"link": url, "caption": re.sub(r"[\r\t\n]", "", caption).strip()}
+        )
     return remove_empty_elements(
         {"images": images_list, "thumbnail_image": thumbnail_url}
     )
@@ -342,4 +344,4 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     if not os.path.exists(folder_structure):
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file, indent=4, ensure_ascii=False)

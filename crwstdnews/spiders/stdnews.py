@@ -120,7 +120,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
         if self.type == "sitemap":
-            self.get_sitemap(response)
+            self.parse_sitemap(response)
         elif self.type == "article":
             article_data = self.parse_article(response)
             yield article_data
@@ -179,7 +179,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         while today_flag == True:
             response_json = (requests.request(
                 "POST",
-                "https://std.stheadline.com/realtime/get_more_instant_news",
+                LINK_FEED,
                 headers=self.request_headers,
                 data="page="+str(page_counter),
             )).json()
