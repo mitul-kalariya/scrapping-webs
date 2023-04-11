@@ -129,7 +129,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = get_parsed_data(response)
-            response_data["source_country"] = ["Germany"]
+            response_data["source_country"] = ["brazil"]
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
@@ -222,7 +222,6 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-
         except Exception as exception:
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
             raise exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")

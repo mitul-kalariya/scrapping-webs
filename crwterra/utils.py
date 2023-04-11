@@ -13,9 +13,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 from crwterra import exceptions
 from crwterra.constant import TODAYS_DATE, LOGGER
@@ -109,9 +109,6 @@ def get_parsed_json(response):
         parsed_json["imageObjects"] = imageObjects
         parsed_json["videoObjects"] = videoObjects
         parsed_json["other"] = other_data
-        misc = get_misc(response)
-        if misc:
-            parsed_json["misc"] = misc
 
         return remove_empty_elements(parsed_json)
     except BaseException as exception:
@@ -131,52 +128,45 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-        pattern = r"[\r\n\t\</h2>\<h2>]+"
+        pattern = r"[\r\n\t]+"
         main_dict = {}
         main_data = get_main(response)
+
+        author = main_data[0].get("author")
+        if author:
+            main_dict["author"] = author
+    
 
         topline = main_data[0].get("description")
         main_dict["description"] = [topline]
 
-        title = response.css("h2#main-content").get()
-        if title:
-            title = re.sub(pattern, "", title.split("</span>")[2]).strip()
-            main_dict["title"] = [title]
-
-        published_on = main_data[1].get("datePublished")
-        main_dict["published_at"] = [published_on]
-
-        modified_on = main_data[1].get("dateModified")
+        modified_on = main_data[0].get("dateModified")
         main_dict["modified_at"] = [modified_on]
 
-        author = main_data[1].get("author")
-        if author:
-            main_dict["author"] = [author]
+        published_on = main_data[0].get("datePublished")
+        main_dict["published_at"] = [published_on]
 
-        section = get_section(response)
-        if section:
-            main_dict["section"] = [section]
-
-        publisher = main_data[1].get("publisher")
+        publisher = main_data[0].get("publisher")
         main_dict["publisher"] = [publisher]
 
-        display_text = response.css("p::text").getall()
-        main_dict["text"] = [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in display_text])]
+        main_dict["text"] = get_text(response)
 
-        images = get_images(response)
-        if images:
-            main_dict["images"] = images
+        main_dict["thumbnail_image"] = get_thumbnail_image(response)
+        
+        title = main_data[0].get("headline")
+        main_dict["title"] = [title]
 
-        thumbnail_image = get_thumbnail(response)
-        if thumbnail_image:
-            main_dict["thumbnail_image"] = [thumbnail_image]
+        main_dict["images"] = get_images(response)
 
-        mapper = {"de": "German"}
+        if main_data[0].get("@type") == "VideoObject":
+            main_dict["embed_video_link"]  = extract_videos(response)
+
+        main_dict["section"] = get_section(response)
+      
+        mapper = {"pt-BR": "Portuguese"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
-        video = get_embed_video_link(response)
-        main_dict["embed_video_link"] = video.get("videos")
 
         return remove_empty_elements(main_dict)
     except BaseException as e:
@@ -184,20 +174,52 @@ def get_parsed_data(response):
         raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
 
 
-def get_thumbnail(response):
-    data = get_main(response)
-    for data_block in data:
-        if data_block.get('@type') == "WebPage":
-            thumbnail = data_block.get('thumbnailUrl')
-            if thumbnail:
-                return thumbnail
-
-
 def get_section(response):
-    breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
-    if breadcrumb_list[-1]:
-        return breadcrumb_list[-1]
+    section = response.css("ul.breadcrumb li a::text").getall()
+    if section:
+        temp_list = [re.sub(r"[\n\r\t]","",i).strip() for i in section]
+        breadcrumb = [i for i in temp_list if i]
+        return [breadcrumb[len(breadcrumb)-1]]
 
+def get_text(response):
+    """
+    extracts text data from web page and returns a dictionary
+    Parameters:
+        response(object): web page
+    Returns
+        parsed_json(dictionary): available json data
+    """
+    try:
+        video_link_text = response.css("div.article__content--container p::text").get()
+        if video_link_text:
+            return [video_link_text]
+        
+        text = response.css("p.text::text").getall()
+        if text:
+            strong_text = response.css("p.text strong::text").get()
+            if strong_text:
+                return [strong_text +" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
+            else:
+                return [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
+    
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting parsed json {exception}"
+        ) from exception
+
+
+def get_thumbnail_image(response):
+    main_data = get_main(response)
+    try:
+        thumbnail_url = main_data[0].get("thumbnailUrl")
+        if thumbnail_url:
+            return [thumbnail_url]
+        image = main_data[0].get("image")[0]
+        if image:
+            return [image]
+    except:
+        pass
 
 def get_main(response):
     """
@@ -217,86 +239,17 @@ def get_main(response):
         LOGGER.error(f"error parsing ld+json main data{e}")
         raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
 
-
-def get_misc(response):
-    """
-    returns a list of misc data available in the article from application/json
-    Parameters:
-        response:
-    Returns:
-        misc data
-    """
-    try:
-        data = []
-        misc = response.css('script[type="application/json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json misc data {e}")
-        raise exceptions.ArticleScrappingException(f"error while parsing ld+json misc data {e}")
-
-
-def get_images(response, parsed_json=False) -> list:
-    try:
-        images = response.css("figure.content-image")
-        pattern = r"[\r\n\t]"
-        data = []
-        for image in images:
-            temp_dict = {}
-            link = image.css("img::attr(data-src)").get()
-            caption = image.css("figcaption::text").get()
-            if parsed_json:
-                if link:
-                    temp_dict["@type"] = "ImageObject"
-                    temp_dict["link"] = link
-            else:
-                if link:
-                    temp_dict["link"] = link
-                    if caption:
-                        temp_dict["caption"] = re.sub(pattern, "", caption).strip()
-            data.append(temp_dict)
-        return data
-    except BaseException as e:
-        LOGGER.error(f"image fetching exception {e}")
-        raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
-
-
-def get_embed_video_link(response) -> list:
-    options = Options()
-    options.headless = True
-    service = Service(executable_path=ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(response.url)
-    data = {}
-    try:
-        banner_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((
-            By.XPATH, "//div[@class='banner-actions-container']//button")))
-        if banner_button:
-            banner_button.click()
-            time.sleep(3)
-            video_button = WebDriverWait(driver, 50).until(EC.presence_of_all_elements_located((
-                By.XPATH,
-                "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']")))
-            if video_button:
-                videos = []
-                for i in video_button:
-                    i.click()
-                    time.sleep(3)
-                    video = WebDriverWait(i, 50).until(EC.presence_of_all_elements_located((
-                        By.XPATH,
-                        "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']"
-                    )))
-                    if video:
-                        videos.append(video[-1].get_attribute("src"))
-                data["videos"] = videos
-
-    except Exception as e:
-        LOGGER.error(f"exception while fetching video data {e}")
-        raise exceptions.ArticleScrappingException("exception while fetching video data {e}")
-    driver.quit()
-    return data
-
+def get_images(response):
+    images = response.css("div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] meta[itemprop='url']::attr(content)").getall()
+    image_caption = response.css("div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] picture img::attr(alt)").getall()
+    image_list = []
+    for i in range(0,len(images)):
+        image_dict = {}
+        image_dict['link'] = images[i]
+        image_dict['caption'] = image_caption[i]
+        image_list.append(image_dict)
+    if image_list:
+        return image_list
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """
@@ -326,3 +279,21 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     except BaseException as e:
         LOGGER.error(f"error while creating json file: {e}")
         raise exceptions.ExportOutputFileException(f"error while creating json file: {e}")
+
+
+def extract_videos(response) -> list:
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.get(response.url)
+
+    try:
+        video = WebDriverWait(driver, 5).until(EC.presence_of_element_located(
+            (By.XPATH, "//*[@id=\"zp-vjs-66d509e3f08baa2b5888e59805b04086o25a3fy8_html5_api\"]"))).get_attribute("src") or None
+    except:
+        return None
+
+    driver.quit()
+    if video:
+        return [video]
