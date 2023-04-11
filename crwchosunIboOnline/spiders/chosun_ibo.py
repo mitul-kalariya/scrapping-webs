@@ -6,7 +6,6 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 from crwchosunIboOnline.items import ArticleData
-#from scrapy_playwright.page import PageMethod
 
 from crwchosunIboOnline.utils import (
     check_cmd_args,
@@ -179,7 +178,6 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
         :param response: HTTP response from the sitemap URL.
         :return: None
         """
-        # Extract the article title from the response
         pass
 
     def parse_article(self, response):
@@ -204,7 +202,7 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
             # raw_data_dict = {}
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
             parsed_json_misc = response.css('script[type="application/json"]::text')
-            
+
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
@@ -213,14 +211,7 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
 
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
-            # raw_data = response.css('#fusion-metadata').get()
-            # raw_text = raw_data.split('content_elements":')[1]
-            # if raw_text:
-            #     raw_data_dict["main"] = raw_text
-            #     raw_data_dict['ImageGallery'] = raw_text
-            #     raw_data_dict['VideoObject'] = raw_text
-            #     raw_data_dict['other'] = raw_text
-                
+
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
             articledata_loader.add_value(
@@ -253,12 +244,12 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            # if self.output_callback is not None:
-            #     self.output_callback(self.articles)
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(

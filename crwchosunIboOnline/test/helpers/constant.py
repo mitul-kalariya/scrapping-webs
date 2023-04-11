@@ -2,17 +2,17 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.chosun.com/entertainments/enter_general/2023/04/07/C4TYKH2D5HO4L5KW7TNCOEGBFI/",
         "test_data_path": "crwchosunIboOnline/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.chosun.com/entertainments/entertain_photo/2023/04/07/ZSHHWEGZOLUKUKVH6JIICUJFNQ/",
         "test_data_path": "crwchosunIboOnline/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.chosun.com/entertainments/entertain_photo/2023/04/07/KNPG3MA3PVDDMPIJSVMIQ3ILIA/",
         "test_data_path": "crwchosunIboOnline/test/data/test_article_3.json"
     }
 ]
-# TODO:Update below sitemap URL
+
 SITEMAP_URL = "https://www.chosun.com/arc/outboundfeeds/sitemap/section/index/?outputType=xml"

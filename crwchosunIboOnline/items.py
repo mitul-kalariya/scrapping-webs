@@ -35,5 +35,6 @@ class ArticleRawParsedJson(Item):
     VideoObject = Field()
     other = Field()
 
+
 class ArtcleRawParsedData(Item):
     main = Field()

@@ -1,21 +1,25 @@
 import json
+import logging
 import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 from crwchosunIboOnline.constant import SITEMAP_URL
 from crwchosunIboOnline.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
-    ArtcleRawParsedData
 )
 from crwchosunIboOnline.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException
 )
+
+logger = logging.getLogger()
 
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
@@ -171,35 +175,9 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(value)]
         )
     parsed_data_dict = get_parsed_data_dict()
-    test = get_images(response, parsed_data_dict)
-    breakpoint()
-
-    article_data = dict(article_raw_parsed_json_loader.load_item())
-    parsed_data_dict["description"] = [response.css('meta[property="og:description"]::attr(content)').get()]
-    parsed_data_dict["published_at"] = [response.css('meta[name="article:published_time"]::attr(content)').get()]
-    
-
-
-    author = {}
-    if response.css('#container a::text')[0].get():
-        author['@type'] = 'Person'
-        author['name'] = response.css('#container a::text')[0].get()
-        author['url'] = response.css('#container a::attr(href)')[0].get()
-        parsed_data_dict['author'] = [author]
-    parsed_data_dict['author'] = [author]
-    texts = []
-    for data in response.css('#newsViewArea::text'):
-        texts.append(data.get().strip())
-    parsed_data_dict["text"] = " ".join([data for data in texts if data])
-    parsed_data_dict['thumbnail_image'] = [response.css('h1 a:nth-child(1) img::attr(src)').get()]
-    parsed_data_dict['title'] = [response.css('#container h1::text').get()]
-    parsed_data_dict['section'] = [response.css('.section::text').get().split('>')[1]]
-    # parsed_data_dict['embed_video_link'] = get_embed_video_link(response)
-    parsed_data_dict["source_country"] = ["South Korea"]
-    parsed_data_dict["source_language"] = ["Korean"]
-    parsed_data_dict['tags'] = response.css('.gnb_depth_in li a::text').getall()
-    parsed_data_dict['images'] = get_images(response)
-    return remove_empty_elements(parsed_data_dict)
+    scrapped_data_dict = get_scrapped_data(response, parsed_data_dict)
+    scrapped_data_dict['Source language'] = ['Korean(Johab)']
+    return remove_empty_elements(scrapped_data_dict)
 
 
 def remove_empty_elements(parsed_data_dict: dict) -> dict:
@@ -266,37 +244,30 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
-def get_images(response, parsed_data_dict, parsed_json=False) -> list:
+def get_scrapped_data(response, parsed_data_dict, parsed_json=False) -> list:
     """
     Extracts all the images present in the web page.
     Returns:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)
 
     try:
-        scroll = driver.find_elements(By.XPATH, "//p")
-        last_p_tag = scroll[-1]
-        driver.execute_script(
-            "window.scrollTo("
-            + str(last_p_tag.location["x"])
-            + ", "
-            + str(last_p_tag.location["y"])
-            + ")"
-        )
-        import time
-        time.sleep(1)
-        data = []
-        parsed_data_dict['title'] = driver.find_elements(By.CSS_SELECTOR, 'h1.article-header__headline')[0].text
-        parsed_data_dict['author'] = []
-        author_dict = {}
-        author_dict['name'] = driver.find_elements(By.CSS_SELECTOR, '.text--black.text__link--underline')[0].text
-        
-        breakpoint()
+        total_height = int(driver.execute_script("return document.body.scrollHeight"))
+        for i in range(1, total_height, 25):
+            driver.execute_script("window.scrollTo(0, {});".format(i))
+        text_data = driver.find_elements(By.CSS_SELECTOR, '.article-body p')
+        texts = []
+        for text in text_data:
+            texts.append(text.text)
+        parsed_data_dict['text'] = texts
+        images = driver.find_elements(By.CSS_SELECTOR, 'img.cover')
+        image_data = []
         if images:
             for image in images:
                 temp_dict = {}
@@ -306,34 +277,32 @@ def get_images(response, parsed_data_dict, parsed_json=False) -> list:
                     temp_dict["link"] = link
                     if caption:
                         temp_dict["caption"] = caption
-                data.append(temp_dict)
-            return data
+                image_data.append(temp_dict)
+        parsed_data_dict['images'] = image_data
+        parsed_data_dict['title'] = [driver.find_elements(By.CSS_SELECTOR, 'h1.article-header__headline')[0].text]
+        parsed_data_dict['author'] = []
+        author_dict = {}
+        if driver.find_elements(By.CSS_SELECTOR, '.text--black.text__link--underline'):
+            author_dict['@type'] = 'person'
+            author_dict['name'] = driver.find_elements(By.CSS_SELECTOR, '.text--black.text__link--underline')[0].text
+            author_dict['url'] = driver.find_elements(By.CSS_SELECTOR,
+                                                      '.text--black.text__link--underline')[0].get_attribute("href")
+        parsed_data_dict['author'] = [author_dict]
+        parsed_data_dict['description'] = [driver.find_elements(By.CSS_SELECTOR,
+                                                                'meta[name="description"]')[0].get_attribute("content")]
+        parsed_data_dict['published_at'] = [driver.find_elements(By.CSS_SELECTOR,
+                                                                'meta[name="article:published_time"]')[0]
+                                                                .get_attribute("content")]
+        modified_at = driver.find_elements(By.CSS_SELECTOR, '.upDate')[0].text.split(' ')
+        if modified_at:
+            modified_date_and_time = modified_at[1] + 'T' + modified_at[2]
+            parsed_data_dict['modified_at'] = [modified_date_and_time]
+        section_area = driver.find_elements(By.CSS_SELECTOR, '.breadcrumb')[0].text
+        section_area_text = section_area.split('\n')
+        parsed_data_dict['section'] = [section_area_text[0]]
+        parsed_data_dict['sub_section'] = [section_area_text[1]]
     except Exception as e:
-        LOGGER.error(f"{str(e)}")
-    driver.quit()
-    return data
-
-
-def get_embed_video_link(response) -> list:
-    """
-    A list of video objects containing information about the videos on the webpage.
-    """
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
-    driver.get(response.url)
-
-    try:
-        import time
-        time.sleep(1)
-        embed_videos = driver.find_elements(By.CSS_SELECTOR, '#ats-video_html5_api')
-        data = []
-        if embed_videos:
-            for video in embed_videos:
-                link = video.get_attribute("src").replace("blob:", "")
-                temp_dict = {"link": link}
-                data.append(temp_dict)
-    except Exception as exception:
-        LOGGER.error(f"{str(exception)}")
-    driver.quit()
-    return data
+        logger.error(f"{str(e)}")
+    else:
+        driver.close()
+        return parsed_data_dict
