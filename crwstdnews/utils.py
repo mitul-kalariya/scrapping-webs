@@ -5,12 +5,11 @@ import logging
 import re
 from datetime import datetime
 import requests
-from scrapy.selector import Selector
 from bs4 import BeautifulSoup
 
 # requests.get(response.url)
 from crwstdnews import exceptions
-from crwstdnews.constant import TODAYS_DATE, LOGGER
+from crwstdnews.constant import LOGGER
 
 """
 article functions

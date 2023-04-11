@@ -9,7 +9,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 
 from crwstdnews.constant import (
-    LINK_FEED,
+    LINK_FEED_URL,
     LOGGER,
 )
 from crwstdnews import exceptions
@@ -83,7 +83,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         self.type = type.lower()
 
         if self.type == "sitemap":
-            self.start_urls.append(LINK_FEED)
+            self.start_urls.append(LINK_FEED_URL)
 
         if self.type == "article":
             if url:
@@ -179,7 +179,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         while today_flag == True:
             response_json = (requests.request(
                 "POST",
-                LINK_FEED,
+                LINK_FEED_URL,
                 headers=self.request_headers,
                 data="page="+str(page_counter),
             )).json()

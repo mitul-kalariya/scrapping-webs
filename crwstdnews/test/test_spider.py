@@ -3,7 +3,7 @@ import unittest
 
 # TODO: Update the path here replace crwstdnews --> your project name
 from crwstdnews.spiders.stdnews import STDNewsSpider
-from crwstdnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwstdnews.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
 from crwstdnews.test.helpers.utils import (
     get_article_content,
     online_response_from_url,
@@ -382,7 +382,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.crawler = Crawler(query={"type": "sitemap", "domain": LINK_FEED_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

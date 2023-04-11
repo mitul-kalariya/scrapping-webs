@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     },
 ]
 # TODO:Update below sitemap URL
-SITEMAP_URL = "https://std.stheadline.com/realtime/get_more_instant_news"
+LINK_FEED_URL = "https://std.stheadline.com/realtime/get_more_instant_news"
