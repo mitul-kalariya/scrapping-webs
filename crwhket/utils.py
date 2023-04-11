@@ -9,7 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-# from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -359,7 +359,7 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
         "source_country": ["China"],
         "source_language": [language_mapper.get(
             response.css("html::attr(lang)").get("").lower(),
-            response.css("html::attr(lang)").get()
+            response.css("html::attr(lang)").get("Chinese")
         )],
     }
     parsed_data_dict |= {"author": data_dict.get("author")}
@@ -557,11 +557,13 @@ def get_all_data_from_selenium(url: str) -> dict:
         dict: data with key, value pair
     """
     driver = webdriver.Chrome()
-    # chrome_options = Options()
-    # chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))   # , options=chrome_options)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     driver.get(url)
-
+    total_height = int(driver.execute_script("return document.body.scrollHeight"))
+    for i in range(1, total_height, 25):
+        driver.execute_script("window.scrollTo(0, {});".format(i))
     ld_json_blocks = WebDriverWait(driver, 20).until(
         EC.presence_of_all_elements_located((By.XPATH, '//script[@type="application/ld+json"]'))
     )
