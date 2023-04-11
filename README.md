@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": 'https://www.chosun.com/entertainments/enter_general/2023/04/07/C4TYKH2D5HO4L5KW7TNCOEGBFI/'
     },
     proxies=proxies
 )
@@ -98,3 +98,7 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
+
+### Use of Selenium
+
+Yes, we used selenium to fetch to scrap site data. To manage the selenium we are using webdriver-manager(https://pypi.org/project/webdriver-manager/) package and we are using `ChromeDriverManager`.
