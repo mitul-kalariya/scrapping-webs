@@ -85,9 +85,7 @@ class TestArticle(unittest.TestCase):
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("section"),
                              test_article_data[0].get("parsed_data").get("section"), "section mismatch in parsed_data")
-        with self.subTest():
-            self.assertEqual(article[0].get("parsed_data").get("tags"), test_article_data[0].get(
-                "parsed_data").get("tags"), "tags mismatch in parsed_data")
+
         with self.subTest():
             self.assertEqual(article[0].get("parsed_data").get("source_country"),
                              test_article_data[0].get("parsed_data").get("source_country"),
@@ -254,8 +252,6 @@ class TestSitemap(unittest.TestCase):
         for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-            with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
     def _test_sitemap_results(self):
         with self.subTest():

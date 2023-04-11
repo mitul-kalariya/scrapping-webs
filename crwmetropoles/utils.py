@@ -99,8 +99,8 @@ def get_main(response):
     """
     try:
         data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        for block in main:
             data.append(json.loads(block))
         return data[0]
     except BaseException as exception:
@@ -317,13 +317,14 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-        response = response.css('script[type="application/ld+json"]::text').getall()
-        json_loads = json.loads(response[0])
-        data = []
-        for block in json_loads.get("@graph"):
-            if "publisher" in block.keys():
-                data.append(block.get("publisher"))
-                return data
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+        for a_block in ld_json_data:
+            json_loads = json.loads(a_block)
+            data = []
+            for block in json_loads.get("@graph"):
+                if "publisher" in block.keys():
+                    data.append(block.get("publisher"))
+                    return data
 
     except Exception as exception:
         LOGGER.info(f"Error while fetching publisher data {str(exception)}")
@@ -433,21 +434,22 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
-        pictures = []
         picture_links = response.css("article figure img::attr(src), div.m-image-carousel img::attr(data-src)").getall()
-        if picture_links:
-            pictures.append(picture_links)
+        captions = response.css("article figure figcaption, div.siema-item > div.m-subtitle-carousel p")
+        captions_list = []
 
-        captions = []
-        cap = response.css("article figure figcaption::text, div.siema-item > div.m-image-carousel span::text").getall()
-        if cap:
-            captions.append(cap)
+        for caption in captions:
+            cap_text = ""
+            text = caption.css("*::text").getall()
+            for i in text:
+                cap_text += i.strip()
+            captions_list.append(cap_text)
 
         temp_dict = {
             "images": [
                 {"link": img, "caption": cap}
                 for img, cap in itertools.zip_longest(
-                    pictures[0], captions[0],
+                    picture_links, captions_list,
                     fillvalue=None,
                 )
             ]

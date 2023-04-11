@@ -34,7 +34,7 @@ class BaseSpider(ABC):
         pass
 
 
-class MetropolesSpider(scrapy.Spider):
+class MetropolesSpider(scrapy.Spider, BaseSpider):
     name = "metropoles"
 
     def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
@@ -108,9 +108,20 @@ class MetropolesSpider(scrapy.Spider):
             if self.type == "sitemap":
                 root = etree.fromstring(response.body)
                 links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas"
-                                                                              "/sitemap/0.9"},)
+                                                                              "/sitemap/0.9"}, )
                 for link in links[3:5]:
                     yield scrapy.Request(link, callback=self.parse_sitemap)
+                # data_link = ["https://www.metropoles.com/sitemap-misc.xml", "https://www.metropoles.com/sitemap-tax-post_tag.xml","https://www.metropoles.com/sitemap-tax-category.xml"]
+                # for link in links:
+                #     if link in data_link:
+                #         continue
+                #     else:
+                #         # breakpoint()
+                #         today = datetime.now()
+                #         month = datetime.month()
+                #         year = datetime.year()
+                #         print("###########", month, year)
+
 
             elif self.type == "article":
                 yield self.parse_article(response)
