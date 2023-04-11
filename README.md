@@ -1,8 +1,8 @@
-# {ScrapperName} Scrapping
+# Chosun-IBO_Online Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from news.chosun.com website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -22,10 +22,11 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
+Sitemap data is available only for one week Including Today's date.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwasahishimbundigital import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -37,7 +38,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "news.chosun.com",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -49,7 +50,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwasahishimbundigital import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "news.chosun.com"
     },
     proxies=proxies
 )
@@ -72,7 +73,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwasahishimbundigital import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
