@@ -1,7 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwterra.spiders.terra import TerraSpider
 
 
 class Crawler:
@@ -98,5 +98,5 @@ class Crawler:
             process.settings = process_settings
 
         # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(TerraSpider, **spider_args)
         process.start()
