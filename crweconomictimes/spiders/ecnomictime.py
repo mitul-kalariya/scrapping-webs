@@ -12,12 +12,10 @@ from crweconomictimes.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crweconomictimes.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -40,10 +38,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -83,8 +77,11 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
-    def parse(self, response):
+    def parse(self, response):  # noqa: C901
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
@@ -96,12 +93,12 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
         """
-        if response.status != 200:
-            raise CloseSpider(
-                f"Unable to scrape due to getting this status code {response.status}"
-            )
-        if self.type == "sitemap":
-            try:
+        try:
+            if response.status != 200:
+                raise CloseSpider(
+                    f"Unable to scrape due to getting this status code {response.status}"
+                )
+            if self.type == "sitemap":
                 for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                          namespaces=self.namespace).getall():
                     split_url = site_map_url.split('/')[-1].split('-')
@@ -119,20 +116,17 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                         if (self.start_date.year, self.start_date.month) <= (target_date.year, target_date.month) <=\
                            (self.end_date.year, self.end_date.month):
                             yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-            except Exception as exception:
-                self.log(
-                    f"Error occured while iterating sitemap url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-
-        elif self.type == "article":
-            try:
+            elif self.type == "article":
                 yield self.parse_article(response)
-            except Exception as exception:
-                self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
+
+        except Exception as exception:
+            self.log(
+                f"Error occured while iterating article url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occured while iterating article url. {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -171,15 +165,6 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response):
-        """
-        Parse article information from a given sitemap URL.
-
-        :param response: HTTP response from the sitemap URL.
-        :return: None
-        """
-        pass
 
     def parse_article(self, response):
         """
