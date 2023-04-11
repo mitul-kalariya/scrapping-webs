@@ -1,9 +1,8 @@
 """Spider to scrap STD.stheadline news website"""
-import re
 import logging
-import requests
 from abc import ABC, abstractmethod
 from datetime import datetime
+import requests
 
 import scrapy
 from scrapy.loader import ItemLoader
@@ -22,46 +21,70 @@ from crwstdnews.utils import (
     get_parsed_json,
 )
 
-#create logs
+# create logs
 create_log_file()
 
+# pylint disable=unnecessary-pass
 class BaseSpider(ABC):
     """Abstract Base class for scrapy spider
-
     Args:
         ABC : Abstract
     """
-    # pylint disable=unnecessary-pass
     @abstractmethod
-    def parse(self,response):
-        """parse function responsible for calling individual methods for each request"""
+    def parse(self, response):
+        """
+        Parses the given Scrapy response based on the specified type of parsing.
+
+        Returns:
+            A generator that yields a scrapy.Request object to parse a sitemap or an article.
+
+        Example Usage:
+            parse(scrapy.http.Response(url="https://example.com", body="..."))
+        """
         pass
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        """called by parse function when response is sitemap"""
+        """
+        This function takes in a response object and parses the sitemap.
+        It extracts the links and published dates from the response object
+        and uses them to make requests to other pages.
+        Yields:
+            scrapy.Request: A request object with the link and published date as metadata.
+            The request object is sent to the 'parse_sitemap_link_title'
+            callback function for further processing.
+        """
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        """called by parse function when response is sitemap article"""
-        pass
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
-        """called by parse function when response is article"""
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
         pass
 
 
 class STDNewsSpider(scrapy.Spider, BaseSpider):
+    """main spider class for STD news
+    """
     name = "stdnews"
     start_urls = ["https://std.stheadline.com/realtime/get_more_instant_news"]
 
     def __init__(self, *args, type=None, url=None, **kwargs):
         # pylint: disable=redefined-builtin
         """
-        A spider to crawl globalnews.ca for news articles.
+        A spider to crawl std.stheadline for news articles.
         The spider can be initialized with two modes:
-        1. Sitemap mode: In this mode, the spider will crawl the news sitemap of globalnews.ca
+        1. Sitemap mode: In this mode, the spider will crawl the news sitemap of std.stheadline
         and scrape articles within a specified date range.
         2. Article mode: In this mode, the spider will scrape a single article from a specified URL.
 
@@ -90,7 +113,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
                 self.start_urls.append(url)
             else:
                 LOGGER.error("Must have a URL to scrap")
-                raise Exception("Must have a URL to scrap")
+                raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         self.request_headers = {
             "authority": "std.stheadline.com",
@@ -105,11 +128,12 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+            "user-agent":
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
             "x-requested-with": "XMLHttpRequest",
         }
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         """
         Parses the given Scrapy response based on the specified type of parsing.
 
@@ -124,7 +148,6 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         elif self.type == "article":
             article_data = self.parse_article(response)
             yield article_data
-
 
     def parse_article(self, response: str) -> list:
         """
@@ -157,12 +180,12 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info(
                 "Error occurred while scrapping an article for this link %s %s",
-                response.url, str(exception)
+                response.url,
+                str(exception),
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
-
 
     def parse_sitemap(self, response):
         """
@@ -176,13 +199,16 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         """
         today_flag = True
         page_counter = 1
-        while today_flag == True:
-            response_json = (requests.request(
-                "POST",
-                LINK_FEED_URL,
-                headers=self.request_headers,
-                data="page="+str(page_counter),
-            )).json()
+        while today_flag is True:
+            response_json = (
+                requests.request(
+                    "POST",
+                    LINK_FEED_URL,
+                    headers=self.request_headers,
+                    data="page=" + str(page_counter),
+                    timeout=5,
+                )
+            ).json()
             article_list = response_json.get("data")
             for article_data in article_list:
                 if "\u65e5\u524d" in article_data.get("publish_datetime"):
@@ -190,11 +216,11 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
                     break
                 self.articles.append(
                     {
-                        "link":article_data.get("articleLink"),
-                        "title":article_data.get("title").get("tc"),
+                        "link": article_data.get("articleLink"),
+                        "title": article_data.get("title").get("tc"),
                     }
                 )
-            page_counter+=1
+            page_counter += 1
 
     def closed(self, reason: any) -> None:
         """
@@ -213,11 +239,11 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-        except BaseException as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            self.log(
-                f"Error occurred while closing crawler{str(exception)} - {reason}",
+        except BaseException as exc:
+            LOGGER.log(
+                f"Error occurred while closing crawler{str(exc)} - {reason}",
                 level=logging.ERROR,
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exc)} - {reason}"
             )

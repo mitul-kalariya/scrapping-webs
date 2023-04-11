@@ -11,10 +11,6 @@ from bs4 import BeautifulSoup
 from crwstdnews import exceptions
 from crwstdnews.constant import LOGGER
 
-"""
-article functions
-"""
-
 
 def get_raw_response(response):
     """parsing raw response
@@ -153,7 +149,7 @@ def get_country_language_details(response) -> dict:
         "zh-cn": "Chinese (PRC)",
         "zh-hant-hk": "Chinese (Traditional)",
     }
-    page = requests.get(response.url)
+    page = requests.get(response.url,timeout=5)
     soup = BeautifulSoup(page.content, "html.parser")
     html_tags = soup.select("html")
     for html_tag in html_tags:
@@ -194,7 +190,7 @@ def get_descriptions_date_details(response: list) -> dict:
     return data_dict
 
 
-def get_publisher_details(response: list) -> dict:
+def get_publisher_details(response) -> dict:
     """
     Returns publisher details like name, type, id
     Args:
@@ -206,6 +202,7 @@ def get_publisher_details(response: list) -> dict:
     publisher = response.css('meta[name="publisher"]::attr(content)').get()
     if publisher:
         return {"publisher": {"name": publisher}, "publisher_name": publisher}
+    return {"publisher": None}
 
 
 def get_text_title_section_tag_details(response: str) -> dict:
@@ -253,11 +250,6 @@ def get_thumbnail_image_video(response: str) -> dict:
     return remove_empty_elements(
         {"images": images_list, "thumbnail_image": thumbnail_url}
     )
-
-
-"""
-common functions
-"""
 
 
 def format_dictionary(raw_dictionary):
