@@ -317,7 +317,7 @@ def get_main(response):
                 information["WebPage"] = data
             elif data.get("@type") == "VideoObject":
                 information["VideoObject"] = data
-            elif "Organization" in str(data.get("@id")):
+            elif data.get("@type") in {"NewsMediaOrganization", "Organization"}:
                 information["publisher_info"] = get_publisher_info(data)
             else:
                 pass
