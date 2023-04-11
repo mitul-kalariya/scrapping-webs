@@ -105,7 +105,7 @@ def get_raw_response(response):
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
         "content": response.css("html").get(),
-        }
+    }
     return raw_resopnse
 
 
@@ -189,7 +189,6 @@ def get_parsed_data(response):
         description = main_data[0].get("description")
         main_dict["description"] = [description]
 
-    
         article_text = response.css("div.news__body__center__article p::text").getall()
         if article_text:
             main_dict["text"] = [(" ".join(article_text).replace("\n", "")).strip()]
@@ -285,6 +284,7 @@ def get_publisher(response) -> list:
         raise exceptions.ArticleScrappingException(
             f"Error occured while extracting publisher: {exception}"
         )
+
 
 def get_author(response) -> list:
     """

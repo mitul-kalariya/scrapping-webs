@@ -8,7 +8,7 @@ This repo contains the code to scrap all article links and articles from https:/
 - Pillow
 
 
-#### Environment Setup
+#### Environment Setup 
 
 - Create a Virtual Environment using Python3 and activate the environment.
 - `python3 -m venv venv`
@@ -26,7 +26,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwmediapart import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -34,63 +34,6 @@ proxies = {
     "proxyUsername": "yourusername",
     "proxyPassword": "yourpassword"
 }
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "{BASE_URL}",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
-```
-# To fetch all the article links from today's date only
-
-from {package_name} import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "{BASE_URL}"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
-
-```
-#  To fetch the specific article details
-
-from {package_name} import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "article",
-        "link": {Sample article URL from test case}
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
 
 crawler = Crawler(
     query={
