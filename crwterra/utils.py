@@ -5,7 +5,6 @@
 import os
 import re
 import json
-import time
 import logging
 from datetime import datetime
 
@@ -13,38 +12,54 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 from crwterra import exceptions
 from crwterra.constant import TODAYS_DATE, LOGGER
 
 
-
 def create_log_file():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-                        filename="logs.log", filemode="a", datefmt="%Y-%m-%d %H:%M:%S", )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
-            raise exceptions.InvalidDateException("end_date must be specified if start_date is provided")
+            raise exceptions.InvalidDateException(
+                "end_date must be specified if start_date is provided"
+            )
 
         if not start_date and end_date:
-            raise exceptions.InvalidDateException("start_date must be specified if end_date is provided")
+            raise exceptions.InvalidDateException(
+                "start_date must be specified if end_date is provided"
+            )
 
         if start_date and end_date and start_date > end_date:
-            raise exceptions.InvalidDateException("start_date should not be later than end_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be later than end_date"
+            )
 
         if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be greater than today_date"
+            )
 
         if start_date and end_date and end_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException("start_date should not be greater than today_date")
+            raise exceptions.InvalidDateException(
+                "start_date should not be greater than today_date"
+            )
 
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
@@ -66,17 +81,28 @@ def remove_empty_elements(parsed_data_dict):
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
     elif isinstance(parsed_data_dict, list):
-        data_dict = [value for value in (remove_empty_elements(value) for value in parsed_data_dict) if
-                     not empty(value)]
+        data_dict = [
+            value
+            for value in (remove_empty_elements(value) for value in parsed_data_dict)
+            if not empty(value)
+        ]
     else:
-        data_dict = {key: value for key, value in
-                     ((key, remove_empty_elements(value)) for key, value in parsed_data_dict.items()) if
-                     not empty(value)}
+        data_dict = {
+            key: value
+            for key, value in (
+                (key, remove_empty_elements(value))
+                for key, value in parsed_data_dict.items()
+            )
+            if not empty(value)
+        }
     return data_dict
 
 
 def get_raw_response(response):
-    raw_resopnse = {"content_type": "text/html; charset=utf-8", "content": response.css("html").get(), }
+    raw_resopnse = {
+        "content_type": "text/html; charset=utf-8",
+        "content": response.css("html").get(),
+    }
     return raw_resopnse
 
 
@@ -93,8 +119,7 @@ def get_parsed_json(response):
         imageObjects = []
         videoObjects = []
         other_data = []
-        ld_json_data = response.css(
-            'script[type="application/ld+json"]::text').getall()
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in ld_json_data:
             data = json.loads(a_block)
             if data.get("@type") == "NewsArticle":
@@ -128,14 +153,18 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-        pattern = r"[\r\n\t]+"
         main_dict = {}
         main_data = get_main(response)
+
+        main_dict["source_country"] = ["brazil"]
+
+        mapper = {"pt-BR": "Portuguese"}
+        article_lang = response.css("html::attr(lang)").get()
+        main_dict["source_language"] = [mapper.get(article_lang)]
 
         author = main_data[0].get("author")
         if author:
             main_dict["author"] = author
-    
 
         topline = main_data[0].get("description")
         main_dict["description"] = [topline]
@@ -152,21 +181,16 @@ def get_parsed_data(response):
         main_dict["text"] = get_text(response)
 
         main_dict["thumbnail_image"] = get_thumbnail_image(response)
-        
+
         title = main_data[0].get("headline")
         main_dict["title"] = [title]
 
         main_dict["images"] = get_images(response)
 
         if main_data[0].get("@type") == "VideoObject":
-            main_dict["embed_video_link"]  = extract_videos(response)
+            main_dict["embed_video_link"] = extract_videos(response)
 
         main_dict["section"] = get_section(response)
-      
-        mapper = {"pt-BR": "Portuguese"}
-        article_lang = response.css("html::attr(lang)").get()
-        main_dict["source_language"] = [mapper.get(article_lang)]
-
 
         return remove_empty_elements(main_dict)
     except BaseException as e:
@@ -177,9 +201,10 @@ def get_parsed_data(response):
 def get_section(response):
     section = response.css("ul.breadcrumb li a::text").getall()
     if section:
-        temp_list = [re.sub(r"[\n\r\t]","",i).strip() for i in section]
+        temp_list = [re.sub(r"[\n\r\t]", "", i).strip() for i in section]
         breadcrumb = [i for i in temp_list if i]
-        return [breadcrumb[len(breadcrumb)-1]]
+        return [breadcrumb[len(breadcrumb) - 1]]
+
 
 def get_text(response):
     """
@@ -193,15 +218,18 @@ def get_text(response):
         video_link_text = response.css("div.article__content--container p::text").get()
         if video_link_text:
             return [video_link_text]
-        
+
         text = response.css("p.text::text").getall()
         if text:
             strong_text = response.css("p.text strong::text").get()
             if strong_text:
-                return [strong_text +" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
+                return [
+                    strong_text
+                    + " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])
+                ]
             else:
                 return [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
-    
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting parsed json {exception}")
         raise exceptions.ArticleScrappingException(
@@ -218,8 +246,9 @@ def get_thumbnail_image(response):
         image = main_data[0].get("image")[0]
         if image:
             return [image]
-    except:
-        pass
+    except BaseException as e:
+        print("thumbnail_url not found-->", e)
+
 
 def get_main(response):
     """
@@ -237,19 +266,29 @@ def get_main(response):
         return data
     except BaseException as e:
         LOGGER.error(f"error parsing ld+json main data{e}")
-        raise exceptions.ArticleScrappingException(f"error parsing ld+json main data {e}")
+        raise exceptions.ArticleScrappingException(
+            f"error parsing ld+json main data {e}"
+        )
+
 
 def get_images(response):
-    images = response.css("div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] meta[itemprop='url']::attr(content)").getall()
-    image_caption = response.css("div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] picture img::attr(alt)").getall()
+    images = response.css(
+        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image']"
+        + "meta[itemprop='url']::attr(content)"
+    ).getall()
+    image_caption = response.css(
+        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] "
+        + "picture img::attr(alt)"
+    ).getall()
     image_list = []
-    for i in range(0,len(images)):
+    for i in range(0, len(images)):
         image_dict = {}
-        image_dict['link'] = images[i]
-        image_dict['caption'] = image_caption[i]
+        image_dict["link"] = images[i]
+        image_dict["caption"] = image_caption[i]
         image_list.append(image_dict)
     if image_list:
         return image_list
+
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """
@@ -267,10 +306,14 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         folder_structure = ""
         if scrape_type == "sitemap":
             folder_structure = "Links"
-            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            filename = (
+                f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
         elif scrape_type == "article":
             folder_structure = "Article"
-            filename = (f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+            filename = (
+                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
 
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
@@ -278,7 +321,9 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             json.dump(file_data, file, indent=4)
     except BaseException as e:
         LOGGER.error(f"error while creating json file: {e}")
-        raise exceptions.ExportOutputFileException(f"error while creating json file: {e}")
+        raise exceptions.ExportOutputFileException(
+            f"error while creating json file: {e}"
+        )
 
 
 def extract_videos(response) -> list:
@@ -289,8 +334,19 @@ def extract_videos(response) -> list:
     driver.get(response.url)
 
     try:
-        video = WebDriverWait(driver, 5).until(EC.presence_of_element_located(
-            (By.XPATH, "//*[@id=\"zp-vjs-66d509e3f08baa2b5888e59805b04086o25a3fy8_html5_api\"]"))).get_attribute("src") or None
+        video = (
+            WebDriverWait(driver, 5)
+            .until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        '//*[@id="zp-vjs-66d509e3f08baa2b5888e59805b04086o25a3fy8_html5_api"]',
+                    )
+                )
+            )
+            .get_attribute("src")
+            or None
+        )
     except:
         return None
 
