@@ -14,6 +14,7 @@ class CrwlinternauteItem(scrapy.Item):
     # name = scrapy.Field()
     pass
 
+
 class ArticleData(Item):
     raw_response = Field(output_processor=TakeFirst())
     parsed_json = Field(output_processor=TakeFirst())
@@ -31,5 +32,6 @@ class ArticleRawParsedJson(Item):
     main = Field(output_processor=TakeFirst())
     misc = Field()
     ImageGallery = Field()
-    VideoObject = Field()
+    videoObjects = Field()
+    imageObjects = Field()
     other = Field()

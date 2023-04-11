@@ -11,12 +11,10 @@ from crwlinternaute.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crwlinternaute.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -42,22 +40,19 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
-    @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
 
 
 class Linternaute(scrapy.Spider, BaseSpider):
     name = "linternaute"
-    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9','news': "http://www.google.com/schemas/sitemap-news/0.9"}
+    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
+                 'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
         self, type=None, start_date=None,
         end_date=None, url=None, *args, **kwargs
-                ):
+    ):
         super(Linternaute, self).__init__(*args, **kwargs)
         self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
@@ -65,8 +60,8 @@ class Linternaute(scrapy.Spider, BaseSpider):
         self.type = type
         self.url = url
         self.article_url = url
-        self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
+        self.start_date = start_date
+        self.end_date = end_date
         self.today_date = None
 
         check_cmd_args(self, self.start_date, self.end_date)
@@ -75,17 +70,18 @@ class Linternaute(scrapy.Spider, BaseSpider):
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
-        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
-        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback function `parse_article`.
+        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request
+        for each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        If `type` is "articles", sends a request for the given URL to Scrapy's engine with the callback function
+        `parse_article`.
         This function is intended to be used as a Scrapy spider callback function.
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
         """
         if self.type == "sitemap":
 
-            site_map_url = Selector(response, type='xml')\
-                            .xpath('//sitemap:loc/text()',
-                                    namespaces=self.namespace).getall()
+            site_map_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                                namespaces=self.namespace).getall()
 
             mod_date = Selector(response, type='xml')\
                 .xpath('//sitemap:lastmod/text()',
@@ -96,7 +92,7 @@ class Linternaute(scrapy.Spider, BaseSpider):
 
                     if not self.today_date:
                         if self.start_date <= _date <= self.end_date:
-                 
+
                             yield scrapy.Request(
                                 url, callback=self.parse_sitemap)
                     else:
@@ -106,6 +102,9 @@ class Linternaute(scrapy.Spider, BaseSpider):
 
             except Exception as e:
                 self.logger.exception(f"Error in parse_sitemap:- {e}")
+                raise SitemapScrappingException(
+                    f"Error occurred while fetching sitemap:- {str(e)}"
+                ) from e
         elif self.type == "article":
             try:
                 yield self.parse_article(response)
@@ -115,6 +114,9 @@ class Linternaute(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapScrappingException(
+                    f"Error occurred while fetching sitemap:- {str(exception)}"
+                ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -127,7 +129,7 @@ class Linternaute(scrapy.Spider, BaseSpider):
             xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
         mod_date = Selector(response, type='xml')\
             .xpath('//sitemap:lastmod/text()',
-                    namespaces=self.namespace).getall()
+                   namespaces=self.namespace).getall()
 
         try:
             for url, date in zip(article_urls, mod_date):
@@ -135,15 +137,13 @@ class Linternaute(scrapy.Spider, BaseSpider):
                 if self.today_date:
                     if _date == self.today_date:
                         if "ville" not in url and "television" not in url and "account" not in url:
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap_article)
+                            self.articles.append({'link': url})
                 else:
-                    
+
                     if self.start_date <= _date <= self.end_date:
                         if "ville" not in url and "television" not in url and "account" not in url:
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap_article)
-                        
+                            self.articles.append({'link': url})
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -152,32 +152,6 @@ class Linternaute(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-        
-    def parse_sitemap_article(self, response):
-        """
-           Parse article information from a given sitemap URL.
-           :param response: HTTP response from the sitemap URL.
-           :return: None
-        """
-        try:
-            # Extract the article title from the response
-            title = response.css('div.entry h1::text').get()
-            type_of_news = response.css('header.cp_diapo-header').get()
-            # If the title exists, add the article information to the list of articles
-            if title and not type_of_news:
-                article = {
-                    "link": response.url,
-                    "title": title
-                }
-                self.articles.append(article)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception        
 
     def parse_article(self, response):
         """
@@ -205,14 +179,15 @@ class Linternaute(scrapy.Spider, BaseSpider):
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict['VideoObject'] = parsed_json_main
+                parsed_json_dict['videoObjects'] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
 
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
 
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
-         
+
             articledata_loader.add_value("raw_response", raw_response)
             if parsed_json_data:
                 articledata_loader.add_value(
@@ -250,7 +225,6 @@ class Linternaute(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

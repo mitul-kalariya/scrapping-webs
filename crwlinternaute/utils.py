@@ -1,9 +1,7 @@
 """Utility Functions"""
 import json
-import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from scrapy.http import Response
 
 from crwlinternaute.items import (
     ArticleRawResponse,
@@ -16,6 +14,7 @@ from crwlinternaute.exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
+
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:
     """
@@ -123,22 +122,40 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) if type(json.loads(data)) is dict else json.loads(data)[0] for data in value.getall() if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "NewsArticle") or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle") or (type(json.loads(data)) in [list, dict])]
+                key, [json.loads(data) if type(json.loads(data)) is dict else json.loads(data)[0]
+                      for data in value.getall()
+                      if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "NewsArticle")
+                      or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle")
+                      or (type(json.loads(data)) in [list, dict])]
 
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageGallery") or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "ImageGallery")]
+                key, [json.loads(data) for data in value.getall()
+                      if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageGallery")
+                      or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "ImageGallery")]
             )
 
-        elif key == "VideoObject":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject") or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
+                key, [json.loads(data) for data in value.getall()
+                      if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject")
+                      or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall()
+                      if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageObject")
+                      or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "ImageObject")]
             )
         else:
 
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if (type(json.loads(data)) is dict and json.loads(data).get('@type') not in list(selector_and_key.keys())) or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') != "NewsArticle")]
+                key, [json.loads(data) for data in value.getall()
+                      if (type(json.loads(data)) is dict and json.loads(data).get('@type') not in
+                      ['VideoObject', 'ImageObject', 'NewsArticle'])
+                      or (type(json.loads(data)) is list and json.loads(data)[0].get('@type') not in
+                          ['VideoObject', 'ImageObject', 'NewsArticle'])]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())
@@ -192,7 +209,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
 
     parsed_data_dict = get_parsed_data_dict()
 
-    if article_data.get("main")[0].get('@type') in ["NewsArticle", "Article"] :
+    if article_data.get("main")[0].get('@type') in ["NewsArticle", "Article"]:
         index = 0
     elif article_data.get("main")[1].get('@type') in ["NewsArticle", "Article"]:
         index = 1
@@ -203,7 +220,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
             "name": article_data.get("main")[index].get('author').get("name"),
             "url": article_data.get("main")[index].get('author').get("url")
         }
-        ]
+    ]
     parsed_data_dict["description"] = [article_data.get("main")[index].get('description')]
     parsed_data_dict["modified_at"] = [article_data.get("main")[index].get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main")[index].get('datePublished')]
@@ -263,38 +280,3 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)

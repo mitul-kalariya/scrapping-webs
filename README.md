@@ -22,30 +22,8 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-```
-# To fetch all the article links
+Articles Data is available for 4-7 days only
 
-from crwlinternaute import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "http://www.sueddeutsche.de/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 
@@ -61,7 +39,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "http://www.sueddeutsche.de/"
+        "domain": "https://www.linternaute.com/"
     },
     proxies=proxies
 )
@@ -84,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://www.sueddeutsche.de/panorama/unfaelle-landau-in-der-pfalz-mann-verletzt-sich-bei-sturz-von-kletterwand-dpa.urn-newsml-dpa-com-20090101-230227-99-761585"
+        "link": "https://www.linternaute.com/actualite/societe/2850980-greve-transports-ecole-manifestations-les-perturbations-precisees/"
     },
     proxies=proxies
 )

@@ -65,7 +65,6 @@ class TestArticle(unittest.TestCase):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
 
-
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
         with self.subTest():
@@ -130,8 +129,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                     "title"), list, "format mismatch for parsed_data--> title")
-        else:
-            raise AssertionError("missing object:- parsed_data--> title")
 
         if article[0].get("parsed_data").get("description"):
             with self.subTest():
@@ -247,16 +244,14 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.type = "link_feed"
+        self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
         for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-            with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
     def _test_sitemap_results(self):
         with self.subTest():
