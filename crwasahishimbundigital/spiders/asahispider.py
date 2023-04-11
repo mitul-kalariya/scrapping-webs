@@ -13,12 +13,13 @@ from crwasahishimbundigital.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
 )
 from crwasahishimbundigital.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    InvalidArgumentException,
+    SitemapArticleScrappingException
 )
 
 logging.basicConfig(
@@ -39,10 +40,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -83,6 +80,8 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
+            raise InvalidArgumentException(
+                f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}")
 
     def parse(self, response):
         """
@@ -124,6 +123,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating sitemap url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapScrappingException(f"Error occured while iterating sitemap url. {str(exception)}")
 
         elif self.type == "article":
             try:
@@ -133,6 +133,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
     def parse_sitemap(self, response):
         """
@@ -179,16 +180,6 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response):
-        """
-        Parse article information from a given sitemap URL.
-
-        :param response: HTTP response from the sitemap URL.
-        :return: None
-        """
-        # Extract the article title from the response
-        pass
 
     def parse_article(self, response):
         """
