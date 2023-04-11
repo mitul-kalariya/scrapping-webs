@@ -3,14 +3,12 @@
 
 import os
 import json
-import re
 import logging
 from datetime import datetime
 from crwlarepublica import exceptions
 from crwlarepublica.constant import TODAYS_DATE, LOGGER
 import itertools
-from bs4 import BeautifulSoup
-import requests
+import re
 
 
 def create_log_file():
@@ -155,7 +153,7 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     try:
-        breakpoint()
+        # breakpoint()
         parsed_json = {}
         imageObjects = []
         videoObjects = []
@@ -163,8 +161,6 @@ def get_parsed_json(response):
         ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in ld_json_data:
             data = json.loads(a_block)
-            json_data = data.get("@graph")
-            # for main_data in data:
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
             elif data.get("@type") in {"ImageGallery", "ImageObject"}:
@@ -207,15 +203,12 @@ def get_parsed_data(response):
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
     try:
-        # breakpoint()
-        pattern = r"[\r\n\t\</h2>\<h2>]+"
+        pattern = r"[\r\n\t\"]+"
         main_dict = {}
         publisher = get_publisher(response)
         main_dict["publisher"] = publisher
-        breakpoint()
 
-        # headline = get_headline(response)
-        headline=response.css(".story__header__content h1::text").getall()
+        headline = response.css(".story__header__content h1::text").getall()
         main_dict["title"] = headline
 
         authors = get_author(response)
@@ -224,13 +217,7 @@ def get_parsed_data(response):
         main_dict["description"] = response.css("meta[name='description']::attr(content)").getall()
 
         main_data = get_main(response)
-        # for block in main_data[0]:
-        # breakpoint()
-        # if "description" in block:
-        # main_dict["description"] = main_data[0].get("description")
-        # if "datePublished" in block:
         main_dict["published_at"] = [main_data[0].get("datePublished")]
-        # if "dateModified" in block:
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
         # extract section information
@@ -240,9 +227,11 @@ def get_parsed_data(response):
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
 
-        article_text =  response.css("div.story__summary::text, div.story__content p::text").getall()
+        # breakpoint()
+        article_text = response.css("div.story__summary::text, div.story__content p::text").getall()
+        text = [re.sub(pattern, "", i) for i in article_text]
 
-        main_dict["text"] = [" ".join(article_text)]
+        main_dict["text"] = [" ".join(text)]
 
         tags = get_tags(response)
         main_dict["tags"] = tags
@@ -339,25 +328,14 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-        # breakpoint()
-        try:
-            response = response.css('script[type="application/ld+json"]::text').getall()
-            json_loads = json.loads(response[0])
-            data = []
-            # for block in json_loads:
-            if "publisher" in json_loads.keys():
-                data.append(json_loads.get("publisher"))
-                return data
-        except:
-            response = requests.get(response)
-            soup = BeautifulSoup(response.text, "html.parser")
-            ee = soup.find_all("script", {"type": "application/ld+json"})
 
-            data = []
-            for block in ee:
-                if "publisher" in block:
-                    data.append(block.get("publisher"))
-                    return data
+        response = response.css('script[type="application/ld+json"]::text').getall()
+        json_loads = json.loads(response[0])
+        data = []
+        # for block in json_loads:
+        if "publisher" in json_loads.keys():
+            data.append(json_loads.get("publisher"))
+            return data
 
     except BaseException as e:
         LOGGER.error(f"{e}")
@@ -371,17 +349,11 @@ def get_headline(response):
 
     Returns: the headline from the response
     """
-    breakpoint()
-    try:
-        response = get_main(response)
-        headline = []
-        if "headline" in response[0].keys:
-            headline.append(response[0].get("headline"))
-        return headline
-    except:
-        headline = response.css(".story__header__content h1::text").getall()
-        return headline
-
+    response = get_main(response)
+    headline = []
+    if "headline" in response[0].keys:
+        headline.append(response[0].get("headline"))
+    return headline
 
 
 def get_author(response) -> list:
@@ -394,28 +366,18 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        # breakpoint()
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         json_loads = json.loads(parsed_data[0])
         # for a_block in parsed_data:
         #     for data in json.loads(a_block).get("@graph"):
-        try:
-            author_data = []
-            if json_loads.get("@type") == "NewsArticle":
-                if "author" in json_loads.keys():
-                    author_data.append(json_loads.get("author"))
-                    return author_data
-        except:
-            list_of_ele = []
-            var = {
-                "@type": json_loads.get("author", [{}]).get("@type"),
-                "name": json_loads.get("author", [{}]).get("name"),
-                "url": json_loads
-                .get("author", [{}])
-                .get("url", None),
-            }
-            list_of_ele.append(var)
-            return list_of_ele
+
+        # breakpoint()
+        author_data = []
+        if json_loads.get("@type") == "NewsArticle":
+            if "author" in json_loads.keys():
+                author_data.append(json_loads.get("author"))
+                return author_data[0]
+
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
@@ -447,7 +409,7 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    breakpoint()
+    # breakpoint()
     response = get_main(response)
 
     if "image" in response[0].keys():

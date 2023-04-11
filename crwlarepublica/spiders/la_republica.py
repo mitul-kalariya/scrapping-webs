@@ -1,13 +1,11 @@
 import scrapy
 import logging
-import re, requests
 from datetime import datetime
 from scrapy.http import XmlResponse
-from scrapy.http import HtmlResponse
 from scrapy.selector import Selector
 from crwlarepublica import exceptions
 from scrapy.loader import ItemLoader
-from crwlarepublica.constant import LOGGER, SITEMAP_URL
+from crwlarepublica.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from abc import ABC, abstractmethod
 from crwlarepublica.items import ArticleData
 from crwlarepublica.utils import (
@@ -39,6 +37,7 @@ class BaseSpider(ABC):
 
 class LaRepublicaSpider(scrapy.Spider):
     name = "la_republica"
+
     def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -59,7 +58,7 @@ class LaRepublicaSpider(scrapy.Spider):
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
 
-        super(RepubblicaSpider, self).__init__(*args, **kwargs)
+        super(LaRepublicaSpider, self).__init__(*args, **kwargs)
 
         self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
@@ -100,7 +99,7 @@ class LaRepublicaSpider(scrapy.Spider):
         """
 
         try:
-            breakpoint()
+            # breakpoint()
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -127,11 +126,11 @@ class LaRepublicaSpider(scrapy.Spider):
         """
 
         try:
-            breakpoint()
+            # breakpoint()
             xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            news_namespaces = {"xmlns": "http://www.google.com/schemas/sitemap-news/0.9"}
+            news_namespaces = {"news": "http://www.google.com/schemas/sitemap-news/0.9"}
 
             # date_lastmod = xml_selector.xpath("//xmlns:lastmod/text()", namespaces=xml_namespaces)
             # for i in date_lastmod.getall():
@@ -143,13 +142,43 @@ class LaRepublicaSpider(scrapy.Spider):
 
             # for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
             #     print("11111111111111111", sitemap)
+            urls = xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall()
+            titles = xml_selector.xpath("//news:title/text()", namespaces=news_namespaces).getall()
+            publication_dates = xml_selector.xpath(
+                "//news:publication_date/text()",
+                namespaces=news_namespaces
+            ).getall()
+            # print("@@@@@@@@@@@@@", publication_dates)
 
-            for url, title in zip(
-                    xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall(),
-                    xml_selector.xpath("//xmlns:title/text()", namespaces=news_namespaces).getall(),
-            ):
-                data = {"link": url, "title": title}
-                self.articles.append(data)
+            # for url, title in zip(
+            #         xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces).getall(),
+            #         xml_selector.xpath("//xmlns:title/text()", namespaces=news_namespaces).getall(),
+            # ):
+            #     data = {"link": url, "title": title}
+            #     self.articles.append(data)
+
+            for url, title, pub_date in zip(urls, titles, publication_dates):
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+                # breakpoint()
+                if self.start_date and published_at < self.start_date:
+                    return
+                if self.start_date and published_at > self.end_date:
+                    return
+
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == published_at:
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
+                        self.articles.append(data)
+                else:
+                    if self.start_date and self.end_date:
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
+                        self.articles.append(data)
 
         except Exception as exception:
             self.log(
@@ -229,6 +258,8 @@ class LaRepublicaSpider(scrapy.Spider):
             Values of parameters
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
