@@ -15,7 +15,7 @@ from crwctvnews.utils import (
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    # export_data_to_json_file,
+    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -247,8 +247,8 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:  # pylint: disable=broad-except
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

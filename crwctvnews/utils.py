@@ -193,7 +193,7 @@ def get_parsed_json_filter(blocks: list, misc: list, regex_pattern: str = "") ->
         "main": None,
         "imageObjects": [],
         "videoObjects": [],
-        "Other": [],
+        "other": [],
         "misc": [],
     }
     for block in blocks:
@@ -206,7 +206,7 @@ def get_parsed_json_filter(blocks: list, misc: list, regex_pattern: str = "") ->
         elif "VideoObject" in json.loads(space_removed_block).get("@type", [{}]):
             parsed_json_flter_dict["videoObjects"].append(json.loads(space_removed_block))
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(space_removed_block))
+            parsed_json_flter_dict["other"].append(json.loads(space_removed_block))
     parsed_json_flter_dict["misc"].extend(json.loads(re.sub(regex_pattern, "", data).strip()) for data in misc)
     return parsed_json_flter_dict
 
@@ -419,34 +419,57 @@ def get_formated_images(response, block) -> str:
     Returns:
         str: return link of image
     """
+    formated_images = []
     images = get_image_url(response)
     captions = response.css("span.c-image__title::text").getall()
-    formated_images = []
     for link, caption in itertools.zip_longest(images, captions):
         if not link_in_images(formated_images, link):
             formated_images.append({
                 "link": link,
                 "caption": caption,
             })
+    for link, caption in itertools.zip_longest(
+        response.css(
+            "figure.o-element__main picture.o-element__image source[data-breakpoint='Large']::attr(data-src-template), \
+            figure.o-element__main picture.o-element__image img::attr(src)")
+        .getall(),
+        response.css(
+            "figure.o-element__main figcaption div.o-element__text[data-qa='Element.Caption.text']::text")
+        .getall()
+    ):
+        if not link:
+            continue
+        dupliate = False
+        for formated_image in formated_images:
+            if link == formated_image.get("link"):
+                dupliate = True
+        if dupliate:
+            continue
+        formated_images.append({
+            "link": link,
+            "caption": caption,
+        })
     if formated_images:
         return formated_images
+    captions = []
+    for captions_block in json.loads(response.css("div.aem-Grid--default--7 related-images::attr(content)").get()):
+        captions.append(captions_block.get("description"))
     if block:
         image_url_from_block = block.get("image", {}).get("url")
         if image_url_from_block:
             formated_images.append({
-                "link": image_url_from_block
+                "link": image_url_from_block,
+                "caption": captions[0] if captions else None
             })
             return formated_images
-    caption = response.css(".c-text span::text").getall()
-    imageurl = response.css(".inline-image::attr(src)").getall()
-    for img in imageurl:
-        images.append(get_full_url(img + "/"))
-    if caption and images:
-        for image, caption in itertools.zip_longest(images, caption):
-            formated_images.append({
-                "link": image,
-                "caption": caption.strip() if caption else None
-            })
+    caption = response.css('.o-element__text::text').get()
+    image_link = response.css('.c-progressive-opener-image__original-image img::attr(src)').get()
+    image_link2 = response.css("picture.o-element__image source::attr(data-src-template)").get()
+    if caption and (image_link or image_link2):
+        formated_images.append({
+            "link": image_link or image_link2,
+            "caption": caption.strip() if caption else None
+        })
     return formated_images
 
 
