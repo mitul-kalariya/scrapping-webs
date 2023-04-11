@@ -11,13 +11,14 @@ from crwchosunIboOnline.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json
+    get_parsed_json,
 )
 from crwchosunIboOnline.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
-    InvalidArgumentException
+    InvalidArgumentException,
+    SitemapArticleScrappingException
 )
 
 logging.basicConfig(
@@ -38,10 +39,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -114,6 +111,7 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating sitemap url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapScrappingException(f"Error occured while iterating sitemap url. {str(exception)}")
 
         elif self.type == "article":
             try:
@@ -123,6 +121,8 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
+                
 
     def parse_sitemap(self, response):
         """
@@ -170,15 +170,6 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
 
-    def parse_sitemap_article(self, response):
-        """
-        Parse article information from a given sitemap URL.
-
-        :param response: HTTP response from the sitemap URL.
-        :return: None
-        """
-        pass
-
     def parse_article(self, response):
         """
         parse article and append related data to class's articles variable
@@ -198,7 +189,6 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             parsed_json_dict = {}
-            # raw_data_dict = {}
             parsed_json_main = response.css('script[type="application/ld+json"]::text')
             parsed_json_misc = response.css('script[type="application/json"]::text')
 
