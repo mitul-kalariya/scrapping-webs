@@ -31,7 +31,7 @@ class BaseSpider(ABC):
         pass
 
 
-class MainichiSpider(scrapy.Spider, BaseSpider):
+class JTBCSpider(scrapy.Spider, BaseSpider):
     # Assigning spider name
     name = "jtbc_news"
 
@@ -63,7 +63,7 @@ class MainichiSpider(scrapy.Spider, BaseSpider):
         If the type argument is "article", the URL to be scraped is validated and set.
             A log file is created for the web scraper.
         """
-        super(MainichiSpider, self).__init__(*args, **kwargs)
+        super(JTBCSpider, self).__init__(*args, **kwargs)
         self.output_callback = kwargs.get('args', {}).get('callback', None)
         self.start_urls = []
         self.articles = []
