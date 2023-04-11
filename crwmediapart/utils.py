@@ -189,9 +189,10 @@ def get_parsed_data(response):
         description = main_data[0].get("description")
         main_dict["description"] = [description]
 
-        article_text = response.css("p.dropcap-wrapper::text").getall()
+    
+        article_text = response.css("div.news__body__center__article p::text").getall()
         if article_text:
-            main_dict["text"] = [" ".join(article_text).replace("\n", "")]
+            main_dict["text"] = [(" ".join(article_text).replace("\n", "")).strip()]
 
         mapper = {"FRA": "France", "fr-FR": "French", "fr": "French"}
         article_lang = response.css("html::attr(lang)").get()
