@@ -24,7 +24,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Articles data is available for 2-3 days
+Articles data is available for 2-3 days including today's date
 ```
 # To fetch all the article links from today's date only
 
@@ -39,14 +39,12 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.francetvinfo.fr/"
     },
     proxies=proxies
 )
 
-# For Sitemap
-crawler = Crawler(query={"type": "sitemap", "domain": "https://www.francetvinfo.fr/", "since": "2022-03-01", "until": "2022-03-26"})
 data = crawler.crawl()
 ```
 

@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwfrancetv.videos import get_video
@@ -15,7 +14,7 @@ from crwfrancetv.exceptions import (
 )
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
 
@@ -178,7 +177,7 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
+def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:  # noqa: C901
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
@@ -308,38 +307,3 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)

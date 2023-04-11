@@ -11,12 +11,12 @@ from crwfrancetv.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crwfrancetv.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
+    SitemapScrappingException
 )
 
 logging.basicConfig(
@@ -37,9 +37,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -82,10 +79,19 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             If the response is from an article URL, this function yields a request object for the article
             using the `parse_article` callback.
         """
-        if self.type == "sitemap":
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
-        if self.type == "article":
-            yield self.parse_article(response)
+        try:
+            if self.type == "sitemap":
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            if self.type == "article":
+                yield self.parse_article(response)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating sitemap url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -94,41 +100,41 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
            :param response: the response from the sitemap request
            :return: scrapy.Request object
         """
-        article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                           namespaces=self.namespace).getall()
-        published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
-                                                              namespaces=self.namespace).getall()
-        article_title = Selector(response, type='xml').xpath('//news:title/text()',
-                                                             namespaces=self.namespace).getall()
+        try:
+            article_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                               namespaces=self.namespace).getall()
+            published_date = Selector(response, type='xml').xpath('//news:publication_date/text()',
+                                                                  namespaces=self.namespace).getall()
+            article_title = Selector(response, type='xml').xpath('//news:title/text()',
+                                                                 namespaces=self.namespace).getall()
 
-        for url, date, title in zip(article_url, published_date, article_title):
-            _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-            if self.today_date:
-                if _date == self.today_date:
-                    if title:
-                        article = {
-                            "link": url,
-                            "title": title,
-                        }
-                        self.articles.append(article)
+            for url, date, title in zip(article_url, published_date, article_title):
+                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                if self.today_date:
+                    if _date == self.today_date:
+                        if title:
+                            article = {
+                                "link": url,
+                                "title": title,
+                            }
+                            self.articles.append(article)
 
-            else:
-                if self.start_date <= _date <= self.end_date:
-                    if title:
-                        article = {
-                            "link": url,
-                            "title": title,
-                        }
-                        self.articles.append(article)
-
-    def parse_sitemap_article(self, response):
-        """
-           Parse article information from a given sitemap URL.
-
-           :param response: HTTP response from the sitemap URL.
-           :return: None
-        """
-        pass
+                else:
+                    if self.start_date <= _date <= self.end_date:
+                        if title:
+                            article = {
+                                "link": url,
+                                "title": title,
+                            }
+                            self.articles.append(article)
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating sitemap url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_article(self, response):
         """
@@ -201,8 +207,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            if self.articles:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

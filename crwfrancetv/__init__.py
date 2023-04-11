@@ -1,1 +1,1 @@
-from crwfrancetv.main import Crawler
+from crwfrancetv.main import Crawler  # noqa: F401
