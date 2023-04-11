@@ -209,6 +209,8 @@ class MetropolesSpider(scrapy.Spider):
             Values of parameters
         """
         try:
+            if self.output_callback is not None:
+                self.output_callback(self.articles)
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
