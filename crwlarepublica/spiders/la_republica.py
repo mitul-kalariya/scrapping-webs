@@ -35,7 +35,7 @@ class BaseSpider(ABC):
         pass
 
 
-class LaRepublicaSpider(scrapy.Spider):
+class LaRepublicaSpider(scrapy.Spider, BaseSpider):
     name = "la_republica"
 
     def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):

@@ -479,18 +479,21 @@ def get_embed_video_link(response) -> list:
         a list of dictionary containing object type link and decryption
     """
     try:
+        breakpoint()
         data = []
-        thumbnail_video = response.css("figure.l-article__featured")
-        for video in thumbnail_video:
-            link = video.css(".c-video::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
-
-        videos = response.css("div.c-video.c-videoPlay")
-        for video in videos:
-            link = video.css("div::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
+        video_link = response.css("figure.story__media gdwc-video-component::attr(data-src)").get()
+        data.append(video_link)
+        # thumbnail_video = response.css("figure.l-article__featured")
+        # for video in thumbnail_video:
+        #     link = video.css(".c-video::attr(data-displayinline)").get()
+        #     if link:
+        #         data.append(link)
+        #
+        # videos = response.css("div.c-video.c-videoPlay")
+        # for video in videos:
+        #     link = video.css("div::attr(data-displayinline)").get()
+        #     if link:
+        #         data.append(link)
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
