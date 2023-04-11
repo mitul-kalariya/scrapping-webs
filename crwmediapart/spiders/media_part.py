@@ -9,7 +9,6 @@ from crwmediapart.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwmediapart.items import ArticleData
 from crwmediapart.utils import (
     create_log_file,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -103,11 +102,7 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         LOGGER.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
@@ -252,8 +247,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

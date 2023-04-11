@@ -2,8 +2,7 @@ import logging
 import unittest
 from crwmediapart.spiders.media_part import MediaPartSpider
 from crwmediapart.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwmediapart.test.helpers.utils import (get_article_content,
-                                            online_response_from_url)
+from crwmediapart.test.helpers.utils import (get_article_content, online_response_from_url)
 from crwmediapart import Crawler
 
 # Creating an object
