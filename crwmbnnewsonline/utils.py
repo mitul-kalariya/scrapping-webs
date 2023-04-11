@@ -17,7 +17,8 @@ from crwmbnnewsonline.items import (
 from crwmbnnewsonline.exceptions import (
     InputMissingException,
     InvalidDateException,
-    InvalidArgumentException
+    InvalidArgumentException,
+    SitemapArticleScrappingException
 )
 from crwmbnnewsonline.constant import LOGGER
 
@@ -237,38 +238,6 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
 def get_images(response, parsed_json=False) -> list:
     """
     Extracts all the images present in the web page.
@@ -309,6 +278,6 @@ def get_images(response, parsed_json=False) -> list:
             return data
     except Exception as e:
         LOGGER.error(f"{str(e)}")
+        raise SitemapArticleScrappingException(f"Error occured while scrapping sitemap:-{str(e)}")
     driver.close()
     return data
-

@@ -13,13 +13,13 @@ from crwmbnnewsonline.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
 )
 from crwmbnnewsonline.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
-    InvalidArgumentException
+    InvalidArgumentException,
+    SitemapArticleScrappingException
 )
 
 logging.basicConfig(
@@ -116,6 +116,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating sitemap url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapScrappingException(f"Error occured while iterating sitemap url. {str(exception)}")
 
         elif self.type == "article":
             try:
@@ -125,6 +126,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
     def parse_sitemap(self, response):
         """
