@@ -5,7 +5,7 @@ import os
 import re
 import json
 import logging
-from datetime import datetime
+from datetime import datetime,timedelta
 
 from crwndtv import exceptions
 from crwndtv.constant import TODAYS_DATE, LOGGER
@@ -59,6 +59,24 @@ def validate_sitemap_date_range(start_date, end_date):
     except exceptions.InvalidDateException as e:
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+
+def date_range(start_date, end_date):
+    """
+    return range of all date between given date
+    if not end_date then take start_date as end date
+    """
+    try:
+        total_days = int((end_date - start_date).days)
+        if total_days > 30:
+            raise exceptions.InvalidDateException("Date must be in range of 30 days")
+        else:
+            for date in range(total_days + 1):
+                breakpoint()
+                yield start_date + timedelta(date)
+    except exceptions.InvalidDateException as e:
+        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+
+
 
 
 def remove_empty_elements(parsed_data_dict):
