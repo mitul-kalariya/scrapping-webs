@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     }
 ]
 # TODO:Update below sitemap URL
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://www.terra.com.br/sitemap.xml"
