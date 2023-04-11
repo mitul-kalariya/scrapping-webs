@@ -96,7 +96,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 self.start_urls.append(url)
             else:
                 LOGGER.error("Must have a URL to scrap")
-                raise Exception("Must have a URL to scrap")
+                raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         # collecting request headers from target website index page
         request_headers = get_request_headers()
@@ -112,7 +112,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             callback=self.parse,
         )
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         """
         Parses the given Scrapy response based on the specified type of parsing.
 
@@ -251,7 +251,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 self.articles.append(data)
         except exceptions.SitemapScrappingException as exception:
             LOGGER.error("Error while parsing sitemap article: %s", str(exception))
-            exceptions.SitemapArticleScrappingException(
+            raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {str(exception)}"
             )
 
@@ -273,10 +273,10 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except BaseException as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
-            )
-            self.log(
+            LOGGER.log(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
             )

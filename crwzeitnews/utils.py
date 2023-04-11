@@ -36,7 +36,7 @@ def get_request_headers():
                (By.CSS_SELECTOR,"div.option__accbtn")
             )
         )
-        
+
         if element:
             time.sleep(2)
             element.click()
