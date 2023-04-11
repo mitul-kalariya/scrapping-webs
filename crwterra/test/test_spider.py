@@ -4,8 +4,7 @@ import unittest
 # TODO: Update the path here replace newton_scrapping --> your project name
 from crwterra.spiders.terra import TerraSpider
 from crwterra.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwterra.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+from crwterra.test.helpers.utils import (get_article_content, online_response_from_url)
 # TODO: Update below path here
 from crwterra import Crawler
 
@@ -27,7 +26,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = TerraSpider(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -67,7 +66,6 @@ class TestArticle(unittest.TestCase):
                 if test_article_data[0].get("parsed_json").get("Other"):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
-
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object

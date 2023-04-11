@@ -1,50 +1,59 @@
-import scrapy
 import logging
 from datetime import datetime
-from crwterra import exceptions
+from abc import ABC, abstractmethod
+import scrapy
 from scrapy.http import XmlResponse
+from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
 from crwterra.constant import SITEMAP_URL, LOGGER
-from scrapy.loader import ItemLoader
 from crwterra.items import ArticleData
-from abc import ABC, abstractmethod
-from crwterra.utils import (create_log_file, validate_sitemap_date_range, get_raw_response, get_parsed_data,
-                              get_parsed_json, export_data_to_json_file, )
+from crwterra import exceptions
+from crwterra.utils import (create_log_file, validate_sitemap_date_range, get_raw_response,
+                            get_parsed_data, get_parsed_json, export_data_to_json_file, )
 
 # create log file
 create_log_file()
 
 
-
 class BaseSpider(ABC):
+    """Abstract Base class for scrapy spider
+
+    Args:
+        ABC : Abstract
+    """
     @abstractmethod
-    def parse(response):
+    def parse(self, response: str) -> None:
+        """parse function responsible for calling individual methods for each request"""
         pass
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
+        """called by parse function when response is sitemap"""
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
+        """called by parse function when response is sitemap article"""
         pass
 
     @abstractmethod
     def parse_article(self, response: str) -> list:
+        """called by parse function when response is article"""
         pass
 
 
 class TerraSpider(scrapy.Spider, BaseSpider):
+    """main spider for parsing sitemap or article"""
     name = "terra"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
             type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
-            start_date (str): A string representing the start date of the sitemap to be scraped.
+            since (str): A string representing the start date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
             url (str): A string representing the URL of the webpage to be scraped.
-            end_date (str): A string representing the end date of the sitemap to be scraped.
+            until (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
             **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
         Raises:
@@ -54,9 +63,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
-        """
+        """#pylint: disable=line-too-long
         try:
-            super(TerraSpider, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
@@ -66,9 +75,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
-                self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-                self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
-                validate_sitemap_date_range(start_date, end_date)
+                self.since = (datetime.strptime(since, "%Y-%m-%d").date() if since else None)
+                self.until = (datetime.strptime(until, "%Y-%m-%d").date() if until else None)
+                validate_sitemap_date_range(since, until)
 
             if self.type == "article":
                 if url:
@@ -83,7 +92,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         """
         Parses the given Scrapy response based on the specified type of parsing.
         Returns:
@@ -93,17 +102,14 @@ class TerraSpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
 
         except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+            LOGGER.info("Error occured in parse function: %s", e)
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
@@ -151,7 +157,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             scrapy.http.Request: A request object for each link on the sitemap page.
         Raises:
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
-        """
+        """#pylint: disable=line-too-long
         try:
             xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             xml_selector = Selector(xmlresponse)
@@ -181,17 +187,16 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
             published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
-
             for link, pub_date in zip(links, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 today_date = datetime.today().date()
 
-                if self.start_date and published_at < self.start_date:
+                if self.since and published_at < self.since:
                     return
-                if self.start_date and published_at > self.end_date:
+                if self.since and published_at > self.until:
                     return
 
-                if self.start_date and self.end_date:
+                if self.since and self.until:
                     data = {"link": link}
                     self.articles.append(data)
                 elif today_date == published_at:
@@ -215,8 +220,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
-            exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
             LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            raise exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
