@@ -445,7 +445,6 @@ def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: text, title, section details
     """
-    # breakpoint()
     return {
         "title": response.css(
             "article h1.article-title span.article-title__headline::text"
@@ -471,7 +470,6 @@ def get_thumbnail_image_video(response: str) -> dict:
         dict: thumbnail images, images and video details
     """
     images = []
-    videos = []
     captions = []
 
     for first_coming_caption in response.css("article figure>figure figcaption"):
@@ -498,11 +496,11 @@ def get_thumbnail_image_video(response: str) -> dict:
 
 def get_sub_caption(caption: str) -> str:
     """
-       Returns sub caption data
-       Args:
-           caption: caption from the response
-       Returns:
-           str: data of sub caption
+    Returns sub caption data
+    Args:
+        caption: caption from the response
+    Returns:
+        str: data of sub caption
     """
     caption_em_text = caption.css("div.fig__caption__meta span::text").get()
 
