@@ -1,5 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
+# TODO: Change path and spider name here
 from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
 
 
@@ -7,6 +8,7 @@ class Crawler:
     """
     A class used to crawl the sitemap and article data.
     ...
+
     Attributes
     ----------
     query : dict
@@ -15,6 +17,7 @@ class Crawler:
         dictionary that contains proxy related information
     output : int
         Data returned by crawl method
+
     Methods
     -------
     crawl()
@@ -52,8 +55,10 @@ class Crawler:
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
+
         Raises:
             Exception: Raised exception for unknown Type
+
         Returns:
             list[dict]: list of dictionary of the article data or article links
             as per expected_article.json or expected_sitemap.json
@@ -79,12 +84,6 @@ class Crawler:
         else:
             raise Exception("Invalid Type")
 
-        process_settings = process.settings
-        process_settings["DOWNLOAD_DELAY"] = 0.25
-        process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
-        process.settings = process_settings
-
         if self.proxies:
             process_settings = process.settings
             process_settings["DOWNLOADER_MIDDLEWARES"][
@@ -100,3 +99,4 @@ class Crawler:
 
         process.crawl(NhkOrJpNews, **spider_args)
         process.start()
+

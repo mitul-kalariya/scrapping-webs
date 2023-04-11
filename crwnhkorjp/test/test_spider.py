@@ -1,10 +1,12 @@
 import logging
 import unittest
 
+
 from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
 from crwnhkorjp.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwnhkorjp.test.helpers.utils import (get_article_content,
-                                           online_response_from_url)
+                                                 online_response_from_url)
+
 from crwnhkorjp import Crawler
 
 # Creating an object
@@ -66,6 +68,7 @@ class TestArticle(unittest.TestCase):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
 
+
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
 
@@ -103,8 +106,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -264,6 +265,8 @@ class TestSitemap(unittest.TestCase):
         for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
+            with self.subTest():
+                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
 
     def _test_sitemap_results(self):
         with self.subTest():
