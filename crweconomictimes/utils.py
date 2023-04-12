@@ -4,12 +4,12 @@ from scrapy.loader import ItemLoader
 from crweconomictimes.constant import SITEMAP_URL
 from crweconomictimes.items import (
     ArticleRawResponse,
-    ArticleRawParsedJson,
+    ArticleRawParsedJson
 )
 from crweconomictimes.exceptions import (
     InputMissingException,
     InvalidDateException,
-    InvalidArgumentException,
+    InvalidArgumentException
 )
 
 

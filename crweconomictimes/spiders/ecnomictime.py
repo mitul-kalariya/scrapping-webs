@@ -18,6 +18,7 @@ from crweconomictimes.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
+    InvalidArgumentException
 )
 
 logging.basicConfig(
@@ -77,9 +78,9 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
+            raise InvalidArgumentException(
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+            )
 
     def parse(self, response):  # noqa: C901
         """
