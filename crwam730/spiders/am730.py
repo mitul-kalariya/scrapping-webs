@@ -15,7 +15,7 @@ from crwam730.utils import (
 )
 from crwam730.exception import (
     ArticleScrappingException,
-    ExportOutputFileException,
+    SitemapScrappingException
 )
 
 logging.basicConfig(
@@ -32,13 +32,6 @@ logger = logging.getLogger()
 class BaseSpider(ABC):
     @abstractmethod
     def parse(self, response):
-        pass
-
-    @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -66,7 +59,7 @@ class Am730(scrapy.Spider, BaseSpider):
 
         check_cmd_args(self, self.start_date, self.end_date)
 
-    def parse(self, response):
+    def parse(self, response):  # noqa:C901
         """
         This function is used to parse the response from a web page or a sitemap.
         Args:
@@ -86,44 +79,43 @@ class Am730(scrapy.Spider, BaseSpider):
                                                                   namespaces=self.namespace).getall()
             article_title = Selector(response, type='xml').xpath('//news:title/text()',
                                                                  namespaces=self.namespace).getall()
-            for url, date, title in zip(article_url, published_date, article_title):
-                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                if self.today_date:
-                    if _date == self.today_date:
-                        if title:
-                            article = {
-                                "link": url,
-                                "title": title,
-                            }
-                            self.articles.append(article)
-                else:
-                    if self.start_date <= _date <= self.end_date:
-                        if title:
-                            article = {
-                                "link": url,
-                                "title": title,
-                            }
-                            self.articles.append(article)
+            try:
+                for url, date, title in zip(article_url, published_date, article_title):
+                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                    if self.today_date:
+                        if _date == self.today_date:
+                            if title:
+                                article = {
+                                    "link": url,
+                                    "title": title,
+                                }
+                                self.articles.append(article)
+                    else:
+                        if self.start_date <= _date <= self.end_date:
+                            if title:
+                                article = {
+                                    "link": url,
+                                    "title": title,
+                                }
+                                self.articles.append(article)
+            except Exception as exception:
+                self.log(
+                    f"Error occurred while fetching sitemap:- {str(exception)}",
+                    level=logging.ERROR,
+                )
+                raise SitemapScrappingException(
+                    f"Error occurred while fetching sitemap:- {str(exception)}"
+                ) from exception
 
         if self.type == "article":
-            yield self.parse_article(response)
-
-    def parse_sitemap(self, response):
-        """
-           Parses the sitemap and extracts the article URLs and their last modified date.
-           If the last modified date is within the specified date range, sends a request to the article URL
-           :param response: the response from the sitemap request
-           :return: scrapy.Request object
-        """
-        pass
-
-    def parse_sitemap_article(self, response):
-        """
-           Parse article information from a given sitemap URL.
-           :param response: HTTP response from the sitemap URL.
-           :return: None
-        """
-        pass
+            try:
+                yield self.parse_article(response)
+            except Exception as exception:
+                self.log(
+                    f"Error occured while iterating article url. {str(exception)}",
+                    level=logging.ERROR,
+                )
+                raise ArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
     def parse_article(self, response):
         """
@@ -195,6 +187,6 @@ class Am730(scrapy.Spider, BaseSpider):
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
+            raise Exception(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}"
             ) from exception

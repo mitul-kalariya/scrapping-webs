@@ -1,1 +1,1 @@
-from crwam730.main import Crawler
+from crwam730.main import Crawler  # noqa:F401

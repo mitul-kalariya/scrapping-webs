@@ -22,7 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Only last 5 days articles are available Including today's date.
+Only last 10 days articles are available Including today's date.
 ```
 # To fetch all the article links
 
