@@ -198,6 +198,9 @@ def get_parsed_data(response):
         for i in video_links.get("videos"):
             embedded_video_links.append(i)
 
+    article_images = get_images(response)
+    response_data["images"] = article_images
+
     response_data["embed_video_link"] = embedded_video_links
 
     mapper = {"fr": "French"}
@@ -238,6 +241,24 @@ def extract_videos(response) -> list:
     driver.quit()
     return data
 
+
+def get_images(response) -> list:
+    """
+    Extracts all the images present in the web page.
+    Returns:
+    list: A list of dictionaries containing information about each image,
+    such as image link.
+    """
+    info = response.css("div.embedpicture")
+    data = []
+    if info:
+        for i in info:
+            temp_dict = {}
+            image = i.css("div.embedimgblock img::attr(src)").get()
+            if image:
+                temp_dict["link"] = image
+            data.append(temp_dict)
+    return
 
 def get_section(response) -> list:
     breadcrumb_list = response.xpath("//ul[@class='list_inbl']//li[2]//a//span/text()")
