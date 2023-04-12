@@ -17,7 +17,6 @@ from crwtvbnews.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
     SitemapScrappingException,
-    SitemapArticleScrappingException
 )
 
 
@@ -50,7 +49,7 @@ class NewsTVB(scrapy.Spider, BaseSpider):
 
         check_cmd_args(self, self.start_date, self.end_date)
 
-    def parse(self, response):
+    def parse(self, response):  # noqa: C901
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
@@ -102,7 +101,7 @@ class NewsTVB(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
-                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
+                raise ArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
     def parse_article(self, response):
         """
@@ -168,6 +167,6 @@ class NewsTVB(scrapy.Spider, BaseSpider):
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
+            raise Exception(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}"
             ) from exception
