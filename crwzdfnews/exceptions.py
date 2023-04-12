@@ -69,3 +69,10 @@ class ParseFunctionFailedException(Exception):
 
     # use ParseFunctionFailedException(f"Error occured in parse function: {e}")
     pass
+
+
+class SeleniumButtonNotFound(Exception):
+    """An exception raised when element button not found"""
+
+    # use ArticleScrappingException(f"Error occured while fetching video button element: {exception}")
+    pass

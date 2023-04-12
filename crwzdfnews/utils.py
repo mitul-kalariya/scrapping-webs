@@ -188,7 +188,6 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-        pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         main_data = get_main(response)
         article_json = main_data.get("article")
@@ -387,6 +386,25 @@ def get_images(response, parsed_json=False) -> list:
 
 
 def get_embed_video_link(response) -> list:
+    """
+        Given a Scrapy HTTP response, extracts a list of embedded video links from the webpage.
+        Uses Selenium and ChromeDriver to click through any overlay buttons and play buttons
+        to obtain the video sources. The function returns a list of video source URLs.
+
+        Parameters:
+        -----------
+        response : scrapy.http.Response
+            The HTTP response object from Scrapy.
+
+        Returns:
+        --------
+        list
+            A list of strings representing the video source URLs.
+
+        Raises:
+        -------
+        TimeoutException : if an expected element is not found on the page within the specified time.
+    """
     try:
         options = Options()
         options.headless = True
@@ -413,8 +431,9 @@ def get_embed_video_link(response) -> list:
                         )
                     )
                 )
-            except:
+            except BaseException as exception:
                 video_button = None
+                LOGGER.info(f"Error occured while fetching video button element: {exception}")
             if video_button:
                 videos = []
                 for i in video_button:

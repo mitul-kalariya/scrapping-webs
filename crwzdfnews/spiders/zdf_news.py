@@ -15,7 +15,7 @@ from crwzdfnews.utils import (
     get_parsed_data,
     get_parsed_json,
     export_data_to_json_file,
-    )
+)
 
 # create log file
 create_log_file()
@@ -41,7 +41,9 @@ class BaseSpider(ABC):
 class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -71,8 +73,14 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
-                self.start_date = (datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None)
-                self.end_date = (datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None)
+                self.start_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date()
+                    if start_date
+                    else None
+                )
+                self.end_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                )
                 validate_sitemap_date_range(start_date, end_date)
 
             if self.type == "article":
@@ -113,13 +121,13 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
 
     def parse_article(self, response) -> list:
         """
-            Parses the article data from the response object and returns it as a dictionary.
-            Args:
-                response (scrapy.http.Response): The response object containing the article data.
-            Returns:
-                dict: A dictionary containing the parsed article data, including the raw response,
-                parsed JSON, and parsed data, along with additional information such as the country
-                and time scraped.
+        Parses the article data from the response object and returns it as a dictionary.
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
         """
         try:
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
@@ -130,7 +138,10 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value("parsed_json", response_json, )
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
@@ -156,12 +167,16 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
         """
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            xml_link = xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ).getall()[::-1][:5]
+            for link in xml_link:
+                yield scrapy.Request(link, callback=self.parse_sitemap_article)
 
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap: {}".format(exception))
@@ -183,17 +198,18 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
         try:
             namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
+            published_date = response.xpath(
+                '//*[local-name()="lastmod"]/text()'
+            ).getall()
 
             for link, pub_date in zip(links, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-                
+
                 if ".html" not in link:
-                    continue    
-                
+                    continue
+
                 data = {"link": link}
 
-                
                 if self.start_date is None and self.end_date is None:
                     if TODAYS_DATE == published_at:
                         self.articles.append(data)
@@ -204,14 +220,17 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 ):
                     self.articles.append(data)
                 elif self.start_date and self.end_date:
-                    if published_at == self.start_date and published_at == self.end_date:
+                    if (
+                        published_at == self.start_date
+                        and published_at == self.end_date
+                    ):
                         self.articles.append(data)
-                
 
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article:" + str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article::-  {str(exception)}")
+                f"Error while parsing sitemap article::-  {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -228,7 +247,9 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
+            LOGGER.info(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
             raise exceptions.ExportOutputFileException(
-            f"Error occurred while writing json file {str(exception) - {reason}}"
+                f"Error occurred while writing json file {str(exception) - {reason}}"
             )
