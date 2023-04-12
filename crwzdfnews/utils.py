@@ -18,6 +18,7 @@ from crwzdfnews import exceptions
 from crwzdfnews.constant import TODAYS_DATE, LOGGER
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 
 
 def create_log_file():
@@ -388,15 +389,13 @@ def get_images(response, parsed_json=False) -> list:
 def get_embed_video_link(response) -> list:
     try:
         options = Options()
-        options.headless = True
+        # options.headless = True
         service = Service(executable_path=ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(response.url)
         data = {}
+        driver.set_page_load_timeout(5)
 
-        banner_button = driver.find_elements(
-            By.XPATH, "//div[@class='banner-actions-container']//button"
-        )
         banner_button = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located(
                 (By.XPATH, "//div[@class='banner-actions-container']//button")
@@ -405,12 +404,8 @@ def get_embed_video_link(response) -> list:
         if banner_button:
             banner_button.click()
             time.sleep(2)
-            video_button = driver.find_elements(
-                By.XPATH,
-                "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']",
-            )
 
-            video_button = WebDriverWait(driver, 10).until(
+            video_button = WebDriverWait(driver, 2).until(
                 EC.presence_of_all_elements_located(
                     (
                         By.XPATH,
@@ -425,11 +420,6 @@ def get_embed_video_link(response) -> list:
                     i.click()
                     time.sleep(2)
 
-                    video = driver.find_elements(
-                        By.XPATH,
-                        "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']",
-                    )
-
                     video = WebDriverWait(i, 10).until(
                         EC.presence_of_all_elements_located(
                             (
@@ -443,10 +433,12 @@ def get_embed_video_link(response) -> list:
                             video[-1].get_attribute("src").replace("blob:", "")
                         )
                 data["videos"] = videos
+            else:
+                driver.quit()
         else:
             driver.quit()
 
-    except BaseException as exception:
+    except BaseException or TimeoutException as exception:
         LOGGER.info(f"Error occured while getting video links: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting video links: {exception}"
