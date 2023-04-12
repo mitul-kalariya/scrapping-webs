@@ -9,7 +9,6 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 #### Environment Setup
 
 - Create a Virtual Environment using Python3 and activate the environment.
-- Create a Virtual Environment using Python3 and activate the environment.
 - `python3 -m venv venv`
 - `source venv/bin/activate`
 
@@ -24,6 +23,8 @@ You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 Articles data is available for 2-4 days including today's date
 
+data = crawler.crawl()
+```
 ```
 # To fetch all the article links from today's date only
 
@@ -76,6 +77,7 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
+
 
 ### Use of Selenium
 
