@@ -69,7 +69,7 @@ def remove_empty_elements(parsed_data_dict):
     """
 
     def empty(value):
-        return value is None or value == {} or value == []
+        return value is None or value == {} or value == [] or value == ""
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
@@ -184,10 +184,6 @@ def get_parsed_data(response):
         # extract author and publisher information
         main_dict |= get_author_publisher(main_data, response)
 
-        # extract main headline of article
-        title = response.css("span.seitenkopf__headline--text::text").get()
-        main_dict["title"] = [title]
-
         # extract the date published at
         main_dict |= get_description_dates(main_data,response)
 
@@ -208,9 +204,9 @@ def get_parsed_data(response):
         if thumbnail_image:
             main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
 
-        main_dict["images"] = get_article_images(response.css("div.absatzbild"))
+        # get article images
+        main_dict |= get_article_title_images(response)
 
-        
         # extract video files if any
         frame_video = get_embed_video_link(response.css("div.copytext__video"))
         if frame_video:
@@ -333,25 +329,38 @@ def get_embed_video_link(response) -> list:
         )
 
 
-def get_article_images(response) -> list:
+def get_article_title_images(response) -> list:
     try:
         info = []
+        title = []
         pattern = r"[\r\n\t\"]+"
-        for child in response:
-            a_dict = {}
-            a_dict["link"] = (
-                BASE_URL
-                + child.css("div.absatzbild__media div picture img::attr(src)").get()
-            )
-            caption = re.sub(
-                pattern, "", child.css("div.absatzbild__info p::text").get()
-            ).strip()
-            if caption:
-                a_dict["caption"] = caption
+        if response.css("div.absatzbild").get():
+            for child in response.css("div.absatzbild"):
+                a_dict = {}
+                a_dict["link"] = (
+                    BASE_URL
+                    + child.css("div.absatzbild__media div picture img::attr(src)").get()
+                )
+                caption = re.sub(
+                    pattern, "", child.css("div.absatzbild__info p::text").get()
+                ).strip()
+                if caption:
+                    a_dict["caption"] = caption
+                info.append(remove_empty_elements(a_dict))
+            title.append(response.css("span.seitenkopf__headline--text::text").get())
+        elif response.css("div[data-v-type=\"Slider\"]::attr(data-v)").get():
+            images_dict = json.loads(response.css("div[data-v-type=\"Slider\"]::attr(data-v)").get())
+            images = images_dict.get("images",None)
+            if images:
+                for image in images:
+                    info.append(
+                        {
+                        "link":BASE_URL+image.get("url"),
+                        "caption":image.get("description"),
+                    })
+            title.append(response.css("h1 .multimediahead__headline::text").get())
 
-            info.append(remove_empty_elements(a_dict))
-        return info
-
+        return {"images":info,"title":title}
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting article images: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -410,3 +419,5 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             raise exceptions.ArticleScrappingException(
             f"Error occurred while writing json file {str(exception)}"
             )
+
+
