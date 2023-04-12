@@ -273,12 +273,10 @@ def get_main(response):
 
 def get_images(response):
     images = response.css(
-        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image']"
-        + "meta[itemprop='url']::attr(content)"
+        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] meta[itemprop='url']::attr(content)"
     ).getall()
     image_caption = response.css(
-        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] "
-        + "picture img::attr(alt)"
+        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] picture img::attr(alt)"
     ).getall()
     image_list = []
     for i in range(0, len(images)):
