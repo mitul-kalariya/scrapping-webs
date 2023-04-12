@@ -5,7 +5,9 @@
 This repo contains the code to scrap all article links and articles from https://www.bfmtv.com/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
-
+- Sselenium
+- Webdriver-manager
+- Beautifulsoup4
 
 #### Environment Setup 
 
