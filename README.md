@@ -22,7 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Article data available for 3-4 days only
+Article data available for 3-4 days only including today's date
 
 ```
 # To fetch all the article links from today's date only
@@ -38,7 +38,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.leparisien.fr/"
     },
     proxies=proxies
@@ -62,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://www.lemonde.fr/culture/article/2023/04/07/selection-albums-nikolai-medtner-le-quatuor-diotima-morice-benin-teleman-le-quartette-sissoko-segal-parisien-et-peirani-queen-omega-bekar_6168686_3246.html"
+        "link": "https://www.leparisien.fr/info-paris-ile-de-france-oise/transports/transports-en-ile-de-france-les-perturbations-du-week-end-de-paques-du-8-au-10-avril-07-04-2023-5LVGUDMJFZEGVBRJH4V3MIVYYU.php"
     },
     proxies=proxies
 )

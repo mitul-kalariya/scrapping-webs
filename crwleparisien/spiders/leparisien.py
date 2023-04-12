@@ -18,7 +18,7 @@ from crwleparisien.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
+
 )
 
 logging.basicConfig(
@@ -39,10 +39,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -78,6 +74,9 @@ class LeParisien(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
+            ) from exception
 
     def parse(self, response):
         """
@@ -93,29 +92,26 @@ class LeParisien(scrapy.Spider, BaseSpider):
 
             :param response: the response of the current request.
             """
-        if response.status != 200:
-            raise CloseSpider(
-                f"Unable to scrape due to getting this status code {response.status}"
-            )
-        if self.type == "sitemap":
-            try:
+        try:
+            if response.status != 200:
+                raise CloseSpider(
+                    f"Unable to scrape due to getting this status code {response.status}"
+                )
+            if self.type == "sitemap":
                 for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
                                                                          namespaces=self.namespace).getall():
                     yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
-            except Exception as exception:
-                self.log(
-                    f"Error occurred while iterating sitemap url. {str(exception)}",
-                    level=logging.ERROR,
-                )
 
-        elif self.type == "article":
-            try:
+            elif self.type == "article":
                 yield self.parse_article(response)
-            except Exception as exception:
-                self.log(
-                    f"Error occured while parsing article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating {self.type} url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating {self.type} url:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -162,15 +158,6 @@ class LeParisien(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response):
-        """
-        Parse article information from a given sitemap URL.
-
-        :param response: HTTP response from the sitemap URL.
-        :return: None
-        """
-        pass
 
     def parse_article(self, response):
         """
