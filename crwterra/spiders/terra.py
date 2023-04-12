@@ -1,3 +1,4 @@
+"""Spider to scrap terra news article"""
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -8,8 +9,14 @@ from scrapy.selector import Selector
 from crwterra.constant import SITEMAP_URL, LOGGER
 from crwterra.items import ArticleData
 from crwterra import exceptions
-from crwterra.utils import (create_log_file, validate_sitemap_date_range, get_raw_response,
-                            get_parsed_data, get_parsed_json, export_data_to_json_file, )
+from crwterra.utils import (
+    create_log_file,
+    validate_sitemap_date_range,
+    get_raw_response,
+    get_parsed_data,
+    get_parsed_json,
+    export_data_to_json_file,
+)
 
 # create log file
 create_log_file()
@@ -21,6 +28,8 @@ class BaseSpider(ABC):
     Args:
         ABC : Abstract
     """
+
+    # pylint: disable=unnecessary-pass
     @abstractmethod
     def parse(self, response: str) -> None:
         """parse function responsible for calling individual methods for each request"""
@@ -43,9 +52,11 @@ class BaseSpider(ABC):
 
 class TerraSpider(scrapy.Spider, BaseSpider):
     """main spider for parsing sitemap or article"""
+
     name = "terra"
 
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
+        # pylint: disable=redefined-builtin
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -76,8 +87,12 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
-                self.since = (datetime.strptime(since, "%Y-%m-%d").date() if since else None)
-                self.until = (datetime.strptime(until, "%Y-%m-%d").date() if until else None)
+                self.since = (
+                    datetime.strptime(since, "%Y-%m-%d").date() if since else None
+                )
+                self.until = (
+                    datetime.strptime(until, "%Y-%m-%d").date() if until else None
+                )
                 validate_sitemap_date_range(since, until)
 
             if self.type == "article":
@@ -88,7 +103,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            LOGGER.info(
+                "Error occured in init function in %s:-- %s", self.name, exception
+            )
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
@@ -117,13 +134,13 @@ class TerraSpider(scrapy.Spider, BaseSpider):
 
     def parse_article(self, response) -> list:
         """
-            Parses the article data from the response object and returns it as a dictionary.
-            Args:
-                response (scrapy.http.Response): The response object containing the article data.
-            Returns:
-                dict: A dictionary containing the parsed article data, including the raw response,
-                parsed JSON, and parsed data, along with additional information such as the country
-                and time scraped.
+        Parses the article data from the response object and returns it as a dictionary.
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
         """
         try:
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
@@ -133,7 +150,10 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value("parsed_json", response_json, )
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
@@ -142,8 +162,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                f"Error occurred while scrapping an article for this link {response.url}."
-                + str(exception)
+                "Error occurred while scrapping an article for this link %s. %s",
+                response.url,
+                str(exception),
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
@@ -159,21 +180,26 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
         """  # pylint: disable=line-too-long
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+            for sitemap in xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ):
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
 
         except BaseException as exception:
-            LOGGER.info(f"Error while parsing sitemap: {exception}")
+            LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_sitemap_article(self, response):
-        """Extracts article titles and links from the response object and yields a Scrapy request for each article.
+        """Extracts article titles and links from the response object and
+        yields a Scrapy request for each article.
         Args:
             self: The Scrapy spider instance calling this method.
             response: The response object obtained after making a request to a sitemap URL.
@@ -186,7 +212,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
         try:
             namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            published_date = response.xpath('//*[local-name()="lastmod"]/text()').getall()
+            published_date = response.xpath(
+                '//*[local-name()="lastmod"]/text()'
+            ).getall()
             for link, pub_date in zip(links, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 today_date = datetime.today().date()
@@ -205,9 +233,10 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 else:
                     continue
         except Exception as exception:
-            LOGGER.info("Error while parsing sitemap article:" + str(exception))
+            LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article::-  {str(exception)}")
+                f"Error while parsing sitemap article::-  {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -223,5 +252,9 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
-            raise exceptions.ExportOutputFileException(f"Error occurred while writing json file{str(exception)} - {reason}")
+            LOGGER.info(
+                "Error occurred while writing json file %s - %s", str(exception), reason
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file{str(exception)} - {reason}"
+            )
