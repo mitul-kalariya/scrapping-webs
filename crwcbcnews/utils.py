@@ -9,7 +9,8 @@ from crwcbcnews.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwcbcnews.constant import GET_VIDEO_URL
+from crwcbcnews.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
@@ -196,6 +197,8 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
             if ld_json.get("video"):
                 parsed_json_flter_dict["videoObjects"] = ld_json.pop("video")
             parsed_json_flter_dict["main"] = ld_json
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["videoObjects"] = json.loads(block)
         else:
             parsed_json_flter_dict["Other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
@@ -439,7 +442,11 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
             video_caption = (
                 json.loads(block).get("video", None)[0].get("alternativeHeadline", None)
             )
-            video_url = json.loads(block).get("video", None)[0].get("contentUrl", None)
+            video_url = json.loads(block).get("video", None)[0].get("contentUrl", None).split('play/')[1]
+            video_url = GET_VIDEO_URL + video_url
+        if "VideoObject" in json.loads(block).get("@type", [{}]):
+            video_caption = json.loads(block).get('description')
+            video_url = json.loads(block).get('embedUrl')
         if json.loads(block).get("thumbnailUrl", None):
             thumbnail_url = json.loads(block).get("thumbnailUrl")
 
