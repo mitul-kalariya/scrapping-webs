@@ -6,7 +6,7 @@ from datetime import datetime
 from crwbastillepost import exceptions
 from crwbastillepost.constant import TODAYS_DATE, LOGGER
 import itertools
-
+import re
 
 def create_log_file():
     logging.basicConfig(
@@ -94,10 +94,10 @@ def get_main(response):
         main data
     """
     try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
+        SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        json_format = re.sub(SPACE_REMOVER_PATTERN, "", main[0]).strip()
+        data = json.loads(json_format)
         return data
     except BaseException as e:
         LOGGER.error(f"{e}")
@@ -148,11 +148,13 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
+    SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
     parsed_json = {}
     other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
     for a_block in ld_json_data:
-        data = json.loads(a_block)
+        json_format = re.sub(SPACE_REMOVER_PATTERN, "", a_block).strip()
+        data = json.loads(json_format)
         if data.get("@type") == "NewsArticle":
             parsed_json["main"] = data
         elif data.get("@type") == "ImageGallery":
@@ -198,13 +200,14 @@ def get_parsed_data(response):
         main_dict["author"] = authors
 
         main_data = get_main(response)
-        main_dict["description"] = [main_data[0].get("description")]
+        main_dict["description"] = [main_data.get("description")]
 
-        main_dict["published_at"] = [main_data[0].get("datePublished")]
-        main_dict["modified_at"] = [main_data[0].get("dateModified")]
+        main_dict["published_at"] = [main_data.get("datePublished")]
 
-        main_dict["section"] = [main_data[0].get("articleSection")]
-        main_dict["tags"] = main_data[0].get("keywords")
+        main_dict["modified_at"] = [main_data.get("dateModified")]
+
+        main_dict["section"] = [main_data.get("articleSection")]
+        main_dict["tags"] = main_data.get("keywords")
 
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
@@ -279,8 +282,10 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
+        SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
         response = response.css('script[type="application/ld+json"]::text').getall()
-        json_loads = json.loads(response[0])
+        json_format = re.sub(SPACE_REMOVER_PATTERN, "", response[0]).strip()
+        json_loads = json.loads(json_format)
         data = []
         publisher = json_loads.get("publisher")
         data.append(publisher)
@@ -300,15 +305,17 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
+        SPACE_REMOVER_PATTERN = r"[\n|\r|\t]+"
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         if parsed_data:
             for block in parsed_data:
-                if "NewsArticle" in json.loads(block).get("@type", [{}]):
+                json_format = re.sub(SPACE_REMOVER_PATTERN, "", block).strip()
+                if "NewsArticle" in json.loads(json_format).get("@type", [{}]):
                     data = []
                     var = {
-                        "@type": json.loads(block).get("author", [{}]).get("@type"),
-                        "name": json.loads(block).get("author", [{}]).get("name"),
-                        "url": json.loads(block).get("author", [{}]).get("url", None),
+                        "@type": json.loads(json_format).get("author", [{}]).get("@type"),
+                        "name": json.loads(json_format).get("author", [{}]).get("name"),
+                        "url": json.loads(json_format).get("author", [{}]).get("url", None),
                     }
                     data.append(var)
             return data
@@ -327,7 +334,7 @@ def get_thumbnail_image(response) -> list:
     """
     image = get_main(response)
     thumbnail_image = []
-    thumbnail_image.append(image[0].get("image").get("url"))
+    thumbnail_image.append(image.get("image").get("url"))
     return thumbnail_image
 
 
