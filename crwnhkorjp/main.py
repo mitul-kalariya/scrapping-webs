@@ -99,4 +99,3 @@ class Crawler:
 
         process.crawl(NhkOrJpNews, **spider_args)
         process.start()
-

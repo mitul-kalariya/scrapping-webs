@@ -5,7 +5,7 @@ import unittest
 from crwnhkorjp.spiders.nhkorjp import NhkOrJpNews
 from crwnhkorjp.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwnhkorjp.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+                                           online_response_from_url)
 
 from crwnhkorjp import Crawler
 
@@ -67,7 +67,6 @@ class TestArticle(unittest.TestCase):
                 if test_article_data[0].get("parsed_json").get("Other"):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
-
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
