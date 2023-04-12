@@ -22,7 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Article data available for more than 1 month
+Article data available for more than 1 month including today's date
 ```
 # To fetch all the article links
 
@@ -38,7 +38,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.lemonde.fr/sitemap_index.xml",
+        "domain": "https://www.lemonde.fr/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
