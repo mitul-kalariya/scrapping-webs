@@ -188,20 +188,22 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": [],
+        "videoObjects": [],
+        "other": [],
         "misc": [],
     }
-    for block in json.loads(blocks[0]):
-        if "NewsArticle" in block.get("@type", [{}]):
-            parsed_json_flter_dict["main"] = block
-        elif "ImageGallery" in block.get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = block
-        elif "VideoObject" in block.get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = block
-        else:
-            parsed_json_flter_dict["Other"].append(block)
+    for ld_blocks in blocks:
+        for block in json.loads(ld_blocks):
+            if "NewsArticle" in block.get("@type", [{}]):
+                parsed_json_flter_dict["main"] = block
+            elif ("ImageGallery" in block.get("@type", [{}])
+                    or "ImageObject" in block.get("@type", [{}])):
+                parsed_json_flter_dict["imageObjects"].append(block)
+            elif "VideoObject" in block.get("@type", [{}]):
+                parsed_json_flter_dict["videoObjects"].append(block)
+            else:
+                parsed_json_flter_dict["other"].append(block)
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
