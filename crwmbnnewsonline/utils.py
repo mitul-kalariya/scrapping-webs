@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from selenium import webdriver
@@ -7,8 +6,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from crwmbnnewsonline.constant import SITEMAP_URL
 from crwmbnnewsonline.items import (
     ArticleRawResponse,
@@ -18,7 +15,7 @@ from crwmbnnewsonline.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
-    SitemapArticleScrappingException
+    SitemapArticleScrappingException,
 )
 from crwmbnnewsonline.constant import LOGGER
 
@@ -45,14 +42,16 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
         self.start_urls.append(url)
 
     def set_date_range(start_date, end_date):
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
 
     def validate_date_range():
         if self.start_date > self.end_date:
             raise InvalidDateException("start_date must be less then end_date")
         if (self.end_date - self.start_date).days > 30:
-            raise InvalidDateException("Enter start_date and end_date for maximum 30 days.")
+            raise InvalidDateException(
+                "Enter start_date and end_date for maximum 30 days."
+            )
 
     def validate_type():
         if self.type not in ["article", "sitemap"]:
@@ -66,11 +65,13 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
+            self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
             add_start_url(SITEMAP_URL)
 
         elif self.end_date is not None or self.start_date is not None:
-            raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
+            raise InvalidArgumentException(
+                "to use type sitemap give only type sitemap or with start date and end date"
+            )
 
     def handle_article_type():
         if self.url is not None:
@@ -119,24 +120,43 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     )
 
     for key, value in selector_and_key.items():
-
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if "NewsArticle" in json.loads(data).get("@type")
+                ],
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") == "ImageGallery"
+                ],
             )
 
         elif key == "VideoObject":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") == "VideoObject"
+                ],
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in
-                      selector_and_key.keys() and json.loads(data).get('@type') != "NewsArticle"]
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") not in selector_and_key.keys()
+                    and json.loads(data).get("@type") != "NewsArticle"
+                ],
             )
 
     return dict(article_raw_parsed_json_loader.load_item())
@@ -176,33 +196,40 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict["description"] = [response.css('meta[name="dc.description"]::attr(content)').get()]
-    published_at = response.css('.txt_box span.time::text').getall()
+    parsed_data_dict["description"] = [
+        response.css('meta[name="dc.description"]::attr(content)').get()
+    ]
+    published_at = response.css(".txt_box span.time::text").getall()
     i = 0
     if len(published_at) == 3:
         i = 1
-    parsed_data_dict["published_at"] = [published_at[i].split(' ')[2] + 'T' + published_at[i].split(' ')[3]]
+    parsed_data_dict["published_at"] = [
+        published_at[i].split(" ")[2] + "T" + published_at[i].split(" ")[3]
+    ]
     if len(published_at) > 1:
-        parsed_data_dict["modified_at"] = [published_at[i + 1].split(' ')[3] + 'T' + published_at[i + 1].split(' ')[4]]
+        parsed_data_dict["modified_at"] = [
+            published_at[i + 1].split(" ")[3] + "T" + published_at[i + 1].split(" ")[4]
+        ]
     author = {}
-    if response.css('#container a::text')[0].get():
-        author['@type'] = 'Person'
-        author['name'] = response.css('#container a::text')[0].get()
-        author['url'] = response.css('#container a::attr(href)')[0].get()
-        parsed_data_dict['author'] = [author]
-    parsed_data_dict['author'] = [author]
+    if response.css("#container a::text")[0].get():
+        author["@type"] = "Person"
+        author["name"] = response.css("#container a::text")[0].get()
+        author["url"] = response.css("#container a::attr(href)")[0].get()
+        parsed_data_dict["author"] = [author]
+    parsed_data_dict["author"] = [author]
     texts = []
-    for data in response.css('#newsViewArea::text'):
+    for data in response.css("#newsViewArea::text"):
         texts.append(data.get().strip())
     parsed_data_dict["text"] = [" ".join(data for data in texts if data)]
-    parsed_data_dict['thumbnail_image'] = [response.css('h1 a:nth-child(1) img::attr(src)').get()]
-    parsed_data_dict['title'] = [response.css('#container h1::text').get()]
-    parsed_data_dict['section'] = [response.css('.section::text').get().split('>')[1]]
-    # parsed_data_dict['embed_video_link'] = get_embed_video_link(response)
+    parsed_data_dict["thumbnail_image"] = [
+        response.css("h1 a:nth-child(1) img::attr(src)").get()
+    ]
+    parsed_data_dict["title"] = [response.css("#container h1::text").get()]
+    parsed_data_dict["section"] = [response.css(".section::text").get().split(">")[1]]
     parsed_data_dict["source_country"] = ["South Korea"]
     parsed_data_dict["source_language"] = ["Korean"]
-    parsed_data_dict['tags'] = response.css('.gnb_depth_in li a::text').getall()
-    parsed_data_dict['images'] = get_images(response)
+    parsed_data_dict["tags"] = response.css(".gnb_depth_in li a::text").getall()
+    parsed_data_dict["images"] = get_images(response)
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -262,9 +289,10 @@ def get_images(response, parsed_json=False) -> list:
             + ")"
         )
         import time
+
         time.sleep(1)
         data = []
-        images = driver.find_elements(By.CSS_SELECTOR, '#newsViewArea .b-loaded')
+        images = driver.find_elements(By.CSS_SELECTOR, "#newsViewArea .b-loaded")
         if images:
             for image in images:
                 temp_dict = {}
@@ -278,6 +306,8 @@ def get_images(response, parsed_json=False) -> list:
             return data
     except Exception as e:
         LOGGER.error(f"{str(e)}")
-        raise SitemapArticleScrappingException(f"Error occured while scrapping sitemap:-{str(e)}")
+        raise SitemapArticleScrappingException(
+            f"Error occured while scrapping sitemap:-{str(e)}"
+        )
     driver.close()
     return data

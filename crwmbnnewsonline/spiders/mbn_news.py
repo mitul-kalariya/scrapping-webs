@@ -17,9 +17,7 @@ from crwmbnnewsonline.utils import (
 from crwmbnnewsonline.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
-    ExportOutputFileException,
     InvalidArgumentException,
-    SitemapArticleScrappingException
 )
 
 logging.basicConfig(
@@ -43,10 +41,6 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
-    @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
 
@@ -54,16 +48,17 @@ class BaseSpider(ABC):
 class Mbn_news(scrapy.Spider, BaseSpider):
     name = "mbn_news"
 
-    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
-                 'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
+    namespace = {
+        "sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9",
+        "news": "http://www.google.com/schemas/sitemap-news/0.9",
+    }
 
     def __init__(
-        self, type=None, start_date=None,
-        end_date=None, url=None, *args, **kwargs
+        self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs
     ):
         try:
             super(Mbn_news, self).__init__(*args, **kwargs)
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -78,14 +73,17 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+                "Error occurred while taking type, url, start_date and end_date args. "
+                + str(exception)
             )
             self.log(
-                "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
+                "Error occurred while taking type, url, start_date and end_date args. "
+                + str(exception),
                 level=logging.ERROR,
             )
             raise InvalidArgumentException(
-                f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}")
+                f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}"
+            )
 
     def parse(self, response):
         """
@@ -105,8 +103,11 @@ class Mbn_news(scrapy.Spider, BaseSpider):
             )
         if self.type == "sitemap":
             try:
-                sitemap_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                    namespaces=self.namespace).getall()
+                sitemap_urls = (
+                    Selector(response, type="xml")
+                    .xpath("//sitemap:loc/text()", namespaces=self.namespace)
+                    .getall()
+                )
 
                 for site_map_url in sitemap_urls:
                     yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
@@ -116,7 +117,9 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating sitemap url. {str(exception)}",
                     level=logging.ERROR,
                 )
-                raise SitemapScrappingException(f"Error occured while iterating sitemap url. {str(exception)}")
+                raise SitemapScrappingException(
+                    f"Error occured while iterating sitemap url. {str(exception)}"
+                )
 
         elif self.type == "article":
             try:
@@ -126,43 +129,44 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
-                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
+                raise ArticleScrappingException(
+                    f"Error occured while iterating article url. {str(exception)}"
+                )
 
     def parse_sitemap(self, response):
         """
-           Parses the sitemap and extracts the article URLs and their last modified date.
-           If the last modified date is within the specified date range, sends a request to the article URL
-           :param response: the response from the sitemap request
-           :return: scrapy.Request object
-           """
-        article_url = Selector(response, type='xml').\
-            xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-        mod_date = Selector(response, type='xml')\
-            .xpath('//news:publication_date/text()',
-                   namespaces=self.namespace).getall()
-        article_titles = Selector(response, type='xml')\
-            .xpath('//news:title/text()',
-                   namespaces=self.namespace).getall()
+        Parses the sitemap and extracts the article URLs and their last modified date.
+        If the last modified date is within the specified date range, sends a request to the article URL
+        :param response: the response from the sitemap request
+        :return: scrapy.Request object
+        """
+        article_url = (
+            Selector(response, type="xml")
+            .xpath("//sitemap:loc/text()", namespaces=self.namespace)
+            .getall()
+        )
+        mod_date = (
+            Selector(response, type="xml")
+            .xpath("//news:publication_date/text()", namespaces=self.namespace)
+            .getall()
+        )
+        article_titles = (
+            Selector(response, type="xml")
+            .xpath("//news:title/text()", namespaces=self.namespace)
+            .getall()
+        )
         try:
             for url, date, title in zip(article_url, mod_date, article_titles):
-                _date = datetime.strptime(date.split("T")[0].strip(), '%Y-%m-%d')
+                _date = datetime.strptime(date.split("T")[0].strip(), "%Y-%m-%d")
                 if self.today_date:
                     if _date == self.today_date:
-
                         if title:
-                            article = {
-                                "link": url,
-                                "title": title
-                            }
+                            article = {"link": url, "title": title}
                             self.articles.append(article)
                 else:
                     if self.start_date <= _date <= self.end_date:
-
                         if title:
-                            article = {
-                                "link": url,
-                                "title": title
-                            }
+                            article = {"link": url, "title": title}
                             self.articles.append(article)
 
         except Exception as exception:
@@ -173,16 +177,6 @@ class Mbn_news(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response):
-        """
-        Parse article information from a given sitemap URL.
-
-        :param response: HTTP response from the sitemap URL.
-        :return: None
-        """
-        # Extract the article title from the response
-        pass
 
     def parse_article(self, response):
         """
@@ -209,9 +203,9 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['imageObjects'] = parsed_json_main
-                parsed_json_dict['videoObjects'] = parsed_json_main
-                parsed_json_dict['other'] = parsed_json_main
+                parsed_json_dict["imageObjects"] = parsed_json_main
+                parsed_json_dict["videoObjects"] = parsed_json_main
+                parsed_json_dict["other"] = parsed_json_main
 
             if parsed_json_misc:
                 parsed_json_dict["misc"] = parsed_json_misc
@@ -258,6 +252,6 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
+            raise Exception(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}"
             ) from exception
