@@ -203,6 +203,9 @@ def get_parsed_data(response):
         main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
+        main_dict["section"] = [main_data[0].get("articleSection")]
+        main_dict["tags"] = main_data[0].get("keywords")
+
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
 
