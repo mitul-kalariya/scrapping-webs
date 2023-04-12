@@ -139,27 +139,57 @@ def get_parsed_json(response):
         )
 
 
+def get_parsed_data_dict() -> dict:
+    """
+    Return base data dictionary
+
+    Args:
+    None
+
+    Returns:
+        dict: Return base data dictionary
+    """
+    return {
+        "source_country": None,
+        "source_language": None,
+        "author": [{"@type": None, "name": None, "url": None}],
+        "description": None,
+        "modified_at": None,
+        "published_at": None,
+        "publisher": None,
+        "text": None,
+        "thumbnail_image": None,
+        "title": None,
+        "images": None,
+        "section": None,
+        "embed_video_link": None,
+    }
+
 def get_parsed_data(response):
     try:
         pattern = r"[\r\n\t\"]+"
-        main_dict = {}
+        main_dict = get_parsed_data_dict()
         video = []
         main_data = get_main(response)
+        article_json = main_data.get("article")
+        videoobject_json = main_data.get("VideoObject")
+        web_page = main_data.get("WebPage")
+        if article_json:
+            main_data = article_json
+        elif videoobject_json:
+            main_data = videoobject_json
+        else:
+            main_data = web_page
 
-        # extract author info
-        authors = [main_data[0].get("author")]
-        main_dict["author"] = authors
+        # extract author and publisher information
+        main_dict |= get_author_publisher(main_data, response)
 
         # extract main headline of article
         title = response.css("span.seitenkopf__headline--text::text").get()
         main_dict["title"] = [title]
 
-        main_dict["publisher"] = [main_data[0].get("publisher")]
-
         # extract the date published at
-        main_dict["published_at"] = [main_data[0].get("datePublished")]
-        main_dict["modified_at"] = [main_data[0].get("dateModified")]
-        main_dict["description"] = [main_data[0].get("description")]
+        main_dict |= get_description_dates(main_data,response)
 
         # extract the description or read text of the article
         text = response.css("p.textabsatz::text").getall()
@@ -179,6 +209,8 @@ def get_parsed_data(response):
             main_dict["thumbnail_image"] = [BASE_URL + thumbnail_image]
 
         main_dict["images"] = get_article_images(response.css("div.absatzbild"))
+
+        
         # extract video files if any
         frame_video = get_embed_video_link(response.css("div.copytext__video"))
         if frame_video:
@@ -202,6 +234,30 @@ def get_parsed_data(response):
             f"Error while extracting parsed data: {exception}"
         )
 
+def get_author_publisher(parsed_json_dict,response):
+    if parsed_json_dict:
+        return {
+            "author":[parsed_json_dict.get("author",None)],
+            "publisher":[parsed_json_dict.get("publisher",None)]
+        }
+    else:
+        return {
+            "author": [response.css("meta[name=\"author\"]::attr(content)").get()],
+            "publisher": [{"name":response.css("meta[name=\"publisher\"]::attr(content)").get()}]
+        }
+
+def get_description_dates(parsed_json_dict,response):
+    if parsed_json_dict:
+        return {
+            "published_at": [parsed_json_dict.get("datePublished",None)],
+            "modified_at": [parsed_json_dict.get("dateModified",None)],
+            "description": [parsed_json_dict.get("description",None)]
+        }
+    else:
+        return {
+            "published_at": [response.css("meta[name=\"date\"]::attr(content)").get()],
+            "description": [response.css("meta[name=\"description\"]::attr(content)").get()],
+        }
 
 def get_main(response):
     """
@@ -212,16 +268,22 @@ def get_main(response):
         main data
     """
     try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
 
+        information = {}
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        for block in main:
+            data = json.loads(block)
+            if data.get("@type") == "NewsArticle":
+                information["article"] = data
+            elif data.get("@type") == "WebPage":
+                information["WebPage"] = data
+            elif data.get("@type") == "VideoObject":
+                information["VideoObject"] = data
+        return information
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting main: {exception}")
+        LOGGER.error("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting main: {exception}"
+            f"Error while getting main: {exception}"
         )
 
 
