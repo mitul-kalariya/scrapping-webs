@@ -5,6 +5,9 @@
 This repo contains the code to scrap all article links and articles from https://www.zdf.de/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
+- Webdriver-manager
+- Selenium
+- Pillow
 
 
 #### Environment Setup
@@ -18,6 +21,10 @@ This repo contains the code to scrap all article links and articles from https:/
 ### Installation
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
+### Use of Selenium
+
+Yes, we used selenium to fetch video URLs. To manage the selenium we are using [Web-Driver](https://pypi.org/project/webdriver-manager/) package and we are using `ChromeDriverManager`.
+
 ### Usage
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.

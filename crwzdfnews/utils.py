@@ -31,6 +31,20 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """validate date range given by user
+
+    Args:
+        start_date (datetime): start_date
+        end_date (datetime): end date
+
+    Raises:
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: _description_
+    """
     start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
@@ -83,12 +97,25 @@ def remove_empty_elements(parsed_data_dict):
 
 
 def get_raw_response(response):
-    raw_resopnse = {
-        "content_type": "text/html; charset=utf-8",
-        "content": response.css("html").get(),
-    }
-    return remove_empty_elements(raw_resopnse)
+    """generate dictrionary of raw html data
 
+    Args:
+        response (object): page_data
+
+    Returns:
+        raw_response (dict): targeted data
+    """
+    try:
+        raw_resopnse = {
+            "content_type": "text/html; charset=utf-8",
+            "content": response.css("html").get(),
+        }
+        return remove_empty_elements(raw_resopnse)
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting raw response: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting raw response: {exception}"
+        )
 
 def get_parsed_json(response):
     """
@@ -207,6 +234,16 @@ def get_parsed_data(response):
 
 
 def get_thumbnail_image(response):
+    """
+        Returns thumbnail images, images and video details
+        Args:
+            article_url: article url
+            parsed_json_images: response of application/ld+json iamges data
+            parsed_json_videos: response of application/ld+jsonvideos data
+            response: provided response
+        Returns:
+            dict: thumbnail images, images and video details
+    """
     try:
         data = get_main(response)
         for data_block in data:
@@ -223,6 +260,12 @@ def get_thumbnail_image(response):
 
 
 def get_section(response):
+    """Extract section (category) of the article
+    Args:
+        response (object): web page data
+    Returns:
+        list: list of sections
+    """
     try:
         breadcrumb_list = response.css("div[class=\"breadcrumb-wrap grid-x\"] ol li a::text").getall()
         if breadcrumb_list[-1]:
@@ -286,6 +329,12 @@ def get_misc(response):
 
 
 def get_images(response, parsed_json=False) -> list:
+    """
+        Extracts all the images present in the web page.
+        Returns:
+        list: A list of dictionaries containing information about each image,
+        such as image link.
+    """
     try:
         images = response.css("figure.content-image")
         pattern = r"[\r\n\t]"

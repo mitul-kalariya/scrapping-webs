@@ -187,24 +187,26 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
 
             for link, pub_date in zip(links, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-
-                if self.start_date and published_at < self.start_date:
-                    return
-                if self.start_date and published_at > self.end_date:
-                    return
                 
                 if ".html" not in link:
-                    continue
+                    continue    
                 
-                if TODAYS_DATE == published_at:
-                    data = {"link": link}
-                    self.articles.append(data)
+                data = {"link": link}
 
-                if self.start_date and self.end_date:
-                    data = {"link": link}
+                
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == published_at:
+                        self.articles.append(data)
+                elif (
+                    self.start_date
+                    and self.end_date
+                    and self.start_date <= published_at <= self.end_date
+                ):
                     self.articles.append(data)
-                else:
-                    continue
+                elif self.start_date and self.end_date:
+                    if published_at == self.start_date and published_at == self.end_date:
+                        self.articles.append(data)
+                
 
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article:" + str(exception))
