@@ -18,6 +18,7 @@ This repo contains the code to scrap all article links and articles from https:/
 ### Installation
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
+Sitemap data is available for 2-3 days Including today's date.
 ### Usage
 
 

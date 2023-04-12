@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwasahishimbundigital.constant import SITEMAP_URL
@@ -14,7 +13,7 @@ from crwasahishimbundigital.exceptions import (
 )
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa:C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
     Args:

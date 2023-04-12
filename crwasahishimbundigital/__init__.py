@@ -1,1 +1,1 @@
-from crwasahishimbundigital.main import Crawler
+from crwasahishimbundigital.main import Crawler  # noqa:F401

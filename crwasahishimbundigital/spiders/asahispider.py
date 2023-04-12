@@ -17,7 +17,6 @@ from crwasahishimbundigital.utils import (
 from crwasahishimbundigital.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
-    ExportOutputFileException,
     InvalidArgumentException,
     SitemapArticleScrappingException
 )
@@ -83,7 +82,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             raise InvalidArgumentException(
                 f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}")
 
-    def parse(self, response):
+    def parse(self, response):  # noqa:C901
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
@@ -255,6 +254,6 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
+            raise Exception(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}"
             ) from exception
