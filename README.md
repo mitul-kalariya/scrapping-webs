@@ -6,8 +6,9 @@ This repo contains the code to scrap all sitemaps (if available) and articles fr
 -  Selenium
 -  Beautiful Soup
 
-#### Environment Setup 
+#### Environment Setup
 
+- Create a Virtual Environment using Python3 and activate the environment.
 - Create a Virtual Environment using Python3 and activate the environment.
 - `python3 -m venv venv`
 - `source venv/bin/activate`
@@ -74,3 +75,7 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
+
+### Use of Selenium
+
+Yes, we used selenium to fetch {your use case }. To manage the selenium we are using [Web-Driver](https://pypi.org/project/webdriver-manager/) package and we are using `ChromeDriverManager`.

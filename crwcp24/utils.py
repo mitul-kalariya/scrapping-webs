@@ -1,9 +1,5 @@
 import json
-import os
 from datetime import datetime
-from json import JSONDecodeError
-
-from scrapy.http import Response
 from scrapy.loader import ItemLoader
 
 from crwcp24.constant import SITEMAP_URL
@@ -16,7 +12,7 @@ from crwcp24.items import ArticleRawParsedJson, ArticleRawResponse
 from crwcp24.videos import get_video
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
 
@@ -226,7 +222,6 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
         article_data["video_url"] = get_video(self, response.url)
 
     parsed_data_dict = get_parsed_data_dict()
-
     parsed_data_dict["author"] = [
         {
             "@type": article_data.get("main").get("author")[0].get("@type"),
@@ -239,8 +234,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["published_at"] = [article_data.get("main").get("datePublished")]
     parsed_data_dict["publisher"] = [
         {
+            "@id": article_data.get("other")[1].get('url').split('//')[1],
             "@type": article_data.get("main").get("publisher").get("@type"),
-            "url": article_data.get("main").get("publisher").get("url"),
+            "name": article_data.get("main").get("publisher").get("name"),
             "logo": {
                 "@type": article_data.get("main")
                 .get("publisher")
@@ -327,38 +323,3 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)

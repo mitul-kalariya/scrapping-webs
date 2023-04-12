@@ -79,7 +79,9 @@
             ],
             "publisher": [
                 {
+                    "@id": "www.cp24.com",
                     "@type": "NewsMediaOrganization",
+                    "name": "CP24",
                     "logo": {
                         "@type": "ImageObject",
                         "url": "https://www.cp24.com/polopoly_fs/7.724915!/httpImage/image.png",

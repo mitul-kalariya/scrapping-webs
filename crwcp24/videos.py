@@ -21,7 +21,7 @@ def get_video(self, url):
         iframe_string = value
         soup = BeautifulSoup(iframe_string, 'html.parser')
         video_url = soup.iframe.get("src")
-        element = WebDriverWait(driver, 1).until(
+        WebDriverWait(driver, 1).until(
             EC.presence_of_element_located((By.XPATH, '//video[@class="jw-video jw-reset"]'))
         )
     except Exception as e:

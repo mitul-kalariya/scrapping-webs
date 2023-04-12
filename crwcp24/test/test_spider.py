@@ -132,7 +132,7 @@ class TestArticle(unittest.TestCase):
                         "missing object:- parsed_data--> author --> url",
                     )
 
-    def _test_parse_json_data_format(self, article, test_article_data):
+    def _test_parse_json_data_format(self, article, test_article_data):  # noqa: C901
         # Since the content of article can be modified at anytime so not checkering exact text
         # but testing the object format so that we can verify that crawler is working well.
         if article[0].get("parsed_data").get("text"):
@@ -333,7 +333,7 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
+        self.type = "link_feed"
         self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):

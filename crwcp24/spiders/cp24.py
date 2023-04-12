@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 import scrapy
-from scrapy.exceptions import CloseSpider
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
 
@@ -103,8 +102,8 @@ class CP24News(scrapy.Spider, BaseSpider):
         :return: A generator of Scrapy Request objects, one for each sitemap
         or article URL found in the response.
         """
-        if self.type == "sitemap":
-            try:
+        try:
+            if self.type == "sitemap":
                 for site_map_url in (
                     Selector(response, type="xml")
                     .xpath("//sitemap:loc/text()", namespaces=self.namespace)
@@ -113,22 +112,16 @@ class CP24News(scrapy.Spider, BaseSpider):
                     if "askalawyer" not in site_map_url:
                         yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
 
-            except Exception as exception:
-                self.log(
-                    f"Error occured while iterating sitemap url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-        elif self.type == "article":
-            try:
+            elif self.type == "article":
                 yield self.parse_article(response)
-            except Exception as exception:
-                self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-                raise SitemapScrappingException(
-                    f"Error occurred while iterating sitemap url:- {str(exception)}"
-                ) from exception
+        except Exception as exception:
+            self.log(
+                f"Error occured while iterating {self.type} url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating {self.type} url:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -289,8 +282,6 @@ class CP24News(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

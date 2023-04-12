@@ -1,0 +1,5 @@
+scrapy
+pillow
+selenium
+beautifulsoup4
+webdriver_manager
