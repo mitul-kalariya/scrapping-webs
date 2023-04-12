@@ -1,7 +1,6 @@
 # Utility/helper functions
 # utils.py
 
-import os
 import re
 import json
 import logging
@@ -51,9 +50,7 @@ def validate_sitemap_date_range(start_date, end_date):
             )
 
     except exceptions.InvalidDateException as expception:
-        LOGGER.info(
-            f"Error occured while checking date range: {expception}"
-        )
+        LOGGER.info(f"Error occured while checking date range: {expception}")
         raise exceptions.InvalidDateException(
             f"Error occured while checking date range: {expception}"
         )
@@ -165,6 +162,7 @@ def get_parsed_data_dict() -> dict:
         "embed_video_link": None,
     }
 
+
 def get_parsed_data(response):
     try:
         pattern = r"[\r\n\t\"]+"
@@ -185,7 +183,7 @@ def get_parsed_data(response):
         main_dict |= get_author_publisher(main_data, response)
 
         # extract the date published at
-        main_dict |= get_description_dates(main_data,response)
+        main_dict |= get_description_dates(main_data, response)
 
         # extract the description or read text of the article
         text = response.css("p.textabsatz::text").getall()
@@ -230,30 +228,37 @@ def get_parsed_data(response):
             f"Error while extracting parsed data: {exception}"
         )
 
-def get_author_publisher(parsed_json_dict,response):
+
+def get_author_publisher(parsed_json_dict, response):
     if parsed_json_dict:
         return {
-            "author":[parsed_json_dict.get("author",None)],
-            "publisher":[parsed_json_dict.get("publisher",None)]
+            "author": [parsed_json_dict.get("author", None)],
+            "publisher": [parsed_json_dict.get("publisher", None)],
         }
     else:
         return {
-            "author": [response.css("meta[name=\"author\"]::attr(content)").get()],
-            "publisher": [{"name":response.css("meta[name=\"publisher\"]::attr(content)").get()}]
+            "author": [response.css('meta[name="author"]::attr(content)').get()],
+            "publisher": [
+                {"name": response.css('meta[name="publisher"]::attr(content)').get()}
+            ],
         }
 
-def get_description_dates(parsed_json_dict,response):
+
+def get_description_dates(parsed_json_dict, response):
     if parsed_json_dict:
         return {
-            "published_at": [parsed_json_dict.get("datePublished",None)],
-            "modified_at": [parsed_json_dict.get("dateModified",None)],
-            "description": [parsed_json_dict.get("description",None)]
+            "published_at": [parsed_json_dict.get("datePublished", None)],
+            "modified_at": [parsed_json_dict.get("dateModified", None)],
+            "description": [parsed_json_dict.get("description", None)],
         }
     else:
         return {
-            "published_at": [response.css("meta[name=\"date\"]::attr(content)").get()],
-            "description": [response.css("meta[name=\"description\"]::attr(content)").get()],
+            "published_at": [response.css('meta[name="date"]::attr(content)').get()],
+            "description": [
+                response.css('meta[name="description"]::attr(content)').get()
+            ],
         }
+
 
 def get_main(response):
     """
@@ -312,12 +317,12 @@ def get_embed_video_link(response) -> list:
             raw_video_json = child.css("div.ts-mediaplayer::attr(data-config)").get()
             video_json = (json.loads(raw_video_json)).get("mc")
 
-            if video_json.get("_sharing"):
-                video_link = video_json.get("_sharing").get("link")
+            if video_json.get("_download"):
+                video_link = video_json.get("_download").get("url")
                 if video_link:
                     info.append(video_link)
-            elif video_json.get("_download"):
-                video_link = video_json.get("_download").get("url")
+            elif video_json.get("_sharing"):
+                video_link = video_json.get("_sharing").get("link")
                 if video_link:
                     info.append(video_link)
         return info
@@ -332,35 +337,43 @@ def get_embed_video_link(response) -> list:
 def get_article_title_images(response) -> list:
     try:
         info = []
-        title = []
         pattern = r"[\r\n\t\"]+"
+        title = (
+            response.css("span.seitenkopf__headline--text::text").get()
+            or response.css("h1 .multimediahead__headline::text").get()
+        )
         if response.css("div.absatzbild").get():
             for child in response.css("div.absatzbild"):
                 a_dict = {}
                 a_dict["link"] = (
                     BASE_URL
-                    + child.css("div.absatzbild__media div picture img::attr(src)").get()
+                    + child.css(
+                        "div.absatzbild__media div picture img::attr(src)"
+                    ).get()
                 )
-                caption = re.sub(
-                    pattern, "", child.css("div.absatzbild__info p::text").get()
-                ).strip()
+                caption = (
+                    child.css("div.absatzbild__info p span::text").get()
+                    or child.css("div.absatzbild__info p ::text").get()
+                )
+
                 if caption:
-                    a_dict["caption"] = caption
+                    a_dict["caption"] = re.sub(pattern, "", caption).strip()
                 info.append(remove_empty_elements(a_dict))
-            title.append(response.css("span.seitenkopf__headline--text::text").get())
-        elif response.css("div[data-v-type=\"Slider\"]::attr(data-v)").get():
-            images_dict = json.loads(response.css("div[data-v-type=\"Slider\"]::attr(data-v)").get())
-            images = images_dict.get("images",None)
+        elif response.css('div[data-v-type="Slider"]::attr(data-v)').get():
+            images_dict = json.loads(
+                response.css('div[data-v-type="Slider"]::attr(data-v)').get()
+            )
+            images = images_dict.get("images", None)
             if images:
                 for image in images:
                     info.append(
                         {
-                        "link":BASE_URL+image.get("url"),
-                        "caption":image.get("description"),
-                    })
-            title.append(response.css("h1 .multimediahead__headline::text").get())
+                            "link": BASE_URL + image.get("url"),
+                            "caption": image.get("description"),
+                        }
+                    )
 
-        return {"images":info,"title":title}
+        return {"images": info, "title": [re.sub(pattern, "", title).strip()]}
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting article images: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -384,40 +397,3 @@ def get_section(response) -> list:
         raise exceptions.ArticleScrappingException(
             f"Error occured while extracting section: {exception}"
         )
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    try:
-        folder_structure = ""
-        if scrape_type == "sitemap":
-            folder_structure = "Links"
-            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        elif scrape_type == "article":
-            folder_structure = "Article"
-            filename = (
-                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-            )
-
-        if not os.path.exists(folder_structure):
-            os.makedirs(folder_structure)
-        with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4)
-
-    except Exception as exception:
-            LOGGER.info(f"Error occurred while writing json file {str(exception)}")
-            raise exceptions.ArticleScrappingException(
-            f"Error occurred while writing json file {str(exception)}"
-            )
-
-
