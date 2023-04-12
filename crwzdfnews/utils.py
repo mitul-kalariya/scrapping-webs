@@ -420,6 +420,7 @@ def get_embed_video_link(response) -> list:
             )
         )
         if banner_button:
+            time.sleep(2)
             banner_button.click()
             time.sleep(2)
             try:
@@ -437,6 +438,7 @@ def get_embed_video_link(response) -> list:
             if video_button:
                 videos = []
                 for i in video_button:
+                    time.sleep(2)
                     i.click()
                     time.sleep(2)
 
