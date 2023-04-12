@@ -5,7 +5,7 @@ import os
 import re
 import json
 import logging
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 
 from crwndtv import exceptions
 from crwndtv.constant import TODAYS_DATE, LOGGER
@@ -60,6 +60,7 @@ def validate_sitemap_date_range(start_date, end_date):
         LOGGER.error(f"Error in __init__: {e}", exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {e}")
 
+
 def date_range(start_date, end_date):
     """
     return range of all date between given date
@@ -75,8 +76,6 @@ def date_range(start_date, end_date):
                 yield start_date + timedelta(date)
     except exceptions.InvalidDateException as e:
         raise exceptions.InvalidDateException(f"Error in __init__: {e}")
-
-
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -141,7 +140,7 @@ def get_parsed_json(response):
                 other_data.append(data)
         parsed_json["other"] = other_data
         return remove_empty_elements(parsed_json)
-    
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting parsed json {exception}")
         raise exceptions.ArticleScrappingException(
@@ -241,6 +240,7 @@ def get_content(response):
     description = " ".join(article_content)
     return [re.sub(pattern, "", description).strip()]
 
+
 def get_video(response):
     video = {}
     video_link = response.css('meta[itemprop="ContentUrl"]::attr(content)').get()
@@ -278,7 +278,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
             json.dump(file_data, file, indent=4)
     except BaseException as e:
-            LOGGER.error(f"error while creating json file: {e}")
-            raise exceptions.ExportOutputFileException(
-                f"error while creating json file: {e}"
-            )
+        LOGGER.error(f"error while creating json file: {e}")
+        raise exceptions.ExportOutputFileException(
+            f"error while creating json file: {e}"
+        )

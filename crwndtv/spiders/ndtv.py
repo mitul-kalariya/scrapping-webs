@@ -4,8 +4,6 @@ from datetime import datetime, date
 from abc import ABC, abstractmethod
 import scrapy
 
-from scrapy.http import XmlResponse
-from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
 from crwndtv import exceptions
@@ -19,7 +17,6 @@ from crwndtv.utils import (
     export_data_to_json_file,
     date_range,
 )
-
 
 
 class BaseSpider(ABC):
@@ -42,18 +39,18 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
-            response (scrapy.http.Response): The HTTP response object 
+            response (scrapy.http.Response): The HTTP response object
             containing the sitemap page.
         Yields:
             scrapy.http.Request: A request object for each link on the sitemap page.
         Raises:
-            exceptions.SitemapScrappingException: If there is an error 
+            exceptions.SitemapScrappingException: If there is an error
             while parsing the sitemap page.
         """
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
-        """Extracts article titles and links from the response object 
+        """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
         Args:
             self: The Scrapy spider instance calling this method.
@@ -96,14 +93,14 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             url (str): A string representing the URL of the webpage to be scraped.
             until (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
-            **kwargs: Additional keyword arguments that can be used to pass 
+            **kwargs: Additional keyword arguments that can be used to pass
             information to the web scraper.
         Raises:
             InvalidInputException: If a URL is not provided for an "article" type scraper.
         Notes:
-            This function initializes a web scraper object and sets various 
+            This function initializes a web scraper object and sets various
             properties based on the arguments passed.
-            If the type argument is "sitemap", the start and end dates of 
+            If the type argument is "sitemap", the start and end dates of
             the sitemap are validated and set.
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
@@ -137,12 +134,10 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info("Error occured in init function in %s :-- %s",self.name,exception)
+            LOGGER.info("Error occured in init function in %s :-- %s", self.name, exception)
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
-
-
 
     def parse(self, response):
         """
@@ -161,21 +156,20 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 yield article_data
 
         except BaseException as e:
-            LOGGER.info("Error occured in parse function: %s",e)
+            LOGGER.info("Error occured in parse function: %s", e)
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
             )
 
-
     def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
-            response (scrapy.http.Response): The HTTP response object 
+            response (scrapy.http.Response): The HTTP response object
             containing the sitemap page.
         Yields:
             scrapy.http.Request: A request object for each link on the sitemap page.
         Raises:
-            exceptions.SitemapScrappingException: If there is an error 
+            exceptions.SitemapScrappingException: If there is an error
             while parsing the sitemap page.
         """
 
@@ -189,21 +183,20 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                             callback=self.parse_sitemap_article,
                         )
                 else:
-                    today =TODAYS_DATE.strftime("%Y-%m-%d").split("-")
+                    today = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
                     yield scrapy.Request(
                         f"https://www.ndtv.com/sitemap.xml/?yyyy={today[0]}&mm={today[1]}&dd={today[2]}&sitename=&category=",
                         callback=self.parse_sitemap_article,
                     )
 
-
         except BaseException as e:
-            LOGGER.info("Error while parsing sitemap: %s",e)
+            LOGGER.info("Error while parsing sitemap: %s", e)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(e)}"
             )
 
     def parse_sitemap_article(self, response):
-        """Extracts article titles and links from the response object 
+        """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
         Args:
             self: The Scrapy spider instance calling this method.
@@ -232,7 +225,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                "Error while parsing sitemap article::%s-",str(exception))
+                "Error while parsing sitemap article::%s-", str(exception))
 
     def parse_article(self, response) -> list:
         """
@@ -265,13 +258,12 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                "Error occurred while scrapping an article for this link %s.",response.url
+                "Error occurred while scrapping an article for this link %s.", response.url
                 + str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
-
 
     def closed(self, reason: any) -> None:
         """
@@ -299,4 +291,3 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-        
