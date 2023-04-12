@@ -116,7 +116,7 @@ def get_parsed_data(response):
 
         main_dict = {}
 
-        main_dict["source_country"] = "India"
+        main_dict["source_country"] = ["India"]
         mapper = {"en": "English"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
@@ -158,7 +158,7 @@ def get_parsed_data(response):
         video={}
         video["links"] = response.css(".views-field-field-video iframe::attr(src)").get()
         if video:
-            main_dict["embeded_video_url"] = [video]
+            main_dict["video"] = [video]
 
         
         return remove_empty_elements(main_dict)
@@ -230,21 +230,12 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         images = response.css("span.field-content img")
-        pattern = r"[\r\n\t]"
         data = []
         for image in images:
             temp_dict = {}
             link = image.css("img::attr(src)").get()
-            caption = image.css("img::attr(alt)").get()
-            if parsed_json:
-                if link:
-                    temp_dict["@type"] = "ImageObject"
-                    temp_dict["link"] = link
-            else:
-                if link:
-                    temp_dict["link"] = link
-                    if caption:
-                        temp_dict["caption"] = re.sub(pattern, "", caption).strip()
+            if link:
+                temp_dict["link"] = link
             data.append(temp_dict)
         return data
     except BaseException as e:
