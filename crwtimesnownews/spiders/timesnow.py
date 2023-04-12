@@ -12,13 +12,12 @@ from crwtimesnownews.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json,
-    export_data_to_json_file
+    get_parsed_json
 )
 from crwtimesnownews.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
-    ExportOutputFileException,
+    ExportOutputFileException
 )
 
 logging.basicConfig(
@@ -39,9 +38,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -80,8 +76,11 @@ class TimesNow(scrapy.Spider, BaseSpider):
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
                 level=logging.ERROR,
             )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
+            ) from exception
 
-    def parse(self, response):
+    def parse(self, response):  # noqa: C901
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
@@ -93,13 +92,13 @@ class TimesNow(scrapy.Spider, BaseSpider):
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
         """
-        if response.status != 200:
-            raise CloseSpider(
-                f"Unable to scrape due to getting this status code {response.status}"
-            )
+        try:
+            if response.status != 200:
+                raise CloseSpider(
+                    f"Unable to scrape due to getting this status code {response.status}"
+                )
 
-        if self.type == "sitemap":
-            try:
+            if self.type == "sitemap":
                 site_map_url = Selector(response, type='xml') \
                     .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
 
@@ -114,21 +113,18 @@ class TimesNow(scrapy.Spider, BaseSpider):
                                 (self.end_date.year, self.start_date.month):
                             yield scrapy.Request(
                                 url, callback=self.parse_sitemap)
-            except Exception as exception:
-                self.log(
-                    f"Error occurred while iterating sitemap url. {str(exception)}",
-                    level=logging.ERROR,
-                )
 
-        elif self.type == "article":
-            try:
+            elif self.type == "article":
                 yield self.parse_article(response)
 
-            except Exception as exception:
-                self.log(
-                    f"Error occurred while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating article url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -167,15 +163,6 @@ class TimesNow(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response):
-        """
-           Parse article information from a given sitemap URL.
-
-           :param response: HTTP response from the sitemap URL.
-           :return: None
-           """
-        pass
 
     def parse_article(self, response):
         """

@@ -1,1 +1,1 @@
-from crwtimesnownews.main import Crawler
+from crwtimesnownews.main import Crawler  # noqa: F401
