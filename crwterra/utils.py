@@ -199,6 +199,11 @@ def get_parsed_data(response):
 
 
 def get_section(response):
+    """
+        returns section data available in the article
+        Returns:
+            data
+    """
     section = response.css("ul.breadcrumb li a::text").getall()
     if section:
         temp_list = [re.sub(r"[\n\r\t]", "", i).strip() for i in section]
@@ -252,11 +257,9 @@ def get_thumbnail_image(response):
 
 def get_main(response):
     """
-    returns a list of main data available in the article from application/ld+json
-    Parameters:
-        response:
+    returns video data available in the article
     Returns:
-        main data
+        data
     """
     try:
         data = []
@@ -318,7 +321,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4,ensure_ascii=False)
+            json.dump(file_data, file, indent=4, ensure_ascii=False)
     except BaseException as e:
         LOGGER.error(f"error while creating json file: {e}")
         raise exceptions.ExportOutputFileException(
@@ -327,6 +330,13 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
 
 
 def extract_videos(response) -> list:
+    """
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
+    """
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
@@ -347,8 +357,10 @@ def extract_videos(response) -> list:
             .get_attribute("src")
             or None
         )
-    except:
-        return None
+    except BaseException as exception:
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting video {exception}"
+        ) from exception
 
     driver.quit()
     if video:

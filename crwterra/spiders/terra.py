@@ -63,7 +63,8 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
-        """#pylint: disable=line-too-long
+        """  # pylint: disable=line-too-long
+
         try:
             super().__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
@@ -156,7 +157,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             scrapy.http.Request: A request object for each link on the sitemap page.
         Raises:
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
-        """#pylint: disable=line-too-long
+        """  # pylint: disable=line-too-long
         try:
             xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
             xml_selector = Selector(xmlresponse)
