@@ -187,23 +187,24 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "ImageObjects": None,
+        "VideoObjects": None,
+        "other": [],
         "misc": [],
     }
     for block in blocks:
         try:
+            
             if "NewsArticle" in json.loads(block)[0].get("@type", [{}]):
                 parsed_json_flter_dict["main"] = json.loads(block)[0]
-            elif "ImageGallery" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["ImageGallery"] = json.loads(block)[0]
+            elif "ImageGallery" in json.loads(block)[0].get("@type", [{}]) or "ImageObject" in json.loads(block)[0].get("@type", [{}]):
+                parsed_json_flter_dict["ImageObjects"] = json.loads(block)[0]
             elif "VideoObject" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["VideoObject"] = json.loads(block)[0]
+                parsed_json_flter_dict["VideoObjects"] = json.loads(block)[0]
             elif json.loads(block).get("@type"):
                 continue
             else:
-                parsed_json_flter_dict["Other"].append(json.loads(block))
+                parsed_json_flter_dict["other"].append(json.loads(block))
         except KeyError:
             pass
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
