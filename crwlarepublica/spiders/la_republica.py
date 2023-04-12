@@ -119,10 +119,7 @@ class LaRepublicaSpider(scrapy.Spider, BaseSpider):
 
         try:
             if self.type == "sitemap":
-                # TODO: remove unnecessary IF ELSE condition
                 if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
