@@ -86,11 +86,11 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 yield self.parse_article(response)
         except Exception as exception:
             self.log(
-                f"Error occurred while iterating sitemap url. {str(exception)}",
+                f"Error occurred while iterating {self.type} url. {str(exception)}",
                 level=logging.ERROR,
             )
             raise SitemapScrappingException(
-                f"Error occurred while iterating sitemap url:- {str(exception)}"
+                f"Error occurred while iterating {self.type} url:- {str(exception)}"
             ) from exception
 
     def parse_sitemap(self, response):
