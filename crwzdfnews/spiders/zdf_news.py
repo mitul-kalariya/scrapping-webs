@@ -14,7 +14,6 @@ from crwzdfnews.utils import (
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
-    export_data_to_json_file,
 )
 
 # create log file
@@ -243,8 +242,6 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             LOGGER.info(
