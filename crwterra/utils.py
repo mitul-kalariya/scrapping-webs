@@ -357,10 +357,12 @@ def extract_videos(response) -> list:
             .get_attribute("src")
             or None
         )
-    except BaseException as exception:
-        raise exceptions.ArticleScrappingException(
-            f"Error occured while getting video {exception}"
-        ) from exception
+    # except BaseException as exception:
+    #     raise exceptions.ArticleScrappingException(
+    #         f"Error occured while getting video {exception}"
+    #     ) from exception
+    except BaseException as e:
+        return None
 
     driver.quit()
     if video:
