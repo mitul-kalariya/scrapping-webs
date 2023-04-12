@@ -25,6 +25,7 @@ class BaseSpider(ABC):
     Args:
         ABC : Abstract
     """
+
     # pylint: disable=unnecessary-pass
     @abstractmethod
     def parse(self, response):
@@ -126,10 +127,10 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            LOGGER.info("Error occured in parse function: %s", e)
+        except BaseException as exception:
+            LOGGER.info("Error occured in parse function: %s", exception)
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_archive(self, response):
@@ -143,29 +144,27 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             parsing the sitemap page.
         """
         try:
+            today = date.today().strftime("%m/%d/%Y")
+            if self.since and self.until:
+                since = self.since.strftime("%m/%d/%Y")
+                until = self.until.strftime("%m/%d/%Y")
 
-            # Get the start and end dates as datetime objects
-            since = (
-                datetime.strptime(str(self.since), "%Y-%m-%d").strftime("%m/%d/%Y")
-                if self.since else None
-            )
-            until = (
-                datetime.strptime(str(self.until), "%Y-%m-%d").strftime("%m/%d/%Y")
-                if self.until else None
-            )
-
-            if since and until:
-                url = (
-                    "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-                    + since
-                    + "&changed_2="
-                    + until
-                )
+                if since == until and since == today:
+                    url = (
+                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
+                        + today
+                    )
+                else:
+                    url = (
+                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
+                        + since
+                        + "&changed_2="
+                        + until
+                    )
                 yield scrapy.Request(
                     url, callback=self.parse_archive_pagination_sitemap
                 )
             else:
-                today = date.today().strftime("%m/%d/%Y")
                 url = (
                     "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
                     + today
@@ -174,10 +173,10 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                     url, callback=self.parse_archive_pagination_sitemap
                 )
 
-        except BaseException as e:
-            LOGGER.info("Error while parsing sitemap: %s", e)
+        except BaseException as exception:
+            LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_archive_pagination_sitemap(self, response):
@@ -206,10 +205,10 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 yield scrapy.Request(
                     response.url, dont_filter=True, callback=self.parse_archive_article
                 )
-        except BaseException as e:
-            # LOGGER.info(f"Error while parsing sitemap article: {e}")
+        except BaseException as exception:
+            # LOGGER.info(f"Error while parsing sitemap article: {exception}")
             raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article: {str(e)}"
+                f"Error while parsing sitemap article: {str(exception)}"
             )
 
     def parse_archive_article(self, response):
@@ -233,10 +232,10 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                         {"link": "https://ddnews.gov.in/" + link, "title": title}
                     )
 
-        except BaseException as e:
-            LOGGER.info("Error while parsing sitemap article: %s", e)
+        except BaseException as exception:
+            LOGGER.info("Error while parsing sitemap article: %s", exception)
             raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article: {str(e)}"
+                f"Error while parsing sitemap article: {str(exception)}"
             )
 
     def parse_article(self, response) -> list:

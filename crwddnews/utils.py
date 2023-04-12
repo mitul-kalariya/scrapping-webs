@@ -55,9 +55,9 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error("Error in __init__: %s", e, exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.error("Error in __init__: %s", exception, exc_info=True)
+        raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -155,16 +155,19 @@ def get_parsed_data(response):
         if images:
             main_dict["images"] = images
 
-        video={}
-        video["links"] = response.css(".views-field-field-video iframe::attr(src)").get()
+        video = {}
+        video["links"] = response.css(
+            ".views-field-field-video iframe::attr(src)"
+        ).get()
         if video:
             main_dict["video"] = [video]
 
-        
         return remove_empty_elements(main_dict)
-    except BaseException as e:
-        LOGGER.error("while scrapping parsed data %s", e)
-        raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
+    except BaseException as exception:
+        LOGGER.error("while scrapping parsed data %s", exception)
+        raise exceptions.ArticleScrappingException(
+            f"while scrapping parsed data :{exception}"
+        )
 
 
 def get_thumbnail(response):
@@ -178,6 +181,7 @@ def get_thumbnail(response):
             thumbnail = data_block.get("thumbnailUrl")
             if thumbnail:
                 return thumbnail
+    return None
 
 
 def get_section(response):
@@ -190,6 +194,7 @@ def get_section(response):
     ).getall()
     if breadcrumb_list:
         return breadcrumb_list[-1]
+    return None
 
 
 def get_keywords(response):
@@ -200,6 +205,7 @@ def get_keywords(response):
     keyword = response.css("meta[name='keywords']::attr(content)").get()
     if keyword:
         return keyword.split(",")
+    return None
 
 
 def get_main(response):
@@ -216,14 +222,14 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error("error parsing ld+json main data %s", e)
+    except BaseException as exception:
+        LOGGER.error("error parsing ld+json main data %s", exception)
         raise exceptions.ArticleScrappingException(
-            f"error parsing ld+json main data {e}"
+            f"error parsing ld+json main data {exception}"
         )
 
 
-def get_images(response, parsed_json=False) -> list:
+def get_images(response) -> list:
     """
     returns a images from the articles
     returns : Images
@@ -238,9 +244,11 @@ def get_images(response, parsed_json=False) -> list:
                 temp_dict["link"] = link
             data.append(temp_dict)
         return data
-    except BaseException as e:
-        LOGGER.error("image fetching exception %s", e)
-        raise exceptions.ArticleScrappingException(f"image fetching exception {e}")
+    except BaseException as exception:
+        LOGGER.error("image fetching exception %s", exception)
+        raise exceptions.ArticleScrappingException(
+            f"image fetching exception {exception}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -272,8 +280,8 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
             json.dump(file_data, file, indent=4, ensure_ascii=False)
-    except BaseException as e:
-        LOGGER.error("error while creating json file: %s", e)
+    except BaseException as exception:
+        LOGGER.error("error while creating json file: %s", exception)
         raise exceptions.ExportOutputFileException(
-            f"error while creating json file: {e}"
+            f"error while creating json file: {exception}"
         )
