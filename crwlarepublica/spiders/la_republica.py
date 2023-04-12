@@ -1,21 +1,23 @@
 """Spider to scrap La-Republica news website"""
 
 import logging
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
+
 import scrapy
 from scrapy.http import XmlResponse
-from scrapy.selector import Selector
-from crwlarepublica import exceptions
 from scrapy.loader import ItemLoader
+from scrapy.selector import Selector
+
+from crwlarepublica import exceptions
 from crwlarepublica.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwlarepublica.items import ArticleData
 from crwlarepublica.utils import (
     create_log_file,
-    validate_sitemap_date_range,
-    get_raw_response,
     get_parsed_data,
     get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range,
 )
 
 
@@ -38,6 +40,7 @@ class BaseSpider(ABC):
 
 class LaRepublicaSpider(scrapy.Spider, BaseSpider):
     """Spider"""
+
     name = "la_republica"
 
     def __init__(
@@ -116,6 +119,7 @@ class LaRepublicaSpider(scrapy.Spider, BaseSpider):
 
         try:
             if self.type == "sitemap":
+                # TODO: remove unnecessary IF ELSE condition
                 if self.start_date and self.end_date:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
                 else:
