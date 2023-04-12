@@ -25,6 +25,8 @@ from crwzeitnews.utils import (
     get_request_headers,
 )
 
+# create log file
+create_log_file()
 
 class BaseSpider(ABC):
     """Abstract Base class for scrapy spider
@@ -84,7 +86,7 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
         self.articles = []
         self.article_url = url
         self.type = type.lower()
-        create_log_file()
+
         if self.type == "sitemap":
             self.start_urls.append("https://www.zeit.de/gsitemaps/index.xml")
             self.since = datetime.strptime(since, "%Y-%m-%d").date() if until else None
