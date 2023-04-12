@@ -1,4 +1,4 @@
-"""Spider to scrap Globe and Mail online (EN) news website"""
+"""Spider to scrap TFI News online (FR) website"""
 
 import logging
 from datetime import datetime
@@ -53,7 +53,7 @@ class BaseSpider(ABC):
 
 
 class TfiNewsSpider(scrapy.Spider, BaseSpider):
-    """Spider class to scrap sitemap and articles of Globe and Mail online (EN) site"""
+    """Spider class to scrap sitemap and articles of TFI News online (FR) site"""
 
     name = "tfi_news"
     start_urls = [BASE_URL]
@@ -132,12 +132,11 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            for url in (
-                Selector(response, type="html")
-                .xpath("//url/loc/text()", namespaces=self.namespace)
-                .getall()
+            for url, title in zip(
+                Selector(response, type="html").xpath("//url/loc/text()", namespaces=self.namespace).getall(),
+                Selector(response, type="html").xpath("//url/news/title/text()", namespaces=self.namespace).getall()
             ):
-                data = {"link": url}
+                data = {"link": url, "title": title}
                 self.articles.append(data)
         except Exception as exception:
             self.log(
@@ -225,7 +224,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
+            
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
