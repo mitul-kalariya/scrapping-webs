@@ -4,11 +4,14 @@ import logging
 import os
 from datetime import datetime
 
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 from crwytnonline import exceptions
-from crwytnonline.constant import LOGGER, TODAYS_DATE
+from crwytnonline.constant import LOGGER
 
 
 def create_log_file():
@@ -17,6 +20,7 @@ def create_log_file():
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
 
 def get_raw_response(response):
     try:
@@ -135,15 +139,15 @@ def get_parsed_data(response):
         main_dict["author"] = authors
 
         # Last Updated Date
-        last_updated_date = json_data.get("dateModified")
+        last_updated_date = get_lastupdated(json_data)
         main_dict["modified_at"] = [last_updated_date]
 
         # Published Date
-        published = json_data.get("datePublished")
+        published = get_published_at(json_data)
         main_dict["published_at"] = [published]
 
         # Description
-        description = json_data.get("description")
+        description = get_description(json_data)
         main_dict["description"] = [description]
 
         # Publisher
@@ -151,19 +155,15 @@ def get_parsed_data(response):
         main_dict["publisher"] = publisher
 
         # Article Text
-        article_text = response.css(
-            "#CmAdContent span::text"
-        ).getall()
-        main_dict["text"] = [" ".join(article_text)]
+        article_text = get_text(response)
+        main_dict["text"] = [article_text]
 
         # Thumbnail
         thumbnail = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail
 
         # Title
-        title = response.css(".top h3::text").get()
-        if isinstance(title, str):
-            title.strip()
+        title = get_title(response)
         main_dict["title"] = [title]
 
         # Images
@@ -191,7 +191,7 @@ def get_parsed_data(response):
         print(f"Error while getting article data (utils --> get_parsed_data): {str(exception)}")
 
 
-def get_lastupdated(response) -> str:
+def get_lastupdated(json_data) -> str:
     """
     This function extracts the last updated date and time of an article from a given Scrapy response object.
     It returns a string representation of the date and time in ISO 8601 format.
@@ -200,15 +200,14 @@ def get_lastupdated(response) -> str:
         response: A Scrapy response object representing the web page from which to extract the information.
     """
     try:
-        info = response.css(".inline+ span time")
-        if info:
-            return info.css("time::attr(datetime)").get()
+        last_updated = json_data.get("dateModified")
+        return last_updated
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting last updated date: {str(exception)}")
 
 
-def get_published_at(response) -> str:
+def get_published_at(json_data) -> str:
     """get data of when article was published
     Args:
         response (object):page data
@@ -216,13 +215,61 @@ def get_published_at(response) -> str:
         str: datetime of published date
     """
     try:
-        info = response.css(".inline time")
-
-        if info:
-            return info.css("time::attr(datetime)").get()
+        published_at = json_data.get("datePublished")
+        return published_at
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting published date: {str(exception)}")
+
+
+def get_description(json_data) -> list:
+    """get article description
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        description = json_data.get("description")
+        return description
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article description: {str(exception)}")
+
+
+def get_text(response) -> str:
+    """get article text
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        article_text = response.css(
+            ".subhead::text , #CmAdContent span::text"
+        ).getall()
+        text = " ".join(article_text)
+        return text
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article text: {str(exception)}")
+
+
+def get_title(response) -> str:
+    """get article title
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        title = response.css(".top h3::text").get()
+        if isinstance(title, str):
+            title.strip()
+        return title
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article title: {str(exception)}")
 
 
 def get_author(response) -> list:
@@ -240,7 +287,7 @@ def get_author(response) -> list:
         if authors:
             data = [dict((("@type", "Person"), ("name", author.css("::text").get()),
                          ("url", f'https:{author.attrib.get("href")}'))) for author in authors]
-        else:   
+        else:
             json_data = get_ld_json(response)
 
             data = []
@@ -265,17 +312,8 @@ def get_thumbnail_image(response) -> list:
             If no images are found, an empty list is returned.
     """
     try:
-        data = []
-        json_data = get_ld_json(response)
-        article_link = json_data.get("mainEntityOfPage")
-        response_data = requests.get(article_link)
-        thumbnail_image = BeautifulSoup(response_data.content, "html.parser")
-        image_area = thumbnail_image.find(class_="imgArea")
-        if image_area:
-            image = image_area.find("img")
-            image_link = image.get("src")
-            data.append(image_link)
-        return data
+        image_data = response.css(".imgArea img::attr(src)").get()
+        return [image_data]
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting thumbnail image: {str(exception)}")
@@ -285,17 +323,34 @@ def get_embed_video_link(response) -> list:
     """
     A list of video objects containing information about the videos on the webpage.
     """
-    json_data = get_ld_json(response)
-    article_link = json_data.get("mainEntityOfPage")
+    try:
+        options = Options()
+        options.headless = True
+        service = Service(executable_path=ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.get(response.url)
 
-    response_data = requests.get(article_link)
-    embed_videos = BeautifulSoup(response_data.content, "html.parser")
-    iframes = []
-    article_data = embed_videos.find(class_="article")
-    if article_data:
-        iframes = article_data.find_all("iframe")
-    video_links = [iframe.get("src") for iframe in iframes]
-    return video_links
+        video_links = []
+
+        sel_video_links = driver.find_elements(By.XPATH, '//iframe[@id="zumFrame"]')
+        iframes = driver.find_elements(By.CSS_SELECTOR, '.article p iframe')
+        if sel_video_links:
+            src = [link.get_attribute("src") for link in sel_video_links]
+            video_links.extend(src)
+
+        iframe_videos = [iframe.get_attribute("src") for iframe in iframes]
+        if len(iframe_videos) > 0:
+            if "youtube" in iframe_videos[0]:
+                string_split = iframe_videos[0].split('?')[0]
+                url_prefix = string_split.rsplit('/', 1)[1]
+                youtube_video_link = 'https://www.youtube.com/watch?v=' + url_prefix
+                video_links.append(youtube_video_link)
+        return video_links
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting embed video links: {str(exception)}")
+    finally:
+        driver.quit()
 
 
 def get_publisher(response) -> list:
@@ -333,7 +388,7 @@ def get_publisher(response) -> list:
         print(f"Error while getting publisher details: {str(exception)}")
 
 
-def get_images(response, parsed_json=False) -> list:
+def get_images(response) -> list:
     """
     Extracts all the images present in the web page.
     Returns:
@@ -367,8 +422,8 @@ def get_tags(response) -> list:
         list: List of tags
     """
     try:
-        json_data = get_ld_json(response)
-        tags = json_data.get("keywords")
+        keyword_data = get_meta_information(response, property="keywords", key="name")
+        tags = [data.strip() for data in keyword_data.split(",")]
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -419,9 +474,13 @@ def get_ld_json(response) -> json:
     Returns:
         json: ld+json data
     """
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
-    json_data = json.loads(ld_json_data)
-    return json_data
+    try:
+        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()[0]
+        json_data = json.loads(ld_json_data)
+        return json_data
+    except BaseException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting parsed json: {str(exception)}")
 
 
 def remove_empty_elements(parsed_data_dict):

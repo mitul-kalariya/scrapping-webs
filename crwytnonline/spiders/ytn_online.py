@@ -4,8 +4,6 @@ from datetime import datetime
 
 import scrapy
 from scrapy.loader import ItemLoader
-from scrapy.http import XmlResponse
-from scrapy.selector import Selector
 from crwytnonline import exceptions
 from crwytnonline.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwytnonline.items import ArticleData
