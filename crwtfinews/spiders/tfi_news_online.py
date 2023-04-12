@@ -9,6 +9,7 @@ import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
+from crwtfinews.constant import BASE_URL, SITEMAP_URL
 
 from crwtfinews.items import ArticleData
 from crwtfinews.utils import (
@@ -19,7 +20,6 @@ from crwtfinews.utils import (
     remove_empty_elements,
 )
 from crwtfinews.exceptions import (
-    SitemapScrappingException,
     SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
@@ -29,8 +29,6 @@ from crwtfinews.exceptions import (
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -44,7 +42,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        # parse_sitemap_article will be called from here
         pass
 
     def parse_sitemap_article(self, response: str) -> None:
@@ -59,7 +56,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
     """Spider class to scrap sitemap and articles of Globe and Mail online (EN) site"""
 
     name = "tfi_news"
-    start_urls = ["https://www.tf1info.fr/"]
+    start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
     def __init__(
@@ -70,7 +67,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
         super(TfiNewsSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -84,16 +81,11 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
                 datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
 
-            self.current_date, self.date_range_lst = validate(
+            self.date_range_lst = validate(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            if self.current_date:
-                self.scrape_start_date = self.scrape_end_date = self.current_date
-            self.start_urls.append(
-                url
-                if self.type == "article"
-                else "https://www.tf1info.fr/sitemap-n.xml"
-            )
+
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -131,7 +123,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response: str) -> None:
         """
-        parse sitemap from sitemap url and callback parser to parse title and link
+        parse sitemap article and scrap link
         Args:
             response: generated response
         Raises:
@@ -139,22 +131,21 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        # for url, date in zip(
-        #     Selector(response).xpath("//url:loc/text()", namespaces=self.namespace).getall(),
-        #     Selector(response).xpath("//url:lastmod/text()", namespaces=self.namespace).getall(),
-        # ):
-
         try:
-            for url in Selector(response, type="html").xpath("//url/loc/text()", namespaces=self.namespace).getall():
-                yield scrapy.Request(url, callback=self.parse_sitemap_article)
-        except SitemapScrappingException as exception:
+            for url in (
+                Selector(response, type="html")
+                .xpath("//url/loc/text()", namespaces=self.namespace)
+                .getall()
+            ):
+                data = {"link": url}
+                self.articles.append(data)
+        except Exception as exception:
             self.log(
-                "Error occurred while scrapping urls from given sitemap url. "
-                + str(exception),
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
                 level=logging.ERROR,
             )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
+            raise SitemapArticleScrappingException(
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
     def parse_sitemap_article(self, response: str) -> None:
@@ -167,19 +158,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-
-        try:
-            if title := response.css("h1.Title::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response: str) -> None:
         """
@@ -207,8 +186,12 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data.get("main"),
-                                               parsed_json_data.get("VideoObject"),)
+                "parsed_data",
+                get_parsed_data(
+                    response,
+                    parsed_json_data.get("main"),
+                    parsed_json_data.get("VideoObject"),
+                ),
             )
 
             self.articles.append(
@@ -242,7 +225,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

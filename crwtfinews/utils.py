@@ -342,15 +342,15 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
 
     parsed_data_dict |= {
         "source_country": ["France"],
-        "source_language": [
-            language_mapper.get(language)
-        ],
+        "source_language": [language_mapper.get(language)],
     }
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
     parsed_data_dict |= get_publihser_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main)
-    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, video_object, response)
+    parsed_data_dict |= get_thumbnail_image_video(
+        parsed_json_main, video_object, response
+    )
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -457,7 +457,9 @@ def get_text_title_section_details(parsed_data: list) -> dict:
     }
 
 
-def get_thumbnail_image_video(parsed_data: list, video_object: dict, response: str) -> dict:
+def get_thumbnail_image_video(
+    parsed_data: list, video_object: dict, response: str
+) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -476,10 +478,14 @@ def get_thumbnail_image_video(parsed_data: list, video_object: dict, response: s
         description = video_object.get("description")
 
     if parsed_data.get("associatedMedia", [{}]):
-        embed_video_link = parsed_data.get("associatedMedia", [{}])[0].get("embedUrl", None)
+        embed_video_link = parsed_data.get("associatedMedia", [{}])[0].get(
+            "embedUrl", None
+        )
 
     if parsed_data.get("associatedMedia", [{}]):
-        thumbnail_url = parsed_data.get("associatedMedia", [{}])[0].get("thumbnailUrl", None)
+        thumbnail_url = parsed_data.get("associatedMedia", [{}])[0].get(
+            "thumbnailUrl", None
+        )
 
     return {
         "thumbnail_image": [thumbnail_url],
@@ -487,7 +493,7 @@ def get_thumbnail_image_video(parsed_data: list, video_object: dict, response: s
         "images": [
             {
                 "link": response.css(".Main__Body source::attr(srcset)").get(),
-                "caption": response.css(".Picture__Figcaption::text").get()
+                "caption": response.css(".Picture__Figcaption::text").get(),
             }
         ],
         "video": [{"link": video, "caption": description}],
