@@ -125,7 +125,7 @@ def get_parsed_data(response):
     try:
         main_dict = {}
 
-        json_data = [data for data in get_ld_json(response) if get_ld_json(response).get("@type") == "NewsArticle"][0]
+        json_data = [data for data in get_ld_json(response) if data.get("@type") == "NewsArticle"][0]
 
         # Author
         authors = get_author(json_data)
@@ -148,9 +148,10 @@ def get_parsed_data(response):
         main_dict["publisher"] = publisher
 
         # Article Text
-        article_text = response.css(
-            ".article_content:nth-child(1)::text"
+        raw_article_text = response.css(
+            ".article_content:nth-child(1)::text, u::text"
         ).getall()
+        article_text = [text.replace("\\n", "") if text.strip()=="\\n" else text.strip() for text in raw_article_text]
         main_dict["text"] = [" ".join(article_text)]
 
         # Thumbnail
@@ -203,7 +204,7 @@ def get_lastupdated(response) -> str:
         print(f"Error while getting last updated date: {str(exception)}")
 
 
-def get_author(response) -> list:
+def get_author(json_data) -> list:
     """
     The extract_author function extracts information about the author(s)
     of an article from the given response object and returns it in the form of a list of dictionaries.
@@ -213,8 +214,7 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        article_json = [data for data in response if data.get("@type") == "NewsArticle"]
-        authors = article_json[0].get('author')
+        authors = json_data.get('author')
         data = []
         if authors:
             data.append(authors)
@@ -283,7 +283,7 @@ def get_publisher(response) -> list:
         print(f"Error while getting publisher details: {str(exception)}")
 
 
-def get_images(response, parsed_json=False) -> list:
+def get_images(response) -> list:
     """
     Extracts all the images present in the web page.
     Returns:
@@ -292,7 +292,9 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         data = []
-        images = response.css("#articlebody img")
+        images = response.css("span~ .jtbc_img img")
+        if not images:
+            images = response.css("br+ .jtbc_img img")
         if images:
             for image in images:
                 temp_dict = {}
