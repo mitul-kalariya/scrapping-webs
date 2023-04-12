@@ -189,7 +189,7 @@ def get_parsed_data(response):
 
         if main_data[0].get("@type") == "VideoObject":
             main_dict["embed_video_link"] = extract_videos(response)
-
+        main_dict["tags"] = response.css("meta[name='keywords']::attr(content)").getall()
         main_dict["section"] = get_section(response)
 
         return remove_empty_elements(main_dict)
@@ -281,8 +281,10 @@ def get_images(response):
     image_list = []
     for i in range(0, len(images)):
         image_dict = {}
-        image_dict["link"] = images[i]
-        image_dict["caption"] = image_caption[i]
+        if images[i]:
+            image_dict["link"] = images[i]
+            if image_caption[i]:
+                image_dict["caption"] = image_caption[i]
         image_list.append(image_dict)
     if image_list:
         return image_list
@@ -316,7 +318,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4)
+            json.dump(file_data, file, indent=4,ensure_ascii=False)
     except BaseException as e:
         LOGGER.error(f"error while creating json file: {e}")
         raise exceptions.ExportOutputFileException(

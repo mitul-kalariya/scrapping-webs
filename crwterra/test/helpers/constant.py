@@ -3,16 +3,16 @@
 # TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
-        "test_data_path": "newton_scrapping/test/data/test_article_1.json"
+        "url": "https://www.terra.com.br/esportes/futebol/copa-do-brasil/sao-paulo-empata-sem-gols-com-o-ituano-pela-copa-do-brasil-e-e-vaiado-no-morumbi,e9412d215358281c302a5cd02a49ecb1fxlnvymg.html",
+        "test_data_path": "crwterra/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
-        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
+        "url": "https://www.terra.com.br/esportes/flamengo/flamengo-demite-vitor-pereira-apos-tres-meses-e-cinco-titulos-perdidos-multa-e-de-r-15-milhoes,7688e9d47a3c5d1cc10593b8f43109539rdnqvof.html",
+        "test_data_path": "crwterra/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
-        "test_data_path": "newton_scrapping/test/data/test_article_3.json"
+        "url": "https://www.terra.com.br/noticias/brasil/catve/videos/idoso-que-foi-atropelado-no-cascavel-velho-sofreu-parada-cardiorrespiratoria-aponta-siate,9399288.html",
+        "test_data_path": "crwterra/test/data/test_article_3.json"
     }
 ]
 # TODO:Update below sitemap URL
