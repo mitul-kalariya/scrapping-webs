@@ -120,10 +120,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                if self.since and self.until:
-                    yield scrapy.Request(response.url, callback=self.parse_archive)
-                else:
-                    yield scrapy.Request(response.url, callback=self.parse_archive)
+                yield scrapy.Request(response.url, callback=self.parse_archive)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -133,45 +130,6 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             LOGGER.info("Error occured in parse function: %s", e)
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {e}"
-            )
-
-    def parse_article(self, response) -> list:
-        """
-        Parses the article data from the response object and returns it as a dictionary.
-
-        Args:
-            response (scrapy.http.Response): The response object containing the article data.
-
-        Returns:
-            dict: A dictionary containing the parsed article data, including the raw response,
-            parsed JSON, and parsed data, along with additional information such as the country
-            and time scraped.
-        """
-        try:
-            articledata_loader = ItemLoader(item=ArticleData(), response=response)
-            raw_response = get_raw_response(response)
-            response_json = {}
-            response_data = get_parsed_data(response)
-            response_data["source_country"] = ["India"]
-            response_data["time_scraped"] = [str(datetime.now())]
-
-            articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value(
-                "parsed_json",
-                response_json,
-            )
-            articledata_loader.add_value("parsed_data", response_data)
-
-            self.articles.append(dict(articledata_loader.load_item()))
-            return articledata_loader.item
-
-        except Exception as exception:
-            LOGGER.info(
-                "Error occurred while scrapping an article for this link %s.",
-                response.url + str(exception),
-            )
-            raise exceptions.ArticleScrappingException(
-                f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
     def parse_archive(self, response):
@@ -279,6 +237,44 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             LOGGER.info("Error while parsing sitemap article: %s", e)
             raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article: {str(e)}"
+            )
+
+    def parse_article(self, response) -> list:
+        """
+        Parses the article data from the response object and returns it as a dictionary.
+
+        Args:
+            response (scrapy.http.Response): The response object containing the article data.
+
+        Returns:
+            dict: A dictionary containing the parsed article data, including the raw response,
+            parsed JSON, and parsed data, along with additional information such as the country
+            and time scraped.
+        """
+        try:
+            articledata_loader = ItemLoader(item=ArticleData(), response=response)
+            raw_response = get_raw_response(response)
+            response_json = {}
+            response_data = get_parsed_data(response)
+            response_data["time_scraped"] = [str(datetime.now())]
+
+            articledata_loader.add_value("raw_response", raw_response)
+            articledata_loader.add_value(
+                "parsed_json",
+                response_json,
+            )
+            articledata_loader.add_value("parsed_data", response_data)
+
+            self.articles.append(dict(articledata_loader.load_item()))
+            return articledata_loader.item
+
+        except Exception as exception:
+            LOGGER.info(
+                "Error occurred while scrapping an article for this link %s.",
+                response.url + str(exception),
+            )
+            raise exceptions.ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
     def closed(self, reason: any) -> None:
