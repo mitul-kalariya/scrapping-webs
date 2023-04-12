@@ -16,7 +16,10 @@ from crwtvbnews.utils import (
 from crwtvbnews.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
+    SitemapScrappingException,
+    SitemapArticleScrappingException
 )
+
 
 class BaseSpider(ABC):
     @abstractmethod
@@ -24,16 +27,9 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
-    @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
+
 
 class NewsTVB(scrapy.Spider, BaseSpider):
     name = "tvb"
@@ -48,8 +44,8 @@ class NewsTVB(scrapy.Spider, BaseSpider):
         self.type = type
         self.url = url
         self.article_url = url
-        self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
+        self.start_date = start_date
+        self.end_date = end_date
         self.today_date = None
 
         check_cmd_args(self, self.start_date, self.end_date)
@@ -73,42 +69,40 @@ class NewsTVB(scrapy.Spider, BaseSpider):
                 .xpath('//news:title/text()', namespaces=self.namespace).getall()
             publication_date = Selector(response, type='xml')\
                 .xpath('//news:publication_date/text()', namespaces=self.namespace).getall()
-            for url, title, date in zip(article_url, article_title, publication_date):
-                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                if self.today_date:
-                    if _date == self.today_date:
-                        article = {
-                            "link": url,
-                            "title": title
-                        }
-                        self.articles.append(article)
-                else:
-                    if self.start_date <= _date <= self.end_date:
-                        article = {
-                            "link": url,
-                            "title": title
-                        }
-                        self.articles.append(article)
+            try:
+                for url, title, date in zip(article_url, article_title, publication_date):
+                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                    if self.today_date:
+                        if _date == self.today_date:
+                            article = {
+                                "link": url,
+                                "title": title
+                            }
+                            self.articles.append(article)
+                    else:
+                        if self.start_date <= _date <= self.end_date:
+                            article = {
+                                "link": url,
+                                "title": title
+                            }
+                            self.articles.append(article)
+            except Exception as exception:
+                self.log(
+                    f"Error occurred while fetching sitemap:- {str(exception)}",
+                    level=logging.ERROR,
+                )
+                raise SitemapScrappingException(
+                    f"Error occurred while fetching sitemap:- {str(exception)}"
+                ) from exception
         elif self.type == "article":
-            yield self.parse_article(response)
-
-    def parse_sitemap(self, response):
-        """
-           Parses the sitemap and extracts the article URLs and their last modified date.
-           If the last modified date is within the specified date range, sends a request to the article URL
-           :param response: the response from the sitemap request
-           :return: scrapy.Request object
-           """
-        pass
-
-    def parse_sitemap_article(self, response):
-        """
-           Parse article information from a given sitemap URL.
-
-           :param response: HTTP response from the sitemap URL.
-           :return: None
-        """
-        pass
+            try:
+                yield self.parse_article(response)
+            except Exception as exception:
+                self.log(
+                    f"Error occured while iterating article url. {str(exception)}",
+                    level=logging.ERROR,
+                )
+                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
     def parse_article(self, response):
         """
