@@ -10,15 +10,16 @@ from scrapy.selector import Selector
 from crwcp24.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
+    InvalidArgumentException,
     SitemapArticleScrappingException,
-    SitemapScrappingException,
+    SitemapScrappingException
 )
 from crwcp24.items import ArticleData
 from crwcp24.utils import (
     check_cmd_args,
     get_parsed_data,
     get_parsed_json,
-    get_raw_response,
+    get_raw_response
 )
 
 logging.basicConfig(
@@ -85,9 +86,9 @@ class CP24News(scrapy.Spider, BaseSpider):
                 + str(exception),
                 level=logging.ERROR,
             )
-            raise SitemapScrappingException(
-                f"Error occurred while iterating sitemap url:- {str(exception)}"
-            ) from exception
+            raise InvalidArgumentException(
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+            )
 
     def parse(self, response):
         """
