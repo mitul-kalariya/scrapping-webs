@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from selenium import webdriver
@@ -215,7 +214,7 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_scrapped_data(response, parsed_data_dict, parsed_json=False) -> list:
+def get_scrapped_data(response, parsed_data_dict, parsed_json=False) -> list:  # noqa:C901
     """
     Extracts all the images present in the web page.
     Returns:

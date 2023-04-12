@@ -121,8 +121,7 @@ class ChosunIboOnline(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
-                raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
-                
+                raise SitemapArticleScrappingException(f"Error occured while iterating article url.{str(exception)}")  
 
     def parse_sitemap(self, response):
         """
