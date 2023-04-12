@@ -26,7 +26,7 @@ Article data is available for more than 1 month including today's date
 ```
 # To fetch all the article links
 
-from crweconomictimes import Crawler
+from crwtimesnownews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -50,7 +50,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from crweconomictimes import Crawler
+from crwtimesnownews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -73,7 +73,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crweconomictimes import Crawler
+from crwtimesnownews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
