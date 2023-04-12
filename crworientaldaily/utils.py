@@ -9,7 +9,7 @@ from crworientaldaily.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crworientaldaily.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
@@ -188,20 +188,21 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": [],
+        "videoObjects": [],
+        "other": [],
         "misc": [],
     }
     for block in blocks:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+        elif ("ImageGallery" in json.loads(block).get("@type", [{}])
+              or "ImageObject" in json.loads(block).get("@type", [{}])):
+            parsed_json_flter_dict["imageObjects"].append(json.loads(block))
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"].append(json.loads(block))
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
@@ -286,6 +287,7 @@ def get_parsed_data_dict() -> dict:
         "text": None,
         "thumbnail_image": None,
         "title": None,
+        "alternative_title": None,
         "images": None,
         "section": None,
         "video": None,

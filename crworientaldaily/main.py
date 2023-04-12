@@ -75,7 +75,7 @@ class Crawler:
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
-        
+
         process_settings = process.settings
         process_settings["DOWNLOAD_DELAY"] = 0.25
         process_settings["REFERER_ENABLED"] = False
@@ -97,4 +97,3 @@ class Crawler:
 
         process.crawl(OrientalDailySpider, **spider_args)
         process.start()
-

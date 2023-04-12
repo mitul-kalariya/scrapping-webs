@@ -1,5 +1,5 @@
-import requests
 import json
+import requests
 from scrapy.http import Request, TextResponse
 
 
@@ -12,7 +12,10 @@ def online_response_from_url(url: str) -> TextResponse:
     Returns:
         TextResponse: Converted Response object
     """
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) \
+                       AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
+    }
     request = Request(url=url, headers=headers)
 
     raw_response = requests.get(url, headers=headers)
@@ -31,7 +34,7 @@ def get_article_content(file_name: str) -> dict:
     Returns:
         dict: JSON data
     """
-    with open(file_name, 'r') as f:
-        data = json.load(f)
+    with open(file_name, 'r') as file_obj:
+        data = json.load(file_obj)
 
     return data

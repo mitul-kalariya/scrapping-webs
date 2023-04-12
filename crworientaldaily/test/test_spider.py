@@ -169,7 +169,7 @@ class TestArticle(unittest.TestCase):
                     0], str, "format mismatch for parsed_data--> modified_at")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
-                                  list, "format mismatch for parsed_data--> modified_at")
+                                      list, "format mismatch for parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
@@ -208,7 +208,7 @@ class TestArticle(unittest.TestCase):
                                       str, "format mismatch for parsed_data--> section")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
-                                  list, "format mismatch for parsed_data--> section")
+                                      list, "format mismatch for parsed_data--> section")
 
         if article[0].get("parsed_data", {}).get("tags"):
             with self.subTest():
@@ -216,7 +216,8 @@ class TestArticle(unittest.TestCase):
                                       str, "format mismatch for parsed_data--> tags")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-                                  list, "format mismatch for parsed_data--> tags")
+                                      list, "format mismatch for parsed_data--> tags")
+
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
