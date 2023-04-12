@@ -164,7 +164,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             LOGGER.info(
                 "Error occurred while scrapping an article for this link %s. %s",
                 response.url,
-                str(exception),
+                str(exception)
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"

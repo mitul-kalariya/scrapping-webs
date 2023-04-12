@@ -251,11 +251,11 @@ def get_thumbnail_image(response):
     images = []
     main_data = get_main(response)
     thumbnail_url = main_data[0].get("thumbnailUrl", None)
-    image = main_data[0].get("image", None)[0]
+    image = main_data[0].get("image", None)
     if thumbnail_url:
         images.append(thumbnail_url)
     elif image:
-        images.append(image)
+        images.append(image[0])
     else:
         return []
     return images
@@ -289,7 +289,7 @@ def get_images(response):
         "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] picture img::attr(alt)"
     ).getall()
     image_list = []
-    for i in range(0, len(images)):
+    for i in range(len(images)):
         image_dict = {}
         if images[i]:
             image_dict["link"] = images[i]
