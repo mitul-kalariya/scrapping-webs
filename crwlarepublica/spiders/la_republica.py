@@ -13,7 +13,6 @@ from crwlarepublica.items import ArticleData
 from crwlarepublica.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -239,8 +238,6 @@ class LaRepublicaSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             LOGGER.info(
