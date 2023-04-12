@@ -1,1 +1,1 @@
-from crwlinternaute.main import Crawler
+from crwlinternaute.main import Crawler  # noqa: F401

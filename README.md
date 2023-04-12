@@ -22,7 +22,7 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Articles Data is available for 4-7 days only
+Articles Data is available for 4-7 days only including today's date
 
 ```
 # To fetch all the article links from today's date only
@@ -38,7 +38,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.linternaute.com/"
     },
     proxies=proxies

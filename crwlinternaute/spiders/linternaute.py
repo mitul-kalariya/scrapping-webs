@@ -16,7 +16,7 @@ from crwlinternaute.utils import (
 from crwlinternaute.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
-    ExportOutputFileException,
+    ExportOutputFileException
 )
 
 logging.basicConfig(
@@ -66,7 +66,7 @@ class Linternaute(scrapy.Spider, BaseSpider):
 
         check_cmd_args(self, self.start_date, self.end_date)
 
-    def parse(self, response):
+    def parse(self, response):  # noqa: C901
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
@@ -78,15 +78,16 @@ class Linternaute(scrapy.Spider, BaseSpider):
         :param response: A Scrapy HTTP response object containing sitemap or article content.
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
         """
-        if self.type == "sitemap":
+        try:
+            if self.type == "sitemap":
 
-            site_map_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                namespaces=self.namespace).getall()
+                site_map_url = Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                                    namespaces=self.namespace).getall()
 
-            mod_date = Selector(response, type='xml')\
-                .xpath('//sitemap:lastmod/text()',
-                       namespaces=self.namespace).getall()
-            try:
+                mod_date = Selector(response, type='xml')\
+                    .xpath('//sitemap:lastmod/text()',
+                           namespaces=self.namespace).getall()
+
                 for url, date in zip(site_map_url, mod_date):
                     _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
 
@@ -100,23 +101,17 @@ class Linternaute(scrapy.Spider, BaseSpider):
                             yield scrapy.Request(
                                 url, callback=self.parse_sitemap)
 
-            except Exception as e:
-                self.logger.exception(f"Error in parse_sitemap:- {e}")
-                raise SitemapScrappingException(
-                    f"Error occurred while fetching sitemap:- {str(e)}"
-                ) from e
-        elif self.type == "article":
-            try:
+            elif self.type == "article":
                 yield self.parse_article(response)
 
-            except Exception as exception:
-                self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-                raise SitemapScrappingException(
-                    f"Error occurred while fetching sitemap:- {str(exception)}"
-                ) from exception
+        except Exception as exception:
+            self.log(
+                f"Error occured while iterating article url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while fetching sitemap:- {str(exception)}"
+            ) from exception
 
     def parse_sitemap(self, response):
         """
