@@ -121,11 +121,11 @@ class EconomicTimes(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occured while iterating article url. {str(exception)}",
+                f"Error occured while iterating {self.type} url. {str(exception)}",
                 level=logging.ERROR,
             )
             raise SitemapScrappingException(
-                f"Error occured while iterating article url. {str(exception)}"
+                f"Error occured while iterating {self.type} url. {str(exception)}"
             ) from exception
 
     def parse_sitemap(self, response):
