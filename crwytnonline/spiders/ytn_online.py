@@ -9,7 +9,6 @@ from crwytnonline.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwytnonline.items import ArticleData
 from crwytnonline.utils import (
     create_log_file,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -98,7 +97,7 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
         try:
             PAGINATION = 50
             links = []
-            for page_no in range(1, PAGINATION+1):
+            for page_no in range(1, PAGINATION + 1):
                 full_url = SITEMAP_URL + '?page=' + str(page_no) + '&mcd=recentnews'
                 links.append(full_url)
             for link in links:
@@ -121,7 +120,7 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
             for link, title, pub_date in zip(links, titles, published_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 if published_at == TODAYS_DATE:
-                    data =  {
+                    data = {
                         'link': link,
                         'title': title,
                     }
@@ -183,8 +182,6 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.error(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",
