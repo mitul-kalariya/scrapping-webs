@@ -2,7 +2,7 @@
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from https://economictimes.indiatimes.com/ website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www.timesnownews.com/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -38,7 +38,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://economictimes.indiatimes.com/",
+        "domain": "https://www.timesnownews.com/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -62,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://economictimes.indiatimes.com/"
+        "domain": "https://www.timesnownews.com/"
     },
     proxies=proxies
 )
@@ -85,7 +85,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://economictimes.indiatimes.com/markets/stocks/recos/buy-cochin-shipyard-target-price-rs-620-icici-direct/articleshow/99256239.cms"
+        "link": "https://www.timesnownews.com/web-stories/health/world-health-day-2023-everyday-aches-and-pains-you-should-not-ignore-article-99285223"
     },
     proxies=proxies
 )
