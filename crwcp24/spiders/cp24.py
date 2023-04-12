@@ -17,7 +17,6 @@ from crwcp24.exceptions import (
 from crwcp24.items import ArticleData
 from crwcp24.utils import (
     check_cmd_args,
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -86,6 +85,9 @@ class CP24News(scrapy.Spider, BaseSpider):
                 + str(exception),
                 level=logging.ERROR,
             )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
+            ) from exception
 
     def parse(self, response):
         """
@@ -124,6 +126,9 @@ class CP24News(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}",
                     level=logging.ERROR,
                 )
+                raise SitemapScrappingException(
+                    f"Error occurred while iterating sitemap url:- {str(exception)}"
+                ) from exception
 
     def parse_sitemap(self, response):
         """
@@ -167,7 +172,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                 string = json.loads(selector[0])
                 published_date = string.get("datePublished")
 
-            except:
+            except:  # noqa: E722
                 published_date = response.xpath(
                     '//meta[@itemprop="datePublished"]/@content'
                 ).get()
@@ -238,7 +243,8 @@ class CP24News(scrapy.Spider, BaseSpider):
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
                 parsed_json_dict["ImageGallery"] = parsed_json_main
-                parsed_json_dict["VideoObject"] = parsed_json_main
+                parsed_json_dict["videoObjects"] = parsed_json_main
+                parsed_json_dict["imageObjects"] = parsed_json_main
                 parsed_json_dict["other"] = parsed_json_main
 
             if parsed_json_misc:

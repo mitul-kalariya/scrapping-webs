@@ -139,17 +139,26 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 [
                     json.loads(data)
                     for data in value.getall()
-                    if json.loads(data).get("@type") == "VideoObject"
+                    if json.loads(data).get("@type") == "ImageGallery"
                 ],
             )
 
-        elif key == "VideoObject":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key,
                 [
                     json.loads(data)
                     for data in value.getall()
                     if json.loads(data).get("@type") == "VideoObject"
+                ],
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key,
+                [
+                    json.loads(data)
+                    for data in value.getall()
+                    if json.loads(data).get("@type") == "ImageObject"
                 ],
             )
         else:
@@ -158,8 +167,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 [
                     json.loads(data)
                     for data in value.getall()
-                    if json.loads(data).get("@type") in list(selector_and_key.keys())
-                    or json.loads(data).get("@type") != "NewsArticle"
+                    if json.loads(data).get("@type") in ["ImageObject", "VideoObject"]
+                    and json.loads(data).get("@type") != "NewsArticle"
                 ],
             )
     return dict(article_raw_parsed_json_loader.load_item())
