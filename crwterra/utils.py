@@ -248,21 +248,18 @@ def get_text(response):
         ) from exception
 
 def get_thumbnail_image(response):
-    try:
-        images = []
-        main_data = get_main(response)
-        thumbnail_url = main_data[0].get("thumbnailUrl", None)
-        image = main_data[0].get("image", None)[0]
-        if thumbnail_url:
-            images.append(thumbnail_url)
-        elif image:
-            images.append(image)
-        else:
-            return []
-        return images
-    except BaseException as exception:
-        print("thumbnail_url not found-->", exception)
+    images = []
+    main_data = get_main(response)
+    thumbnail_url = main_data[0].get("thumbnailUrl", None)
+    image = main_data[0].get("image", None)[0]
+    if thumbnail_url:
+        images.append(thumbnail_url)
+    elif image:
+        images.append(image)
+    else:
         return []
+    return images
+
 
 
 def get_main(response):
