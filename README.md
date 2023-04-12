@@ -85,7 +85,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": https://economictimes.indiatimes.com/markets/stocks/recos/buy-cochin-shipyard-target-price-rs-620-icici-direct/articleshow/99256239.cms
+        "link": "https://economictimes.indiatimes.com/markets/stocks/recos/buy-cochin-shipyard-target-price-rs-620-icici-direct/articleshow/99256239.cms"
     },
     proxies=proxies
 )
