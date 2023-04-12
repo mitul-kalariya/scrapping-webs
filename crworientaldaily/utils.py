@@ -287,7 +287,6 @@ def get_parsed_data_dict() -> dict:
         "text": None,
         "thumbnail_image": None,
         "title": None,
-        "alternative_title": None,
         "images": None,
         "section": None,
         "video": None,
@@ -338,7 +337,7 @@ def get_parsed_data(response: str) -> dict:
         Dictionary with Parsed json response from generated data
     """
 
-    text = " ".join(response.css("div.paragraph div.content::text").getall())
+    text = " ".join(response.css("div.paragraph div.content::text,div.paragraph div.subtitle::text").getall())
     images = []
     for image in response.css("figure"):
         image_link = image.css("img::attr(src)").get()
