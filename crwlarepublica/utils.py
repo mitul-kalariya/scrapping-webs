@@ -154,7 +154,6 @@ def get_parsed_json(response):
         parsed_json(dictionary): available json data
     """
     try:
-        # breakpoint()
         parsed_json = {}
         imageObjects = []
         videoObjects = []
