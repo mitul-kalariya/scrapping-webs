@@ -437,7 +437,6 @@ def get_embed_video_link(response) -> list:
             if video_button:
                 videos = []
                 for i in video_button:
-                    time.sleep(2)
                     i.click()
                     time.sleep(2)
 
@@ -454,8 +453,6 @@ def get_embed_video_link(response) -> list:
                             video[-1].get_attribute("src").replace("blob:", "")
                         )
                 data["videos"] = videos
-            else:
-                driver.quit()
         else:
             driver.quit()
 
