@@ -41,7 +41,7 @@ def get_parsed_json(response):
         imageObjects = []
         videoObjects = []
         other_data = []
-        ld_json_list = response.css('script[type="application/ld+json"]::text').getall()
+        ld_json_list = get_ld_json(response)
         for data in ld_json_list:
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
@@ -125,7 +125,7 @@ def get_parsed_data(response):
     try:
         main_dict = {}
 
-        json_data = get_ld_json(response)
+        json_data = [data for data in get_ld_json(response) if get_ld_json(response).get("@type") == "NewsArticle"][0]
 
         # Author
         authors = get_author(json_data)
@@ -149,7 +149,7 @@ def get_parsed_data(response):
 
         # Article Text
         article_text = response.css(
-            "#articledetail-body h2::text, #articledetail-body p::text"
+            ".article_content:nth-child(1)::text"
         ).getall()
         main_dict["text"] = [" ".join(article_text)]
 
@@ -158,8 +158,8 @@ def get_parsed_data(response):
         main_dict["thumbnail_image"] = thumbnail
 
         # Title
-        # title = response.css(".title-page::text").get().strip()
-        # main_dict["title"] = [title]
+        title = response.css("#articletitle #jtbcBody::text").get().strip()
+        main_dict["title"] = [title]
 
         # Images
         article_images = get_images(response)
@@ -170,7 +170,7 @@ def get_parsed_data(response):
         # main_dict["embed_video_link"] = video
 
         # Language
-        mapper = {"ja": "Japanese"}
+        mapper = {"ko": "Korean"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
@@ -203,23 +203,6 @@ def get_lastupdated(response) -> str:
         print(f"Error while getting last updated date: {str(exception)}")
 
 
-def get_published_at(response) -> str:
-    """get data of when article was published
-    Args:
-        response (object):page data
-    Returns:
-        str: datetime of published date
-    """
-    try:
-        info = response.css(".inline time")
-
-        if info:
-            return info.css("time::attr(datetime)").get()
-    except exceptions.ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting published date: {str(exception)}")
-
-
 def get_author(response) -> list:
     """
     The extract_author function extracts information about the author(s)
@@ -230,7 +213,8 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
-        authors = response.get('author')
+        article_json = [data for data in response if data.get("@type") == "NewsArticle"]
+        authors = article_json[0].get('author')
         data = []
         if authors:
             data.append(authors)
@@ -274,12 +258,12 @@ def get_publisher(response) -> list:
     """
     try:
         json_data = get_ld_json(response)
-        publisher_data = json_data.get("publisher")
+        publisher_data = json_data[0].get("publisher")
         logo = publisher_data.get("logo")
         a_dict = {
-            "@id": "mainichi.jp",
+            "@id": publisher_data.get("@id"),
             "@type": publisher_data.get("@type"),
-            "name": publisher_data.get("@name"),
+            "name": publisher_data.get("name"),
             "logo": {
                 "@type": logo.get("@type"),
                 "url": logo.get("url"),
@@ -308,7 +292,7 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         data = []
-        images = response.css(".articledetail-image-left picture img, .articledetail-image2-left picture img")[1:]
+        images = response.css("#articlebody img")
         if images:
             for image in images:
                 temp_dict = {}
@@ -334,7 +318,7 @@ def get_tags(response) -> list:
     """
     try:
         json_data = get_ld_json(response)
-        tags = json_data.get("keywords")
+        tags = json_data[0].get("keywords")
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -349,8 +333,7 @@ def get_section(response) -> list:
         list: List of sections
     """
     try:
-        json_data = get_ld_json(response)
-        sections = json_data.get("articleSection")
+        sections = response.css('meta[property^="article:section"]::attr(content)').extract()
         return sections
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
@@ -389,10 +372,7 @@ def get_ld_json(response) -> json:
         json: ld+json data
     """
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    if len(ld_json_data) == 1:
-        json_data = json.loads(ld_json_data[0])
-    else:
-        json_data = json.loads(ld_json_data[1])
+    json_data = [json.loads(data) for data in ld_json_data]
     return json_data
 
 
@@ -458,4 +438,3 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         os.makedirs(folder_structure)
     with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
         json.dump(file_data, file, indent=4, ensure_ascii=False)
-        
