@@ -1,17 +1,15 @@
-# Utility/helper functions
-# utils.py
-
+"""General functions"""
 import os
 import json
 import logging
 from datetime import datetime
+import re
 from crwlarepublica import exceptions
 from crwlarepublica.constant import TODAYS_DATE, LOGGER
-import itertools
-import re
 
 
 def create_log_file():
+    """creates log file"""
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -22,7 +20,11 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    """validate the sitemap arguments """
+
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
@@ -39,19 +41,16 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be later than end_date"
             )
 
-        if start_date and end_date and start_date == end_date:
-            raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
-            )
-
         if start_date and end_date and start_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.info(f"Error occured while checking date range: {exception}")
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {exception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -95,15 +94,16 @@ def get_main(response):
         main data
     """
     try:
-        # breakpoint()
         data = []
         response = response.css('script[type="application/ld+json"]::text').getall()
-        # for block in misc:
         data.append(json.loads(response[0]))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting main: {e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        )
 
 
 def get_misc(response):
@@ -120,9 +120,11 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        )
 
 
 def get_raw_response(response):
@@ -214,44 +216,38 @@ def get_parsed_data(response):
         authors = get_author(response)
         main_dict["author"] = authors
 
-        main_dict["description"] = response.css("meta[name='description']::attr(content)").getall()
+        main_dict["description"] = response.css(
+            "meta[name='description']::attr(content)"
+        ).getall()
 
         main_data = get_main(response)
         main_dict["published_at"] = [main_data[0].get("datePublished")]
         main_dict["modified_at"] = [main_data[0].get("dateModified")]
 
-        # extract section information
-        section = get_section(response)
-        main_dict["section"] = section
-
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
 
-        # breakpoint()
-        article_text = response.css("div.story__summary::text, div.story__content p::text").getall()
+        article_text = response.css(
+            "div.story__summary::text, div.story__content p::text"
+        ).getall()
         text = [re.sub(pattern, "", i) for i in article_text]
 
         main_dict["text"] = [" ".join(text)]
 
-        tags = get_tags(response)
-        main_dict["tags"] = tags
-
-        images = get_images(response)
-        if images:
-            main_dict["images"] = images
-
         videos = get_embed_video_link(response)
         main_dict["embed_video_link"] = videos
-        main_dict["source_language"] = ["Italy"]
+        main_dict["source_language"] = ["Italian"]
 
         main_dict["source_country"] = ["Italy"]
         main_dict["time_scraped"] = [str(datetime.now())]
 
         return remove_empty_elements(main_dict)
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching parsed_data data: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        )
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -269,51 +265,27 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+    try:
+        folder_structure = ""
+        if scrape_type == "sitemap":
+            folder_structure = "Links"
+            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+
+        elif scrape_type == "article":
+            folder_structure = "Article"
+            filename = f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+
+        if not os.path.exists(folder_structure):
+            os.makedirs(folder_structure)
+
+        with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+            json.dump(file_data, file, indent=4, ensure_ascii=False)
+
+    except Exception as exception:
+        LOGGER.info(f"Error occurred while writing json file {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while writing json file {str(exception)}"
         )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
-def get_parsed_data_dict() -> dict:
-    """
-    Return base data dictionary
-
-    Args:
-    None
-
-    Returns:
-        dict: Return base data dictionary
-    """
-    return {
-        "source_country": None,
-        "source_language": None,
-        "author": [{"@type": None, "name": None, "url": None}],
-        "description": None,
-        "modified_at": None,
-        "published_at": None,
-        "publisher": None,
-        "text": None,
-        "thumbnail_image": None,
-        "title": None,
-        "images": None,
-        "section": None,
-        "video": None,
-    }
 
 
 def get_publisher(response):
@@ -328,78 +300,47 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-
         response = response.css('script[type="application/ld+json"]::text').getall()
         json_loads = json.loads(response[0])
         data = []
-        # for block in json_loads:
+
         if "publisher" in json_loads.keys():
             data.append(json_loads.get("publisher"))
             return data
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
-
-
-def get_headline(response):
-    """
-    Args:
-        response: The response object containing the HTML of the article page.
-
-    Returns: the headline from the response
-    """
-    response = get_main(response)
-    headline = []
-    if "headline" in response[0].keys:
-        headline.append(response[0].get("headline"))
-    return headline
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching publisher data {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching publisher data {str(exception)}"
+        )
 
 
 def get_author(response) -> list:
     """
     The get_author function extracts information about the author(s)
-    of an article from the given response object and returns it in the form of a list of dictionaries.
+    of an article from the given response object and
+    returns it in the form of a list of dictionaries.
     Parameters:
-        response (scrapy.http.Response): The response object containing the HTML of the article page.
+        response (scrapy.http.Response): The response object containing
+        the HTML of the article page.
     Returns:
         A list of dictionaries, where each dictionary contains information about one author.
     """
     try:
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
         json_loads = json.loads(parsed_data[0])
-        # for a_block in parsed_data:
-        #     for data in json.loads(a_block).get("@graph"):
 
-        # breakpoint()
         author_data = []
         if json_loads.get("@type") == "NewsArticle":
             if "author" in json_loads.keys():
                 author_data.append(json_loads.get("author"))
                 return author_data[0]
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
-
-
-def get_section(response) -> list:
-    try:
-        section = get_main(response)
-        for block in section.get("@graph"):
-            articleSection = []
-            if "articleSection" in block:
-                articleSection.append(block.get("articleSection"))
-                return articleSection
-    except:
-        breadcrumb_list = response.css("ul.article-breadcrumb li")
-        for i in breadcrumb_list:
-            text = i.css("li a::text").get()
-            if text:
-                text = text.split()
-                text = "".join(text)
-                if text:
-                    return [text]
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching author {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching author {str(exception)}"
+        )
 
 
 def get_thumbnail_image(response) -> list:
@@ -409,65 +350,18 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    # breakpoint()
-    response = get_main(response)
-
-    if "image" in response[0].keys():
-        thumbnail_image = []
-        thumbnail_image.append(response[0].get("image").get("url"))
-        return thumbnail_image
-
-
-def get_tags(response) -> list:
-    """
-    Extracts lables associated to the news article in form of a list of dictionary
-    containing name of the tag and the corrosponding link to the tag
-    Parameters:
-        response (scrapy.http.Response): The response object containing the HTML of the article page.
-    Returns:
-        a list of dictionary with link and name combination
-    """
     try:
-        info = response.css("div.c-tags__body a")
-        data = []
-        for i in info:
-            temp_dict = {}
-            temp_dict["tag"] = i.css("a::text").get()
-            temp_dict["url"] = i.css("a::attr(href)").get()
-            if temp_dict["url"] == "#":
-                pass
-            else:
-                data.append(temp_dict)
-        return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching tags: {e}")
+        response = get_main(response)
+        if "image" in response[0].keys():
+            thumbnail_image = []
+            thumbnail_image.append(response[0].get("image").get("url"))
+            return thumbnail_image
 
-
-def get_images(response) -> list:
-    """extracting image links from provided response
-    Args:
-        response (_type_): html page object
-    Returns:
-        list: list of images inside the article
-    """
-    try:
-        temp_dict = {
-            "images": [
-                {"link": img, "caption": cap}
-                for img, cap in itertools.zip_longest(
-                    response.css(".wp-caption a::attr(href)").getall(),
-                    response.css(".wp-caption-text::text").getall()
-                    + response.css("span.custom-caption::text").getall(),
-                    fillvalue=None,
-                )
-            ]
-        }
-        return temp_dict.get("images")
-
-    except BaseException as e:
-        LOGGER.error(f"Error: {e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching thumbnail image {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching thumbnail image {str(exception)}"
+        )
 
 
 def get_embed_video_link(response) -> list:
@@ -479,22 +373,14 @@ def get_embed_video_link(response) -> list:
         a list of dictionary containing object type link and decryption
     """
     try:
-        breakpoint()
         data = []
-        video_link = response.css("figure.story__media gdwc-video-component::attr(data-src)").get()
+        video_link = response.css(
+            "figure.story__media gdwc-video-component::attr(data-src)"
+        ).get()
         data.append(video_link)
-        # thumbnail_video = response.css("figure.l-article__featured")
-        # for video in thumbnail_video:
-        #     link = video.css(".c-video::attr(data-displayinline)").get()
-        #     if link:
-        #         data.append(link)
-        #
-        # videos = response.css("div.c-video.c-videoPlay")
-        # for video in videos:
-        #     link = video.css("div::attr(data-displayinline)").get()
-        #     if link:
-        #         data.append(link)
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching video links: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article video link: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting article video link: {exception}"
+        )

@@ -4,7 +4,7 @@ import unittest
 from crwlarepublica.spiders.la_republica import LaRepublicaSpider
 from crwlarepublica.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwlarepublica.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+                                               online_response_from_url)
 from crwlarepublica import Crawler
 
 # Creating an object
@@ -202,40 +202,6 @@ class TestArticle(unittest.TestCase):
         else:
             with self.subTest():
                 raise AssertionError("missing object:- parsed_data--> publisher")
-
-        # if article[0].get("parsed_data").get("images"):
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("images")[
-        #             0], dict, "format mismatch for parsed_data--> images")
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("images"),
-        #                               list, "format mismatch for parsed_data--> images")
-        #     self._test_image_format(article)
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> images")
-
-        # if article[0].get("parsed_data").get("section"):
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("section")[0],
-        #                               str, "format mismatch for parsed_data--> section")
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("section"),
-        #                               list, "format mismatch for parsed_data--> section")
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> section")
-
-        # if article[0].get("parsed_data").get("tags"):
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("tags")[0],
-        #                               str, "format mismatch for parsed_data--> tags")
-        #     with self.subTest():
-        #         self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-        #                               list, "format mismatch for parsed_data--> tags")
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> tags")
 
 
 class TestSitemap(unittest.TestCase):
