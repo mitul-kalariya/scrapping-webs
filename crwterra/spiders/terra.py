@@ -109,10 +109,10 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            LOGGER.info("Error occured in parse function: %s", e)
+        except BaseException as exception:
+            LOGGER.info("Error occured in parse function: %s", exception)
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_article(self, response) -> list:
@@ -166,10 +166,10 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 for link in sitemap.getall():
                     yield scrapy.Request(link, callback=self.parse_sitemap_article)
 
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error while parsing sitemap: {exception}")
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_sitemap_article(self, response):

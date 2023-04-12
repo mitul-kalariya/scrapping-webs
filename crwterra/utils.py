@@ -21,6 +21,7 @@ from crwterra.constant import TODAYS_DATE, LOGGER
 
 
 def create_log_file():
+    """creating log file"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -31,6 +32,9 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """
+    validating date range given for sitemap
+    """
     start_date = (
         datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     )
@@ -61,9 +65,9 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.error("Error in __init__: %s", exception, exc_info=True)
+        raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -116,8 +120,8 @@ def get_parsed_json(response):
     """
     try:
         parsed_json = {}
-        imageObjects = []
-        videoObjects = []
+        image_objects = []
+        video_objects = []
         other_data = []
         ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for a_block in ld_json_data:
@@ -125,19 +129,19 @@ def get_parsed_json(response):
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
             elif data.get("@type") in {"ImageGallery", "ImageObject"}:
-                imageObjects.append(data)
+                image_objects.append(data)
             elif data.get("@type") == "VideoObject":
-                videoObjects.append(data)
+                video_objects.append(data)
             else:
                 other_data.append(data)
 
-        parsed_json["imageObjects"] = imageObjects
-        parsed_json["videoObjects"] = videoObjects
+        parsed_json["imageObjects"] = image_objects
+        parsed_json["videoObjects"] = video_objects
         parsed_json["other"] = other_data
 
         return remove_empty_elements(parsed_json)
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        LOGGER.info("Error occured while getting parsed json %s", exception)
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting parsed json {exception}"
         ) from exception
@@ -193,9 +197,9 @@ def get_parsed_data(response):
         main_dict["section"] = get_section(response)
 
         return remove_empty_elements(main_dict)
-    except BaseException as e:
-        LOGGER.error(f"while scrapping parsed data {e}")
-        raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{e}")
+    except BaseException as exception:
+        LOGGER.error("while scrapping parsed data %s", exception)
+        raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{exception}")
 
 
 def get_section(response):
@@ -209,6 +213,7 @@ def get_section(response):
         temp_list = [re.sub(r"[\n\r\t]", "", i).strip() for i in section]
         breadcrumb = [i for i in temp_list if i]
         return [breadcrumb[len(breadcrumb) - 1]]
+    return None
 
 
 def get_text(response):
@@ -223,7 +228,6 @@ def get_text(response):
         video_link_text = response.css("div.article__content--container p::text").get()
         if video_link_text:
             return [video_link_text]
-
         text = response.css("p.text::text").getall()
         if text:
             strong_text = response.css("p.text strong::text").get()
@@ -234,25 +238,31 @@ def get_text(response):
                 ]
             else:
                 return [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
+        return None
+
 
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting parsed json {exception}")
+        LOGGER.info("Error occured while getting parsed json %s", exception)
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting parsed json {exception}"
         ) from exception
 
-
 def get_thumbnail_image(response):
-    main_data = get_main(response)
     try:
-        thumbnail_url = main_data[0].get("thumbnailUrl")
+        images = []
+        main_data = get_main(response)
+        thumbnail_url = main_data[0].get("thumbnailUrl", None)
+        image = main_data[0].get("image", None)[0]
         if thumbnail_url:
-            return [thumbnail_url]
-        image = main_data[0].get("image")[0]
-        if image:
-            return [image]
-    except BaseException as e:
-        print("thumbnail_url not found-->", e)
+            images.append(thumbnail_url)
+        elif image:
+            images.append(image)
+        else:
+            return []
+        return images
+    except BaseException as exception:
+        print("thumbnail_url not found-->", exception)
+        return []
 
 
 def get_main(response):
@@ -267,10 +277,10 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"error parsing ld+json main data{e}")
+    except BaseException as exception:
+        LOGGER.error("error parsing ld+json main data %s", exception)
         raise exceptions.ArticleScrappingException(
-            f"error parsing ld+json main data {e}"
+            f"error parsing ld+json main data {exception}"
         )
 
 
@@ -291,6 +301,7 @@ def get_images(response):
         image_list.append(image_dict)
     if image_list:
         return image_list
+    return None
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
@@ -322,10 +333,10 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
             json.dump(file_data, file, indent=4, ensure_ascii=False)
-    except BaseException as e:
-        LOGGER.error(f"error while creating json file: {e}")
+    except BaseException as exception:
+        LOGGER.error("error while creating json file: %s", exception)
         raise exceptions.ExportOutputFileException(
-            f"error while creating json file: {e}"
+            f"error while creating json file: {exception}"
         )
 
 
@@ -357,13 +368,10 @@ def extract_videos(response) -> list:
             .get_attribute("src")
             or None
         )
-    # except BaseException as exception:
-    #     raise exceptions.ArticleScrappingException(
-    #         f"Error occured while getting video {exception}"
-    #     ) from exception
-    except BaseException as e:
+    except:
         return None
 
     driver.quit()
     if video:
         return [video]
+    return None
