@@ -60,8 +60,6 @@ class YTNOnlineSpider(scrapy.Spider, BaseSpider):
         create_log_file()
 
         if self.type == "sitemap":
-            if since != None or until != None:
-                raise Exception('Date Filter is not available for this website')
             self.start_urls.append(SITEMAP_URL)
 
         elif self.type == "article":
