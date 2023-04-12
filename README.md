@@ -7,6 +7,7 @@ This is the scrapping project to scrap news from different website.
 This repo contains the code to scrap all sitemaps (if available) and articles from https://www.francetvinfo.fr/ website and the Tech stacks used are
 - Python 3.10
 - Scrapy
+- Selenium
 
 
 #### Environment Setup
@@ -77,3 +78,7 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
+
+### Use of Selenium
+
+Yes, we used selenium to fetch {your use case }. To manage the selenium we are using [Web-Driver](https://pypi.org/project/webdriver-manager/) package and we are using `ChromeDriverManager`.
