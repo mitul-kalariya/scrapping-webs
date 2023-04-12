@@ -227,7 +227,7 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
                 "parsed_data", get_parsed_data(response, parsed_json_data)
             )
             self.articles.append(dict(articledata_loader.load_item()))
-            return dict(articledata_loader.load_item())
+            return articledata_loader.item
 
         except Exception as exception:
             self.log(
