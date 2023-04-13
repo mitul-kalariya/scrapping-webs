@@ -9,7 +9,7 @@ This repo contains the code to scrap all article links and articles from https:/
 - Webdriver-manager
 - Beautifulsoup4
 
-#### Environment Setup 
+#### Environment Setup
 
 - Create a Virtual Environment using Python3 and activate the environment.
 - `python3 -m venv venv`

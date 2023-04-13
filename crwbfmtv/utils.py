@@ -6,15 +6,8 @@ import re
 import json
 import logging
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from crwbfmtv import exceptions
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from crwbfmtv.constant import TODAYS_DATE, LOGGER
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 
 def create_log_file():
@@ -26,7 +19,9 @@ def create_log_file():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+
 pattern = r"[\r\n\t\"]+"
+
 
 def validate_sitemap_date_range(start_date, end_date):
     start_date = (
@@ -58,9 +53,9 @@ def validate_sitemap_date_range(start_date, end_date):
                 "end_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.info(f"Error in __init__: {exception}", exc_info=True)
+        raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -162,7 +157,7 @@ def get_main(response):
                 pass
         return information
     except BaseException as exception:
-        LOGGER.error("Error while getting main %s ", exception)
+        LOGGER.info("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
             f"Error while getting main: {exception}"
         )
@@ -182,9 +177,9 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        print(f"Error while getting misc: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"{exception}")
+        raise exceptions.ArticleScrappingException(f"Error while getting misc: {exception}")
 
 
 def get_parsed_data_dict() -> dict:
@@ -216,7 +211,7 @@ def get_parsed_data_dict() -> dict:
 
 def get_parsed_data(response):
     response_data = {}
-    
+
     text = []
     main_json = get_main(response)
     article_json = main_json.get("article")
@@ -242,7 +237,7 @@ def get_parsed_data(response):
 
     response_data["text"] = [" ".join(text)]
 
-    response_data |= get_author(main_json,response)
+    response_data |= get_author(main_json, response)
     section = get_section(response)
     response_data["section"] = section
 
@@ -258,19 +253,23 @@ def get_parsed_data(response):
 
     return remove_empty_elements(response_data)
 
+
 def get_author(parsed_json_dict, response):
     if parsed_json_dict:
-        return{
-            "author": [parsed_json_dict.get("author",None)]
-        }
+        return {"author": [parsed_json_dict.get("author", None)]}
     elif response.css("span.author_name::text"):
         article_author = response.css("span.author_name::text").get() or None
         if article_author:
-            return {"author":[
-                {"@type": "Person", "name": re.sub(pattern, "", article_author).strip()}
-            ]}
+            return {
+                "author": [
+                    {
+                        "@type": "Person",
+                        "name": re.sub(pattern, "", article_author).strip(),
+                    }
+                ]
+            }
     else:
-        return {"author":None}
+        return {"author": None}
 
 
 def get_images(response, thumbnail_image) -> list:
@@ -293,7 +292,7 @@ def get_images(response, thumbnail_image) -> list:
                     }
                 )
             else:
-                 data.append(
+                data.append(
                     {
                         "link": image,
                         "caption": caption or None,
@@ -322,11 +321,11 @@ def get_thumbnail_image_video(parsed_json_dict, response):
         video_links = []
         article_thumbnail = parsed_json_dict.get("image", None)
         if article_thumbnail:
-            thumbnail_image.append(article_thumbnail.get("contentUrl",None))
+            thumbnail_image.append(article_thumbnail.get("contentUrl", None))
         thumbnail_video = parsed_json_dict.get("video")
         if thumbnail_video:
-            video_links.append(thumbnail_video.get("embedUrl",None))
-    
+            video_links.append(thumbnail_video.get("embedUrl", None))
+
         return format_dictionary(
             {
                 "thumbnail_image": parsed_json_dict.get("thumbnailUrl", None)
