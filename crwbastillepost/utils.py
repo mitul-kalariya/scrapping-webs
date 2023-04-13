@@ -1,5 +1,4 @@
 """ General functions """
-import os
 import json
 import logging
 from datetime import datetime
@@ -164,9 +163,9 @@ def get_parsed_json(response):
         if data.get("@type") == "NewsArticle":
             parsed_json["main"] = data
         elif data.get("@type") in ["ImageGallery", "ImageObject"]:
-            parsed_json["ImageGallery"] = data
+            parsed_json["imageObjects"] = data
         elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
+            parsed_json["videoObjects"] = data
         else:
             other_data.append(data)
 
