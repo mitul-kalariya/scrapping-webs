@@ -1,115 +1,50 @@
 """Utility Functions"""
-import os
 import json
-import requests
+import logging
 from datetime import datetime
+
+import requests
 from scrapy.loader import ItemLoader
-from crwbbcnews.constant import SITEMAP_URL
-from crwbbcnews.items import ArticleRawResponse, ArticleRawParsedJson
-from crwbbcnews.exceptions import InvalidDateException, InvalidArgumentException, InputMissingException
+
+from crwbbcnews.constant import LOGGER, TODAYS_DATE, BASE_URL
+from crwbbcnews.exceptions import InvalidDateException, ArticleScrappingException
+from crwbbcnews.items import ArticleRawParsedJson, ArticleRawResponse
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
-    """
-    Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
+def create_log_file():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
+
+def validate_sitemap_date_range(since, until):
+    """validated date range given by user
     Args:
-        self (TimesNow): The TimesNow spider instance.
-        start_date (str): The start date for the sitemap spider in the format YYYY-MM-DD.
-        end_date (str): The end date for the sitemap spider in the format YYYY-MM-DD.
-
-    Raises:
-        ValueError: If the type is not "articles" or "sitemap".
-        ValueError: If the type is "sitemap" and either start_date or end_date is missing.
-        ValueError: If the type is "sitemap" and the time range is more than 30 days.
-        ValueError: If the type is "articles" and the URL is missing.
-
-    Returns:
-        None.
-
-    Note:
-        This function assumes that the class instance variable `start_urls` is already initialized as an empty list.
+        since (str): since
+        until (str): until
     """
+    since = datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
+    until = datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
+    try:
+        if (since and not until) or (not since and until):
+            raise InvalidDateException(
+                "since or until must be specified"
+            )
 
-    def add_start_url(url):
-        self.start_urls.append(url)
+        if since and until and since > until:
+            raise InvalidDateException(
+                "since should not be later than until"
+            )
 
-    def set_date_range(start_date, end_date):
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
-
-    def validate_date_range():
-        if self.start_date > self.end_date:
-            raise InvalidDateException("start_date must be less then end_date")
-        if (self.end_date - self.start_date).days > 30:
-            raise InvalidDateException("Enter start_date and end_date for maximum 30 days.")
-
-    def validate_type():
-        if self.type not in ["article", "sitemap", "link_feed"]:
-            raise InvalidArgumentException("type should be articles or sitemap")
-
-    def handle_sitemap_type():
-        if self.end_date is not None and self.start_date is not None:
-            set_date_range(start_date, end_date)
-            validate_date_range()
-            add_start_url(SITEMAP_URL)
-
-        elif self.start_date is None and self.end_date is None:
-            today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            add_start_url(SITEMAP_URL)
-
-        elif self.end_date is not None or self.start_date is not None:
-            raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
-
-    def handle_article_type():
-        if self.article_url is not None:
-            add_start_url(self.article_url)
-        else:
-            raise InputMissingException("type articles must be used with url")
-
-    validate_type()
-
-    if self.type == "sitemap":
-        handle_sitemap_type()
-
-    elif self.type == "article":
-        handle_article_type()
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
+        if since > TODAYS_DATE or until > TODAYS_DATE:
+            raise InvalidDateException(
+                "since and until should not be greater than today's date"
+            )
+    except InvalidDateException as exception:
+        LOGGER.error(f"Error in __init__: {str(exception)}", exc_info=True)
+        raise InvalidDateException(f"Error in __init__: {str(exception)}")
 
 
 def get_raw_response(response: str, selector_and_key: dict) -> dict:
@@ -123,12 +58,16 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
     Returns:
         Dictionary with generated raw response
     """
-    article_raw_response_loader = ItemLoader(
-        item=ArticleRawResponse(), response=response
-    )
-    for key, value in selector_and_key.items():
-        article_raw_response_loader.add_value(key, value)
-    return dict(article_raw_response_loader.load_item())
+    try:
+        article_raw_response_loader = ItemLoader(
+            item=ArticleRawResponse(), response=response
+        )
+        for key, value in selector_and_key.items():
+            article_raw_response_loader.add_value(key, value)
+        return dict(article_raw_response_loader.load_item())
+    except ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting raw response: {str(exception)}")
 
 
 def get_parsed_json(response: str, selector_and_key: dict) -> dict:
@@ -142,49 +81,48 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
+    try:
+        article_raw_parsed_json_loader = ItemLoader(
+            item=ArticleRawParsedJson(), response=response
+        )
+        for key, value in selector_and_key.items():
 
-    article_raw_parsed_json_loader = ItemLoader(
-        item=ArticleRawParsedJson(), response=response
-    )
-    for key, value in selector_and_key.items():
+            if key == "main":
+                article_raw_parsed_json_loader.add_value(
+                    key,
+                    [json.loads(data) if type(json.loads(data)) is dict else json.loads(data)[0] for data in value.getall()
+                     if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "NewsArticle") or (
+                        type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle") or (
+                        type(json.loads(data)) in [list, dict])]
 
-        if key == "main":
-            article_raw_parsed_json_loader.add_value(
-                key,
-                [json.loads(data) if type(json.loads(data)) is dict else json.loads(data)[0] for data in value.getall()
-                 if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "NewsArticle") or (
-                    type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle") or (
-                    type(json.loads(data)) in [list, dict])]
+                )
+            elif key == "ImageGallery":
+                article_raw_parsed_json_loader.add_value(
+                    key, [json.loads(data) for data in value.getall() if
+                          (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageGallery") or (
+                        type(json.loads(data)) is list and json.loads(data)[0].get(
+                            '@type') == "ImageGallery")]
+                )
 
-            )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if
-                      (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageGallery") or (
-                    type(json.loads(data)) is list and json.loads(data)[0].get(
-                        '@type') == "ImageGallery")]
-            )
-
-        elif key == "VideoObject":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if
-                      (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject") or (
-                    type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
-            )
-        elif key == "misc":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall()])
-        else:
-            try:
+            elif key == "VideoObject":
+                article_raw_parsed_json_loader.add_value(
+                    key, [json.loads(data) for data in value.getall() if
+                          (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject") or (
+                        type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "VideoObject")]
+                )
+            elif key == "misc":
+                article_raw_parsed_json_loader.add_value(
+                    key, [json.loads(data) for data in value.getall()])
+            else:
                 for data in value.getall():
                     data_dict = json.loads(data)
                     data_type = data_dict.get('@graph')[0].get('@type')
                     if data_dict is dict and data_type not in selector_and_key.keys() and data_type != "NewsArticle":
                         article_raw_parsed_json_loader.add_value(key, data_dict)
-            except:  # noqa: E722
-                pass
-
-    return dict(article_raw_parsed_json_loader.load_item())
+        return dict(article_raw_parsed_json_loader.load_item())
+    except ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting parsed json: {str(exception)}")
 
 
 def get_parsed_data_dict() -> dict:
@@ -250,41 +188,124 @@ def get_data_from_json(response, parsed_main):
     """
     Get data from output response
     """
-    url = response.url
-    response = requests.get(f'{url}.json').json()
-    parsed_json = {}
-    raw_text = ''
-    images, tags, topics = [], [], []
+    try:
+        url = response.url
+        response_data = requests.get(f'{url}.json').json()
+        parsed_json = {}
+        raw_text = ''
+        tags, topics = [], []
 
-    for block in response['content']['blocks']:
-        if block['type'] == 'paragraph' or block['type'] == 'crosshead':
-            raw_text = raw_text + f'{block["text"]}\n'
+        thumbnail_image = get_thumbnail_image(response)
 
-        if block['type'] == 'image':
-            image_dict = {
-                "link": block.get('href'),
-                "caption": block.get('altText')
+        for block in response_data['content']['blocks']:
+            if block['type'] == 'paragraph' or block['type'] == 'crosshead':
+                raw_text = raw_text + f'{block["text"]}\n'
+
+        for tag_block in response_data.get('metadata').get('tags').get('about'):
+            tags.append(tag_block['topicName'])
+
+        for section_block in response_data.get('metadata').get('topics'):
+            topics.append(section_block['topicName'])
+
+        main_block = parsed_main.get("main").get("@graph")
+        if main_block and isinstance(main_block, list) and len(main_block) > 0:
+            parsed_json['author'] = [main_block[0].get('author')]
+            parsed_json['description'] = [main_block[0].get('description')]
+            parsed_json['modified_at'] = [main_block[0].get('dateModified')]
+            parsed_json['published_at'] = [main_block[0].get('datePublished')]
+            parsed_json['publisher'] = [main_block[0].get('publisher')]
+
+        promo_block = response_data.get("promo")
+        if promo_block and isinstance(promo_block, dict):
+            parsed_json['thumbnail_image'] = [promo_block.get('indexImage').get('href')]
+            parsed_json['title'] = [promo_block.get('headlines').get('headline')]
+
+        parsed_json['section'] = topics
+        parsed_json['tags'] = tags
+        parsed_json['text'] = [raw_text]
+
+        parsed_json['source_country'] = ['China']
+
+        language_mapper = {
+            "zh-hans": "Chinese"
+        }
+        language = response_data.get('metadata').get('passport').get('language')
+        parsed_json['source_language'] = [language_mapper.get(str(language))]
+
+        parsed_json['thumbnail_image'] = thumbnail_image
+        parsed_json['images'] = get_images(response, thumbnail=thumbnail_image)
+        parsed_json['embed_video_link'] = get_video(response)
+        parsed_json["time_scraped"] = [str(datetime.now())]
+
+        return remove_empty_elements(parsed_json)
+    except ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting parsed data: {str(exception)}")
+
+
+def get_video(response) -> list:
+    """Get video urls from the article
+
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+
+    Returns:
+        list: list containing video urls
+    """
+    try:
+        videos = response.css(".e1p6ccnx0")
+        video_links = [BASE_URL + str(video.css("::attr(src)").get()) for video in videos]
+        return video_links
+    except ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting video urls: {str(exception)}")
+
+
+def get_thumbnail_image(response) -> list:
+    """Get thumbnail image url
+
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+
+    Returns:
+        list: list containing thumbnail image
+    """
+    try:
+        thumbnail = response.css(".bbc-q4ibpr+ .ebmt73l0 .e1mo64ex0::attr(src)").get()
+        thumbnail_url = [thumbnail]
+        return thumbnail_url
+    except ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting thumbnail image url: {str(exception)}")
+
+
+def get_images(response, thumbnail) -> list:
+    """Get url for all the images from the article
+
+    Args:
+        response (scrapy.http.Response): The response object containing the HTML of the article page.
+
+    Returns:
+        list: list containing article images
+    """
+    try:
+        data = []
+        images = response.css(".bbc-172p16q")
+
+        imgs = [img.css('img::attr(src)').get() for img in images]
+        img_height = [img.css('img::attr(height)').get() for img in images]
+        caps = [(img.css('figcaption p::text').get() or img.css('img::attr(alt)').get()) for img in images]
+
+        data = [
+            {
+                "link": link,
+                "caption": caption
             }
-            images.append(image_dict)
-
-    for tag_block in response.get('metadata').get('tags').get('about'):
-        tags.append(tag_block['topicName'])
-
-    for section_block in response['metadata']['topics']:
-        topics.append(section_block['topicName'])
-
-    parsed_json['section'] = topics
-    parsed_json['tags'] = tags
-    parsed_json['author'] = [parsed_main['main']['@graph'][0]['author']]
-    parsed_json['thumbnail_image'] = [response.get('promo').get('indexImage').get('href')]
-    parsed_json['images'] = images
-    parsed_json['text'] = [raw_text]
-    parsed_json['title'] = [response.get('promo').get('headlines').get('headline')]
-    parsed_json['description'] = [parsed_main['main']['@graph'][0]['description']]
-    parsed_json['modified_at'] = [parsed_main['main']['@graph'][0]['dateModified']]
-    parsed_json['published_at'] = [parsed_main['main']['@graph'][0]['datePublished']]
-    parsed_json['source_language'] = [response.get('metadata').get('passport').get('language')]
-    parsed_json['source_country'] = ['China']
-    parsed_json['publisher'] = [parsed_main['main']['@graph'][0]['publisher']]
-
-    return remove_empty_elements(parsed_json)
+            for link, height, caption in zip(imgs, img_height, caps)
+            if (thumbnail[0].strip().rsplit("/", 1)[-1] != link.strip().rsplit("/", 1)[-1])
+            and (isinstance(caption, str) and ("grey line" not in caption) and (int(height) > 2))
+        ]
+        return data
+    except ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article images urls: {str(exception)}")

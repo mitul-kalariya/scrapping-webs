@@ -5,20 +5,26 @@ from datetime import datetime
 import scrapy
 from scrapy.loader import ItemLoader
 
-from crwbbcnews.constant import BASE_URL
-from crwbbcnews.exceptions import (ArticleScrappingException,
-                                   ExportOutputFileException,
-                                   )
+from crwbbcnews.constant import BASE_URL, TODAYS_DATE, LOGGER, SITEMAP_URL
+from crwbbcnews.exceptions import (
+    ArticleScrappingException,
+    ExportOutputFileException,
+    ParseFunctionFailedException,
+    SitemapScrappingException,
+    InvalidInputException
+)
 from crwbbcnews.items import ArticleData
-from crwbbcnews.utils import (check_cmd_args,
-                              get_data_from_json, get_parsed_json,
-                              get_raw_response)
+from crwbbcnews.utils import (
+    create_log_file,
+    get_data_from_json,
+    get_parsed_json,
+    get_raw_response,
+    validate_sitemap_date_range
+)
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -35,90 +41,74 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
-    @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
 
 
 class BBCNews(scrapy.Spider, BaseSpider):
-    """
-    BBCNews spider
-    """
     name = "bbc"
-    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
-                 'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
-    def __init__(
-        self, type=None, start_date=None,
-        end_date=None, url=None, *args, **kwargs
-    ):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
+        """
+        Initializes a web scraper object with the given parameters.
+        Parameters:
+        type (str): The type of scraping to be performed. Either "sitemap" or "article".
+        sinde (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
+        url (str): The URL of the article to be scraped. Required if type is "article".
+        until (str): The end date of the time period to be scraped, in the format "YYYY-MM-DD".
+        **kwargs: Additional keyword arguments to be passed to the superclass constructor.
+        Raises:
+        ValueError: If the since date and/or until date are invalid.
+        InvalidDateRange: If the since is later than the until date.
+        Exception: If no URL is provided when type is "article".
+        """
         super(BBCNews, self).__init__(*args, **kwargs)
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
+        self.output_callback = kwargs.get("args", {}).get("callback", None)
         self.start_urls = []
         self.articles = []
-        self.type = type
-        self.url = url
+        self.type = type.lower()
+        self.main_json = None
         self.article_url = url
-        self.start_date = start_date  # datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = end_date  # datetime.strptime(end_date, '%Y-%m-%d')
-        self.today_date = None
 
-        check_cmd_args(self, self.start_date, self.end_date)
+        create_log_file()
 
-    def parse(self, response):  # noqa: C901
-        """
-        Parses the given `response` object and extracts sitemap URLs or sends a
-        request for articles based on the `type` attribute of the class instance.
-        If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and
-        sends a request for each of them to Scrapy's engine with the callback function `parse_sitemap`.
-        If `type` is "articles", sends a request for the given URL to
-        Scrapy's engine with the callback function `parse_article`.
-        This function is intended to be used as a Scrapy spider callback function.
-        :param response: A Scrapy HTTP response object containing sitemap or article content.
-        :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
-        """
         if self.type == "sitemap":
-            try:
-                groups = response.json()['content']['groups']
+            self.start_urls.append(SITEMAP_URL)
+            self.since = (
+                datetime.strptime(since, "%Y-%m-%d").date() if since else TODAYS_DATE
+            )
+            self.until = (
+                datetime.strptime(until, "%Y-%m-%d").date() if until else TODAYS_DATE
+            )
+            validate_sitemap_date_range(since, until)
+        if self.type == "article":
+            if url:
+                self.start_urls.append(url)
+            else:
+                LOGGER.error("Must have a URL to scrap")
+                raise InvalidInputException("Must have a URL to scrap")
 
-                for group in groups:
-                    group_types = group['items']
-                    for group_type in group_types:
-                        article_timestamp = group_type['timestamp']
-                        article_date = datetime.fromtimestamp(article_timestamp / 1000).date()
+    def parse(self, response):
+        """
+        Parses the response obtained from a website.
+        Yields:
+        scrapy.Request: A new request object to be sent to the website.
+        Raises:
+        BaseException: If an error occurs during parsing.
+        """
+        self.logger.info("Parse function called on %s", response.url)
+        try:
+            if self.type == "sitemap":
+                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            elif self.type == "article":
+                article_data = self.parse_article(response)
+                yield article_data
 
-                        if self.start_date and self.end_date:
-                            if self.start_date.date() <= article_date <= self.end_date.date():
-                                url = BASE_URL + group_type['locators']['assetUri']
-                                article = {
-                                    "link": url,
-                                    "title": group_type['headlines']['headline']
-                                }
-                                self.articles.append(article)
-
-                        elif self.today_date.date() == article_date:
-                            url = BASE_URL + group_type['locators']['assetUri']
-                            article = {
-                                "link": url,
-                                "title": group_type['headlines']['headline']
-                            }
-                            self.articles.append(article)
-
-            except Exception as e:
-                self.logger.exception(f"Error in parse_json :- {e}")
-
-        elif self.type == "article":
-            try:
-                yield self.parse_article(response)
-
-            except Exception as exception:
-                self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
+            raise ParseFunctionFailedException(
+                f"Error occured in parse function: {exception}"
+            )
 
     def parse_sitemap(self, response):
         """
@@ -127,15 +117,40 @@ class BBCNews(scrapy.Spider, BaseSpider):
         :param response: the response from the sitemap request
         :return: scrapy.Request object
         """
-        pass
+        try:
+            groups = response.json()['content']['groups']
+            for group in groups:
+                group_types = group['items']
+                for group_type in group_types:
+                    article_timestamp = group_type['timestamp']
+                    article_date = datetime.fromtimestamp(article_timestamp / 1000).date()
 
-    def parse_sitemap_article(self, response):
-        """
-           Parse article information from a given sitemap URL.
-           :param response: HTTP response from the sitemap URL.
-           :return: None
-        """
-        pass
+                    locators = group_type.get('locators')
+                    if not locators:
+                        continue
+                    url = BASE_URL + str(locators.get("assetUri"))
+                    article = {
+                        "link": url,
+                        "title": group_type['headlines']['headline']
+                    }
+
+                    if self.since is None and self.until is None:
+                        if TODAYS_DATE == article_date:
+                            self.articles.append(article)
+                    elif (
+                        self.since
+                        and self.until
+                        and self.since <= article_date <= self.until
+                    ):
+                        self.articles.append(article)
+                    elif self.since and self.until:
+                        if article_date == self.since and article_date == self.until:
+                            self.articles.append(article)
+        except BaseException as exception:
+            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            raise SitemapScrappingException(
+                f"Error while parsing sitemap: {str(exception)}"
+            )
 
     def parse_article(self, response):
         """
@@ -178,14 +193,14 @@ class BBCNews(scrapy.Spider, BaseSpider):
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details:- {str(exception)}",
-                level=logging.ERROR,
+        except BaseException as exception:
+            LOGGER.info(
+                f"Error occurred while scrapping an article for this link {response.url}."
+                + str(exception)
             )
             raise ArticleScrappingException(
-                f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception
+                f"Error occurred while fetching article details:- {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -202,12 +217,11 @@ class BBCNews(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
-        except Exception as exception:
-            self.log(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}",
+        except BaseException as exception:
+            LOGGER.error(
+                f"Error occurred while closing crawler{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
             raise ExportOutputFileException(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}"
-            ) from exception
+                f"Error occurred while closing crawler{str(exception)} - {reason}"
+            )

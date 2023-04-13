@@ -10,7 +10,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwbbcnews/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.bbc.com/zhongwen/simp/chinese-news-65069676",
+        "url": "https://www.bbc.com/zhongwen/simp/world-65195334",
         "test_data_path": "crwbbcnews/test/data/test_article_3.json"
     }
 ]
