@@ -195,7 +195,9 @@ def get_parsed_data(response):
 
         main_dict["thumbnail_image"] = get_thumbnail_image(response)
 
-        title = main_data[0].get("headline")
+        title = response.css(
+            "meta[property='og:title']::attr(content)"
+        ).get()
         main_dict["title"] = [title]
 
         main_dict["images"] = get_images(response)
@@ -365,7 +367,7 @@ def extract_videos(response) -> list:
         main data
     """
     chrome_options = Options()
-    chrome_options.headless = True
+    chrome_options.add_argument('--headless')
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)

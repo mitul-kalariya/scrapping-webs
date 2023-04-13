@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.terra.com.br/esportes/futebol/copa-do-brasil/sao-paulo-empata-sem-gols-com-o-ituano-pela-copa-do-brasil-e-e-vaiado-no-morumbi,e9412d215358281c302a5cd02a49ecb1fxlnvymg.html",
+        "url": "https://www.terra.com.br/noticias/brasil/catve/videos/homem-mata-vizinho-e-troca-tiros-com-policiais-assista,9400051.html",
         "test_data_path": "crwterra/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.terra.com.br/esportes/flamengo/flamengo-demite-vitor-pereira-apos-tres-meses-e-cinco-titulos-perdidos-multa-e-de-r-15-milhoes,7688e9d47a3c5d1cc10593b8f43109539rdnqvof.html",
+        "url": "https://www.terra.com.br/noticias/mundo/menino-encontrado-morto-na-boca-de-jacare-foi-jogado-vivo-em-lago-pelo-pai,b5da5943f104ab6164b548c2d9042774k9om33xr.html",
         "test_data_path": "crwterra/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.terra.com.br/noticias/brasil/catve/videos/idoso-que-foi-atropelado-no-cascavel-velho-sofreu-parada-cardiorrespiratoria-aponta-siate,9399288.html",
+        "url": "https://www.terra.com.br/noticias/mundo/videos/predio-desaba-e-rola-apos-deslizamento-de-terra-no-mexico,b50883bda06114c0163958642807716b1cwxvxa4.html",
         "test_data_path": "crwterra/test/data/test_article_3.json"
     }
 ]
