@@ -9,6 +9,7 @@ from scrapy.loader import ItemLoader
 
 from crwstdnews.constant import (
     LINK_FEED_URL,
+    BASE_URL,
     LOGGER,
 )
 from crwstdnews import exceptions
@@ -24,12 +25,13 @@ from crwstdnews.utils import (
 # create logs
 create_log_file()
 
-# pylint disable=unnecessary-pass
+
 class BaseSpider(ABC):
     """Abstract Base class for scrapy spider
     Args:
         ABC : Abstract
     """
+
     @abstractmethod
     def parse(self, response):
         """
@@ -56,7 +58,6 @@ class BaseSpider(ABC):
         """
         pass
 
-
     @abstractmethod
     def parse_article(self, response: str) -> list:
         """
@@ -74,10 +75,10 @@ class BaseSpider(ABC):
 
 
 class STDNewsSpider(scrapy.Spider, BaseSpider):
-    """main spider class for STD news
-    """
+    """main spider class for STD news"""
+
     name = "stdnews"
-    start_urls = ["https://std.stheadline.com/realtime/get_more_instant_news"]
+    start_urls = [BASE_URL]
 
     def __init__(self, *args, type=None, url=None, **kwargs):
         # pylint: disable=redefined-builtin
@@ -128,8 +129,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
-            "user-agent":
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",  # noqa: E501
             "x-requested-with": "XMLHttpRequest",
         }
 
@@ -226,7 +226,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
         """
         store all scrapped data into json file with given date in filename
         Args:
-            response: generated response
+            reason: generated response
         Raises:
             ValueError if not provided
         Returns:

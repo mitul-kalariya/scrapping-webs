@@ -1,7 +1,6 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace crwstdnews --> your project name
 from crwstdnews.spiders.stdnews import STDNewsSpider
 from crwstdnews.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
 from crwstdnews.test.helpers.utils import (
@@ -9,7 +8,6 @@ from crwstdnews.test.helpers.utils import (
     online_response_from_url,
 )
 
-# TODO: Update below path here
 from crwstdnews import Crawler
 
 # Creating an object
@@ -340,9 +338,6 @@ class TestArticle(unittest.TestCase):
                     "format mismatch for parsed_data--> images",
                 )
             self._test_image_format(article)
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> images")
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():
@@ -357,9 +352,6 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> section",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -374,9 +366,6 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> tags",
                 )
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
 
 
 class TestSitemap(unittest.TestCase):

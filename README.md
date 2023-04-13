@@ -60,7 +60,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://std.stheadline.com/realtime/article/1918005/%E5%8D%B3%E6%99%82-%E5%9C%8B%E9%9A%9B-%E6%96%B0%E5%8A%A0%E5%9D%A1%E6%96%B0%E5%86%A0%E7%A2%BA%E8%A8%BA%E6%BF%80%E5%A2%9E-%E5%B0%88%E5%AE%B6%E6%8C%87%E6%88%96%E8%88%87%E6%96%B0%E8%AE%8A%E7%A8%AE%E6%AF%92%E6%A0%AA%E6%9C%89%E9%97%9C"
     },
     proxies=proxies
 )

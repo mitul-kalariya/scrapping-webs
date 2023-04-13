@@ -4,10 +4,6 @@ import json
 import logging
 import re
 from datetime import datetime
-import requests
-from bs4 import BeautifulSoup
-
-# requests.get(response.url)
 from crwstdnews import exceptions
 from crwstdnews.constant import LOGGER
 
@@ -124,7 +120,7 @@ def get_parsed_data(response: str) -> dict:
     """
 
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict |= get_country_language_details(response)
+    parsed_data_dict |= get_country_language_details()
     parsed_data_dict |= get_author_details(response)
     parsed_data_dict |= get_descriptions_date_details(response)
     parsed_data_dict |= get_publisher_details(response)
@@ -134,28 +130,15 @@ def get_parsed_data(response: str) -> dict:
     return remove_empty_elements(final_dict)
 
 
-def get_country_language_details(response) -> dict:
+def get_country_language_details() -> dict:
     """
     Return country related details
-    Args:
-        parsed_data: response of application/ld+json data
+
     Returns:
         dict: country related details
     """
-    mapper = {
-        "zh-hk": "Chinese (Hong Kong)",
-        "zh-sg": "Chinese (Singapore)",
-        "zh-tw": "Chinese (Taiwan)",
-        "zh-cn": "Chinese (PRC)",
-        "zh-hant-hk": "Chinese (Traditional)",
-    }
-    page = requests.get(response.url,timeout=5)
-    soup = BeautifulSoup(page.content, "html.parser")
-    html_tags = soup.select("html")
-    for html_tag in html_tags:
-        lang = (html_tag.attrs["lang"]).lower()
 
-    return {"source_country": ["China"], "source_language": mapper.get(lang)}
+    return {"source_country": ["China"], "source_language": ["Chinese"]}
 
 
 def get_author_details(response: str) -> dict:
@@ -236,10 +219,10 @@ def get_thumbnail_image_video(response: str) -> dict:
     """
     thumbnail_url = []
     images_list = []
+    video = []
     thumbnail = response.css('article[class ="content"] figure img::attr(src)').get()
     if thumbnail:
         thumbnail_url.append(thumbnail)
-
     images = response.css('article[class="align-center"]')
     for image in images:
         url = image.css("div div img::attr(src)").get()
@@ -247,8 +230,10 @@ def get_thumbnail_image_video(response: str) -> dict:
         images_list.append(
             {"link": url, "caption": re.sub(r"[\r\t\n]", "", caption).strip()}
         )
+    video_url = response.css(".video-js source::attr(src)").get()
+    video.append({"link": video_url})
     return remove_empty_elements(
-        {"images": images_list, "thumbnail_image": thumbnail_url}
+        {"images": images_list, "thumbnail_image": thumbnail_url, "video": video}
     )
 
 
