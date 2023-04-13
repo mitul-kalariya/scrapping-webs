@@ -46,15 +46,11 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         """
         This function takes in a response object and parses the sitemap.
         It extracts the links and published dates from the response object
         and uses them to make requests to other pages.
-        Yields:
-            scrapy.Request: A request object with the link and published date as metadata.
-            The request object is sent to the 'parse_sitemap_link_title'
-            callback function for further processing.
         """
         pass
 
@@ -144,7 +140,7 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
         if self.type == "sitemap":
-            self.parse_sitemap(response)
+            self.parse_link_feed(response)
         elif self.type == "article":
             article_data = self.parse_article(response)
             yield article_data
@@ -187,15 +183,11 @@ class STDNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_link_feed(self, response):
         """
         This function takes in a response object and parses the sitemap.
         It extracts the links and published dates from the response object
         and uses them to make requests to other pages.
-        Yields:
-            scrapy.Request: A request object with the link and published date as metadata.
-            The request object is sent to the 'parse_sitemap_link_title'
-            callback function for further processing.
         """
         today_flag = True
         page_counter = 1

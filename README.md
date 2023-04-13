@@ -36,7 +36,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://std.stheadline.com/"
     },
     proxies=proxies
