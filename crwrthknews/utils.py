@@ -1,7 +1,6 @@
 """ General functions """
 
 import re
-import os
 from datetime import timedelta, datetime
 import logging
 import json
@@ -27,8 +26,6 @@ def create_log_file():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -287,7 +284,7 @@ def get_article_json(response: str) -> dict:
     if not image:
         video_object = get_video_json(response)
         if video_object:
-            parsed_data["video"] = video_object
+            parsed_data["video"] = [video_object]
 
     else:
         image_object = get_image_json(response)

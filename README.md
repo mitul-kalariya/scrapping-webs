@@ -4,7 +4,7 @@
 
 This repo contains the code to scrap all article links and articles from https://news.rthk.hk/rthk/ch/ website and the tech stacks used are
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
 
 
 #### Environment Setup
@@ -36,7 +36,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "archive",
+        "type": "sitemap",
         "domain": "https://news.rthk.hk/rthk/ch/",
         "since": "2023-02-25",
         "until": "2023-03-26"
