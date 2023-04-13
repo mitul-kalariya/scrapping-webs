@@ -12,7 +12,6 @@ from crwam730.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
 )
 from crwam730.exception import (
     ArticleScrappingException,
@@ -177,8 +176,6 @@ class Am730(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.")
-            if self.articles:
-                export_data_to_json_file(self.type, self.articles, self.name)    
 
         except Exception as exception:
             self.log(
