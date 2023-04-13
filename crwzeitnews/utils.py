@@ -206,7 +206,7 @@ def remove_empty_elements(parsed_data_dict):
     """
 
     def empty(value):
-        return value is None or value == {} or value == []
+        return value is None or value == {} or value == [] or value == ""
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
