@@ -192,7 +192,7 @@ def get_parsed_data(response):
         main_dict["images"] = get_images(response)
 
         if main_data[0].get("@type") == "VideoObject":
-            main_dict["embed_video_link"] = extract_videos(response)
+            main_dict["video"] = extract_videos(response)
         main_dict["tags"] = response.css("meta[name='keywords']::attr(content)").getall()
         main_dict["section"] = get_section(response)
 
@@ -346,23 +346,19 @@ def extract_videos(response) -> list:
             main data
     """
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.headless = True
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)
-
+    url = response.url
+    split_url = re.findall(',*.',url)
     try:
         video = (
-            WebDriverWait(driver, 5)
-            .until(
+            WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located(
-                    (
-                        By.XPATH,
-                        '//*[@id="zp-vjs-66d509e3f08baa2b5888e59805b04086o25a3fy8_html5_api"]',
-                    )
+                    (By.XPATH,'//*[@class="vjs-tech"]/source')
                 )
-            )
-            .get_attribute("src")
+            ).get_attribute("src")
             or None
         )
     except:
@@ -370,5 +366,8 @@ def extract_videos(response) -> list:
 
     driver.quit()
     if video:
-        return [video]
+        dict={
+            "link" : video
+        }
+        return [dict]
     return None
