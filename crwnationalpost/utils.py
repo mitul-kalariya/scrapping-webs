@@ -1,4 +1,3 @@
-"""Utility Functions"""
 """ General functions """
 from datetime import timedelta, datetime
 import json

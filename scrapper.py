@@ -8,14 +8,29 @@ proxy = {
 }
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
 
+# crawler = Crawler(
+#     query={
+#         "type": "article",
+#         "link": "https://nationalpost.com/pmn/sports-pmn/hockey-sports-pmn/markstrom-reigns-over-kings-as-flames-win-2-1"
+#     },
+#     proxies=proxy
+# )
+
+# data = crawler.crawl()
+
+# print(data)
+
 crawler = Crawler(
     query={
-        "type": "article",
-        "link": "https://nationalpost.com/pmn/sports-pmn/hockey-sports-pmn/markstrom-reigns-over-kings-as-flames-win-2-1"
+        "type": "sitemap",
+        "domain": "https://nationalpost.com/",
+        "since": "2023-02-28",
+        "until": "2023-02-28"
     },
     proxies=proxy
 )
-
 data = crawler.crawl()
 
-print(data)
+for link in data[:2]:
+    print(link)
+    print("----------------------------------------------------")

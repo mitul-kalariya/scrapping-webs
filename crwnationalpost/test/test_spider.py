@@ -236,15 +236,12 @@ class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
         self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
-
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
         for article in self.article_urls:
             with self.subTest():
                 self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
-            with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
-
+            
     def _test_sitemap_results(self):
         with self.subTest():
             self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
