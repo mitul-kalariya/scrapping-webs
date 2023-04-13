@@ -103,6 +103,14 @@ def remove_empty_elements(parsed_data_dict):
 
 
 def get_raw_response(response):
+    """generate dictrionary of raw html data
+
+        Args:
+            response (object): page_data
+
+        Returns:
+            raw_response (dict): targeted data
+    """
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
         "content": response.css("html").get(),
@@ -193,20 +201,24 @@ def get_parsed_data(response):
 
         if main_data[0].get("@type") == "VideoObject":
             main_dict["video"] = extract_videos(response)
-        main_dict["tags"] = response.css("meta[name='keywords']::attr(content)").getall()
+        main_dict["tags"] = response.css(
+            "meta[name='keywords']::attr(content)"
+        ).getall()
         main_dict["section"] = get_section(response)
 
         return remove_empty_elements(main_dict)
     except BaseException as exception:
         LOGGER.error("while scrapping parsed data %s", exception)
-        raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{exception}")
+        raise exceptions.ArticleScrappingException(
+            f"while scrapping parsed data :{exception}"
+        )
 
 
 def get_section(response):
     """
-        returns section data available in the article
-        Returns:
-            data
+    returns section data available in the article
+    Returns:
+        data
     """
     section = response.css("ul.breadcrumb li a::text").getall()
     if section:
@@ -236,10 +248,9 @@ def get_text(response):
                     strong_text
                     + " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])
                 ]
-            else:
-                return [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
+        else:
+            return [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
         return None
-
 
     except BaseException as exception:
         LOGGER.info("Error occured while getting parsed json %s", exception)
@@ -247,7 +258,13 @@ def get_text(response):
             f"Error occured while getting parsed json {exception}"
         ) from exception
 
+
 def get_thumbnail_image(response):
+    """
+    extract thumbnail images from the article
+    Returns:
+        thumbnail image url
+    """
     images = []
     main_data = get_main(response)
     thumbnail_url = main_data[0].get("thumbnailUrl", None)
@@ -259,7 +276,6 @@ def get_thumbnail_image(response):
     else:
         return []
     return images
-
 
 
 def get_main(response):
@@ -282,11 +298,18 @@ def get_main(response):
 
 
 def get_images(response):
+    """
+        extract images and its caption from the article
+        returns: 
+            images and caption if available
+    """
     images = response.css(
-        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] meta[itemprop='url']::attr(content)"
+        "div.article__content--body.article__content--internal \
+            figure[itemprop='associatedMedia image'] meta[itemprop='url']::attr(content)"
     ).getall()
     image_caption = response.css(
-        "div.article__content--body.article__content--internal figure[itemprop='associatedMedia image'] picture img::attr(alt)"
+        "div.article__content--body.article__content--internal \
+            figure[itemprop='associatedMedia image'] picture img::attr(alt)"
     ).getall()
     image_list = []
     for i in range(len(images)):
@@ -339,35 +362,35 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
 
 def extract_videos(response) -> list:
     """
-        returns a list of main data available in the article from application/ld+json
-        Parameters:
-            response:
-        Returns:
-            main data
+    returns a list of main data available in the article from application/ld+json
+    Parameters:
+        response:
+    Returns:
+        main data
     """
     chrome_options = Options()
     chrome_options.headless = True
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)
-    url = response.url
-    split_url = re.findall(',*.',url)
     try:
         video = (
-            WebDriverWait(driver, 5).until(
+            WebDriverWait(driver, 5)
+            .until(
                 EC.presence_of_element_located(
-                    (By.XPATH,'//*[@class="vjs-tech"]/source')
+                    (By.XPATH, '//*[@class="vjs-tech"]/source')
                 )
             ).get_attribute("src")
             or None
         )
-    except:
-        return None
+    except BaseException as exception:
+        LOGGER.info("Error occured while getting video links: %s",exception)
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting video links: {exception}"
+        )
 
     driver.quit()
     if video:
-        dict={
-            "link" : video
-        }
-        return [dict]
+        video_dict = {"link": video}
+        return [video_dict]
     return None
