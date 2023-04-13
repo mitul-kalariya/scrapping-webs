@@ -10,7 +10,7 @@ from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
-from crwcbcnews.constant import BASE_URL, SITEMAP_URL
+from crwcbcnews.constant import BASE_URL, RSS_URL
 from crwcbcnews.items import ArticleData
 from crwcbcnews.utils import (
     based_on_scrape_type,
@@ -28,7 +28,7 @@ from crwcbcnews.exceptions import (
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -83,7 +83,7 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
             )
             if self.current_date:
                 self.scrape_start_date = self.scrape_end_date = self.current_date
-            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
+            self.start_urls.append(url if self.type == "article" else RSS_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (

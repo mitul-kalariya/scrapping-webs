@@ -25,7 +25,7 @@ language_mapper = {"en": "English"}
 
 
 def sitemap_validations(
-        scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
+    scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
     Validate the sitemap arguments
@@ -63,7 +63,7 @@ def sitemap_validations(
 
 
 def article_validations(
-        article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
+    article_url: str, scrape_start_date: datetime, scrape_end_date: datetime
 ) -> None:
     """
     Validate the article arguments
@@ -124,7 +124,7 @@ def validate_arg(param_name, param_value, custom_msg=None) -> None:
 
 
 def based_on_scrape_type(
-        scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
+    scrape_type: str, scrape_start_date: datetime, scrape_end_date: datetime, url: str
 ) -> datetime:
     """
     check scrape type and based on the type pass it to the validated function,
@@ -186,7 +186,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "main": None,
         "imageObjects": None,
         "videoObjects": None,
-        "Other": [],
+        "other": [],
         "misc": [],
     }
     for block in blocks:
@@ -200,7 +200,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["videoObjects"] = json.loads(block)
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
     return parsed_json_flter_dict
 
@@ -219,8 +219,8 @@ def get_parsed_json(response) -> dict:
     )
 
     for key, value in get_parsed_json_filter(
-            response.css('script[type="application/ld+json"]::text').getall(),
-            response.css('script[type="application/json"]::text').getall(),
+        response.css('script[type="application/ld+json"]::text').getall(),
+        response.css('script[type="application/json"]::text').getall(),
     ).items():
         article_raw_parsed_json_loader.add_value(key, value)
 
@@ -263,7 +263,9 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     """
 
     def empty(value):
-        return value is None or value == {} or value == [] or value == "" or value == None
+        return (
+            value is None or value == {} or value == [] or value == "" or value is None
+        )
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
@@ -389,8 +391,8 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
             "publisher": [
                 {
                     "@id": response.css("#menuButton::attr(href)")
-                           .get()
-                           .split("/sitemap")[0][2:],
+                    .get()
+                    .split("/sitemap")[0][2:],
                     "@type": json.loads(block).get("publisher", {}).get("@type"),
                     "name": response.css("head > title::text").get().split("|")[1],
                 }
@@ -442,11 +444,16 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
             video_caption = (
                 json.loads(block).get("video", None)[0].get("alternativeHeadline", None)
             )
-            video_url = json.loads(block).get("video", None)[0].get("contentUrl", None).split('play/')[1]
+            video_url = (
+                json.loads(block)
+                .get("video", None)[0]
+                .get("contentUrl", None)
+                .split("play/")[1]
+            )
             video_url = GET_VIDEO_URL + video_url
         if "VideoObject" in json.loads(block).get("@type", [{}]):
-            video_caption = json.loads(block).get('description')
-            video_url = json.loads(block).get('embedUrl')
+            video_caption = json.loads(block).get("description")
+            video_url = json.loads(block).get("embedUrl")
         if json.loads(block).get("thumbnailUrl", None):
             thumbnail_url = json.loads(block).get("thumbnailUrl")
 
