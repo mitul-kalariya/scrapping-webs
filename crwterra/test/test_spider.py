@@ -1,11 +1,9 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
 from crwterra.spiders.terra import TerraSpider
 from crwterra.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwterra.test.helpers.utils import (get_article_content, online_response_from_url)
-# TODO: Update below path here
 from crwterra import Crawler
 
 # Creating an object

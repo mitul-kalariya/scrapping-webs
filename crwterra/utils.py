@@ -8,6 +8,7 @@ import json
 import logging
 from datetime import datetime
 
+import w3lib.html
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -80,7 +81,7 @@ def remove_empty_elements(parsed_data_dict):
     """
 
     def empty(value):
-        return value is None or value == {} or value == []
+        return value is None or value == {} or value == [] or value == ""
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
@@ -105,11 +106,11 @@ def remove_empty_elements(parsed_data_dict):
 def get_raw_response(response):
     """generate dictrionary of raw html data
 
-        Args:
-            response (object): page_data
+    Args:
+        response (object): page_data
 
-        Returns:
-            raw_response (dict): targeted data
+    Returns:
+        raw_response (dict): targeted data
     """
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
@@ -240,16 +241,11 @@ def get_text(response):
         video_link_text = response.css("div.article__content--container p::text").get()
         if video_link_text:
             return [video_link_text]
-        text = response.css("p.text::text").getall()
+        text = response.css("p.text").getall()
+
         if text:
-            strong_text = response.css("p.text strong::text").get()
-            if strong_text:
-                return [
-                    strong_text
-                    + " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])
-                ]
-        else:
-            return [" ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])]
+            article_text = " ".join([re.sub("[\r\n\t]+", "", x).strip() for x in text])
+            return [w3lib.html.remove_tags(article_text)]
         return None
 
     except BaseException as exception:
@@ -299,9 +295,9 @@ def get_main(response):
 
 def get_images(response):
     """
-        extract images and its caption from the article
-        returns: 
-            images and caption if available
+    extract images and its caption from the article
+    returns:
+        images and caption if available
     """
     images = response.css(
         "div.article__content--body.article__content--internal \
@@ -380,11 +376,12 @@ def extract_videos(response) -> list:
                 EC.presence_of_element_located(
                     (By.XPATH, '//*[@class="vjs-tech"]/source')
                 )
-            ).get_attribute("src")
+            )
+            .get_attribute("src")
             or None
         )
     except BaseException as exception:
-        LOGGER.info("Error occured while getting video links: %s",exception)
+        LOGGER.info("Error occured while getting video links: %s", exception)
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting video links: {exception}"
         )

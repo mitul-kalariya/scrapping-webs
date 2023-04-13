@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.terra.com.br/esportes/futebol/copa-do-brasil/sao-paulo-empata-sem-gols-com-o-ituano-pela-copa-do-brasil-e-e-vaiado-no-morumbi,e9412d215358281c302a5cd02a49ecb1fxlnvymg.html",
@@ -15,5 +14,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwterra/test/data/test_article_3.json"
     }
 ]
-# TODO:Update below sitemap URL
+
 SITEMAP_URL = "https://www.terra.com.br/sitemap.xml"
