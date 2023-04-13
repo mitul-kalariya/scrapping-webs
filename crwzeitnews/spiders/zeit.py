@@ -125,23 +125,44 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             parse(scrapy.http.Response(url="https://example.com", body="..."))
         """
         if self.type == "sitemap":
-            if self.since and self.until:
-                LOGGER.info("Parse function called on %s", response.url)
-                yield scrapy.Request(
-                    response.url,
-                    headers=self.valid_request_headers,
-                    cookies=self.valid_cookie,
-                    callback=self.parse_sitemap,
-                    dont_filter=True,
-                )
-            else:
-                yield scrapy.Request(
-                    response.url,
-                    headers=self.valid_request_headers,
-                    cookies=self.valid_cookie,
-                    callback=self.parse_sitemap,
-                    dont_filter=True,
-                )
+            LOGGER.info("Parse function called on %s", response.url)
+            # Create an XmlResponse object from the response
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
+            # Create a Selector object from the XmlResponse
+            xml_selector = Selector(xmlresponse)
+            # Define the XML namespaces used in the sitemap
+            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ).getall()
+
+            # Loop through each sitemap URL in the XML response
+            for link in links:
+                pub_date = (re.search(r"\d{4}-\d{2}-\d{2}", link)).group(0)
+                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
+
+                if self.since is None and self.until is None:
+                    if TODAYS_DATE == published_at:
+                        yield scrapy.Request(
+                            link,
+                            callback=self.parse_sitemap,
+                            meta={"link": link, "pub_date": published_at},
+                            dont_filter=True,
+                        )
+                elif (
+                    self.since
+                    and self.until
+                    and self.since <= published_at <= self.until
+                ):
+                    yield scrapy.Request(
+                        link,
+                        callback=self.parse_sitemap,
+                        meta={"link": link, "pub_date": published_at},
+                        dont_filter=True,
+                    )
+
 
         elif self.type == "article":
             article_data = self.parse_article(response)
@@ -186,48 +207,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
             )
 
     def parse_sitemap(self, response) -> None:
-        try:            # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
-            # Create a Selector object from the XmlResponse
-            xml_selector = Selector(xmlresponse)
-            # Define the XML namespaces used in the sitemap
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ).getall()
-
-            # Loop through each sitemap URL in the XML response
-            for link in links:
-                pub_date = (re.search(r"\d{4}-\d{2}-\d{2}", link)).group(0)
-                published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-
-                if self.since is None and self.until is None:
-                    if TODAYS_DATE == published_at:
-                        yield scrapy.Request(
-                            link,
-                            callback=self.parse_sitemap_article,
-                            meta={"link": link, "pub_date": published_at},
-                            dont_filter=True,
-                        )
-                elif (
-                    self.since
-                    and self.until
-                    and self.since <= published_at <= self.until
-                ):
-                    yield scrapy.Request(
-                        link,
-                        callback=self.parse_sitemap_article,
-                        meta={"link": link, "pub_date": published_at},
-                        dont_filter=True,
-                    )
-
-        except exceptions.SitemapScrappingException as exception:
-            LOGGER.error("Error while parsing sitemap: %s",str(exception))
-            print(f"Error while parsing sitemap: {str(exception)}")
-
-    def parse_sitemap_article(self, response) -> None:
         """
         This function takes in a response object and parses the sitemap.
         It extracts the links and published dates from the response object
@@ -251,11 +230,11 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                     "link": link,
                 }
                 self.articles.append(data)
+
         except exceptions.SitemapScrappingException as exception:
-            LOGGER.error("Error while parsing sitemap article: %s", str(exception))
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article: {str(exception)}"
-            )
+            LOGGER.error("Error while parsing sitemap: %s",str(exception))
+            print(f"Error while parsing sitemap: {str(exception)}")
+
 
     def closed(self, reason: any) -> None:
         """
