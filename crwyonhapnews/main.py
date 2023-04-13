@@ -1,7 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwyonhapnews.spiders.yonhap_news import YonhapNewsSpider
 
 
 class Crawler:
@@ -90,5 +90,5 @@ class Crawler:
             process.settings = process_settings
 
         # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        process.crawl(YonhapNewsSpider, **spider_args)
         process.start()
