@@ -8,7 +8,9 @@ from crwbastillepost.constant import TODAYS_DATE, LOGGER
 import itertools
 import re
 
+
 def create_log_file():
+    """creates log file"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -19,6 +21,7 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """validate the sitemap arguments"""
     start_date = (
         datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     )
@@ -48,9 +51,11 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.info(f"Error occured while checking date range: {exception}")
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {exception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -99,8 +104,12 @@ def get_main(response):
         json_format = re.sub(SPACE_REMOVER_PATTERN, "", main[0]).strip()
         data = json.loads(json_format)
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting main: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting main: {exception}"
+        )
 
 
 def get_misc(response):
@@ -117,8 +126,11 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        )
 
 
 def get_raw_response(response):
@@ -228,10 +240,10 @@ def get_parsed_data(response):
 
         return remove_empty_elements(main_dict)
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error while fetching parsed_data data: {e}"
+            f"Error while extracting parsed data: {exception}"
         )
 
 
@@ -290,9 +302,11 @@ def get_publisher(response):
         publisher = json_loads.get("publisher")
         data.append(publisher)
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching publisher data {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching publisher data {str(exception)}"
+        )
 
 
 def get_author(response) -> list:
@@ -313,16 +327,21 @@ def get_author(response) -> list:
                 if "NewsArticle" in json.loads(json_format).get("@type", [{}]):
                     data = []
                     var = {
-                        "@type": json.loads(json_format).get("author", [{}]).get("@type"),
+                        "@type": json.loads(json_format)
+                        .get("author", [{}])
+                        .get("@type"),
                         "name": json.loads(json_format).get("author", [{}]).get("name"),
-                        "url": json.loads(json_format).get("author", [{}]).get("url", None),
+                        "url": json.loads(json_format)
+                        .get("author", [{}])
+                        .get("url", None),
                     }
                     data.append(var)
             return data
-
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching author {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching author {str(exception)}"
+        )
 
 
 def get_thumbnail_image(response) -> list:
@@ -332,10 +351,16 @@ def get_thumbnail_image(response) -> list:
     Returns:
         list: list of thumbnail images
     """
-    image = get_main(response)
-    thumbnail_image = []
-    thumbnail_image.append(image.get("image").get("url"))
-    return thumbnail_image
+    try:
+        image = get_main(response)
+        thumbnail_image = []
+        thumbnail_image.append(image.get("image").get("url"))
+        return thumbnail_image
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching thumbnail image {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching thumbnail image {str(exception)}"
+        )
 
 
 def get_images(response) -> list:
@@ -359,6 +384,8 @@ def get_images(response) -> list:
         }
         return temp_dict.get("images")
 
-    except BaseException as e:
-        LOGGER.error(f"Error: {e}")
-        raise exceptions.ArticleScrappingException(f"Error while fetching image: {e}")
+    except Exception as exception:
+        LOGGER.info(f"Error while fetching image {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while fetching image {str(exception)}"
+        )
