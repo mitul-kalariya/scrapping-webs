@@ -186,7 +186,7 @@ def get_parsed_data(response):
 
         author = get_author(response)
         if author:
-            main_dict["author"] = [author]
+            main_dict["author"] = author
 
         main_dict["section"] = get_section(response)
 
@@ -197,7 +197,6 @@ def get_parsed_data(response):
                 main_dict["publisher"] = []
 
         main_dict["text"] = get_content(response)
-
         main_dict["tags"] = (
             response.css('meta[name="keywords"]::attr(content)').get().split(",")
         )
@@ -211,7 +210,7 @@ def get_parsed_data(response):
 
         video = get_video(response)
         if video:
-            main_dict["embed_video_link"] = [video]
+            main_dict["video"] = [video]
         return remove_empty_elements(main_dict)
     except BaseException as exception:
         LOGGER.error("while scrapping parsed data %s", exception)
@@ -245,18 +244,37 @@ def get_author(response):
         dict: author related details
     """
     author = {}
-    author_name = response.css("div.pst-by_ul span[itemprop='author'] span::text").get()
+    author_name = response.css("span[itemprop='author'] span::text").getall()
     author_second_name = response.css("span[itemprop='author'] span a::text").get()
-    author_url = response.css(".pst-by_li a[class!='pst-by_lnk']::attr(href)").get()
+    author_url = response.css("span[itemprop='author'] meta[itemprop='url']\
+                              ::attr(content)").getall()
     author_second_url = response.css("a.pst-by_lnk::attr(href)").get()
+    if len(author_name) == 2:
+        tmp_list = []
+        for i in range(0, len(author_name)):
+            tmp_dict = {}
+            tmp_dict["name"] = author_name[i]
+            tmp_dict["url"] = author_url[i]
+            tmp_list.append(tmp_dict)
+        return tmp_list
     if len(response.css("span[itemprop='author'] span").getall()) == 1:
-        author["name"] = author_name
-        author["url"] = author_url
+        if author_name and author_url:
+            author["name"] = author_name[0]
+            author["url"] = author_url[0]
+        elif author_name and author_second_url:
+            author["name"] = author_name[0]
+            author["url"] = author_second_url
+        elif author_second_name and author_url:
+            author["name"] = author_second_name
+            author["url"] = author_url[0]
+        elif author_second_name and author_second_url:
+            author["name"] = author_second_name
+            author["url"] = author_second_url
+        return [author]
     if len(response.css("span[itemprop='author'] span").getall()) == 2:
         author["name"] = author_second_name
         author["url"] = author_second_url
-
-    return author
+        return [author]
 
 
 def get_images(response):
@@ -326,13 +344,17 @@ def get_content(response):
     Returns:
         dict: text related details
     """
+    ld_json = get_parsed_json(response)
     pattern = r"[\n\t\r\"]"
     article_content = response.css(
         "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
     ).getall()
     text = " ".join(article_content)
+    if text:
+        return [re.sub(pattern, "", text).strip()]
 
-    return [re.sub(pattern, "", text).strip()]
+    elif ld_json.get("main", None):
+        return ld_json.get("main")['articleBody']
 
 
 def get_video(response):
