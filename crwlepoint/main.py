@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 # TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from crwlepoint.spiders.le_point import LePointSpider
 
 
 class Crawler:
@@ -44,7 +44,7 @@ class Crawler:
         self.query = query
         self.proxies = proxies
 
-    def crawl(self) -> list[dict]:
+    def crawl(self):
         """Crawls the sitemap URL and article URL and return final data
 
         Raises:
@@ -82,7 +82,7 @@ class Crawler:
             process.settings = process_settings
 
         # TODO: Replace the Spider name after importing
-        process.crawl(SueddeutscheSpider, **spider_args)
+        process.crawl(LePointSpider, **spider_args)
         process.start()
         return self.output
 
