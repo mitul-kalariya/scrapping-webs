@@ -1,13 +1,11 @@
 import logging
 import unittest
-
-# TODO: Update the path here replace crwlepoint --> your project name
-from crwlepoint.spiders.indian_express import IndianExpressSpider
+from datetime import datetime, timedelta
+from crwlepoint.spiders.le_point import LePointSpider
 from crwlepoint.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwlepoint.test.helpers.utils import (get_article_content,
                                            online_response_from_url)
-# TODO: Update below path here
-from crwindianexpress import Crawler
+from crwlepoint.main import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -27,7 +25,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = IndianExpressSpider(type="article", url=article["url"])
+            spider = LePointSpider(type="article", url=article["url"], args={'callback': None})
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -51,6 +49,22 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 if test_article_data[0].get("parsed_json").get("misc"):
                     self.assertIsInstance(article[0].get("parsed_json").get("misc"), list)
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("imageObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("imageObjects"), list,
+                                          "parsed_json --> imageObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("videoObjects"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("videoObjects"), list,
+                                          "parsed_json --> videoObjects must be list")
+            with self.subTest():
+                if test_article_data[0].get("parsed_json").get("other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("other"), list,
+                                          "parsed_json --> other must be list")
+                # For old website in which it is `Other`
+                if test_article_data[0].get("parsed_json").get("Other"):
+                    self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
+                                          "parsed_json --> other must be list")
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object

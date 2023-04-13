@@ -21,6 +21,13 @@ class InputMissingException(Exception):
     pass
 
 
+class ScrappingException(Exception):
+    """Raise when exception arise while fetching sitemap"""
+
+    # Use ScrappingException(f"Error occurred while fetching sitemap:- {str(e)}")
+    pass
+
+
 class SitemapScrappingException(Exception):
     """Raise when exception arise while fetching sitemap"""
 
@@ -45,12 +52,12 @@ class ArticleScrappingException(Exception):
 class ExportOutputFileException(Exception):
     """Raise when exception arise while exporting output file"""
 
-    # Use ExportOutputFileException(f"Error occurred while closing crawler:- {str(e)}")
+    # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
     pass
 
 
 class ServiceUnavailableException(Exception):
-    """Rise when getting 403, 406, 429 or >500 status code"""
+    """Raise when getting 403, 406, 429 or >500 status code"""
 
     # Use ServiceUnavailableException(f"Service Unavailable for {website_name} and {url}
     # with {response.status_code} and {response.reason}")
@@ -58,7 +65,7 @@ class ServiceUnavailableException(Exception):
 
 
 class URLNotFoundException(Exception):
-    """Rise when getting 404 status code"""
+    """Raise when getting 404 status code"""
 
     # Use URLNotFoundException(f"Given {url} not found for website {website_name}
     # with status code{response.status_code}")
