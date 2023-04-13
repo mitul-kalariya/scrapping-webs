@@ -1,1 +1,1 @@
-scrapy
+scrapy==4.8.3
