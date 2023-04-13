@@ -16,7 +16,8 @@ from crwfrancetv.utils import (
 from crwfrancetv.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
-    SitemapScrappingException
+    SitemapScrappingException,
+    InvalidArgumentException
 )
 
 logging.basicConfig(
@@ -51,18 +52,32 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
-        super(FranceTvInfo, self).__init__(*args, **kwargs)
-        self.output_callback = kwargs.get('args', {}).get('callback', None)
-        self.start_urls = []
-        self.articles = []
-        self.type = type
-        self.url = url
-        self.article_url = url
-        self.start_date = start_date
-        self.end_date = end_date
-        self.today_date = None
+        try:
+            super(FranceTvInfo, self).__init__(*args, **kwargs)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.start_urls = []
+            self.articles = []
+            self.type = type
+            self.url = url
+            self.article_url = url
+            self.start_date = start_date
+            self.end_date = end_date
+            self.today_date = None
 
-        check_cmd_args(self, self.start_date, self.end_date)
+            check_cmd_args(self, self.start_date, self.end_date)
+        except Exception as exception:
+            self.error_msg_dict["error_msg"] = (
+                "Error occurred while taking type, url, start_date and end_date args. "
+                + str(exception)
+            )
+            self.log(
+                "Error occurred while taking type, url, start_date and end_date args. "
+                + str(exception),
+                level=logging.ERROR,
+            )
+            raise InvalidArgumentException(
+                "Error occurred while taking type, url, start_date and end_date args. " + str(exception)
+            )
 
     def parse(self, response):
         """
