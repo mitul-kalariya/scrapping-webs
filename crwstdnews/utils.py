@@ -4,10 +4,7 @@ import json
 import logging
 import re
 from datetime import datetime
-import requests
-from bs4 import BeautifulSoup
 
-# requests.get(response.url)
 from crwstdnews import exceptions
 from crwstdnews.constant import LOGGER
 
@@ -142,20 +139,7 @@ def get_country_language_details(response) -> dict:
     Returns:
         dict: country related details
     """
-    mapper = {
-        "zh-hk": "Chinese (Hong Kong)",
-        "zh-sg": "Chinese (Singapore)",
-        "zh-tw": "Chinese (Taiwan)",
-        "zh-cn": "Chinese (PRC)",
-        "zh-hant-hk": "Chinese (Traditional)",
-    }
-    page = requests.get(response.url,timeout=5)
-    soup = BeautifulSoup(page.content, "html.parser")
-    html_tags = soup.select("html")
-    for html_tag in html_tags:
-        lang = (html_tag.attrs["lang"]).lower()
-
-    return {"source_country": ["China"], "source_language": mapper.get(lang)}
+    return {"source_country": ["China"], "source_language": 'Chinese'}
 
 
 def get_author_details(response: str) -> dict:
