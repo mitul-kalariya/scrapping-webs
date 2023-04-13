@@ -1,12 +1,10 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace crwndtv --> your project name
 from crwndtv.spiders.ndtv import NDTVSpider
 from crwndtv.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwndtv.test.helpers.utils import (get_article_content,
                                         online_response_from_url)
-# TODO: Update below path here
 from crwndtv import Crawler
 
 # Creating an object

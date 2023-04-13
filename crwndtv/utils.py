@@ -368,7 +368,6 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
     Returns:
         Values of parameters
     """
-    # breakpoint()
     try:
         folder_structure = ""
         if scrape_type == "sitemap":

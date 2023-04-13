@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.ndtv.com/world-news/bodycam-footage-shows-how-us-cops-took-down-bank-shooter-who-killed-5-3940587#pfrom=home-ndtv_topstories",
@@ -15,5 +14,4 @@ TEST_ARTICLES = [
         "test_data_path": "crwndtv/test/data/test_article_3.json"
     }
 ]
-# TODO:Update below sitemap URL
 SITEMAP_URL = "https://www.ndtv.com/sitemap.xml"
