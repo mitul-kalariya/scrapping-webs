@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://ddnews.gov.in/international/bangladesh%E2%80%99s-role-vital-materialising-new-vision-free-and-open-indo-pacific-japanese",
@@ -15,5 +14,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwddnews/test/data/test_article_3.json"
     }
 ]
-# TODO:Update below sitemap URL
+
 SITEMAP_URL = "https://ddnews.gov.in/about/news-archive"

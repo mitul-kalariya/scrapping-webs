@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
+
 from crwddnews.spiders.ddnews import DDNewsSpider
 
 
@@ -94,6 +94,5 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
 
-        # TODO: Change path and spider name here
         process.crawl(DDNewsSpider, **spider_args)
         process.start()

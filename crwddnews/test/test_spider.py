@@ -1,12 +1,10 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
 from crwddnews.spiders.ddnews import DDNewsSpider
 from crwddnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
 from crwddnews.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
-# TODO: Update below path here
 from crwddnews import Crawler
 
 # Creating an object
