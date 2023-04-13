@@ -1,2 +1,2 @@
-Scrapy
-pillow
+Scrapy==2.8.0
+Pillow==9.5.0

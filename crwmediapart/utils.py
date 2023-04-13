@@ -62,11 +62,11 @@ def validate_sitemap_date_range(start_date, end_date):
 
 def remove_empty_elements(parsed_data_dict):
     """
-    Recursively remove empty lists, empty dicts, or None elements from a dictionary.
-    :param d: Input dictionary.
-    :type d: dict
-    :return: Dictionary with all empty lists, and empty dictionaries removed.
-    :rtype: dict
+        Recursively remove empty lists, empty dicts, or None elements from a dictionary.
+        :param d: Input dictionary.
+        :type d: dict
+        :return: Dictionary with all empty lists, and empty dictionaries removed.
+        :rtype: dict
     """
 
     def empty(value):
@@ -107,11 +107,11 @@ def get_raw_response(response):
 
 def get_parsed_json(response):
     """
-    extracts json data from web page and returns a dictionary
-    Parameters:
-        response(object): web page
-    Returns
-        parsed_json(dictionary): available json data
+        extracts json data from web page and returns a dictionary
+        Parameters:
+            response(object): web page
+        Returns
+            parsed_json(dictionary): available json data
     """
     try:
         parsed_json = {}
@@ -204,11 +204,11 @@ def get_parsed_data(response):
 
 def get_main(response) -> list:
     """
-    returns a list of main data available in the article from application/ld+json
-    Parameters:
-        response:
-    Returns:
-        main data
+        returns a list of main data available in the article from application/ld+json
+        Parameters:
+            response:
+        Returns:
+            main data
     """
     try:
         data = []
@@ -226,11 +226,11 @@ def get_main(response) -> list:
 
 def get_misc(response) -> list:
     """
-    returns a list of misc data available in the article from application/json
-    Parameters:
-        response:
-    Returns:
-        misc data
+        returns a list of misc data available in the article from application/json
+        Parameters:
+            response:
+        Returns:
+            misc data
     """
     try:
         data = []
@@ -248,15 +248,15 @@ def get_misc(response) -> list:
 
 def get_publisher(response) -> list:
     """
-    Extracts publisher information from the given response object and returns it as a dictionary.
+        Extracts publisher information from the given response object and returns it as a dictionary.
 
-    Returns:
-    - A dictionary containing information about the publisher.The dictionary has the following keys:
-    ---
-    @id: The unique identifier for the publisher.
-    @type: The type of publisher (in this case, always "NewsMediaOrganization").
-    name: The name of the publisher.
-    logo: Logo of the publisher as an image object
+        Returns:
+        - A dictionary containing information about the publisher.The dictionary has the following keys:
+        ---
+        @id: The unique identifier for the publisher.
+        @type: The type of publisher (in this case, always "NewsMediaOrganization").
+        name: The name of the publisher.
+        logo: Logo of the publisher as an image object
     """
     try:
         logo = response.css('head link[rel="icon"]::attr(href)').get()
@@ -284,16 +284,15 @@ def get_publisher(response) -> list:
 
 def get_author(response) -> list:
     """
-            The extract_author function extracts information about the author(s)
-            of an article from the given response object and returns it in the form of a list of dictionaries.
+        The extract_author function extracts information about the author(s)
+        of an article from the given response object and returns it in the form of a list of dictionaries.
 
-            Parameters:
-                response (scrapy.http.Response): The response object containing the HTML of the article page.
+        Parameters:
+            response (scrapy.http.Response): The response object containing the HTML of the article page.
 
-            Returns:
-                A list of dictionaries, where each dictionary contains information about one author.
-
-            """
+        Returns:
+            A list of dictionaries, where each dictionary contains information about one author.
+    """
     try:
         info = response.css("div.splitter__first p a")
         pattern = r"[\r\n\t\"]+"
