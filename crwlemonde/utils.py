@@ -162,7 +162,7 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:  # noqa:C901
+def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:  # noqa: C901
 
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
