@@ -5,7 +5,6 @@ from crwrthknews.spiders.rthk_news import RthkNewsSpider
 from multiprocessing import Process, Queue
 
 
-
 class Crawler:
     """
     A class used to crawl the sitemap and article data.

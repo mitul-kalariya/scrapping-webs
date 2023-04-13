@@ -1,12 +1,10 @@
 """Spider to scrap CBC news website"""
 
+import scrapy
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
-import scrapy
-
 from scrapy.exceptions import CloseSpider
-
 from scrapy.loader import ItemLoader
 from crwrthknews.constant import BASE_URL, SITEMAP_URL
 from crwrthknews.items import ArticleData
@@ -17,6 +15,7 @@ from crwrthknews.utils import (
     get_raw_response,
     get_parsed_json,
     get_article_json,
+    create_log_file,
 )
 from crwrthknews.exceptions import (
     SitemapScrappingException,
@@ -24,14 +23,9 @@ from crwrthknews.exceptions import (
     ExportOutputFileException,
 )
 
-# Setting the threshold of logger to DEBUG
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# create log file
+create_log_file()
+
 # Creating an object
 logger = logging.getLogger()
 
@@ -43,9 +37,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_archive(self, response: str) -> None:
-        pass
-
-    def parse_archive_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -94,7 +85,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. "
                 + str(exception),
-                level=logging.ERROR,
+                level=logging.INFO,
             )
 
     def parse(self, response: str, **kwargs) -> None:
@@ -118,7 +109,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
         if "news-archive" in response.url:
             for single_date in self.date_range_lst:
                 try:
-                    self.logger.debug("Parse function called on %s", response.url)
+                    self.logger.info("Parse function called on %s", response.url)
 
                     yield scrapy.Request(
                         "https://news.rthk.hk/rthk/ch/"
@@ -130,7 +121,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                 except Exception as exception:
                     self.log(
                         f"Error occurred while iterating sitemap url. {str(exception)}",
-                        level=logging.ERROR,
+                        level=logging.INFO,
                     )
         else:
             yield self.parse_article(response)
@@ -166,7 +157,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
             except Exception as exception:
                 self.log(
                     f"Error occurred while fetching sitemap:- {str(exception)}",
-                    level=logging.ERROR,
+                    level=logging.INFO,
                 )
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
@@ -202,7 +193,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
             self.log(
                 f"Error occurred while scrapping an article for this link {response.url}."
                 + str(exception),
-                level=logging.ERROR,
+                level=logging.INFO,
             )
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
@@ -226,7 +217,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
-                level=logging.ERROR,
+                level=logging.INFO,
             )
             raise ExportOutputFileException(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}"

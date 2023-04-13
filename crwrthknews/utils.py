@@ -1,12 +1,12 @@
 """ General functions """
-import re
-from datetime import timedelta, datetime
 
+import re
+import os
+from datetime import timedelta, datetime
+import logging
 import json
 from itertools import zip_longest
-
 from scrapy.loader import ItemLoader
-
 from crwrthknews.items import ArticleRawResponse, ArticleRawParsedJson
 from crwrthknews.exceptions import (
     InputMissingException,
@@ -21,6 +21,16 @@ ERROR_MESSAGES = {
 }
 
 language_mapper = {"zh-tw": "Chinese"}
+
+
+def create_log_file():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+        filename="logs.log",
+        filemode="a",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def sitemap_validations(
@@ -178,20 +188,20 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": None,
+        "videoObjects": None,
+        "other": [],
         "misc": [],
     }
     for block in blocks:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
         elif "ImageGallery" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["ImageGallery"] = json.loads(block)
+            parsed_json_flter_dict["imageObjects"] = json.loads(block)
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
-            parsed_json_flter_dict["VideoObject"] = json.loads(block)
+            parsed_json_flter_dict["videoObjects"] = json.loads(block)
         else:
-            parsed_json_flter_dict["Other"].append(json.loads(block))
+            parsed_json_flter_dict["other"].append(json.loads(block))
     parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
     return parsed_json_flter_dict
 

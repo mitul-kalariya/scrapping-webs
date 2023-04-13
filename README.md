@@ -36,7 +36,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "archive",
         "domain": "https://news.rthk.hk/rthk/ch/",
         "since": "2023-02-25",
         "until": "2023-03-26"
