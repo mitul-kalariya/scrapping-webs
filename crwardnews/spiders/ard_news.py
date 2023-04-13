@@ -126,10 +126,10 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             elif self.type == "article":
                 yield self.parse_article(response)
 
-        except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_article(self, response) -> list:
@@ -225,10 +225,10 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                     yield scrapy.Request(
                         date_wise_url, callback=self.parse_archive_article
                     )
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error while parsing sitemap: {exception}")
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_archive_article(self, response):
@@ -267,10 +267,10 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
                         pagination_url, callback=self.parse_archive_article
                     )
 
-        except BaseException as e:
-            LOGGER.info(f"Error while parsing sitemap article: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error while parsing sitemap article: {exception}")
             raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article: {str(e)}"
+                f"Error while parsing sitemap article: {str(exception)}"
             )
 
     def closed(self, reason: any) -> None:

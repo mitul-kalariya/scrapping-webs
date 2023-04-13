@@ -20,6 +20,18 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
+    """validate date range given by user
+        Args:
+            start_date (datetime): start_date
+            end_date (datetime): end date
+        Raises:
+            exceptions.InvalidDateException: _description_
+            exceptions.InvalidDateException: _description_
+            exceptions.InvalidDateException: _description_
+            exceptions.InvalidDateException: _description_
+            exceptions.InvalidDateException: _description_
+            exceptions.InvalidDateException: _description_
+    """
     start_date = (
         datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     )
@@ -89,6 +101,12 @@ def remove_empty_elements(parsed_data_dict):
 
 
 def get_raw_response(response):
+    """generate dictrionary of raw html data
+        Args:
+            response (object): page_data
+        Returns:
+            raw_response (dict): targeted data
+    """
     raw_resopnse = {
         "content_type": "text/html; charset=utf-8",
         "content": response.css("html").get(),
@@ -164,6 +182,12 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response):
+    """generate required data as response json and response data
+        Args:
+            response (obj): site response object
+        Returns:
+            dict: returns 2 dictionary parsed_json and parsed_data
+    """
     try:
         pattern = r"[\r\n\t\"]+"
         main_dict = get_parsed_data_dict()
@@ -311,6 +335,17 @@ def get_misc(response):
 
 
 def get_embed_video_link(response) -> list:
+    """
+       Given a Scrapy HTTP response, extracts a list of embedded video links from the webpage.
+       Parameters:
+       -----------
+       response : scrapy.http.Response
+           The HTTP response object from Scrapy.
+       Returns:
+       --------
+       list
+           A list of strings representing the video source URLs.
+    """
     try:
         info = []
         for child in response:
@@ -382,6 +417,12 @@ def get_article_title_images(response) -> list:
 
 
 def get_section(response) -> list:
+    """Extract section (category) of the article
+        Args:
+            response (object): web page data
+        Returns:
+            list: list of sections
+    """
     try:
         breadcrumb_list = response.css("ul.article-breadcrumb li")
         for i in breadcrumb_list:

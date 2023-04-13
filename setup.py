@@ -7,5 +7,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'scrapy',
+        'w3lib',
     ],
 )

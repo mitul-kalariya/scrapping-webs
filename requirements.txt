@@ -1,1 +1,2 @@
-scrapy
+Scrapy==2.8.0
+w3lib==2.1.1
