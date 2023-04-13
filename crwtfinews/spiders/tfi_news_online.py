@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
+import re
 
 import scrapy
 
@@ -58,6 +59,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
     name = "tfi_news"
     start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    new_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
@@ -134,9 +136,10 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
         try:
             for url, title in zip(
                 Selector(response, type="html").xpath("//url/loc/text()", namespaces=self.namespace).getall(),
-                Selector(response, type="html").xpath("//url/news/title/text()", namespaces=self.namespace).getall()
+                Selector(response, type="html").xpath("//url/news/title/text()", namespaces=self.new_namespace).getall()
             ):
-                data = {"link": url, "title": title}
+                updated_title = re.sub('[^A-Za-z0-9\s]+|CDATA', '', title)
+                data = {"link": url, "title": updated_title}
                 self.articles.append(data)
         except Exception as exception:
             self.log(

@@ -34,10 +34,8 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
-        "domain": "https://www.tf1info.fr/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
+        "type": "link_feed",
+        "domain": "https://www.tf1info.fr/"
     },
     proxies=proxies
 )
@@ -58,7 +56,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.tf1info.fr/"
     },
     proxies=proxies
@@ -82,7 +80,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://www.tf1info.fr/international/etats-unis-un-grand-jury-a-new-york-a-vote-pour-inculper-au-penal-ex-president-donald-trump-dans-affaire-stormy-daniels-actrice-porno-2252626.html"
+        "link": "https://www.tf1info.fr/conso/video-pouvoir-d-achat-l-inflation-ralentit-en-mars-mais-les-prix-alimentaires-continuent-de-grimper-2252643.html"
     },
     proxies=proxies
 )
