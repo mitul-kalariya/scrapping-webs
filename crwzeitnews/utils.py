@@ -51,7 +51,7 @@ def get_request_headers():
         return None
 
     except BaseException as exception:
-        LOGGER.debug("error while running selenium instance: %s", exception)
+        LOGGER.info("error while running selenium instance: %s", exception)
         raise exceptions.RequestHeadersException(
             f"error while running selenium instance: {exception}"
         )
@@ -93,7 +93,7 @@ def format_headers(
         headers_dict["cookie"] = parse_cookies(headers_dict.get("cookie", None))
         return headers_dict
     except BaseException as exception:
-        LOGGER.debug("error while folding header data: %s ", exception)
+        LOGGER.info("error while folding header data: %s ", exception)
         raise exceptions.RequestHeadersException(
             f"error while folding headers data: {exception}"
         )
@@ -116,7 +116,7 @@ def parse_cookies(raw_cookies):
             cookies[key] = val
 
         except BaseException as exception:
-            LOGGER.debug("error while folding cookies data: %s", exception)
+            LOGGER.info("error while folding cookies data: %s", exception)
             raise exceptions.RequestHeadersException(
                 f"error while folding cookies data: {exception}"
             )
@@ -150,7 +150,7 @@ def validate_sitemap_date_range(since, until):
             )
 
     except exceptions.InvalidDateException as exception:
-        LOGGER.error("Error in __init__: %s ", exception, exc_info=True)
+        LOGGER.info("Error in __init__: %s ", exception, exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
@@ -291,7 +291,7 @@ def get_main(response):
                 pass
         return information
     except BaseException as exception:
-        LOGGER.error("Error while getting main %s ", exception)
+        LOGGER.info("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
             f"Error while getting main: {exception}"
         )
@@ -312,7 +312,7 @@ def get_misc(response):
             data.append(json.loads(block))
         return data
     except BaseException as exception:
-        LOGGER.error("error while getting misc: %s ", exception)
+        LOGGER.info("error while getting misc: %s ", exception)
         raise exceptions.ArticleScrappingException(
             f"Error while getting misc: {exception}"
         )

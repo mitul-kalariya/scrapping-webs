@@ -5,7 +5,8 @@
 This repo contains the code to scrap all article links and articles from https://www.zeit.de/ website and the tech stacks used are
 
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
+- requests 2.28.2
 
 #### Environment Setup
 
