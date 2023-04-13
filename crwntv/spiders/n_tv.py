@@ -61,9 +61,9 @@ class NTvSpider(scrapy.Spider, BaseSpider):
 
             if self.type == "sitemap":
                 if start_date is not None or end_date is not None:
-                    LOGGER.info(f"Date filter is not available in {self.name}")
+                    LOGGER.info("Date Filter is not available for this website")
                     raise exceptions.InvalidInputException(
-                        f"Date filter is not available in {self.name}"
+                        "Date Filter is not available for this website"
                     )
                 self.start_urls.append(SITEMAP_URL)
 
@@ -182,8 +182,6 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
