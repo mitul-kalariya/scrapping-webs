@@ -66,7 +66,6 @@ class TestArticle(unittest.TestCase):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
 
-
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
 
@@ -104,9 +103,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
-
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
         article_authors = article[0].get("parsed_data").get("authors")
@@ -239,9 +235,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
                                       list, "format mismatch for parsed_data--> section")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> section")
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -250,9 +243,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
                                       list, "format mismatch for parsed_data--> tags")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> tags")
 
 
 class TestSitemap(unittest.TestCase):

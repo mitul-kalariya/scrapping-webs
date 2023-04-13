@@ -425,7 +425,7 @@ def get_parsed_data_using_selenium(response: str, parsed_json: dict, selenium_da
         else response.css("title::text").getall(),
         "text": [selenium_data.get("text")],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
-        "section": data_dict.get("sections") or response.css("li.article-header-section-list-item a::text").getall(),
+        "section": [data_dict.get("sections")] if data_dict.get("sections") else response.css("li.article-header-section-list-item a::text").getall(),
         "tags": data_dict.get("tags")
     }
     parsed_data_dict |= {
@@ -463,11 +463,16 @@ def get_all_details_of_block(block: dict) -> dict:
     }
     data_dict["author"] = []
     if block.get("author"):
-        author_name = block.get("author").get("name")
-        data_dict["author"].append({
-            "@type": block.get("author").get("@type"),
-            "name": author_name[0] if isinstance(author_name, list) else author_name
-        })
+        author_names = block.get("author").get("name", [])
+        if not isinstance(author_names, list) and isinstance(author_names, str):
+            author_names_list = [author_names]
+        else:
+            author_names_list = author_names
+        for author_name in author_names_list:
+            data_dict["author"].append({
+                "@type": block.get("author").get("@type"),
+                "name": author_name
+            })
     return data_dict
 
 
@@ -556,13 +561,12 @@ def get_all_data_from_selenium(url: str) -> dict:
     Returns:
         dict: data with key, value pair
     """
-    driver = webdriver.Chrome()
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     driver.get(url)
     total_height = int(driver.execute_script("return document.body.scrollHeight"))
-    for i in range(1, total_height, 25):
+    for i in range(1, total_height, 10):
         driver.execute_script("window.scrollTo(0, {});".format(i))
     ld_json_blocks = WebDriverWait(driver, 20).until(
         EC.presence_of_all_elements_located((By.XPATH, '//script[@type="application/ld+json"]'))
