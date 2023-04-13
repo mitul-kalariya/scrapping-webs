@@ -205,8 +205,6 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             exceptions.ExportOutputFileException(
