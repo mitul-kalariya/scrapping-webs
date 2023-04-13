@@ -60,7 +60,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://std.stheadline.com/realtime/article/1918005/%E5%8D%B3%E6%99%82-%E5%9C%8B%E9%9A%9B-%E6%96%B0%E5%8A%A0%E5%9D%A1%E6%96%B0%E5%86%A0%E7%A2%BA%E8%A8%BA%E6%BF%80%E5%A2%9E-%E5%B0%88%E5%AE%B6%E6%8C%87%E6%88%96%E8%88%87%E6%96%B0%E8%AE%8A%E7%A8%AE%E6%AF%92%E6%A0%AA%E6%9C%89%E9%97%9C"
+        "link": "https://std.stheadline.com/realtime/article/1918576/%E5%8D%B3%E6%99%82-%E6%B8%AF%E8%81%9E-%E9%83%BD%E5%A4%A7%E7%A0%94%E7%A9%B6%E5%9C%98%E9%9A%8A%E9%96%8B%E7%99%BC%E6%96%B0%E6%BC%94%E7%AE%97%E6%B3%95-%E6%8F%90%E5%8D%87%E7%84%A1%E7%B7%9A%E7%B6%B2%E7%B5%A1%E6%95%88%E8%83%BD"
     },
     proxies=proxies
 )
