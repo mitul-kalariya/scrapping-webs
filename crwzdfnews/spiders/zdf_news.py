@@ -112,10 +112,10 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            LOGGER.info(f"Error occured in parse function: {e}")
+        except BaseException as exception:
+            LOGGER.info(f"Error occured in parse function: {exception}")
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_article(self, response) -> list:
@@ -173,7 +173,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             xml_link = xml_selector.xpath(
                 "//xmlns:loc/text()", namespaces=xml_namespaces
-            ).getall()[::-1][:5]
+            ).getall()[::-1][:6]
             for link in xml_link:
                 yield scrapy.Request(link, callback=self.parse_sitemap_article)
 

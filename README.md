@@ -3,11 +3,11 @@
 #### Setup and execution instructions: - 
 
 This repo contains the code to scrap all article links and articles from https://www.zdf.de/ website and the tech stacks used are
-- Python 3.10
-- Scrapy
-- Webdriver-manager
-- Selenium
-- Pillow
+- Python 3.10  
+- Scrapy 2.8.0
+- selenium 4.8.3
+- webdriver-manager 3.8.5
+- Pillow 9.5.0
 
 
 #### Environment Setup

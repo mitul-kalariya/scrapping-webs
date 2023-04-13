@@ -38,12 +38,11 @@ def validate_sitemap_date_range(start_date, end_date):
         end_date (datetime): end date
 
     Raises:
-        exceptions.InvalidDateException: _description_
-        exceptions.InvalidDateException: _description_
-        exceptions.InvalidDateException: _description_
-        exceptions.InvalidDateException: _description_
-        exceptions.InvalidDateException: _description_
-        exceptions.InvalidDateException: _description_
+        exceptions.InvalidDateException: end_date must be specified if start_date is provided
+        exceptions.InvalidDateException: start_date must be specified if end_date is provided
+        exceptions.InvalidDateException: start_date should not be later than end_date
+        exceptions.InvalidDateException: start_date should not be greater than today_date
+        exceptions.InvalidDateException: end_date should not be greater than today_date
     """
     start_date = (
         datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
@@ -72,7 +71,7 @@ def validate_sitemap_date_range(start_date, end_date):
 
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
+                "end_date should not be greater than today_date"
             )
 
     except exceptions.InvalidDateException as expception:
@@ -171,9 +170,9 @@ def get_parsed_json(response):
         return remove_empty_elements(parsed_json)
 
     except Exception as exception:
-        LOGGER.info(f"Error while extracting tags: {exception}")
+        LOGGER.info(f"Error while parsing json from application/ld+json: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error while extracting tags: {exception}"
+            f"Error while extracting parsing json from application/ld+json: {exception}"
         )
 
 
