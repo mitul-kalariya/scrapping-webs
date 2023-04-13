@@ -15,7 +15,6 @@ from crwtvbnews.utils import (
 
 from crwtvbnews.exceptions import (
     ArticleScrappingException,
-    ExportOutputFileException,
     SitemapScrappingException,
 )
 
