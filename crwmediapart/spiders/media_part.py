@@ -28,9 +28,6 @@ class BaseSpider(ABC):
     def parse_sitemap(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
     @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
@@ -102,7 +99,21 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
         LOGGER.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                # Create an XmlResponse object from the response
+                xmlresponse = XmlResponse(
+                    url=response.url, body=response.body, encoding="utf-8"
+                )
+                # Create a Selector object from the XmlResponse
+                xml_selector = Selector(xmlresponse)
+                # Define the XML namespaces used in the sitemap
+                xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+                # Loop through each sitemap URL in the XML response
+                for sitemap in xml_selector.xpath(
+                        "//xmlns:loc/text()", namespaces=xml_namespaces
+                ):
+                    # Loop through each link in the sitemap and create a scrapy request for it
+                    for link in sitemap.getall():
+                        yield scrapy.Request(link, callback=self.parse_sitemap)
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
@@ -125,40 +136,6 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
         """
         try:
-            # Create an XmlResponse object from the response
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
-            # Create a Selector object from the XmlResponse
-            xml_selector = Selector(xmlresponse)
-            # Define the XML namespaces used in the sitemap
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            # Loop through each sitemap URL in the XML response
-            for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ):
-                # Loop through each link in the sitemap and create a scrapy request for it
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
-        # If there's any error during the above process, log it and print
-        except BaseException as exception:
-            LOGGER.info(f"Error while parsing sitemap: {exception}")
-            raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(exception)}"
-            )
-
-    def parse_sitemap_article(self, response):
-
-        """
-        This function takes in a response object and parses the sitemap.
-        It extracts the links and published dates from the response object
-        and uses them to make requests to other pages.
-
-        Yields:
-            scrapy.Request: A request object with the link and published date as metadata.
-            The request object is sent to the 'parse_sitemap_link_title' callback function for further processing.
-        """
-        try:
             # Define the namespace for the sitemap
             namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
@@ -175,9 +152,9 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
 
                 # If the published date falls within the specified date range, make a request to the link
                 if (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date <= published_at <= self.end_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date <= published_at <= self.end_date
                 ):
                     data = {"link": link}
                     self.articles.append(data)
@@ -187,10 +164,11 @@ class MediaPartSpider(scrapy.Spider, BaseSpider):
                     self.articles.append(data)
                 else:
                     continue  # If there's any error during the above process, log it and print
+        # If there's any error during the above process, log it and print
         except BaseException as exception:
-            LOGGER.info(f"Error while parsing sitemap article: {exception}")
+            LOGGER.info(f"Error while parsing sitemap: {exception}")
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap article: {str(exception)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_article(self, response):
