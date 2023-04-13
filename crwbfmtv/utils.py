@@ -249,16 +249,19 @@ def get_images(response) -> list:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    info = response.css("div.embedpicture")
     data = []
-    if info:
-        for i in info:
-            temp_dict = {}
-            image = i.css("div.embedimgblock img::attr(src)").get()
-            if image:
-                temp_dict["link"] = image
-            data.append(temp_dict)
-    return
+    if response.css("figure"):
+        breakpoint()
+        for i in response.css("figure"):
+            image = i.css("figure img::attr(src)").get()
+            caption = i.css("figcaption span::text").get()
+            data.append({
+                "link": image,
+                "caption": caption or None,
+            }
+            )
+
+    return data
 
 def get_section(response) -> list:
     breadcrumb_list = response.xpath("//ul[@class='list_inbl']//li[2]//a//span/text()")
