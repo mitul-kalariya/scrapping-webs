@@ -3,15 +3,15 @@
 # TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://www.ndtv.com/world-news/help-ukrainian-people-says-pope-francis-in-easter-message-3933126",
+        "url": "https://www.ndtv.com/world-news/bodycam-footage-shows-how-us-cops-took-down-bank-shooter-who-killed-5-3940587#pfrom=home-ndtv_topstories",
         "test_data_path": "crwndtv/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.ndtv.com/feature/uorfi-javed-says-she-was-mentally-and-physically-abused-by-her-father-3932645",
+        "url": "https://www.ndtv.com/photos/entertainment/house-full-at-kisi-ka-bhai-kisi-ki-jaan-trailer-launch-with-salman-pooja-bhumika-and-others-105011#photo-452333",
         "test_data_path": "crwndtv/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.ndtv.com/india-news/amid-covid-spike-masks-mandate-back-in-haryana-kerala-and-puducherry-3932411",
+        "url": "https://www.ndtv.com/world-news/donald-trump-sues-his-former-lawyer-michael-cohen-for-500-million-3943569#pfrom=home-ndtv_topstories",
         "test_data_path": "crwndtv/test/data/test_article_3.json"
     }
 ]

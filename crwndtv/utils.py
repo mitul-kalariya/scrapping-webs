@@ -325,14 +325,11 @@ def get_content(response):
         dict: text related details
     """
     pattern = r"[\n\t\r\"]"
-    if 'ins_instory_dv_caption sp_b' in response.css("div.sp-cn.ins_storybody p").get():
-        article_content = response.css(
-            "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
-        ).getall()
-        text = " ".join(article_content)
-    if 'story_playbutton' in response.css("div.sp-cn.ins_storybody p").get():
-        tmp = response.css("div.sp-cn.ins_storybody p[class!='story_playbutton']::text").getall()
-        text = " ".join(tmp)
+    article_content = response.css(
+        "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
+    ).getall()
+    text = " ".join(article_content)
+
     return [re.sub(pattern, "", text).strip()]
 
 
@@ -386,7 +383,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4,ensure_ascii=False)
+            json.dump(file_data, file, indent=4)
     except BaseException as exception:
         LOGGER.error("error while creating json file: %s",exception)
         raise exceptions.ExportOutputFileException(
