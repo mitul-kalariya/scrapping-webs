@@ -1,4 +1,2 @@
-Scrapy
-selenium
-webdriver-manager
-beautifulsoup4
+Scrapy 2.8.0
+beautifulsoup4 4.12.2
