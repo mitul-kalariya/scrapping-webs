@@ -50,3 +50,9 @@ class URLNotFoundException(Exception):
     """Rise when getting 404 status code"""
 
     pass
+
+
+class VideoUrlNotFetchException(Exception):
+    """Rise when getting 404 status code"""
+
+    pass

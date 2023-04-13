@@ -127,16 +127,17 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                 if self.today_date:
                     if _date == self.today_date:
-                        if title:
+                        if title and "jeux" not in url:
                             article = {
                                 "link": url,
                                 "title": title,
                             }
+                            print(article)
                             self.articles.append(article)
 
                 else:
                     if self.start_date <= _date <= self.end_date:
-                        if title:
+                        if title and "jeux" not in url:
                             article = {
                                 "link": url,
                                 "title": title,

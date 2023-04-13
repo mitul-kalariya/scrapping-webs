@@ -272,8 +272,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:  # noq
 
     parsed_data_dict["section"] = [each.strip() for each in article_data.get('section') if each.strip() != '']
     parsed_data_dict["tags"] = article_data.get("main").get('keywords').split(',')
-    parsed_data_dict['embedded_video_link'] = [article_data.get("video")]
-
+    parsed_data_dict['embed_video_link'] = [article_data.get("video")]
     return remove_empty_elements(parsed_data_dict)
 
 
