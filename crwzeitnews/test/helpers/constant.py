@@ -3,11 +3,11 @@
 # TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://www.zeit.de/video/2023-04/6324065533112/un-sicherheitsrat-russische-kinderrechtsbeauftragte-sorgt-fuer-eklat-bei-un-sitzung", #video article
+        "url": "https://www.zeit.de/video/2023-04/6324065533112/un-sicherheitsrat-russische-kinderrechtsbeauftragte-sorgt-fuer-eklat-bei-un-sitzung",  # video article
         "test_data_path": "crwzeitnews/test/data/test_article_1.json",
     },
     {
-        "url": "https://www.zeit.de/kultur/musik/2023-04/rat-saw-god-wednesday-album-indierock",#article with yt videos
+        "url": "https://www.zeit.de/kultur/musik/2023-04/rat-saw-god-wednesday-album-indierock",  # article with yt videos
         "test_data_path": "crwzeitnews/test/data/test_article_2.json",
     },
     {

@@ -18,7 +18,6 @@ from crwzeitnews.items import ArticleData
 from crwzeitnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -28,15 +27,17 @@ from crwzeitnews.utils import (
 # create log file
 create_log_file()
 
+
 class BaseSpider(ABC):
     """Abstract Base class for scrapy spider
 
     Args:
         ABC : Abstract
     """
+
     # pylint disable=unnecessary-pass
     @abstractmethod
-    def parse(self,response):
+    def parse(self, response):
         """parse function responsible for calling individual methods for each request"""
         pass
 
@@ -57,6 +58,7 @@ class BaseSpider(ABC):
 
 class ZeitSpider(scrapy.Spider, BaseSpider):
     """main spider for parsing sitemap or article"""
+
     # pylint: disable=too-many-instance-attributes
     name = "zeit"
 
@@ -163,7 +165,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                         dont_filter=True,
                     )
 
-
         elif self.type == "article":
             article_data = self.parse_article(response)
             yield article_data
@@ -200,7 +201,8 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info(
                 "Error occurred while scrapping an article for this link %s %s",
-                response.url, str(exception)
+                response.url,
+                str(exception),
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
@@ -232,15 +234,14 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 self.articles.append(data)
 
         except exceptions.SitemapScrappingException as exception:
-            LOGGER.error("Error while parsing sitemap: %s",str(exception))
+            LOGGER.error("Error while parsing sitemap: %s", str(exception))
             print(f"Error while parsing sitemap: {str(exception)}")
-
 
     def closed(self, reason: any) -> None:
         """
         store all scrapped data into json file with given date in filename
         Args:
-            response: generated response
+            reason: generated response
         Raises:
             ValueError if not provided
         Returns:
@@ -251,8 +252,6 @@ class ZeitSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except BaseException as exception:
             LOGGER.log(
                 f"Error occurred while closing crawler{str(exception)} - {reason}",

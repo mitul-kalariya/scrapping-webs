@@ -63,6 +63,7 @@ class URLNotFoundException(Exception):
     # with status code{response.status_code}")
     pass
 
+
 class RequestHeadersException(Exception):
     """raise when getting error in request headers or cookies"""
 

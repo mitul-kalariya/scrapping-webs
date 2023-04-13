@@ -1,5 +1,4 @@
 """Utility Functions"""
-import os
 import json
 import logging
 import time
@@ -32,9 +31,7 @@ def get_request_headers():
     try:
         time.sleep(2)
         element = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located(
-               (By.CSS_SELECTOR,"div.option__accbtn")
-            )
+            EC.presence_of_element_located((By.CSS_SELECTOR, "div.option__accbtn"))
         )
 
         if element:
@@ -42,7 +39,7 @@ def get_request_headers():
             element.click()
             time.sleep(2)
             article = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH , "/html/body/div[3]"))
+                EC.presence_of_element_located((By.XPATH, "/html/body/div[3]"))
             )
             if article:
                 for request in driver.requests:
@@ -168,34 +165,6 @@ def create_log_file():
     )
 
 
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        )
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
-
-
 def remove_empty_elements(parsed_data_dict):
     """
     Recursively remove empty lists, empty dicts, or None elements from a dictionary.
@@ -306,7 +275,6 @@ def get_main(response):
         main data
     """
     try:
-
         information = {}
         main = response.css('script[type="application/ld+json"]::text').getall()
         for block in main:
