@@ -1,5 +1,6 @@
 # Utility/helper functions
 # utils.py
+
 import os
 import re
 import json
@@ -12,9 +13,10 @@ from crwrepublictv import exceptions
 from crwrepublictv.constant import TODAYS_DATE, LOGGER
 
 
+
 def create_log_file():
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
         filename="logs.log",
         filemode="a",
@@ -22,22 +24,32 @@ def create_log_file():
     )
 
 
+
 def validate_sitemap_date_range(start_date, end_date):
-    """validated date range given by user
-
+    """validate date range given by user
     Args:
-        start_date (str): start_date
-        end_date (str): end_date
-
+        start_date (datetime): start_date
+        end_date (datetime): end date
+    Raises:
+        exceptions.InvalidDateException: end_date must be specified if start_date is provided
+        exceptions.InvalidDateException: start_date must be specified if end_date is provided
+        exceptions.InvalidDateException: start_date should not be later than end_date
+        exceptions.InvalidDateException: start_date should not be greater than today_date
+        exceptions.InvalidDateException: end_date should not be greater than today_date
     """
     start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else TODAYS_DATE
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     )
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else TODAYS_DATE
+    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
-        if (start_date and not end_date) or (not start_date and end_date):
+        if start_date and not end_date:
             raise exceptions.InvalidDateException(
-                "start_date or end_date must be specified"
+                "end_date must be specified if start_date is provided"
+            )
+
+        if not start_date and end_date:
+            raise exceptions.InvalidDateException(
+                "start_date must be specified if end_date is provided"
             )
 
         if start_date and end_date and start_date > end_date:
@@ -45,23 +57,41 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be later than end_date"
             )
 
-        if start_date > TODAYS_DATE or end_date > TODAYS_DATE:
+        if start_date and end_date and start_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date and end_date should not be greater than today_date"
+                "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as e:
-        LOGGER.error(f"Error in __init__: {e}", exc_info=True)
-        raise exceptions.InvalidDateException(f"Error in __init__: {e}")
+        if start_date and end_date and end_date > TODAYS_DATE:
+            raise exceptions.InvalidDateException(
+                "end_date should not be greater than today_date"
+            )
+
+    except exceptions.InvalidDateException as expception:
+        LOGGER.info(f"Error occured while checking date range: {expception}")
+        raise exceptions.InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        )
 
 
 def get_raw_response(response):
-    raw_resopnse = {
-        "content_type": "text/html; charset=utf-8",
-        "content": response.css("html").get(),
-    }
-    return raw_resopnse
-
+    """generate dictrionary of raw html data
+        Args:
+            response (object): page_data
+        Returns:
+            raw_response (dict): targeted data
+    """
+    try:
+        raw_resopnse = {
+            "content_type": "text/html; charset=utf-8",
+            "content": response.css("html").get(),
+        }
+        return raw_resopnse
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting raw response: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting raw response: {exception}"
+        )
 
 def get_parsed_json(response):
     """
@@ -93,9 +123,12 @@ def get_parsed_json(response):
 
         return remove_empty_elements(parsed_json)
 
-    except BaseException as e:
-        exceptions.ArticleScrappingException(f"Error while parsing json data: {e}")
-        LOGGER.error(f"Error while parsing json data: {e}")
+
+    except Exception as exception:
+        LOGGER.info(f"Error while parsing json from application/ld+json: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsing json from application/ld+json: {exception}"
+        )
 
 
 def get_main(response):
@@ -112,9 +145,11 @@ def get_main(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"Error while getting misc{e}")
-        exceptions.ArticleScrappingException(f"Error while getting misc {e}")
+    except BaseException as exception:
+        LOGGER.error("Error while getting main %s ", exception)
+        raise exceptions.ArticleScrappingException(
+            f"Error while getting main: {exception}"
+        )
 
 
 def get_misc(response):
@@ -131,9 +166,11 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        exceptions.ArticleScrappingException(f"Error while getting misc: {e}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting misc: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting misc: {exception}"
+        )
 
 
 def get_parsed_data(response):
@@ -192,9 +229,12 @@ def get_parsed_data(response):
         main_dict["author_link"] = [response.css('.author-title ::attr(href)').get()]
         return remove_empty_elements(main_dict)
 
-    except BaseException as e:
-        LOGGER.error(f"{e}")
-        exceptions.ArticleScrappingException(f"Error while fetching main data: {e}")
+
+    except Exception as exception:
+        LOGGER.info(f"Error while extracting parsed data: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error while extracting parsed data: {exception}"
+        )
 
 
 def get_lastupdated(response) -> str:
@@ -210,8 +250,12 @@ def get_lastupdated(response) -> str:
         info = response.css("span.time-elapsed")
         if info:
             return info.css("time::attr(datetime)").get()
-    except BaseException as e:
-        LOGGER.error(f"error while getting last updated{e}")
+    except Exception as exception:
+        LOGGER.info(f"error while getting last updated: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"error while getting last updated: {exception}"
+        )
+
 
 
 def get_published_at(response) -> str:
@@ -244,26 +288,38 @@ def get_author(response) -> list:
         A list of dictionaries, where each dictionary contains information about one author.
 
     """
-    info = response.css("div.author")
-    pattern = r"[\r\n\t\"]+"
-    data = []
-    if info:
-        for i in info:
-            temp_dict = {}
-            temp_dict["@type"] = "Person"
-            temp_dict["name"] = re.sub(
-                pattern, "", i.css("div a span::text").get()
-            ).strip()
-            temp_dict["url"] = i.css("div a::attr(href)").get()
-            data.append(temp_dict)
-        return data
+    try:
+        info = response.css("div.author")
+        pattern = r"[\r\n\t\"]+"
+        data = []
+        if info:
+            for i in info:
+                temp_dict = {}
+                temp_dict["@type"] = "Person"
+                temp_dict["name"] = re.sub(
+                    pattern, "", i.css("div a span::text").get()
+                ).strip()
+                temp_dict["url"] = i.css("div a::attr(href)").get()
+                data.append(temp_dict)
+            return data
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting author information: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting author information: {exception}"
+        )
 
 def get_tags(response):
-    tags = []
-    raw_tags = response.xpath("//meta[@name='keywords']/@content")[0].extract()
-    if raw_tags:
-        return raw_tags.split(",")
-    return tags
+    try:
+        tags = []
+        raw_tags = response.xpath("//meta[@name='keywords']/@content")[0].extract()
+        if raw_tags:
+            return raw_tags.split(",")
+        return tags
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting tags: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting tags: {exception}"
+        )
 
 def get_thumbnail_image(response) -> list:
     """
@@ -274,37 +330,49 @@ def get_thumbnail_image(response) -> list:
         A list of dictionaries, with each dictionary containing information about an image.
             If no images are found, an empty list is returned.
     """
-    info = response.css("div.gallery-item")
-    mod_info = response.css(".storypicture img.width100")
-    data = []
-    if info:
-        for i in info:
-            image = i.css("div.gallery-item-img-wrapper img::attr(src)").get()
-            if image:
-                data.append(image)
-    elif mod_info:
-        for i in mod_info:
-            image = i.css("img::attr(src)").get()
-            if image:
-                data.append(image)
-    return data
+    try:
+        info = response.css("div.gallery-item")
+        mod_info = response.css(".storypicture img.width100")
+        data = []
+        if info:
+            for i in info:
+                image = i.css("div.gallery-item-img-wrapper img::attr(src)").get()
+                if image:
+                    data.append(image)
+        elif mod_info:
+            for i in mod_info:
+                image = i.css("img::attr(src)").get()
+                if image:
+                    data.append(image)
+        return data
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting thumbnail image: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while extracting thumbnail image: {exception}"
+        )
 
 
 def get_embed_video_link(response) -> list:
     """
     A list of video objects containing information about the videos on the webpage.
     """
-    info = response.css("div.videoWrapper")
-    data = []
-    if info:
-        for i in info:
-            js = i.css("script").get()
-            request_link = re.findall(r"playlist\s*:\s*'(\S+)'", js)[0]
-            response = requests.get(request_link)
-            link = response.json().get("playlist")[0].get("sources")[1].get("file")
-            temp_dict = {"link": link}
-            data.append(temp_dict)
-    return data
+    try:
+        info = response.css("div.videoWrapper")
+        data = []
+        if info:
+            for i in info:
+                js = i.css("script").get()
+                request_link = re.findall(r"playlist\s*:\s*'(\S+)'", js)[0]
+                response = requests.get(request_link)
+                link = response.json().get("playlist")[0].get("sources")[1].get("file")
+                temp_dict = {"link": link}
+                data.append(temp_dict)
+        return data
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting video links: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting video links: {exception}"
+        )
 
 
 def get_publisher(response) -> list:
@@ -317,22 +385,27 @@ def get_publisher(response) -> list:
         - "@type": The type of publisher (in this case, always "NewsMediaOrganization").
         - "name": The name of the publisher.
     """
-    logo = response.css('link[rel="icon"]::attr(href)').getall()[2]
-    img_response = requests.get(logo)
-    width, height = Image.open(BytesIO(img_response.content)).size
-    a_dict = {
-        "@id": "bharat.republicworld.com",
-        "@type": "NewsMediaOrganization",
-        "name": "Bharat republic word",
-        "logo": {
-            "@type": "ImageObject",
-            "url": logo,
-            "width": {"@type": "Distance", "name": str(width) + " px"},
-            "height": {"@type": "Distance", "name": str(height) + " px"},
-        },
-    }
-    return [a_dict]
-
+    try:
+        logo = response.css('link[rel="icon"]::attr(href)').getall()[2]
+        img_response = requests.get(logo)
+        width, height = Image.open(BytesIO(img_response.content)).size
+        a_dict = {
+            "@id": "bharat.republicworld.com",
+            "@type": "NewsMediaOrganization",
+            "name": "Bharat republic word",
+            "logo": {
+                "@type": "ImageObject",
+                "url": logo,
+                "width": {"@type": "Distance", "name": str(width) + " px"},
+                "height": {"@type": "Distance", "name": str(height) + " px"},
+            },
+        }
+        return [a_dict]
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting publisher information: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting publisher information: {exception}"
+        )
 
 def get_images(response) -> list:
     """
@@ -342,16 +415,22 @@ def get_images(response) -> list:
     list: A list of dictionaries containing information about each image,
     such as image link.
     """
-    info = response.css("div.embedpicture")
-    data = []
-    if info:
-        for i in info:
-            temp_dict = {}
-            image = i.css("div.embedimgblock img::attr(src)").get()
-            if image:
-                temp_dict["link"] = image
-            data.append(temp_dict)
-    return data
+    try:
+        info = response.css("div.embedpicture")
+        data = []
+        if info:
+            for i in info:
+                temp_dict = {}
+                image = i.css("div.embedimgblock img::attr(src)").get()
+                if image:
+                    temp_dict["link"] = image
+                data.append(temp_dict)
+        return data
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article images: {exception}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occured while getting article images: {exception}"
+        )
 
 
 def remove_empty_elements(parsed_data_dict):

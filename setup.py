@@ -7,5 +7,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'scrapy',
+        'requests',
+        'pillow',
     ],
 )

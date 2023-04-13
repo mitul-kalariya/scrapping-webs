@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     # }
 ]
 
-SITEMAP_URL = "https://www.republicworld.com/sitemap.xml"
+SITEMAP_URL = "https://bharat.republicworld.com/news-sitemap.xml"
