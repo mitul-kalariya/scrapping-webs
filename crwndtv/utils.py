@@ -51,7 +51,7 @@ def validate_sitemap_date_range(start_date, end_date):
             )
 
     except exceptions.InvalidDateException as exception:
-        LOGGER.error("Error in __init__: %s",exception, exc_info=True)
+        LOGGER.error("Error in __init__: %s", exception, exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
@@ -149,7 +149,7 @@ def get_parsed_json(response):
         return remove_empty_elements(parsed_json)
 
     except BaseException as exception:
-        LOGGER.info("Error occured while getting parsed json %s",exception)
+        LOGGER.info("Error occured while getting parsed json %s", exception)
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting parsed json {exception}"
         ) from exception
@@ -169,9 +169,9 @@ def get_parsed_data(response):
         main_dict = {}
         main_data = get_main(response)
 
-        main_dict["description"] = [response.css(
-            'meta[property="og:description"]::attr(content)'
-        ).get()]
+        main_dict["description"] = [
+            response.css('meta[property="og:description"]::attr(content)').get()
+        ]
 
         title = response.css('meta[property="og:title"]::attr(content)').get()
         if title:
@@ -189,7 +189,7 @@ def get_parsed_data(response):
             main_dict["author"] = [author]
 
         main_dict["section"] = get_section(response)
-    
+
         if main_data:
             if main_data.get("publisher"):
                 main_dict["publisher"] = [main_data["publisher"]]
@@ -214,8 +214,10 @@ def get_parsed_data(response):
             main_dict["embed_video_link"] = [video]
         return remove_empty_elements(main_dict)
     except BaseException as exception:
-        LOGGER.error("while scrapping parsed data %s",exception)
-        raise exceptions.ArticleScrappingException(f"while scrapping parsed data :{exception}")
+        LOGGER.error("while scrapping parsed data %s", exception)
+        raise exceptions.ArticleScrappingException(
+            f"while scrapping parsed data :{exception}"
+        )
 
 
 def get_main(response):
@@ -305,7 +307,7 @@ def get_section(response):
     Returns:
         dict: section related details
     """
-    section = response.css('span.brd-nv_li.current span::text').get()
+    section = response.css("span.brd-nv_li.current span::text").get()
     if section:
         return [section]
     section_vid = response.css('a[title="Video"]::attr(title)').get()
@@ -314,7 +316,7 @@ def get_section(response):
     section_img = response.css('a[title="Photos"]::attr(title)').get()
     if section_img:
         return [section_img]
-    
+
 
 def get_content(response):
     """
@@ -342,10 +344,10 @@ def get_video(response):
         dict: video related details
     """
     video = {}
-    article_video = response.css("meta[itemprop=\"embedUrl\"]::attr(content)").get()
+    article_video = response.css('meta[itemprop="embedUrl"]::attr(content)').get()
     if article_video:
         video["link"] = article_video
-    article_video_2 = response.css("meta[itemprop=\"contentUrl\"]::attr(content)").get()
+    article_video_2 = response.css('meta[itemprop="contentUrl"]::attr(content)').get()
     if article_video_2:
         video["link"] = article_video_2
     video_link = response.xpath('//meta[@name="contentUrl"]/@content').get()
@@ -385,7 +387,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
             json.dump(file_data, file, indent=4)
     except BaseException as exception:
-        LOGGER.error("error while creating json file: %s",exception)
+        LOGGER.error("error while creating json file: %s", exception)
         raise exceptions.ExportOutputFileException(
             f"error while creating json file: {exception}"
         )

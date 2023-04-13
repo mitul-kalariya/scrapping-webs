@@ -23,6 +23,7 @@ class BaseSpider(ABC):
     """
     Base class for making abstract methods
     """
+
     @abstractmethod
     def parse(self, response):
         # pylint disable=W0107
@@ -134,7 +135,9 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info("Error occured in init function in %s :-- %s", self.name, exception)
+            LOGGER.info(
+                "Error occured in init function in %s :-- %s", self.name, exception
+            )
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
@@ -155,10 +158,10 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as e:
-            LOGGER.info("Error occured in parse function: %s", e)
+        except BaseException as exception:
+            LOGGER.info("Error occured in parse function: %s", exception)
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {e}"
+                f"Error occured in parse function: {exception}"
             )
 
     def parse_sitemap(self, response):
@@ -177,7 +180,6 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             if "sitemap.xml" in response.url:
                 if self.since and self.until:
                     for single_date in date_range(self.since, self.until):
-
                         yield scrapy.Request(
                             f"https://www.ndtv.com/sitemap.xml/?yyyy={single_date.year}&mm={single_date.month}&dd={single_date.day}&sitename=&category=",
                             callback=self.parse_sitemap_article,
@@ -189,10 +191,10 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
                         callback=self.parse_sitemap_article,
                     )
 
-        except BaseException as e:
-            LOGGER.info("Error while parsing sitemap: %s", e)
+        except BaseException as exception:
+            LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(e)}"
+                f"Error while parsing sitemap: {str(exception)}"
             )
 
     def parse_sitemap_article(self, response):
@@ -214,9 +216,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
             ).getall()
 
             for link in links:
-                if (
-                    link != "https://www.ndtv.com/sitemap/google-news-sitemap"
-                ):
+                if link != "https://www.ndtv.com/sitemap/google-news-sitemap":
                     data = {"link": link}
                     self.articles.append(data)
                 else:
@@ -225,7 +225,8 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                "Error while parsing sitemap article::%s-", str(exception))
+                "Error while parsing sitemap article::%s-", str(exception)
+            )
 
     def parse_article(self, response) -> list:
         """
@@ -258,8 +259,8 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             LOGGER.info(
-                "Error occurred while scrapping an article for this link %s.", response.url
-                + str(exception)
+                "Error occurred while scrapping an article for this link %s.",
+                response.url + str(exception),
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
