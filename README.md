@@ -6,8 +6,8 @@ This is the scrapping project to scrap news from different website.
 
 This repo contains the code to scrap all sitemaps (if available) and articles from https://www.francetvinfo.fr/ website and the Tech stacks used are
 - Python 3.10
-- Scrapy
-- Selenium
+- scrapy 2.8.0
+- selenium 4.8.3
 
 
 #### Environment Setup

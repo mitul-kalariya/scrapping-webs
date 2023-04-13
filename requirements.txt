@@ -1,3 +1,3 @@
-scrapy
-selenium
-webdriver_manager
+scrapy==2.8.0
+selenium==4.8.3
+webdriver-manager==3.8.5
