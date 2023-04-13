@@ -319,8 +319,8 @@ def get_tags(response) -> list:
         list: List of tags
     """
     try:
-        json_data = get_ld_json(response)
-        tags = json_data[0].get("keywords")
+        keyword_data = get_meta_information(response, property="news_keywords", key="name")
+        tags = [data.strip() for data in keyword_data.split(",")]
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
