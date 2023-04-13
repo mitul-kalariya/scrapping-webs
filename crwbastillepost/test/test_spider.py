@@ -340,7 +340,7 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
+        self.type = "link_feed"
         self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
 
     def _test_sitemap_article_format(self):

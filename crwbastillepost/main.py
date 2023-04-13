@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 from scrapy.crawler import CrawlerProcess
 from crwbastillepost.spiders.bastille_post import BastillePostSpider
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -74,11 +75,8 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "sitemap":
+        elif self.query["type"] == "link_feed":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
-            if self.query.get("since") and self.query.get("until"):
-                spider_args["start_date"] = self.query["since"]
-                spider_args["end_date"] = self.query["until"]
         else:
             raise Exception("Invalid Type")
 

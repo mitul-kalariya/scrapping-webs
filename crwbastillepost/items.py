@@ -14,6 +14,7 @@ class NewtonScrappingItem(scrapy.Item):
     # name = scrapy.Field()
     pass
 
+
 class ArticleData(Item):
     raw_response = Field(output_processor=TakeFirst())
     parsed_json = Field(output_processor=TakeFirst())
