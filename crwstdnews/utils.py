@@ -120,7 +120,7 @@ def get_parsed_data(response: str) -> dict:
     """
 
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict |= get_country_language_details(response)
+    parsed_data_dict |= get_country_language_details()
     parsed_data_dict |= get_author_details(response)
     parsed_data_dict |= get_descriptions_date_details(response)
     parsed_data_dict |= get_publisher_details(response)

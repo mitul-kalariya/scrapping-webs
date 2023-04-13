@@ -1,4 +1,3 @@
-# TODO: Change the path below
 from crwstdnews import Crawler
 
 crawler = Crawler(query={"type": "sitemap"})
