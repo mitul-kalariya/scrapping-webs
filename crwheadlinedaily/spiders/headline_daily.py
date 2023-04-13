@@ -8,6 +8,7 @@ import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
+from crwheadlinedaily.constant import BASE_URL, SITEMAP_URL
 
 from crwheadlinedaily.items import ArticleData
 from crwheadlinedaily.utils import (
@@ -29,8 +30,6 @@ from crwheadlinedaily.exceptions import (
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -56,10 +55,10 @@ class BaseSpider(ABC):
 
 
 class HeadlineDailySpider(scrapy.Spider, BaseSpider):
-    """Spider class to scrap sitemap and articles of Globe and Mail online (EN) site"""
+    """Spider class to scrap sitemap and articles of Headline Daily Online (CH) site"""
 
     name = "headline_daily"
-    start_urls = ["https://hd.stheadline.com/"]
+    start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
     def __init__(
@@ -89,11 +88,8 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
             )
             if self.current_date:
                 self.scrape_start_date = self.scrape_end_date = self.current_date
-            self.start_urls.append(
-                url
-                if self.type == "article"
-                else "https://hd.stheadline.com/rss/news/daily/"
-            )
+
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -105,7 +101,6 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
                 + str(exception),
                 level=logging.ERROR,
             )
-            raise InvalidArgumentException("Error occurred while taking type, url args. ")
 
     def parse(self, response: str, **kwargs) -> None:
         """
@@ -132,7 +127,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
 
     def parse_sitemap(self, response: str) -> None:
         """
-        parse sitemap from sitemap url and callback parser to parse title and link
+        parse sitemap article and scrap link
         Args:
             response: generated response
         Raises:
@@ -142,8 +137,12 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            for url in Selector(response, type="xml").xpath("//item/link/text()", namespaces=self.namespace).getall():
-                yield scrapy.Request(url, callback=self.parse_sitemap_article)
+            for url, title in zip(
+                Selector(response, type="xml").xpath("//item/link/text()", namespaces=self.namespace).getall(),
+                Selector(response, type="xml").xpath("//item/title/text()", namespaces=self.namespace).getall()
+                ):
+                data = {"link": url, "title": title}
+                self.articles.append(data)
         except SitemapScrappingException as exception:
             self.log(
                 "Error occurred while scrapping urls from given sitemap url. "
@@ -165,19 +164,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
 
-        try:
-
-            if title := response.css("div.topic h1::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
+        pass
 
     def parse_article(self, response: str) -> None:
         """
@@ -237,7 +224,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
+            
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
