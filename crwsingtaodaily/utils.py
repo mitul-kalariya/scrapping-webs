@@ -4,8 +4,8 @@ import json
 import logging
 import re
 from datetime import datetime
-from crwstdnews import exceptions
-from crwstdnews.constant import LOGGER
+from crwsingtaodaily import exceptions
+from crwsingtaodaily.constant import LOGGER
 
 
 def get_raw_response(response):

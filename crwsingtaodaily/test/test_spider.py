@@ -1,14 +1,14 @@
 import logging
 import unittest
 
-from crwstdnews.spiders.stdnews import STDNewsSpider
-from crwstdnews.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
-from crwstdnews.test.helpers.utils import (
+from crwsingtaodaily.spiders.stdnews import STDNewsSpider
+from crwsingtaodaily.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
+from crwsingtaodaily.test.helpers.utils import (
     get_article_content,
     online_response_from_url,
 )
 
-from crwstdnews import Crawler
+from crwsingtaodaily import Crawler
 
 # Creating an object
 logger = logging.getLogger()

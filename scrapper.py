@@ -1,4 +1,4 @@
-from crwstdnews import Crawler
+from crwsingtaodaily import Crawler
 
 crawler = Crawler(query={"type": "link_feed"})
 links = crawler.crawl()

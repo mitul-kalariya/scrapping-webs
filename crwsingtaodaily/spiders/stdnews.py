@@ -7,14 +7,14 @@ import requests
 import scrapy
 from scrapy.loader import ItemLoader
 
-from crwstdnews.constant import (
+from crwsingtaodaily.constant import (
     LINK_FEED_URL,
     BASE_URL,
     LOGGER,
 )
-from crwstdnews import exceptions
-from crwstdnews.items import ArticleData
-from crwstdnews.utils import (
+from crwsingtaodaily import exceptions
+from crwsingtaodaily.items import ArticleData
+from crwsingtaodaily.utils import (
     create_log_file,
     export_data_to_json_file,
     get_raw_response,

@@ -1,4 +1,4 @@
-# Scrapy settings for crwstdnews project
+# Scrapy settings for crwsingtaodaily project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,14 +7,14 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "crwstdnews"
+BOT_NAME = "crwsingtaodaily"
 
-SPIDER_MODULES = ["crwstdnews.spiders"]
-NEWSPIDER_MODULE = "crwstdnews.spiders"
+SPIDER_MODULES = ["crwsingtaodaily.spiders"]
+NEWSPIDER_MODULE = "crwsingtaodaily.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-# USER_AGENT = "crwstdnews (+http://www.yourdomain.com)"
+# USER_AGENT = "crwsingtaodaily (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 # SPIDER_MIDDLEWARES = {
-#    "crwstdnews.middlewares.NewtonScrappingSpiderMiddleware": 543,
+#    "crwsingtaodaily.middlewares.NewtonScrappingSpiderMiddleware": 543,
 # }
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 # DOWNLOADER_MIDDLEWARES = {
-#    "crwstdnews.middlewares.NewtonScrappingDownloaderMiddleware": 543,
+#    "crwsingtaodaily.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 # }
 
 # Enable or disable extensions
@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 # ITEM_PIPELINES = {
-#    "crwstdnews.pipelines.NewtonScrappingPipeline": 300,
+#    "crwsingtaodaily.pipelines.NewtonScrappingPipeline": 300,
 # }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

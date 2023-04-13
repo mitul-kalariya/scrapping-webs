@@ -1,7 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
 
-from crwstdnews.spiders.stdnews import STDNewsSpider
+from crwsingtaodaily.spiders.stdnews import STDNewsSpider
 
 
 class Crawler:
