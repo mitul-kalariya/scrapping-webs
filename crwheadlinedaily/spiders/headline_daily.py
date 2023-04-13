@@ -8,7 +8,7 @@ import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
-from crwheadlinedaily.constant import BASE_URL, SITEMAP_URL
+from crwheadlinedaily.constant import BASE_URL, RSS_URL
 
 from crwheadlinedaily.items import ArticleData
 from crwheadlinedaily.utils import (
@@ -20,10 +20,8 @@ from crwheadlinedaily.utils import (
 )
 from crwheadlinedaily.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
-    InvalidArgumentException
 )
 
 # Setting the threshold of logger to DEBUG
@@ -42,11 +40,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        # parse_sitemap_article will be called from here
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_rss(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -89,7 +83,7 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
             if self.current_date:
                 self.scrape_start_date = self.scrape_end_date = self.current_date
 
-            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
+            self.start_urls.append(url if self.type == "article" else RSS_URL)
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
@@ -121,13 +115,13 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
             )
         self.logger.info("Parse function called on %s", response.url)
         if "rss" in response.url:
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            yield scrapy.Request(response.url, callback=self.parse_rss)
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_rss(self, response: str) -> None:
         """
-        parse sitemap article and scrap link
+        parse RSS page and scrap link
         Args:
             response: generated response
         Raises:
@@ -152,19 +146,6 @@ class HeadlineDailySpider(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-
-        pass
 
     def parse_article(self, response: str) -> None:
         """

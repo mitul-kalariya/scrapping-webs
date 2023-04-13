@@ -42,4 +42,4 @@ TEST_ARTICLES = [
         "test_data_path": "crwheadlinedaily/test/data/test_article_10.json"
     }
 ]
-SITEMAP_URL = "https://hd.stheadline.com/rss/news/daily/"
+RSS_URL = "https://hd.stheadline.com/rss/news/daily/"

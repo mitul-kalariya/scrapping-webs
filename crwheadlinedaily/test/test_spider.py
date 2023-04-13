@@ -1,7 +1,7 @@
 import logging
 import unittest
 from crwheadlinedaily.spiders.headline_daily import HeadlineDailySpider
-from crwheadlinedaily.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwheadlinedaily.test.helpers.constant import RSS_URL, TEST_ARTICLES
 from crwheadlinedaily.test.helpers.utils import (get_article_content,
                                                  online_response_from_url)
 from crwheadlinedaily import Crawler
@@ -275,7 +275,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "link_feed"
-        self.crawler = Crawler(query={"type": self.type, "domain": SITEMAP_URL})
+        self.crawler = Crawler(query={"type": self.type, "domain": RSS_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
