@@ -120,25 +120,26 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         if key == "main":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall()
-                      if json.loads(data).get('@type') == "NewsMediaOrganization"]
+                key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
         elif key == "ImageGallery":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
             )
 
-        elif key == "VideoObject":
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data).get('video') for data in value.getall()[:1] if
-                      json.loads(data).get('video') and json.loads(data).get('video').get("@type") == "VideoObject"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") == "videoObjects"]
+            )
+        elif key == "imageObjects":
+            article_raw_parsed_json_loader.add_value(
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") == "ImageObject"]
             )
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [[json.loads(data) for data in value.getall() if json.loads(data).get('@type')
-                      in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type")
+                      not in ["ImageObject", "VideoObject", "NewsArticle"]]
             )
-
     return dict(article_raw_parsed_json_loader.load_item())
 
 

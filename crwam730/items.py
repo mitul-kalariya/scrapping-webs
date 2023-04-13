@@ -31,6 +31,6 @@ class ArticleRawResponse(Item):
 class ArticleRawParsedJson(Item):
     main = Field(output_processor=TakeFirst())
     misc = Field()
-    imageObjects = Field()
+    imageObjects = Field(output_processor=TakeFirst())
     videoObjects = Field(output_processor=TakeFirst())
-    other = Field(output_processor=TakeFirst())
+    other = Field()

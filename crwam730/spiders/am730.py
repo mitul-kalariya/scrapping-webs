@@ -19,10 +19,8 @@ from crwam730.exception import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -100,8 +98,7 @@ class Am730(scrapy.Spider, BaseSpider):
                                 self.articles.append(article)
             except Exception as exception:
                 self.log(
-                    f"Error occurred while fetching sitemap:- {str(exception)}",
-                    level=logging.ERROR,
+                    f"Error occurred while fetching sitemap:- {str(exception)}"
                 )
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
@@ -112,8 +109,7 @@ class Am730(scrapy.Spider, BaseSpider):
                 yield self.parse_article(response)
             except Exception as exception:
                 self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
+                    f"Error occured while iterating article url. {str(exception)}"
                 )
                 raise ArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
@@ -159,8 +155,7 @@ class Am730(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occurred while fetching article details:- {str(exception)}",
-                level=logging.ERROR,
+                f"Error occurred while fetching article details:- {str(exception)}"
             )
             raise ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
@@ -180,12 +175,11 @@ class Am730(scrapy.Spider, BaseSpider):
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+                self.log("No articles or sitemap url scrapped.")
 
         except Exception as exception:
             self.log(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}",
-                level=logging.ERROR,
+                f"Error occurred while exporting file:- {str(exception)} - {reason}"
             )
             raise Exception(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}"
