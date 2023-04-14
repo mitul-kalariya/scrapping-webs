@@ -22,10 +22,8 @@ from crwlemonde.exceptions import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -53,8 +51,8 @@ class LemonadeNews(scrapy.Spider, BaseSpider):
                  'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
 
     def __init__(
-        self, type=None, start_date=None,
-        end_date=None, url=None, *args, **kwargs
+        self, *args, type=None, start_date=None,
+        end_date=None, url=None, **kwargs
     ):
         try:
             super(LemonadeNews, self).__init__(*args, **kwargs)
@@ -108,7 +106,7 @@ class LemonadeNews(scrapy.Spider, BaseSpider):
                                                                               namespaces=self.namespace).getall()
 
                 for site_map_url, last_mod_date in zip(sitemap_urls[::-1], sitemap_last_mod_dates[::-1]):
-                    if "article" in site_map_url:
+                    if "article" in site_map_url or "video" in site_map_url:
                         _date = datetime.strptime(last_mod_date.split("T")[0], '%Y-%m-%d')
 
                         if self.today_date:
@@ -202,7 +200,6 @@ class LemonadeNews(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
@@ -248,7 +245,6 @@ class LemonadeNews(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

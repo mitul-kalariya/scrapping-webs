@@ -40,7 +40,20 @@ TEST_ARTICLES = [
     {
         "url": "https://www.lemonde.fr/politique/article/2023/04/06/sous-macron-l-absence-de-grand-conseiller-social-pour-dialoguer-avec-les-syndicats_6168504_823448.html",
         "test_data_path": "crwlemonde/test/data/test_article_10.json"
+    },
+    {
+        "url": "https://www.lemonde.fr/international/video/2023/04/14/italie-pourquoi-l-extreme-droite-fait-la-promo-de-la-carbonara_6169535_3210.html",
+        "test_data_path": "crwlemonde/test/data/test_article_11.json"
+    },
+    {
+        "url": "https://www.lemonde.fr/international/video/2023/04/11/ou-est-la-democratie-francaise-emmanuel-macron-interrompu-en-plein-discours-aux-pays-bas_6169096_3210.html",
+        "test_data_path": "crwlemonde/test/data/test_article_12.json"
+    },
+    {
+        "url": "https://www.lemonde.fr/international/video/2023/04/10/avec-ses-exercices-autour-de-taiwan-pekin-montre-son-mecontentement_6168982_3210.html",
+        "test_data_path": "crwlemonde/test/data/test_article_13.json"
     }
+
     
 ]
 

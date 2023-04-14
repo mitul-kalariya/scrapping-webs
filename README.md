@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "https://www.lemonde.fr/sitemap_index.xml"
+        "domain": "https://www.lemonde.fr/"
     },
     proxies=proxies
 )

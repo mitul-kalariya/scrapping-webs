@@ -114,11 +114,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
-
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
@@ -126,7 +121,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
         elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageObject"
-                      or json.loads(data).get('@type') == "ImageGallery"]
+                      or json.loads(data).get('@type') in ["ImageGallery", "ImageObject"]]
             )
         else:
             article_raw_parsed_json_loader.add_value(
@@ -230,12 +225,15 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:  # noqa: C90
                         article_data.get("main").get('publisher').get('logo').get('height')) + " Px"}}
         }
     ]
-
     parsed_data_dict["thumbnail_image"] = [article_data.get("main").get('image').get('url')]
     parsed_data_dict["title"] = [article_data.get('main').get('headline')]
     parsed_data_dict["images"] = images_list
     parsed_data_dict["section"] = article_data.get('main').get('articleSection')
     parsed_data_dict["tags"] = article_data.get('main').get('keywords')
+    video_url = response.css('div.js_player::attr("id")').get()
+    if video_url:
+        video = f"https://www.dailymotion.com/video/{video_url.split('-')[1]}"
+        parsed_data_dict['embed_video_link'] = [video]
 
     return remove_empty_elements(parsed_data_dict)
 
