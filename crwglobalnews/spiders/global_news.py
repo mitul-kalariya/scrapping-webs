@@ -24,7 +24,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_linkfeed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -93,7 +93,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         try:
             LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_linkfeed)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -105,7 +105,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {e}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_linkfeed(self, response):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
