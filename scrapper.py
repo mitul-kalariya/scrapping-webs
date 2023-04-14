@@ -7,6 +7,4 @@ for link in links[:5]:
     article = Crawler(query={"type": "article", "link": link["link"]})
     data = article.crawl()
     print(data)
-    print("----------------------------------------------------")
 
-print(data)

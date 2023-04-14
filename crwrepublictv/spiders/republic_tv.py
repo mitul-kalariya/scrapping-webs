@@ -13,6 +13,7 @@ from crwrepublictv.utils import (
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
+export_data_to_json_file
 )
 
 from scrapy.http import XmlResponse
@@ -63,7 +64,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
-            self.articles_url = url
+            self.article_url = url
             self.type = type.lower()
 
             if self.type == "sitemap":
@@ -209,7 +210,8 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

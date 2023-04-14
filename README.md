@@ -1,4 +1,4 @@
-# {ScrapperName} Scrapping
+#  Republic TV Scrapping
 
 #### Setup and execution instructions: - 
 
@@ -86,7 +86,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": https://bharat.republicworld.com/technology-news/social-media/elon-musk-made-another-announcement-for-twitter-now-update-in-for-you-option
     },
     proxies=proxies
 )
