@@ -1,8 +1,6 @@
 """ General functions """
 from datetime import timedelta, datetime
 import json
-import os
-
 from scrapy.loader import ItemLoader
 
 from crwnationalpost.items import (
@@ -195,7 +193,9 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     for block in blocks:
         if "NewsArticle" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json.loads(block)
-        elif "ImageGallery" in json.loads(block).get("@type", [{}]) or "ImageObject" in json.loads(block).get("@type", [{}]):
+        elif "ImageGallery" in json.loads(block).get(
+            "@type", [{}]
+        ) or "ImageObject" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["imageObjects"] = json.loads(block)
         elif "VideoObject" in json.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["videoObjects"] = json.loads(block)
@@ -227,41 +227,6 @@ def get_parsed_json(response) -> dict:
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
 
 
 def get_parsed_data_dict() -> dict:
@@ -338,7 +303,9 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     text = response.css("section.article-content__content-group > p::text").getall()
     image = {
         "link": data_dict.get("image_url"),
-        "caption": response.css("#main-content > article > header > div > figure > picture > img::attr(alt)").get()
+        "caption": response.css(
+            "#main-content > article > header > div > figure > picture > img::attr(alt)"
+        ).get(),
     }
 
     caption = response.css(".c-text span::text").getall()
@@ -346,10 +313,12 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
         "source_country": ["Canada"],
-        "source_language": [language_mapper.get(
-            response.css("html::attr(lang)").get().lower(),
-            response.css("html::attr(lang)").get()
-        )],
+        "source_language": [
+            language_mapper.get(
+                response.css("html::attr(lang)").get().lower(),
+                response.css("html::attr(lang)").get(),
+            )
+        ],
     }
 
     parsed_data_dict |= {"author": data_dict.get("author")}
@@ -362,8 +331,8 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "text": [" ".join(text)],
         "section": [data_dict.get("section")],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
-        "tags": [data_dict.get("tags")]
-        
+        "tags": data_dict.get("tags"),
+        "time_scraped": [datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")],
     }
     parsed_data_dict |= {
         "images": [image] or [{"link": image, "caption": caption}],
@@ -396,21 +365,22 @@ def get_author_and_publisher_details(block: dict) -> dict:
         "thumbnail_image": block.get("thumbnailUrl"),
         "headline": block.get("headline"),
         "section": block.get("articleSection"),
-        "tags": block.get("keywords")
+        "tags": block.get("keywords"),
     }
     data_dict["author"] = []
     if block.get("author"):
         for author in block.get("author"):
-            data_dict["author"].append({
-                "@type": author.get("@type"),
-                "name": author.get("name"),
-                "url": author.get("url")
-            })
+            data_dict["author"].append(
+                {
+                    "@type": author.get("@type"),
+                    "name": author.get("name"),
+                    "url": author.get("url"),
+                }
+            )
     else:
-        data_dict.get("author", []).append({
-            "name": block.get("author"),
-            "@type": block.get("@type")
-        })
+        data_dict.get("author", []).append(
+            {"name": block.get("author"), "@type": block.get("@type")}
+        )
     return data_dict
 
 
@@ -424,12 +394,13 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
     Returns:
         dict: details of publisher to pass to json
     """
-    return [{
-            
+    return [
+        {
             "@type": data_dict.get("publisher_type"),
             "name": data_dict.get("publisher_name"),
             "logo": {
                 "type": data_dict.get("logo_type", "ImageObject"),
                 "url": data_dict.get("logo_url"),
-                
-            }}]
+            },
+        }
+    ]

@@ -211,19 +211,17 @@
                 "pmn"
             ],
             "tags": [
-                [
-                    "PMN News",
-                    "Taiwan",
-                    "REU",
-                    "Politics",
-                    "People's Republic of China",
-                    "PMN Politics",
-                    "Beijing",
-                    "United States",
-                    "Wired",
-                    "story",
-                    "97aa9b17-6ac3-4f5f-b49c-9284810adebd"
-                ]
+                "PMN News",
+                "Taiwan",
+                "REU",
+                "Politics",
+                "People's Republic of China",
+                "PMN Politics",
+                "Beijing",
+                "United States",
+                "Wired",
+                "story",
+                "97aa9b17-6ac3-4f5f-b49c-9284810adebd"
             ]
         }
     }

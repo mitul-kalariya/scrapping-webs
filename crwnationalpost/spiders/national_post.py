@@ -12,18 +12,15 @@ from scrapy.loader import ItemLoader
 
 from crwnationalpost.items import ArticleData
 from crwnationalpost.utils import (
-    date_range,
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
 from crwnationalpost.constant import BASE_URL, SITEMAP_URL
 from crwnationalpost.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
@@ -48,9 +45,6 @@ class BaseSpider(ABC):
         # parse_sitemap_article will be called from here
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
     @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
@@ -71,7 +65,7 @@ class NationalPostSpider(scrapy.Spider, BaseSpider):
         super(NationalPostSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -136,7 +130,7 @@ class NationalPostSpider(scrapy.Spider, BaseSpider):
                     year = single_date.year
                     self.logger.debug("Parse function called on %s", response.url)
                     yield scrapy.Request(
-                        f"https://nationalpost.com/sitemap-story.xml?y={single_date.year}"
+                        f"https://nationalpost.com/sitemap-story.xml?y={year}"
                         + f"&m={month}&d={day}",
                         callback=self.parse_sitemap,
                     )
@@ -148,7 +142,6 @@ class NationalPostSpider(scrapy.Spider, BaseSpider):
         else:
             yield self.parse_article(response)
 
-            
     def parse_sitemap(self, response: str) -> None:
         """
         parse sitemap from sitemap url and callback parser to parse title and link
@@ -160,8 +153,12 @@ class NationalPostSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         for url, date in zip(
-            Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-            Selector(response, type="xml").xpath("//sitemap:lastmod/text()", namespaces=self.namespace).getall(),
+            Selector(response, type="xml")
+            .xpath("//sitemap:loc/text()", namespaces=self.namespace)
+            .getall(),
+            Selector(response, type="xml")
+            .xpath("//sitemap:lastmod/text()", namespaces=self.namespace)
+            .getall(),
         ):
             try:
                 date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
@@ -177,18 +174,6 @@ class NationalPostSpider(scrapy.Spider, BaseSpider):
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        pass
 
     def parse_article(self, response: str) -> None:
         """
@@ -249,7 +234,7 @@ class NationalPostSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            
+
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

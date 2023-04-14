@@ -210,18 +210,16 @@
                 "pmn"
             ],
             "tags": [
-                [
-                    "story",
-                    "Wired",
-                    "REU",
-                    "PMN Crime",
-                    "PMN Politics",
-                    "Government Act",
-                    "5c7757a5-94d5-4935-98fa-8d8ff2ffdb2a",
-                    "U.S.",
-                    "PMN News",
-                    "Politics"
-                ]
+                "story",
+                "Wired",
+                "REU",
+                "PMN Crime",
+                "PMN Politics",
+                "Government Act",
+                "5c7757a5-94d5-4935-98fa-8d8ff2ffdb2a",
+                "U.S.",
+                "PMN News",
+                "Politics"
             ]
         }
     }

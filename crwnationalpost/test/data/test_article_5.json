@@ -209,17 +209,15 @@
                 "pmn"
             ],
             "tags": [
-                [
-                    "Wired",
-                    "PMN News",
-                    "AP",
-                    "PMN World",
-                    "PMN Politics",
-                    "Politics",
-                    "61a7915e-ecbe-41f8-a286-ce80d7bb8816",
-                    "story",
-                    "Army Center"
-                ]
+                "Wired",
+                "PMN News",
+                "AP",
+                "PMN World",
+                "PMN Politics",
+                "Politics",
+                "61a7915e-ecbe-41f8-a286-ce80d7bb8816",
+                "story",
+                "Army Center"
             ]
         }
     }

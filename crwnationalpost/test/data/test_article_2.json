@@ -226,18 +226,16 @@
                 "pmn"
             ],
             "tags": [
-                [
-                    "3cded9a1-598e-4f97-9ff3-bb0775a881af",
-                    "PMN Sports",
-                    "CP",
-                    "Wired",
-                    "Jacob Markstrom",
-                    "Calgary Flames",
-                    "story",
-                    "PMN Hockey",
-                    "Sports",
-                    "Los Angeles Kings"
-                ]
+                "3cded9a1-598e-4f97-9ff3-bb0775a881af",
+                "PMN Sports",
+                "CP",
+                "Wired",
+                "Jacob Markstrom",
+                "Calgary Flames",
+                "story",
+                "PMN Hockey",
+                "Sports",
+                "Los Angeles Kings"
             ]
         }
     }
