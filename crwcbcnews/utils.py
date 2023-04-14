@@ -142,14 +142,14 @@ def based_on_scrape_type(
     """
     if scrape_type == "article":
         article_validations(url, scrape_start_date, scrape_end_date)
-        return None, None
+        return None
     if scrape_type == "sitemap":
         scrape_start_date, scrape_end_date = sitemap_validations(
             scrape_start_date, scrape_end_date, url
         )
         date_range_lst = []
         date_range_lst.extend(iter(date_range(scrape_start_date, scrape_end_date)))
-        return scrape_start_date, date_range_lst
+        return date_range_lst
 
     return validate_arg("MISSING_REQUIRED_FIELD", None, "type")
 
@@ -436,24 +436,20 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
         caption_one + caption_two
         for caption_one, caption_two in zip(image_caption[::2], image_caption[1::2])
     ]
-    video_caption = None
-    video_url = None
+    video_caption = []
+    video_url = []
     thumbnail_url = None
     for block in parsed_data:
         if json.loads(block).get("video", None):
-            video_caption = (
-                json.loads(block).get("video", None)[0].get("alternativeHeadline", None)
-            )
-            video_url = (
-                json.loads(block)
-                .get("video", None)[0]
-                .get("contentUrl", None)
-                .split("play/")[1]
-            )
-            video_url = GET_VIDEO_URL + video_url
+            for video_data in json.loads(block).get("video", []):
+                video_caption.append(video_data.get("alternativeHeadline", None))
+                video_url.append(
+                    GET_VIDEO_URL + video_data.get("contentUrl", "").split("play/")[1]
+                )
         if "VideoObject" in json.loads(block).get("@type", [{}]):
-            video_caption = json.loads(block).get("description")
-            video_url = json.loads(block).get("embedUrl")
+            for video_data in json.loads(block):
+                video_caption.append(video_data.get("description"))
+                video_url.append(video_data.get("embedUrl"))
         if json.loads(block).get("thumbnailUrl", None):
             thumbnail_url = json.loads(block).get("thumbnailUrl")
 
@@ -464,6 +460,11 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
                 image_url, image_caption, fillvalue=None
             )
         ],
-        "video": [{"link": video_url, "caption": video_caption}],
+        "video": [
+            {"link": video_link, "caption": video_cap}
+            for video_link, video_cap in itertools.zip_longest(
+                video_url, video_caption, fillvalue=None
+            )
+        ],
         "thumbnail_image": [thumbnail_url],
     }

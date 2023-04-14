@@ -30,7 +30,6 @@ from crwcbcnews.exceptions import (
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -78,11 +77,9 @@ class CbcNewsSpider(scrapy.Spider, BaseSpider):
                 datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
             )
 
-            self.current_date, self.date_range_lst = based_on_scrape_type(
+            self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            if self.current_date:
-                self.scrape_start_date = self.scrape_end_date = self.current_date
             self.start_urls.append(url if self.type == "article" else RSS_URL)
 
         except Exception as exception:

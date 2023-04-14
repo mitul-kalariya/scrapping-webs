@@ -10,7 +10,7 @@ TEST_ARTICLES = [
         "test_data_path": "crwcbcnews/test/data/test_article_2.json",
     },
     {
-        "url": "https://www.cbc.ca/news/canada/calgary/janet-brown-poll-calgary-ndp-ucp-rachel-notley-danielle-smith-quadrants-1.6806245",
+        "url": "https://www.cbc.ca/news/canada/british-columbia/sfu-football-players-injunction-filed-1.6809900",
         "test_data_path": "crwcbcnews/test/data/test_article_3.json",
     },
 ]
