@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
 import scrapy
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from crwleparisien.items import ArticleData
 from scrapy.exceptions import CloseSpider
 from scrapy.selector import Selector
@@ -18,11 +18,11 @@ from crwleparisien.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-
+    export_data_to_json_file
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     filename="leparisien.log",
     filemode="a",
@@ -98,9 +98,10 @@ class LeParisien(scrapy.Spider, BaseSpider):
                     f"Unable to scrape due to getting this status code {response.status}"
                 )
             if self.type == "sitemap":
-                for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                         namespaces=self.namespace).getall():
-                    yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                # for site_map_url in Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                #                                                          namespaces=self.namespace).getall():
+                #     yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_archive)
 
             elif self.type == "article":
                 yield self.parse_article(response)
@@ -111,6 +112,60 @@ class LeParisien(scrapy.Spider, BaseSpider):
             )
             raise SitemapScrappingException(
                 f"Error occurred while iterating {self.type} url:- {str(exception)}"
+            ) from exception
+
+    def parse_archive(self, response):  # noqa:C901
+
+        try:
+            if self.today_date:
+                if self.today_date.day < 10 and self.today_date.month < 10:
+                    url = f"{response.url}{self.today_date.year}/0{self.today_date.day}-0{self.today_date.month}-{self.today_date.year}"  # noqa:E501
+                elif self.today_date.day >= 10 and self.today_date.month < 10:
+                    url = f"{response.url}{self.today_date.year}/{self.today_date.day}-0{self.today_date.month}-{self.today_date.year}"  # noqa:E501
+                elif self.today_date.day < 10 and self.today_date.month >= 10:
+                    url = f"{response.url}{self.today_date.year}/0{self.today_date.day}-{self.today_date.month}-{self.today_date.year}"  # noqa:E501
+                else:
+                    url = f"{response.url}{self.today_date.year}/0{self.today_date.day}-{self.today_date.month}-{self.today_date.year}"  # noqa:E501
+                yield scrapy.Request(url, callback=self.parse_archive_article)
+
+            else:
+                date_range = [self.start_date + timedelta(days=x)
+                              for x in range((self.end_date - self.start_date).days + 2)]
+                for date in date_range:
+                    if date.day < 10 and date.month < 10:
+                        url = f"{response.url}{date.year}/0{date.day}-0{date.month}-{date.year}"
+                    elif date.day >= 10 and date.month < 10:
+                        url = f"{response.url}{date.year}/{date.day}-0{date.month}-{date.year}"
+                    elif date.day < 10 and date.month >= 10:
+                        url = f"{response.url}{date.year}/0{date.day}-{date.month}-{date.year}"
+                    else:
+                        url = f"{response.url}{date.year}/{date.day}-{date.month}-{date.year}"
+                    yield scrapy.Request(url, callback=self.parse_archive_article)
+
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating sitemap url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
+            ) from exception
+        
+    def parse_archive_article(self, response):
+        try:
+            
+            urls_selector = response.css('.story-preview')
+            for selector in urls_selector:
+                title = selector.css('span::text').get()
+                link = selector.css('a::attr("href")').get()
+                self.articles.append({"link": link[0], "title": title})
+        except Exception as exception:
+            self.log(
+                f"Error occurred while archive articles url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while archive articles url. {str(exception)}"
             ) from exception
 
     def parse_sitemap(self, response):
@@ -183,7 +238,6 @@ class LeParisien(scrapy.Spider, BaseSpider):
             parsed_json_misc = response.css('script[type="application/json"]::text')
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
@@ -226,6 +280,8 @@ class LeParisien(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            # else:
+            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

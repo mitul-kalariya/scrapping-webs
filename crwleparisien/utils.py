@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from urllib.parse import urlparse
 from scrapy.loader import ItemLoader
@@ -13,6 +14,7 @@ from crwleparisien.constant import (
     DATE_FORMAT,
     TYPE,
     PARSED_DATA_KEYS_LIST,
+    ARCHIVE_URL
 )
 from crwleparisien.itemLoader import (
     ArticleRawResponseLoader,
@@ -49,7 +51,8 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:
     validate_type(self)
 
     if self.type == "sitemap":
-        handle_sitemap_type(self, start_date, end_date, SITEMAP_URL)
+        # handle_sitemap_type(self, start_date, end_date, SITEMAP_URL)
+        handle_sitemap_type(self, start_date, end_date, ARCHIVE_URL)
 
     elif self.type == "article":
         handle_article_type(self)
@@ -133,11 +136,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data)[1].get('@type') == "NewsArticle"]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') == "ImageGallery"]
-            )
-
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data)[0].get('@type') == "VideoObject"]
@@ -222,7 +220,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
 
     parsed_data_dict["tags"] = get_tags(main)
     parsed_data_dict['embed_video_link'] = get_video(response)
-
+    breakpoint()
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -379,3 +377,35 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = (
+            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+
+    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4, ensure_ascii=False)

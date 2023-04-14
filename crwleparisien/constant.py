@@ -4,6 +4,8 @@
 SITEMAP_URL = "https://www.leparisien.fr/arc/outboundfeeds/news-sitemap-index/?from=0&outputType=xml&_website" \
               "=leparisien"
 
+ARCHIVE_URL = "https://www.leparisien.fr/archives/"
+
 DATE_FORMAT = '%Y-%m-%d'
 TYPE = "@type"
 
@@ -37,3 +39,5 @@ PARSED_DATA_KEYS_LIST = [
     "tags",
     "embed_video_link",
 ]
+
+BASE_URL = "leparisien.fr"
