@@ -1,5 +1,3 @@
-"""Spider to scrap La-Republica news website"""
-
 import scrapy
 from lxml import etree
 from datetime import datetime
@@ -11,7 +9,6 @@ from crwbastillepost.items import ArticleData
 from crwbastillepost.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -28,9 +25,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -73,15 +67,11 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             self.article_url = url
             self.type = type.lower()
 
-            create_log_file()
-
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
 
                 self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else None
+                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
                 )
                 self.end_date = (
                     datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
@@ -119,13 +109,9 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                     root = etree.fromstring(response.body)
                     links = root.xpath(
                         "//xmlns:loc/text()",
-                        namespaces={
-                            "xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"
-                        },
+                        namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
                     )
                     for link in links:
-                        if "trends" in link:
-                            continue
                         yield scrapy.Request(link, callback=self.parse_sitemap)
                 except Exception as exception:
                     LOGGER.info(
@@ -136,19 +122,24 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 article_data = self.parse_article(response)
                 yield article_data
 
-        except BaseException as exception:
-            LOGGER.info(f"Error occured in parse function: {exception}")
+        except BaseException as e:
+            LOGGER.info(f"Error occured in parse function: {e}")
             raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {exception}"
+                f"Error occured in parse function: {e}"
             )
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_sitemap(self, response: str) -> None:    # noqa: C901
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
 
         try:
-            root = etree.fromstring(response.body)
+            try:
+                root = etree.fromstring(response.body)
+            except Exception as exception:
+                LOGGER.info(f"Error in sitemap for url:{response.url} - {exception}")
+                return
+
             urls = root.xpath(
                 "//xmlns:loc/text()",
                 namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
@@ -178,20 +169,18 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                         }
                         self.articles.append(data)
                 else:
-                    data = {
-                        "link": url,
-                        "title": title,
-                    }
-                    self.articles.append(data)
+                    if self.start_date and self.end_date:
+                        data = {
+                            "link": url,
+                            "title": title,
+                        }
+                        self.articles.append(data)
 
-        except Exception as exception:
-            LOGGER.info("Error while parsing sitemap: {}".format(exception))
+        except BaseException as e:
+            LOGGER.info(f"Error while parsing sitemap: {e}")
             raise exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {str(exception)}"
+                f"Error while parsing sitemap: {str(e)}"
             )
-
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
 
     def parse_article(self, response: str) -> list:
         """
@@ -242,13 +231,8 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
-            LOGGER.info(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
+            LOGGER.info(f"Error occurred while writing json file{str(exception)} - {reason}")
             raise exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
+                f"Error occurred while writing json file{str(exception)} - {reason}")

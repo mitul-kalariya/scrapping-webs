@@ -1,5 +1,4 @@
 """ General functions """
-import os
 import json
 import logging
 from datetime import datetime
@@ -14,8 +13,6 @@ def create_log_file():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -51,10 +48,10 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as exception:
-        LOGGER.info(f"Error occured while checking date range: {exception}")
+    except exceptions.InvalidDateException as expception:
+        LOGGER.info(f"Error occured while checking date range: {expception}")
         raise exceptions.InvalidDateException(
-            f"Error occured while checking date range: {exception}"
+            f"Error occured while checking date range: {expception}"
         )
 
 
@@ -106,9 +103,9 @@ def get_main(response):
         return data
 
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting main: {exception}")
+        LOGGER.error("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting main: {exception}"
+            f"Error while getting main: {exception}"
         )
 
 
@@ -126,6 +123,7 @@ def get_misc(response):
         for block in misc:
             data.append(json.loads(block))
         return data
+
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting misc: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -169,10 +167,10 @@ def get_parsed_json(response):
         data = json.loads(json_format)
         if data.get("@type") == "NewsArticle":
             parsed_json["main"] = data
-        elif data.get("@type") == "ImageGallery":
-            parsed_json["ImageGallery"] = data
+        elif data.get("@type") in ["ImageGallery", "ImageObject"]:
+            parsed_json["imageObjects"] = data
         elif data.get("@type") == "VideoObject":
-            parsed_json["VideoObject"] = data
+            parsed_json["videoObjects"] = data
         else:
             other_data.append(data)
 
@@ -247,41 +245,6 @@ def get_parsed_data(response):
         )
 
 
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
 def get_publisher(response):
     """
     Extracts publisher information from the given response object and returns it as a dictionary.
@@ -302,10 +265,11 @@ def get_publisher(response):
         publisher = json_loads.get("publisher")
         data.append(publisher)
         return data
-    except Exception as exception:
-        LOGGER.info(f"Error while fetching publisher data {str(exception)}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting publisher: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error while fetching publisher data {str(exception)}"
+            f"Error occured while extracting publisher: {exception}"
         )
 
 
@@ -337,10 +301,11 @@ def get_author(response) -> list:
                     }
                     data.append(var)
             return data
-    except Exception as exception:
-        LOGGER.info(f"Error while fetching author {str(exception)}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting author: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error while fetching author {str(exception)}"
+            f"Error occured while extracting author: {exception}"
         )
 
 
@@ -356,10 +321,11 @@ def get_thumbnail_image(response) -> list:
         thumbnail_image = []
         thumbnail_image.append(image.get("image").get("url"))
         return thumbnail_image
-    except Exception as exception:
-        LOGGER.info(f"Error while fetching thumbnail image {str(exception)}")
+
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while extracting thumbnail image: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error while fetching thumbnail image {str(exception)}"
+            f"Error occured while extracting thumbnail image: {exception}"
         )
 
 
@@ -384,8 +350,8 @@ def get_images(response) -> list:
         }
         return temp_dict.get("images")
 
-    except Exception as exception:
-        LOGGER.info(f"Error while fetching image {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article images: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error while fetching image {str(exception)}"
+            f"Error occured while getting article images: {exception}"
         )

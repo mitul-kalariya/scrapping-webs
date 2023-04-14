@@ -1,1 +1,1 @@
-from crwbastillepost.main import Crawler
+from crwbastillepost.main import Crawler     # noqa: F401
