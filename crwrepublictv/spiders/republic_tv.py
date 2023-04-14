@@ -9,7 +9,6 @@ from crwrepublictv.items import ArticleData
 from crwrepublictv.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -207,11 +206,9 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            LOGGER.info(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+            LOGGER.error(
+                f"Error occurred while writing json file{str(exception)} - {reason}", level=logging.ERROR
             )
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file {str(exception) - {reason}}"
