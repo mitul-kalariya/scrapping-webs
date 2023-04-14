@@ -182,7 +182,7 @@ def get_parsed_data(response):
                 ).strip()
             ]
 
-        article_thumbnail = get_thumbnail(response)
+        article_thumbnail = get_thumbnail(videoobject_json, response)
         response_data["thumbnail_image"] = article_thumbnail
 
         response_data |= get_video_info(videoobject_json, response)
@@ -263,16 +263,19 @@ def get_misc(response):
         )
 
 
-def get_thumbnail(response) -> list:
+def get_thumbnail(video_obj_json, response) -> list:
     """extract thumbnail info from article
 
     Returns:
         list: target_data
     """
     try:
+        data = []
+        if video_obj_json:
+            thumbnail_image = video_obj_json.get("thumbnailUrl", None)
+            data.append(thumbnail_image)
         video_article = response.css("div.vplayer div.vplayer__video")
         normal_article = response.css("div.article__media figure")
-        data = []
         if normal_article:
             for block in normal_article:
                 thumbnail_image = block.css("picture img::attr(src)").get()
@@ -289,4 +292,41 @@ def get_thumbnail(response) -> list:
         LOGGER.info(f"Error while extracting thumbnail image: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error while extracting thumbnail image: {exception}"
+        )
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    try:
+        folder_structure = ""
+        if scrape_type == "sitemap":
+            folder_structure = "Links"
+            filename = (
+                f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
+        elif scrape_type == "article":
+            folder_structure = "Article"
+            filename = (
+                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            )
+
+        if not os.path.exists(folder_structure):
+            os.makedirs(folder_structure)
+        with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
+            json.dump(file_data, file, indent=4)
+
+    except Exception as exception:
+        LOGGER.info(f"Error occurred while writing json file {str(exception)}")
+        raise exceptions.ArticleScrappingException(
+            f"Error occurred while writing json file {str(exception)}"
         )
