@@ -1,7 +1,6 @@
 # Utility/helper functions
 # utils.py
 
-import os
 import re
 import json
 import logging
@@ -10,7 +9,7 @@ from io import BytesIO
 from PIL import Image
 from datetime import datetime
 from crwglobalnews import exceptions
-from crwglobalnews.constant import TODAYS_DATE, LOGGER
+from crwglobalnews.constant import LOGGER
 
 
 def create_log_file():
@@ -21,52 +20,6 @@ def create_log_file():
         filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-
-
-def validate_sitemap_date_range(start_date, end_date):
-    """
-    validated date range given by user
-
-    Args:
-        start_date (str): start_date
-        end_date (str): end_date
-    """
-    start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    )
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-    try:
-        if start_date and not end_date:
-            raise exceptions.InvalidDateException(
-                "end_date must be specified if start_date is provided"
-            )
-        if not start_date and end_date:
-            raise exceptions.InvalidDateException(
-                "start_date must be specified if end_date is provided"
-            )
-
-        if start_date and end_date and start_date > end_date:
-            raise exceptions.InvalidDateException(
-                "start_date should not be later than end_date"
-            )
-
-        if start_date and end_date and start_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
-            )
-
-        if start_date and end_date and end_date > TODAYS_DATE:
-            raise exceptions.InvalidDateException(
-                "end_date should not be greater than today_date"
-            )
-
-    except exceptions.InvalidDateException as expception:
-        LOGGER.info(
-            f"Error occured while checking date range: {expception}"
-        )
-        raise exceptions.InvalidDateException(
-            f"Error occured while checking date range: {expception}"
-        )
 
 
 def remove_empty_elements(parsed_data_dict):
@@ -448,4 +401,3 @@ def get_embed_video_link(response) -> list:
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting video links: {exception}"
         )
-

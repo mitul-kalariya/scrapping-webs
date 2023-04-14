@@ -3,12 +3,11 @@ from datetime import datetime
 from lxml import etree
 from crwglobalnews import exceptions
 from scrapy.loader import ItemLoader
-from crwglobalnews.constant import TODAYS_DATE, LOGGER
+from crwglobalnews.constant import TODAYS_DATE, LOGGER, SITEMAP_URL
 from abc import ABC, abstractmethod
 from crwglobalnews.items import ArticleData
 from crwglobalnews.utils import (
     create_log_file,
-    validate_sitemap_date_range,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -61,16 +60,12 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             self.type = type.lower()
 
             if self.type == "sitemap":
-                self.start_urls.append("https://globalnews.ca/news-sitemap.xml")
-                self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else None
-                )
-                self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-                )
-                validate_sitemap_date_range(start_date, end_date)
+                if start_date is not None or end_date is not None:
+                    LOGGER.info("Date Filter is not available for this website")
+                    raise exceptions.InvalidInputException(
+                        "Date Filter is not available for this website"
+                    )
+                self.start_urls.append(SITEMAP_URL)
 
             if self.type == "article":
                 if url:
@@ -125,25 +120,13 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
             )
             for url, title, pub_date in zip(urls, titles, publication_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
-                if self.start_date and published_at < self.start_date:
-                    return
-                if self.start_date and published_at > self.end_date:
-                    return
 
-                if self.start_date is None and self.end_date is None:
-                    if TODAYS_DATE == published_at:
-                        data = {
-                            "link": url,
-                            "title": title,
-                        }
-                        self.articles.append(data)
-                else:
-                    if self.start_date and self.end_date:
-                        data = {
-                            "link": url,
-                            "title": title,
-                        }
-                        self.articles.append(data)
+                if TODAYS_DATE == published_at:
+                    data = {
+                        "link": url,
+                        "title": title,
+                    }
+                    self.articles.append(data)
 
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap: {}".format(exception))
