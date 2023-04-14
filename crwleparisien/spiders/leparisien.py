@@ -24,8 +24,6 @@ from crwleparisien.utils import (
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="leparisien.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -150,10 +148,10 @@ class LeParisien(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while iterating sitemap url:- {str(exception)}"
             ) from exception
-        
+
     def parse_archive_article(self, response):
         try:
-            
+
             urls_selector = response.css('.story-preview')
             for selector in urls_selector:
                 title = selector.css('span::text').get()
@@ -280,8 +278,8 @@ class LeParisien(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

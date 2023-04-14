@@ -220,7 +220,6 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
 
     parsed_data_dict["tags"] = get_tags(main)
     parsed_data_dict['embed_video_link'] = get_video(response)
-    breakpoint()
     return remove_empty_elements(parsed_data_dict)
 
 
