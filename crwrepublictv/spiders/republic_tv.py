@@ -9,7 +9,6 @@ from crwrepublictv.items import ArticleData
 from crwrepublictv.utils import (
     create_log_file,
     validate_sitemap_date_range,
-    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -21,6 +20,7 @@ from scrapy.selector import Selector
 
 # create log file
 create_log_file()
+
 
 class BaseSpider(ABC):
     @abstractmethod
@@ -134,8 +134,9 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             # Loop through each sitemap URL in the XML response
             links = xml_selector.xpath('//*[local-name()="loc"]/text()', namespaces=xml_namespaces).getall()
             titles = xml_selector.xpath('//*[local-name()="title"]/text()', namespaces=xml_namespaces).getall()
-            published_dates = xml_selector.xpath('//*[local-name()="publication_date"]/text()', namespaces=xml_namespaces).getall()
-
+            published_dates = xml_selector.xpath(
+                '//*[local-name()="publication_date"]/text()', namespaces=xml_namespaces
+            ).getall()
 
             for link, title, pub_date in zip(links, titles, published_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
@@ -155,7 +156,6 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         except BaseException as exception:
             LOGGER.error("Error while parsing sitemap: {}".format(exception))
             exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
-
 
     def parse_article(self, response: str) -> list:
         """
@@ -206,8 +206,6 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
@@ -215,4 +213,3 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file {str(exception) - {reason}}"
             )
-
