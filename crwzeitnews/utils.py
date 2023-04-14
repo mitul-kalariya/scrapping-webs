@@ -468,11 +468,15 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
         dict: text, title, section, tag details
     """
     if parsed_data.get("@type")[0] in {"Article", "VideoObject"}:
+        breakpoint()
+        keywords = parsed_data.get("keywords",None)
+        if keywords:
+            keywords = keywords[0].split(",")
         return {
             "title": parsed_data.get("headline"),
             "text": parsed_data.get("articleBody"),
             "section": parsed_data.get("articleSection"),
-            "tags": parsed_data.get("keywords"),
+            "tags":keywords,
         }
     return {
         "title": response.css("header.article-header > h1::text").getall(),
@@ -518,7 +522,8 @@ def format_dictionary(raw_dictionary):
     Returns:
         dict: formatted dictionary
     """
-    for key, value in raw_dictionary.items():
-        if not isinstance(value, list):
-            raw_dictionary[key] = [value]
-    return raw_dictionary
+    if raw_dictionary:
+        for key, value in raw_dictionary.items():
+            if not isinstance(value, list):
+                raw_dictionary[key] = [value]
+        return raw_dictionary
