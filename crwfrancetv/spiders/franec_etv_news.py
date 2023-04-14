@@ -12,13 +12,13 @@ from crwfrancetv.utils import (
     get_parsed_data,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file
 )
 from crwfrancetv.exceptions import (
     ArticleScrappingException,
     ExportOutputFileException,
     SitemapScrappingException,
-    InvalidArgumentException
+    InvalidArgumentException,
+    SitemapArticleScrappingException
 )
 
 logging.basicConfig(
@@ -43,6 +43,14 @@ class BaseSpider(ABC):
     def parse_article(self, response: str) -> list:
         pass
 
+    @abstractmethod
+    def parse_archive(self, response: str) -> list:
+        pass
+
+    @abstractmethod
+    def parse_archive_article(self, response: str) -> list:
+        pass
+
 
 class FranceTvInfo(scrapy.Spider, BaseSpider):
     name = "francetv-info"
@@ -50,7 +58,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
-    def __init__(self, *args, type=None, start_date=None, end_date=None, url=None, enable_selenium=True, **kwargs):
+    def __init__(self, *args, type=None, start_date=None, end_date=None, url=None, enable_selenium=False, **kwargs):
         try:
             super(FranceTvInfo, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -96,6 +104,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
+                # yield scrapy.Request(response.url, callback=self.parse_article)
                 yield scrapy.Request(response.url, callback=self.parse_archive)
 
             if self.type == "article":
@@ -116,10 +125,10 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                           "octobre", "novembre", "decembre"]
             if self.today_date:
                 if self.today_date.day < 10:
-                    url = f"{response.url}{self.today_date.year}/{self.today_date.day}-{month_list[self.today_date.month-1]}-{self.today_date.year}.html"  # noqa:E501
-                else:
                     url = f"{response.url}{self.today_date.year}/0{self.today_date.day}-{month_list[self.today_date.month-1]}-{self.today_date.year}.html"  # noqa:E501
-                yield scrapy.Request(url, callback=self.parse_archive)
+                else:
+                    url = f"{response.url}{self.today_date.year}/{self.today_date.day}-{month_list[self.today_date.month-1]}-{self.today_date.year}.html"  # noqa:E501
+                yield scrapy.Request(url, callback=self.parse_archive_article)
 
             else:
                 date_range = [self.start_date + timedelta(days=x)
@@ -133,11 +142,11 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occurred while iterating sitemap url. {str(exception)}",
+                f"Error occurred while iterating archive url. {str(exception)}",
                 level=logging.ERROR,
             )
             raise SitemapScrappingException(
-                f"Error occurred while iterating sitemap url:- {str(exception)}"
+                f"Error occurred while iterating archive url:- {str(exception)}"
             ) from exception
 
     def parse_archive_article(self, response):
@@ -152,7 +161,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 f"Error occurred while archive articles url. {str(exception)}",
                 level=logging.ERROR,
             )
-            raise SitemapScrappingException(
+            raise SitemapArticleScrappingException(
                 f"Error occurred while archive articles url. {str(exception)}"
             ) from exception
 
@@ -199,7 +208,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 f"Error occurred while iterating sitemap url:- {str(exception)}"
             ) from exception
 
-
     def parse_article(self, response):
         """
         parse article and append related data to class's articles variable
@@ -225,7 +233,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
@@ -271,8 +278,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            if self.articles:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

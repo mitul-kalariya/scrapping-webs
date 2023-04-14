@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwfrancetv.videos import get_video
@@ -126,10 +125,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
@@ -233,7 +228,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict, enable_selenium
     parsed_data_dict["description"] = [article_data.get("main").get('description')]
     parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
-
+    parsed_data_dict['time_scraped'] = [str(datetime.now())]
     if "publisher" in list(article_data.get("main").keys()):
         key = "publisher"
     elif "Publisher" in list(article_data.get("main").keys()):
@@ -309,35 +304,3 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)

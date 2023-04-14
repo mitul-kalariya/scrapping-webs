@@ -222,6 +222,7 @@
             "published_at": [
                 "2023-04-06T15:47:36+02:00"
             ],
+
             "publisher": [
                 {
                     "@id": "www.francetvinfo.fr",
@@ -273,6 +274,9 @@
                 " Etats Unis d'Am\u00e9rique",
                 " Monde",
                 " Tornade"
+            ],
+            "time_scraped": [
+                "2023-04-14 16:14:56.353892"
             ],
             "embed_video_link": [
                 "https://embed.francetv.fr/22322203bead620360dae993b8710484"
