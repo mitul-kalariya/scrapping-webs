@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 import scrapy
 from scrapy.selector import Selector
@@ -11,7 +11,8 @@ from crwfrancetv.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json
+    get_parsed_json,
+    export_data_to_json_file
 )
 from crwfrancetv.exceptions import (
     ArticleScrappingException,
@@ -21,10 +22,8 @@ from crwfrancetv.exceptions import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -51,7 +50,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
-    def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
+    def __init__(self, *args, type=None, start_date=None, end_date=None, url=None, enable_selenium=True, **kwargs):
         try:
             super(FranceTvInfo, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -63,6 +62,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             self.start_date = start_date
             self.end_date = end_date
             self.today_date = None
+            self.enable_selenium = enable_selenium
 
             check_cmd_args(self, self.start_date, self.end_date)
         except Exception as exception:
@@ -96,7 +96,8 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_archive)
+
             if self.type == "article":
                 yield self.parse_article(response)
         except Exception as exception:
@@ -106,6 +107,53 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             )
             raise SitemapScrappingException(
                 f"Error occurred while iterating {self.type} url:- {str(exception)}"
+            ) from exception
+
+    def parse_archive(self, response):
+
+        try:
+            month_list = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre",
+                          "octobre", "novembre", "decembre"]
+            if self.today_date:
+                if self.today_date.day < 10:
+                    url = f"{response.url}{self.today_date.year}/{self.today_date.day}-{month_list[self.today_date.month-1]}-{self.today_date.year}.html"  # noqa:E501
+                else:
+                    url = f"{response.url}{self.today_date.year}/0{self.today_date.day}-{month_list[self.today_date.month-1]}-{self.today_date.year}.html"  # noqa:E501
+                yield scrapy.Request(url, callback=self.parse_archive)
+
+            else:
+                date_range = [self.start_date + timedelta(days=x)
+                              for x in range((self.end_date - self.start_date).days + 2)]
+                for date in date_range:
+                    if date.day < 10:
+                        url = f"{response.url}{date.year}/0{date.day}-{month_list[date.month-1]}-{date.year}.html"
+                    else:
+                        url = f"{response.url}{date.year}/{date.day}-{month_list[date.month-1]}-{date.year}.html"
+                    yield scrapy.Request(url, callback=self.parse_archive_article)
+
+        except Exception as exception:
+            self.log(
+                f"Error occurred while iterating sitemap url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while iterating sitemap url:- {str(exception)}"
+            ) from exception
+
+    def parse_archive_article(self, response):
+        try:
+            urls_selector = response.css('ul.contents li')
+            for selector in urls_selector:
+                title = selector.css('a::text').getall()
+                link = selector.css('a::attr("href")').getall()
+                self.articles.append({"link": link[0], "title": " ".join(title)})
+        except Exception as exception:
+            self.log(
+                f"Error occurred while archive articles url. {str(exception)}",
+                level=logging.ERROR,
+            )
+            raise SitemapScrappingException(
+                f"Error occurred while archive articles url. {str(exception)}"
             ) from exception
 
     def parse_sitemap(self, response):
@@ -132,7 +180,6 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                                 "link": url,
                                 "title": title,
                             }
-                            print(article)
                             self.articles.append(article)
 
                 else:
@@ -151,6 +198,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while iterating sitemap url:- {str(exception)}"
             ) from exception
+
 
     def parse_article(self, response):
         """
@@ -193,7 +241,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(self, response, parsed_json_dict)
+                "parsed_data", get_parsed_data(self, response, parsed_json_dict, self.enable_selenium)
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
@@ -223,6 +271,8 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            if self.articles:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

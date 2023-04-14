@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwfrancetv.videos import get_video
@@ -6,7 +7,7 @@ from crwfrancetv.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from crwfrancetv.constant import SITEMAP_URL
+from crwfrancetv.constant import SITEMAP_URL, ARCHIVE_URL  # noqa: F401
 from crwfrancetv.exceptions import (
     InputMissingException,
     InvalidDateException,
@@ -57,12 +58,14 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
         if self.end_date is not None and self.start_date is not None:
             set_date_range(start_date, end_date)
             validate_date_range()
-            add_start_url(SITEMAP_URL)
+            # add_start_url(SITEMAP_URL)
+            add_start_url(ARCHIVE_URL)
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
             self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            add_start_url(SITEMAP_URL)
+            # add_start_url(SITEMAP_URL)
+            add_start_url(ARCHIVE_URL)
 
         elif self.end_date is not None or self.start_date is not None:
             raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
@@ -177,7 +180,7 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:  # noqa: C901
+def get_parsed_data(self, response: str, parsed_json_dict: dict, enable_selenium: str) -> dict:  # noqa: C901
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
@@ -188,9 +191,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:  # noq
         )
     parsed_data_dict = get_parsed_data_dict()
     article_data = dict(article_raw_parsed_json_loader.load_item())
-    if article_data.get("main").get('video'):
-        article_data["video"] = get_video(self, response.url)
-
+    if enable_selenium:
+        if article_data.get("main").get('video'):
+            article_data["video"] = get_video(self, response.url)
     mapper = {"FRA": "France", "fr": "French"}
     article_data["title"] = response.css('h1.c-title ::text').get()
     article_data["section"] = response.css('li.breadcrumb__item a::text').getall()
@@ -306,3 +309,35 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = (
+            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+
+    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
