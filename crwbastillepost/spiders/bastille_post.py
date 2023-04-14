@@ -1,13 +1,13 @@
 import scrapy
 from lxml import etree
 from datetime import datetime
-from crwbastillepost import exceptions
-from scrapy.loader import ItemLoader
-from crwbastillepost.constant import LOGGER, LINK_FEED_URL, TODAYS_DATE
 from abc import ABC, abstractmethod
+from scrapy.loader import ItemLoader
+from crwbastillepost import exceptions
+from crwbastillepost.constant import LOGGER, LINK_FEED_URL, TODAYS_DATE
 from crwbastillepost.items import ArticleData
 from crwbastillepost.utils import (
-    create_log_file,
+    create_log_config,
     validate_sitemap_date_range,
     get_raw_response,
     get_parsed_data,
@@ -15,7 +15,7 @@ from crwbastillepost.utils import (
 )
 
 # create logger file
-create_log_file()
+create_log_config()
 
 
 class BaseSpider(ABC):

@@ -1,14 +1,14 @@
 """ General functions """
+import re
 import json
 import logging
 from datetime import datetime
 from crwbastillepost import exceptions
 from crwbastillepost.constant import TODAYS_DATE, LOGGER
 import itertools
-import re
 
 
-def create_log_file():
+def create_log_config():
     """creates log file"""
     logging.basicConfig(
         level=logging.INFO,
@@ -103,9 +103,9 @@ def get_main(response):
         return data
 
     except BaseException as exception:
-        LOGGER.error("Error while getting main %s ", exception)
+        LOGGER.info("Error while extracting main %s ", exception)
         raise exceptions.ArticleScrappingException(
-            f"Error while getting main: {exception}"
+            f"Error while extracting main: {exception}"
         )
 
 
