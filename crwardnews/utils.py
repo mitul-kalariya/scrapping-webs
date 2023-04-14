@@ -1,6 +1,6 @@
-# Utility/helper functions
-# utils.py
-
+"""
+Utility files used for scrapping
+"""
 import re
 import json
 import logging
@@ -13,8 +13,6 @@ def create_log_file():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -63,18 +61,17 @@ def validate_sitemap_date_range(start_date, end_date):
                 "end_date should not be greater than today_date"
             )
 
-    except exceptions.InvalidDateException as expception:
-        LOGGER.info(f"Error occured while checking date range: {expception}")
+    except exceptions.InvalidDateException as exception:
+        LOGGER.info(f"Error occurred while checking date range: {exception}")
         raise exceptions.InvalidDateException(
-            f"Error occured while checking date range: {expception}"
+            f"Error occurred while checking date range: {exception}"
         )
 
 
 def remove_empty_elements(parsed_data_dict):
     """
     Recursively remove empty lists, empty dicts, or None elements from a dictionary.
-    :param d: Input dictionary.
-    :type d: dict
+    :param parsed_data_dict: Input dictionary.
     :return: Dictionary with all empty lists, and empty dictionaries removed.
     :rtype: dict
     """
@@ -330,9 +327,9 @@ def get_misc(response):
         return data
 
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting misc: {exception}")
+        LOGGER.info(f"Error occurred while getting misc: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting misc: {exception}"
+            f"Error occurred while getting misc: {exception}"
         )
 
 
@@ -365,9 +362,9 @@ def get_embed_video_link(response) -> list:
         return info
 
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting article video link: {exception}")
+        LOGGER.info(f"Error occurred while getting article video link: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting article video link: {exception}"
+            f"Error occurred while getting article video link: {exception}"
         )
 
 
@@ -412,9 +409,9 @@ def get_article_title_images(response) -> list:
 
         return {"images": info, "title": [re.sub(pattern, "", title).strip()]}
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting article images: {exception}")
+        LOGGER.info(f"Error occurred while getting article images: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting article images: {exception}"
+            f"Error occurred while getting article images: {exception}"
         )
 
 
@@ -436,7 +433,7 @@ def get_section(response) -> list:
                     return [text]
 
     except BaseException as exception:
-        LOGGER.info(f"Error occured while extracting section: {exception}")
+        LOGGER.info(f"Error occurred while extracting section: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while extracting section: {exception}"
+            f"Error occurred while extracting section: {exception}"
         )

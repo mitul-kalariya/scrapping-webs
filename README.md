@@ -25,6 +25,8 @@ source venv/bin/activate
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
 
+*Note:* Here we are getting data from the Archive.
+
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 ```

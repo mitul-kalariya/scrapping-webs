@@ -15,4 +15,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://www.tagesschau.de/archiv/"
+ARCHIVE_URL = "https://www.tagesschau.de/archiv/"

@@ -1,6 +1,6 @@
 import scrapy
 import w3lib.html
-from crwardnews.constant import SITEMAP_URL, LOGGER
+from crwardnews.constant import ARCHIVE_URL, LOGGER
 from crwardnews import exceptions
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
@@ -20,7 +20,7 @@ create_log_file()
 
 class BaseSpider(ABC):
     @abstractmethod
-    def parse(response):
+    def parse(self, response):
         pass
 
     @abstractmethod
@@ -86,7 +86,7 @@ class ArdNewsSpider(scrapy.Spider, BaseSpider):
             self.date_wise = []
 
             if self.type == "sitemap":
-                self.start_urls.append(SITEMAP_URL)
+                self.start_urls.append(ARCHIVE_URL)
                 self.start_date = (
                     datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
                 )
