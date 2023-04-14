@@ -109,19 +109,24 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
                 root = etree.fromstring(response.body)
                 links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas"
                                                                               "/sitemap/0.9"}, )
-                for link in links[3:5]:
-                    yield scrapy.Request(link, callback=self.parse_sitemap)
+                # print(links)
+                # for link in links[3:5]:
+                #     yield scrapy.Request(link, callback=self.parse_sitemap)
+                # for link in links:
+                #     pass
+
                 # data_link = ["https://www.metropoles.com/sitemap-misc.xml", "https://www.metropoles.com/sitemap-tax-post_tag.xml","https://www.metropoles.com/sitemap-tax-category.xml"]
                 # for link in links:
                 #     if link in data_link:
                 #         continue
                 #     else:
-                #         # breakpoint()
-                #         today = datetime.now()
-                #         month = datetime.month()
-                #         year = datetime.year()
-                #         print("###########", month, year)
+                #         yield scrapy.Request(link, callback=self.parse_sitemap)
 
+                for link in links:
+                    if "https://www.metropoles.com/sitemap-pt-post" not in link:
+                        continue
+                    else:
+                        yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 yield self.parse_article(response)
