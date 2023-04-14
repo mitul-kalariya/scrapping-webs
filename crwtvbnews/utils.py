@@ -231,6 +231,8 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     lang = meta_tags[0].xpath('@content').get()
     parsed_data_dict['source_language'] = [mapper.get(lang)]
     parsed_data_dict["source_country"] = ["China"]
+    date_time = datetime.now()
+    parsed_data_dict['time_scraped'] = [date_time.strftime("%d/%m/%YT%H:%M:%S")]
     return remove_empty_elements(parsed_data_dict)
 
 
