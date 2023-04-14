@@ -2,7 +2,6 @@
 from datetime import timedelta, datetime
 import itertools
 import json
-import os
 import re
 from w3lib.html import remove_tags
 
@@ -42,6 +41,11 @@ def sitemap_validations(
         date: return current date if user not passed any date parameter
     """
     if scrape_start_date and scrape_end_date:
+        validate_arg(
+            InvalidDateException,
+            scrape_start_date <= datetime.now().date()
+            and scrape_end_date <= datetime.now().date(),
+        )
         validate_arg(InvalidDateException, not scrape_start_date > scrape_end_date)
         validate_arg(
             InvalidDateException,
@@ -236,38 +240,6 @@ def get_parsed_json(response) -> dict:
         article_raw_parsed_json_loader.add_value(key, value)
 
     return remove_empty_elements(dict(article_raw_parsed_json_loader.load_item()))
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
 
 
 def get_parsed_data_dict() -> dict:

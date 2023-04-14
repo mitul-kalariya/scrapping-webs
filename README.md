@@ -2,7 +2,7 @@
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://indianexpress.com/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://indianexpress.com/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://indianexpress.com/"
     },
     proxies=proxies
 )
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://indianexpress.com/article/world/new-york-times-wont-pay-twitter-verified-check-marks-8534046/"
     },
     proxies=proxies
 )

@@ -16,7 +16,6 @@ from crwindianexpress.utils import (
     get_raw_response,
     get_parsed_json,
     get_parsed_data,
-    export_data_to_json_file,
 )
 from crwindianexpress.exceptions import (
     SitemapArticleScrappingException,
@@ -27,10 +26,8 @@ from crwindianexpress.constant import BASE_URL, SITEMAP_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -44,9 +41,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -172,17 +166,6 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
-    def parse_sitemap_article(self, response) -> None:
-        """
-        parse sitemap article and scrap title and link
-
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        pass
-
     def parse_article(self, response: str) -> None:
         """
         parse article and append related data to class's articles variable
@@ -247,8 +230,7 @@ class IndianExpressSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
