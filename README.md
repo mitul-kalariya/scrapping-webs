@@ -27,6 +27,8 @@ Yes, we used selenium to fetch video URLs. To manage the selenium we are using [
 
 ### Usage
 
+*Note:* Here we are getting data from the sitemap.
+
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 ```
