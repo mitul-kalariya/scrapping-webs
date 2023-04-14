@@ -65,9 +65,11 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
         for key, value in selector_and_key.items():
             article_raw_response_loader.add_value(key, value)
         return dict(article_raw_response_loader.load_item())
-    except ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting raw response: {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting raw response: {exception}")
+        raise ArticleScrappingException(
+            f"Error occured while getting raw response: {exception}"
+        )
 
 
 def get_parsed_json(response: str, selector_and_key: dict) -> dict:
@@ -120,9 +122,11 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                     if data_dict is dict and data_type not in selector_and_key.keys() and data_type != "NewsArticle":
                         article_raw_parsed_json_loader.add_value(key, data_dict)
         return dict(article_raw_parsed_json_loader.load_item())
-    except ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting parsed json: {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed json: {exception}")
+        raise ArticleScrappingException(
+            f"Error occured while getting parsed json: {exception}"
+        )
 
 
 def get_parsed_data_dict() -> dict:
@@ -193,7 +197,7 @@ def get_data_from_json(response, parsed_main):
         response_data = requests.get(f'{url}.json').json()
         parsed_json = {}
         raw_text = ''
-        tags, topics = [], []
+        tags = []
 
         thumbnail_image = get_thumbnail_image(response)
 
@@ -203,9 +207,6 @@ def get_data_from_json(response, parsed_main):
 
         for tag_block in response_data.get('metadata').get('tags').get('about'):
             tags.append(tag_block['topicName'])
-
-        for section_block in response_data.get('metadata').get('topics'):
-            topics.append(section_block['topicName'])
 
         main_block = parsed_main.get("main").get("@graph")
         if main_block and isinstance(main_block, list) and len(main_block) > 0:
@@ -220,7 +221,6 @@ def get_data_from_json(response, parsed_main):
             parsed_json['thumbnail_image'] = [promo_block.get('indexImage').get('href')]
             parsed_json['title'] = [promo_block.get('headlines').get('headline')]
 
-        parsed_json['section'] = topics
         parsed_json['tags'] = tags
         parsed_json['text'] = [raw_text]
 
@@ -238,9 +238,11 @@ def get_data_from_json(response, parsed_main):
         parsed_json["time_scraped"] = [str(datetime.now())]
 
         return remove_empty_elements(parsed_json)
-    except ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting parsed data: {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting parsed data: {exception}")
+        raise ArticleScrappingException(
+            f"Error occured while getting parsed data: {exception}"
+        )
 
 
 def get_video(response) -> list:
@@ -256,9 +258,11 @@ def get_video(response) -> list:
         videos = response.css(".e1p6ccnx0")
         video_links = [BASE_URL + str(video.css("::attr(src)").get()) for video in videos]
         return video_links
-    except ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting video urls: {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting video urls: {exception}")
+        raise ArticleScrappingException(
+            f"Error occured while getting video urls: {exception}"
+        )
 
 
 def get_thumbnail_image(response) -> list:
@@ -274,9 +278,11 @@ def get_thumbnail_image(response) -> list:
         thumbnail = response.css(".bbc-q4ibpr+ .ebmt73l0 .e1mo64ex0::attr(src)").get()
         thumbnail_url = [thumbnail]
         return thumbnail_url
-    except ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting thumbnail image url: {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting thumbnail image url: {exception}")
+        raise ArticleScrappingException(
+            f"Error occured while getting thumbnail image url: {exception}"
+        )
 
 
 def get_images(response, thumbnail) -> list:
@@ -306,6 +312,8 @@ def get_images(response, thumbnail) -> list:
             and (isinstance(caption, str) and ("grey line" not in caption) and (int(height) > 2))
         ]
         return data
-    except ArticleScrappingException as exception:
-        LOGGER.error(f"{str(exception)}")
-        print(f"Error while getting article images urls: {str(exception)}")
+    except BaseException as exception:
+        LOGGER.info(f"Error occured while getting article images urls: {exception}")
+        raise ArticleScrappingException(
+            f"Error occured while getting article images urls: {exception}"
+        )
