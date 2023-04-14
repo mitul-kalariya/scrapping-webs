@@ -19,7 +19,8 @@ from crwcp24.utils import (
     check_cmd_args,
     get_parsed_data,
     get_parsed_json,
-    get_raw_response
+    get_raw_response,
+    export_data_to_json_file
 )
 
 logging.basicConfig(
@@ -39,11 +40,11 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_linkfeed(self, response: str) -> None:
         pass
 
     @abstractmethod
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_linkfeed_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -60,7 +61,7 @@ class CP24News(scrapy.Spider, BaseSpider):
     }
 
     def __init__(
-        self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs
+        self, *args, type=None, start_date=None, end_date=None, url=None, enable_selenium=False, **kwargs
     ):
         try:
             super(CP24News, self).__init__(*args, **kwargs)
@@ -74,6 +75,7 @@ class CP24News(scrapy.Spider, BaseSpider):
             self.end_date = end_date
             self.article_url = url
             self.today_date = None
+            self.enable_selenium = enable_selenium
             check_cmd_args(self, self.start_date, self.end_date)
 
         except Exception as exception:
@@ -112,7 +114,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                     .getall()[1:-4]
                 ):
                     if "askalawyer" not in site_map_url:
-                        yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                        yield scrapy.Request(site_map_url, callback=self.parse_linkfeed)
 
             elif self.type == "article":
                 yield self.parse_article(response)
@@ -125,7 +127,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                 f"Error occurred while iterating {self.type} url:- {str(exception)}"
             ) from exception
 
-    def parse_sitemap(self, response):
+    def parse_linkfeed(self, response):
         """
         This function parses the sitemap page and extracts the URLs of individual articles.
         :param response: the response object of the sitemap page
@@ -137,7 +139,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                 'div.listInnerHorizontal  h2.teaserTitle a::attr("href")'
             ).getall():
 
-                yield scrapy.Request(article_url, callback=self.parse_sitemap_article)
+                yield scrapy.Request(article_url, callback=self.parse_linkfeed_article)
 
         except Exception as exception:
             self.log(
@@ -148,7 +150,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article url:- {str(exception)}"
             ) from exception
 
-    def parse_sitemap_article(self, response):
+    def parse_linkfeed_article(self, response):
         """
         This function parses the sitemap page and extracts the URLs of individual articles.
 
@@ -237,7 +239,6 @@ class CP24News(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict["ImageGallery"] = parsed_json_main
                 parsed_json_dict["videoObjects"] = parsed_json_main
                 parsed_json_dict["imageObjects"] = parsed_json_main
                 parsed_json_dict["other"] = parsed_json_main
@@ -254,7 +255,7 @@ class CP24News(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(self, response, parsed_json_dict)
+                "parsed_data", get_parsed_data(self, response, parsed_json_dict, self.enable_selenium)
             )
 
             self.articles.append(dict(articledata_loader.load_item()))
@@ -284,6 +285,8 @@ class CP24News(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            if self.articles:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 
@@ -129,15 +130,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                     if json.loads(data).get("@type") == "NewsArticle"
                 ],
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key,
-                [
-                    json.loads(data)
-                    for data in value.getall()
-                    if json.loads(data).get("@type") == "ImageGallery"
-                ],
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
@@ -154,7 +146,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 [
                     json.loads(data)
                     for data in value.getall()
-                    if json.loads(data).get("@type") == "ImageObject"
+                    if json.loads(data).get("@type") in ["ImageObject", "ImageGallery"]
                 ],
             )
         else:
@@ -197,7 +189,7 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
+def get_parsed_data(self, response: str, parsed_json_dict: dict, enable_selenium: str) -> dict:
 
     mapper = {"CA": "Canada", "en": "English"}
     article_raw_parsed_json_loader = ItemLoader(
@@ -218,8 +210,9 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     article_data["section_content"] = section_meta.xpath("@content").get()
     language = response.css("html::attr(lang)").get()
 
-    if response.css("div.aritcleVideoContainer"):
-        article_data["video_url"] = get_video(self, response.url)
+    if enable_selenium:
+        if response.css("div.aritcleVideoContainer"):
+            article_data["video_url"] = get_video(self, response.url)
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict["author"] = [
@@ -285,6 +278,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     )
     parsed_data_dict["section"] = [article_data.get("section_content")]
     parsed_data_dict["embed_video_link"] = [article_data.get("video_url")]
+    parsed_data_dict['time_scraped'] = [str(datetime.now())]
 
     if not language:
         language = mapper.get("en")
@@ -323,3 +317,34 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = (
+            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+
+    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
