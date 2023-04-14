@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from crwrthknews.spiders.rthk_news import RthkNewsSpider
-from crwrthknews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwrthknews.test.helpers.constant import ARCHIVE_URL, TEST_ARTICLES
 from crwrthknews.test.helpers.utils import get_article_content, online_response_from_url
 from crwrthknews import Crawler
 
@@ -182,7 +182,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.crawler = Crawler(query={"type": "sitemap", "domain": ARCHIVE_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

@@ -1,5 +1,4 @@
 """ General functions """
-
 import re
 from datetime import timedelta, datetime
 import logging

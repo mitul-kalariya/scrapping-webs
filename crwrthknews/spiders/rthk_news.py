@@ -6,7 +6,7 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 from scrapy.exceptions import CloseSpider
 from scrapy.loader import ItemLoader
-from crwrthknews.constant import BASE_URL, SITEMAP_URL
+from crwrthknews.constant import BASE_URL, ARCHIVE_URL
 from crwrthknews.items import ArticleData
 
 from crwrthknews.utils import (
@@ -76,7 +76,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
             self.date_range_lst = based_on_scrape_type(
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
-            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
+            self.start_urls.append(url if self.type == "article" else ARCHIVE_URL)
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
                 "Error occurred while taking type, url, start_date and end_date args. "
