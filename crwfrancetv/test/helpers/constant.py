@@ -44,4 +44,4 @@ TEST_ARTICLES = [
 ]
 
 # SITEMAP_URL = "https://www.francetvinfo.fr/sitemap_news.xml"
-SITEMAP_URL = "https://www.francetvinfo.fr/archives/"
+ARCHIVE_URL = "https://www.francetvinfo.fr/archives/"

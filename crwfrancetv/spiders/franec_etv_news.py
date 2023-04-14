@@ -155,7 +155,7 @@ class FranceTvInfo(scrapy.Spider, BaseSpider):
             for selector in urls_selector:
                 title = selector.css('a::text').getall()
                 link = selector.css('a::attr("href")').getall()
-                self.articles.append({"link": link[0], "title": " ".join(title)})
+                self.articles.append({"link": f"https://www.francetvinfo.fr/{link[0]}", "title": " ".join(title)})
         except Exception as exception:
             self.log(
                 f"Error occurred while archive articles url. {str(exception)}",

@@ -6,7 +6,7 @@ from crwfrancetv.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from crwfrancetv.constant import SITEMAP_URL, ARCHIVE_URL  # noqa: F401
+from crwfrancetv.constant import ARCHIVE_URL
 from crwfrancetv.exceptions import (
     InputMissingException,
     InvalidDateException,
