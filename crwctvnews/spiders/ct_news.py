@@ -15,7 +15,6 @@ from crwctvnews.utils import (
     date_in_date_range,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -30,7 +29,7 @@ from crwctvnews.constant import BASE_URL, SITEMAP_URL
 
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     filename="logs.log",
     filemode="a",
@@ -47,10 +46,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        # parse_sitemap_article will be called from here
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -176,18 +171,6 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
 
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        pass
-
     def parse_article(self, response: str) -> None:
         """
         parse article and append related data to class's articles variable
@@ -247,8 +230,6 @@ class CtvnewsSpider(scrapy.Spider, BaseSpider):
 
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:  # pylint: disable=broad-except
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",
