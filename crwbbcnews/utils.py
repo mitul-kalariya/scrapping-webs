@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime
+import os
 
 import requests
 from scrapy.loader import ItemLoader
@@ -98,15 +99,15 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                         type(json.loads(data)) in [list, dict])]
 
                 )
-            elif key == "ImageGallery":
+            elif key == "imageObjects":
                 article_raw_parsed_json_loader.add_value(
                     key, [json.loads(data) for data in value.getall() if
-                          (type(json.loads(data)) is dict and json.loads(data).get('@type') == "ImageGallery") or (
+                          (type(json.loads(data)) is dict and json.loads(data).get('@type') in ["ImageGallery", "ImageObject"]) or (
                         type(json.loads(data)) is list and json.loads(data)[0].get(
-                            '@type') == "ImageGallery")]
+                            '@type') in ["ImageGallery", "ImageObject"])]
                 )
 
-            elif key == "VideoObject":
+            elif key == "videoObjects":
                 article_raw_parsed_json_loader.add_value(
                     key, [json.loads(data) for data in value.getall() if
                           (type(json.loads(data)) is dict and json.loads(data).get('@type') == "VideoObject") or (
@@ -119,7 +120,7 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 for data in value.getall():
                     data_dict = json.loads(data)
                     data_type = data_dict.get('@graph')[0].get('@type')
-                    if data_dict is dict and data_type not in selector_and_key.keys() and data_type != "NewsArticle":
+                    if data_dict is dict and data_type not in ["NewsArticle", "ImageGallery", "ImageObject", "VideoObject"]:
                         article_raw_parsed_json_loader.add_value(key, data_dict)
         return dict(article_raw_parsed_json_loader.load_item())
     except BaseException as exception:
@@ -317,3 +318,35 @@ def get_images(response, thumbnail) -> list:
         raise ArticleScrappingException(
             f"Error occured while getting article images urls: {exception}"
         )
+
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = (
+            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+
+    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
