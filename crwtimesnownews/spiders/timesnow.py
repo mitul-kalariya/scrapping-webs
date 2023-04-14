@@ -21,7 +21,7 @@ from crwtimesnownews.exceptions import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     filename="logs.log",
     filemode="a",
@@ -74,7 +74,6 @@ class TimesNow(scrapy.Spider, BaseSpider):
             )
             self.log(
                 "Error occurred while taking type, url, start_date and end_date args. " + str(exception),
-                level=logging.ERROR,
             )
             raise SitemapScrappingException(
                 f"Error occurred while iterating sitemap url:- {str(exception)}"
@@ -119,8 +118,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occurred while iterating {self.type} url. {str(exception)}",
-                level=logging.ERROR,
+                f"Error occurred while iterating {self.type} url. {str(exception)}"
             )
             raise SitemapScrappingException(
                 f"Error occurred while iterating {self.type} url:- {str(exception)}"
@@ -157,8 +155,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
+                f"Error occurred while fetching sitemap:- {str(exception)}"
             )
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
@@ -235,8 +232,7 @@ class TimesNow(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occurred while exporting file:- {str(exception)} - {reason}",
-                level=logging.ERROR,
+                f"Error occurred while exporting file:- {str(exception)} - {reason}"
             )
             raise ExportOutputFileException(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}"
