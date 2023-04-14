@@ -41,7 +41,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
     name = "zdf_news"
 
     def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+        self, *args, type=None, url=None, start_date=None, end_date=None, enable_selenium=False, **kwargs
     ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -68,6 +68,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             self.articles = []
             self.article_url = url
             self.type = type.lower()
+            self.enable_selenium = enable_selenium
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -132,7 +133,7 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
-            response_data = get_parsed_data(response)
+            response_data = get_parsed_data(response, self.enable_selenium)
             response_data["source_country"] = ["Germany"]
             response_data["time_scraped"] = [str(datetime.now())]
 
@@ -242,7 +243,6 @@ class ZdfNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
-
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

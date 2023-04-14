@@ -174,7 +174,7 @@ def get_parsed_json(response):
         )
 
 
-def get_parsed_data(response):
+def get_parsed_data(response, enable_selenium):
     """generate required data as response json and response data
 
     Args:
@@ -238,8 +238,9 @@ def get_parsed_data(response):
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
-        video = get_embed_video_link(response)
-        main_dict["embed_video_link"] = video.get("videos")
+        if enable_selenium:
+            video = get_embed_video_link(response)
+            main_dict["embed_video_link"] = video.get("videos")
 
         return remove_empty_elements(main_dict)
 
@@ -404,6 +405,7 @@ def get_embed_video_link(response) -> list:
     try:
         options = Options()
         options.headless = True
+        service = Service(executable_path=WEBDRIVER_EXECUTABLE_PATH)
         service = Service(executable_path=ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(response.url)

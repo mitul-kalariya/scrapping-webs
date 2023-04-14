@@ -24,7 +24,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={'type': None}, proxies={}, enable_selenium=False):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -42,6 +42,7 @@ class Crawler:
         self.output_queue = None
         self.query = query
         self.proxies = proxies
+        self.enable_selenium = enable_selenium
 
     def crawl(self) -> list[dict]:
         self.output_queue = Queue()
@@ -92,6 +93,6 @@ class Crawler:
             process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
-
+        spider_args["enable_selenium"] = self.enable_selenium
         process.crawl(ZdfNewsSpider, **spider_args)
         process.start()
