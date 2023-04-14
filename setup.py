@@ -8,6 +8,5 @@ setup(
     install_requires=[
         'scrapy',
         'requests',
-        'pillow',
     ],
 )

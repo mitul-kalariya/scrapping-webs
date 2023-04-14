@@ -122,7 +122,6 @@ class TestArticle(unittest.TestCase):
     def _test_parse_json_data_format(self, article, test_article_data):  # noqa: C901
         # Since the content of article can be modified at anytime so not checkering exact text
         # but testing the object format so that we can verify that crawler is working well.
-        # breakpoint()
         if article[0].get("parsed_data").get("text"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("text")[0],

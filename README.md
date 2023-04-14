@@ -5,7 +5,6 @@
 This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
 - Python 3.10
 - Scrapy 2.8.0
-- Pillow 9.5.0
 - requests 2.28.2
 
 

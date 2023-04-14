@@ -9,6 +9,7 @@ from crwrepublictv.items import ArticleData
 from crwrepublictv.utils import (
     create_log_file,
     validate_sitemap_date_range,
+    export_data_to_json_file,
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
@@ -20,7 +21,6 @@ from scrapy.selector import Selector
 
 # create log file
 create_log_file()
-
 
 class BaseSpider(ABC):
     @abstractmethod
@@ -39,9 +39,7 @@ class BaseSpider(ABC):
 class RepublicTvSpider(scrapy.Spider, BaseSpider):
     name = "republic_tv"
 
-    def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
-    ):
+    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
         """
         Initializes a web scraper object with the given parameters.
 
@@ -59,7 +57,7 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
         """
         try:
             super(RepublicTvSpider, self).__init__(*args, **kwargs)
-            self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
             self.article_url = url
@@ -68,14 +66,10 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
                 self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else TODAYS_DATE
+                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else TODAYS_DATE
                 )
                 self.end_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date()
-                    if end_date
-                    else TODAYS_DATE
+                    datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else TODAYS_DATE
                 )
 
                 validate_sitemap_date_range(start_date, end_date)
@@ -138,15 +132,10 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             # Define the XML namespaces used in the sitemap
             xml_namespaces = {"xmlns": "https://www.sitemaps.org/schemas/sitemap/0.9"}
             # Loop through each sitemap URL in the XML response
-            links = xml_selector.xpath(
-                '//*[local-name()="loc"]/text()', namespaces=xml_namespaces
-            ).getall()
-            titles = xml_selector.xpath(
-                '//*[local-name()="title"]/text()', namespaces=xml_namespaces
-            ).getall()
-            published_dates = xml_selector.xpath(
-                '//*[local-name()="publication_date"]/text()', namespaces=xml_namespaces
-            ).getall()
+            links = xml_selector.xpath('//*[local-name()="loc"]/text()', namespaces=xml_namespaces).getall()
+            titles = xml_selector.xpath('//*[local-name()="title"]/text()', namespaces=xml_namespaces).getall()
+            published_dates = xml_selector.xpath('//*[local-name()="publication_date"]/text()', namespaces=xml_namespaces).getall()
+
 
             for link, title, pub_date in zip(links, titles, published_dates):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
@@ -155,22 +144,18 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
                     if TODAYS_DATE == published_at:
                         self.articles.append(data)
                 elif (
-                    self.start_date
-                    and self.end_date
-                    and self.start_date <= published_at <= self.end_date
+                        self.start_date
+                        and self.end_date
+                        and self.start_date <= published_at <= self.end_date
                 ):
                     self.articles.append(data)
                 elif self.start_date and self.end_date:
-                    if (
-                        published_at == self.start_date
-                        and published_at == self.end_date
-                    ):
+                    if published_at == self.start_date and published_at == self.end_date:
                         self.articles.append(data)
         except BaseException as exception:
             LOGGER.error("Error while parsing sitemap: {}".format(exception))
-            exceptions.SitemapScrappingException(
-                f"Error while parsing sitemap: {exception}"
-            )
+            exceptions.SitemapScrappingException(f"Error while parsing sitemap: {exception}")
+
 
     def parse_article(self, response: str) -> list:
         """
@@ -221,6 +206,8 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
@@ -228,3 +215,4 @@ class RepublicTvSpider(scrapy.Spider, BaseSpider):
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file {str(exception) - {reason}}"
             )
+
