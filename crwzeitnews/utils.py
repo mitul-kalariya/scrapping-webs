@@ -476,7 +476,7 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
         }
     return {
         "title": response.css("header.article-header > h1::text").getall(),
-        "tags": response.css("ul.article-tags__list > li > a::text").getall(),
+        "tags": response.css("meta[name=\"keywords\"]::attr(content)").get.strip(","),
     }
 
 

@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://www.zeit.de/video/2023-04/6324065533112/un-sicherheitsrat-russische-kinderrechtsbeauftragte-sorgt-fuer-eklat-bei-un-sitzung",  # video article
@@ -15,5 +14,5 @@ TEST_ARTICLES = [
         "test_data_path": "crwzeitnews/test/data/test_article_3.json",
     },
 ]
-# TODO:Update below sitemap URL
+
 SITEMAP_URL = "https://www.zeit.de/gsitemaps/index.xml"

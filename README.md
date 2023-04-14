@@ -19,7 +19,10 @@ This repo contains the code to scrap all article links and articles from https:/
 
 _Note:_ Make sure to activate the virtual environment before executing code or installing the package.
 
-> ```imp:``` generating **cookies &  request headers** using seleniumwire and webdriver manager for all pages requests, Hence  ***not including enable_selenium*** args
+> ```Important Note:``` We are generating **cookies & request headers** using seleniumwire and webdriver manager for all pages requests, Hence  we have not included ***enable_selenium*** flag
+
+### Note:- To scrape this website we have to set cookie in headers and that procedure takes time initially since we are using selenium to do that.
+
 ### Installation
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
