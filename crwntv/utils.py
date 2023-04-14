@@ -1,6 +1,8 @@
 # Utility/helper functions
 # utils.py
 
+from datetime import datetime
+import os
 import re
 import json
 import logging
@@ -12,8 +14,6 @@ def create_log_file():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -185,7 +185,7 @@ def get_parsed_data(response):
         article_thumbnail = get_thumbnail(response)
         response_data["thumbnail_image"] = article_thumbnail
 
-        response_data |= get_video_info(main_json, response)
+        response_data |= get_video_info(videoobject_json, response)
 
         article_tags = response.css("section.article__tags ul li a::text").getall()
         response_data["tags"] = article_tags
@@ -222,7 +222,6 @@ def get_main(response):
         main data
     """
     try:
-
         information = {}
         main = response.css('script[type="application/ld+json"]::text').getall()
         for block in main:
@@ -233,8 +232,7 @@ def get_main(response):
                 information["WebPage"] = data
             elif data.get("@type") == "VideoObject":
                 information["VideoObject"] = data
-            else:
-                pass
+
         return information
     except BaseException as exception:
         LOGGER.info("Error while getting main %s ", exception)
@@ -276,13 +274,13 @@ def get_thumbnail(response) -> list:
         normal_article = response.css("div.article__media figure")
         data = []
         if normal_article:
-            for i in normal_article:
-                thumbnail_image = i.css("picture img::attr(src)").get()
+            for block in normal_article:
+                thumbnail_image = block.css("picture img::attr(src)").get()
                 if thumbnail_image:
                     data.append(thumbnail_image)
         elif video_article:
-            for j in video_article:
-                thumbnail_image = j.css("img::attr(src)").get()
+            for block in video_article:
+                thumbnail_image = block.css("img::attr(src)").get()
                 if thumbnail_image:
                     data.append(thumbnail_image)
         return data

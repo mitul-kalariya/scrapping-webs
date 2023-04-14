@@ -7,6 +7,7 @@ from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwntv.items import ArticleData
 from crwntv.utils import (
     create_log_file,
+    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -182,6 +183,8 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"
