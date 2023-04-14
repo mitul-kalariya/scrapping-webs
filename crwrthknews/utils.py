@@ -5,6 +5,8 @@ from datetime import timedelta, datetime
 import logging
 import json
 from itertools import zip_longest
+
+from bs4 import BeautifulSoup
 from scrapy.loader import ItemLoader
 from crwrthknews.items import ArticleRawResponse, ArticleRawParsedJson
 from crwrthknews.exceptions import (
@@ -280,6 +282,7 @@ def get_article_json(response: str) -> dict:
     image = response.css("img.imgPhotoAfterLoad::attr(src)").get()
     parsed_data["title"] = [header.strip()]
     parsed_data["published_at"] = [time]
+    parsed_data["section"] = get_section(response)
 
     if not image:
         video_object = get_video_json(response)
@@ -344,4 +347,27 @@ def get_video_json(response: str) -> dict:
                 "div.detailNewsSlideTitleText::text"
             ).getall()
             return video_json
+    return None
+
+
+def get_section(response: str) -> list:
+    """
+    Get section using beautifulSoup from the response
+    :param response: Input response.
+    :type response: str
+    :return: list with all required data.
+    :rtype: list
+    """
+    sections = []
+    soup = BeautifulSoup(response.body, "html.parser")
+    div_items = soup.find_all("div", id="avatar-main-content-inner")
+
+    if div_items:
+        for items in div_items:
+            for item in items.select("#avatar-pos-main-body"):
+                script_text = item.select("script")[1].text
+                cleaned_script_text = re.sub(r"[\r\n\t\"]+", "", script_text)
+                section = re.findall(r"<a[^>]*>(.*?)</a>", cleaned_script_text)
+                sections.append(section[-1])
+        return sections
     return None

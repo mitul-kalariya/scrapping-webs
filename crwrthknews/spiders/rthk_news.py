@@ -152,7 +152,7 @@ class RthkNewsSpider(scrapy.Spider, BaseSpider):
                 date_datetime = datetime.strptime(date[:-10].strip(), "%Y-%m-%d")
                 url = BASE_URL.replace("/rthk/ch/", "") + url
                 if date_in_date_range(date_datetime, self.date_range_lst):
-                    data = {"link": url, "title": title}
+                    data = {"link": url.split("?")[0], "title": title}
                     self.articles.append(data)
             except Exception as exception:
                 self.log(

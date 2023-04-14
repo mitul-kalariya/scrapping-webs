@@ -5,6 +5,7 @@
 This repo contains the code to scrap all article links and articles from https://news.rthk.hk/rthk/ch/ website and the tech stacks used are
 - Python 3.10
 - Scrapy 2.8.0
+- beautifulsoup4 4.12.2
 
 
 #### Environment Setup
@@ -19,6 +20,8 @@ This repo contains the code to scrap all article links and articles from https:/
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
+
+*Note:* We are getting data from archive
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
