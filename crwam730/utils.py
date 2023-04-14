@@ -208,6 +208,8 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["section"] = response.css('.article__head-unit a::text').getall()
     parsed_data_dict["tags"] = response.css('.hashtags a::text').getall()
     parsed_data_dict["embed_video_link"] = []
+    date_time = datetime.now()
+    parsed_data_dict['time_scraped'] = [date_time.strftime("%d/%m/%YT%H:%M:%S")]
     return remove_empty_elements(parsed_data_dict)
 
 
