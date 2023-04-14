@@ -1,13 +1,12 @@
+import scrapy
 import logging
 from datetime import datetime
-from abc import ABC, abstractmethod
-import scrapy
 from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
-
+from abc import ABC, abstractmethod
 from crwam730.items import ArticleData
-
 from crwam730.utils import (
+    create_log_config,
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
@@ -18,11 +17,9 @@ from crwam730.exception import (
     SitemapScrappingException
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# create logger config
+create_log_config()
+
 # Creating an object
 logger = logging.getLogger()
 

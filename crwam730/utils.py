@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwam730.items import (
@@ -11,6 +12,14 @@ from crwam730.exception import (
     InvalidDateException,
     InvalidArgumentException,
 )
+
+
+def create_log_config():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa:C901
@@ -122,19 +131,17 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") == "videoObjects"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") == "VideoObject"]
             )
+
         elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") == "ImageObject"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") in ["ImageObject", "ImageGallery"]]
             )
+
         else:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type")
@@ -184,7 +191,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
     article_data = dict(article_raw_parsed_json_loader.load_item())
     parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
     parsed_data_dict["modified_at"] = []
-    parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
+    parsed_data_dict["source_language"] = ['Chinese']
     parsed_data_dict["source_country"] = ["China"]
     parsed_data_dict["published_at"] = response.css('meta[property="article:published_time"]::attr(content)').getall()
     parsed_data_dict["publisher"] = [{
