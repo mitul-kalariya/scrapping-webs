@@ -9,6 +9,6 @@ setup(
         'scrapy',
         'webdriver-manager',
         'selenium',
-        'Pillow',
+        'pillow',
     ],
 )
