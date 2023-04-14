@@ -139,7 +139,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
 
         elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") in ["ImageObject", "ImageGallery"]]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type")
+                      in ["ImageObject", "ImageGallery"]]
             )
 
         else:
@@ -187,7 +188,6 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict) -> dict:
             key, [json.loads(data) for data in value.getall()]
         )
     parsed_data_dict = get_parsed_data_dict()
-    mapper = {"zh-Hant-HK": "Hong Kong Chinese in traditional script"}
     article_data = dict(article_raw_parsed_json_loader.load_item())
     parsed_data_dict["description"] = [response.css('meta[name="description"]::attr(content)').get()]
     parsed_data_dict["modified_at"] = []
