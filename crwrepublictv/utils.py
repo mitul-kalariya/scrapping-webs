@@ -13,6 +13,8 @@ from crwrepublictv import exceptions
 from crwrepublictv.constant import TODAYS_DATE, LOGGER
 
 
+pattern = r"[\r\n\t\"]+"
+
 
 def create_log_file():
     logging.basicConfig(
@@ -22,7 +24,6 @@ def create_log_file():
         filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-
 
 
 def validate_sitemap_date_range(start_date, end_date):
@@ -76,10 +77,10 @@ def validate_sitemap_date_range(start_date, end_date):
 
 def get_raw_response(response):
     """generate dictrionary of raw html data
-        Args:
-            response (object): page_data
-        Returns:
-            raw_response (dict): targeted data
+    Args:
+        response (object): page_data
+    Returns:
+        raw_response (dict): targeted data
     """
     try:
         raw_resopnse = {
@@ -92,6 +93,7 @@ def get_raw_response(response):
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting raw response: {exception}"
         )
+
 
 def get_parsed_json(response):
     """
@@ -123,7 +125,6 @@ def get_parsed_json(response):
 
         return remove_empty_elements(parsed_json)
 
-
     except Exception as exception:
         LOGGER.info(f"Error while parsing json from application/ld+json: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -140,13 +141,24 @@ def get_main(response):
         main data
     """
     try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
+
+        information = {}
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        for block in main:
+            data = json.loads(block)
+            if data.get("@type") == "NewsArticle":
+                information["article"] = data
+            elif data.get("@type") == "WebPage":
+                information["WebPage"] = data
+            elif data.get("@type") == "VideoObject":
+                information["VideoObject"] = data
+            elif data.get("@type") == "BreadcrumbList":
+                information["BreadcrumbList"] = data
+            else:
+                pass
+        return information
     except BaseException as exception:
-        LOGGER.error("Error while getting main %s ", exception)
+        LOGGER.info("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
             f"Error while getting main: {exception}"
         )
@@ -173,6 +185,33 @@ def get_misc(response):
         )
 
 
+def get_parsed_data_dict() -> dict:
+    """
+    Return base data dictionary
+
+    Args:
+    None
+
+    Returns:
+        dict: Return base data dictionary
+    """
+    return {
+        "source_country": None,
+        "source_language": None,
+        "author": [{"@type": None, "name": None, "url": None}],
+        "description": None,
+        "modified_at": None,
+        "published_at": None,
+        "publisher": None,
+        "text": None,
+        "thumbnail_image": None,
+        "title": None,
+        "images": None,
+        "section": None,
+        "embed_video_link": None,
+    }
+
+
 def get_parsed_data(response):
     """
     Extracts data from a news article webpage and returns it in a dictionary format.
@@ -196,39 +235,43 @@ def get_parsed_data(response):
         - 'images': (list) The list of image URLs in the article, if available.
     """
     try:
-        main_dict = {}
+        parsed_data = {}
         main_data = get_main(response)
-        authors = main_data[1].get("author")
-        main_dict["author"] = [authors]
-        last_updated = main_data[1].get("dateModified")
-        main_dict["modified_at"] = [last_updated]
-        published_on = main_data[1].get("datePublished")
-        main_dict["published_at"] = [published_on]
-        description = main_data[1].get("description")
-        main_dict["description"] = [description]
-        publisher = main_data[1].get("publisher")
-        main_dict["publisher"] = [publisher]
+        article_json = main_data.get("article")
+        videoobject_json = main_data.get("VideoObject")
+        web_page_json = main_data.get("WebPage")
+        breadcrumbs = main_data.get("BreadcrumbList")
+        if article_json:
+            main_data = article_json
+        else:
+            main_data = videoobject_json
+
+        parsed_data = get_parsed_data_dict()
+        # get author and published,modified date
+        parsed_data |= get_author_dates(main_data, response)
+        # get description and publisher info and title
+        parsed_data |= get_description_publisher_title(web_page_json, main_data,response)
+        # get section information
+        parsed_data |= get_section(breadcrumbs)
         article_text = response.css("section p::text").getall()
-        main_dict["text"] = [" ".join(article_text)]
+        parsed_data["text"] = [" ".join(article_text)]
+        # get thumbnail url
         thumbnail = get_thumbnail_image(response)
-        main_dict["thumbnail_image"] = thumbnail
-        headline = response.css("h1.story-title::text").get().strip()
-        main_dict["title"] = [headline]
+        parsed_data["thumbnail_image"] = thumbnail
+        # get images from article
         article_images = get_images(response)
-        main_dict["images"] = article_images
+        parsed_data["images"] = article_images
+        # get embedded video links
         video = get_embed_video_link(response)
-        main_dict["embed_video_link"] = video
+        parsed_data["embed_video_link"] = video
+        # get source language details
         mapper = {"en": "English", "hi_IN": "Hindi"}
         article_lang = response.css("html::attr(lang)").get()
-        main_dict["source_language"] = [mapper.get(article_lang)]
-        main_dict["tags"] = get_tags(response)
-        main_dict["publisher_name"] = [publisher.get("name")]
-        main_dict["publisher_type"] = [publisher.get("@type")]
-        main_dict["author_name"] = [authors.get("@type")] if isinstance(authors, dict) else None
-        main_dict["author_link"] = [response.css('.author-title ::attr(href)').get()]
-        main_dict["author_link"] = [response.css('.author-title ::attr(href)').get()]
-        return remove_empty_elements(main_dict)
+        parsed_data["source_language"] = [mapper.get(article_lang)]
+        parsed_data["tags"] = get_tags(response)
 
+        final_dict =  remove_empty_elements(parsed_data)
+        return format_dictionary(final_dict)
 
     except Exception as exception:
         LOGGER.info(f"Error while extracting parsed data: {exception}")
@@ -236,20 +279,63 @@ def get_parsed_data(response):
             f"Error while extracting parsed data: {exception}"
         )
 
+def get_section(breadcrumbs_dict):
 
-def get_lastupdated(response) -> str:
-    """
-    This function extracts the last updated date and time of an article from a given Scrapy response object.
-    It returns a string representation of the date and time in ISO 8601 format.
-    If the information is not available in the response, it returns None.
+    section = ""
+    if breadcrumbs_dict:
+        for item in breadcrumbs_dict.get("itemListElement"):
+            if item.get("position") == 2:
+                section = (item.get("item")).get("name")
+        return {
+            "section" : section
+        }
+    else:
+        return {
+            "section": None
+        }
+def get_author_dates(parsed_json_dict, response):
+    """extracts author and published data,modified data inforomation
 
     Args:
-        response: A Scrapy response object representing the web page from which to extract the information.
+        parsed_json_dict (dict): parsed_main data ld+json
+        response (str): page response
+
+    Returns:
+        dict: values with published_at modified_at and author
     """
     try:
-        info = response.css("span.time-elapsed")
-        if info:
-            return info.css("time::attr(datetime)").get()
+        if parsed_json_dict:
+            return {
+                "author": parsed_json_dict.get("author", None),
+                "modified_at": parsed_json_dict.get("dateModified", None),
+                "published_at": parsed_json_dict.get("datePublished", None)
+                or parsed_json_dict.get("uploadDate", None),
+            }
+        elif response.css("div.padtop20") or response.css("div.author"):
+            authors = response.css("div.author")
+            author_data = []
+            if authors:
+                for author in authors:
+                    temp_dict = {}
+                    temp_dict["@type"] = "Person"
+                    temp_dict["name"] = re.sub(
+                        pattern, "", author.css("div a span::text").get()
+                    ).strip()
+                    temp_dict["url"] = author.css("div a::attr(href)").get()
+                    author_data.append(temp_dict)
+            return {
+                "published_at": response.css("time::attr(datetime)").get(),
+                "modified_at": response.css(
+                    "span.time-elapsed time::attr(datetime)"
+                ).get(),
+                "author": author_data,
+            }
+        else:
+            return {
+                "published_at": None,
+                "modified_at": None,
+                "author": None,
+            }
     except Exception as exception:
         LOGGER.info(f"error while getting last updated: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -257,61 +343,25 @@ def get_lastupdated(response) -> str:
         )
 
 
-
-def get_published_at(response) -> str:
-    """get data of when article was published
+def format_dictionary(raw_dictionary):
+    """Formatting dictionary with all the values converted to list
 
     Args:
-        response (object):page data
+        raw_dictionary (dict)
 
     Returns:
-        str: datetime of published date
+        dict: formatted dictionary
     """
-    info = response.xpath('//div[@class ="padtop10 padbtm10"]')
-    info_eng = response.css("div.padtop20")
+    for key, value in raw_dictionary.items():
+        if not isinstance(value, list):
+            raw_dictionary[key] = [value]
+    return raw_dictionary
 
-    if info:
-        return info.css("time::attr(datetime)").get()
-    elif info_eng:
-        return info_eng.css("time::attr(datetime)").get()
-
-
-def get_author(response) -> list:
-    """
-    The extract_author function extracts information about the author(s)
-    of an article from the given response object and returns it in the form of a list of dictionaries.
-
-    Parameters:
-        response (scrapy.http.Response): The response object containing the HTML of the article page.
-
-    Returns:
-        A list of dictionaries, where each dictionary contains information about one author.
-
-    """
-    try:
-        info = response.css("div.author")
-        pattern = r"[\r\n\t\"]+"
-        data = []
-        if info:
-            for i in info:
-                temp_dict = {}
-                temp_dict["@type"] = "Person"
-                temp_dict["name"] = re.sub(
-                    pattern, "", i.css("div a span::text").get()
-                ).strip()
-                temp_dict["url"] = i.css("div a::attr(href)").get()
-                data.append(temp_dict)
-            return data
-    except BaseException as exception:
-        LOGGER.info(f"Error occured while extracting author information: {exception}")
-        raise exceptions.ArticleScrappingException(
-            f"Error occured while extracting author information: {exception}"
-        )
 
 def get_tags(response):
     try:
         tags = []
-        raw_tags = response.xpath("//meta[@name='keywords']/@content")[0].extract()
+        raw_tags = response.css("meta[name=\"keywords\"]::attr(content)").get()
         if raw_tags:
             return raw_tags.split(",")
         return tags
@@ -320,6 +370,7 @@ def get_tags(response):
         raise exceptions.ArticleScrappingException(
             f"Error occured while extracting tags: {exception}"
         )
+
 
 def get_thumbnail_image(response) -> list:
     """
@@ -335,13 +386,13 @@ def get_thumbnail_image(response) -> list:
         mod_info = response.css(".storypicture img.width100")
         data = []
         if info:
-            for i in info:
-                image = i.css("div.gallery-item-img-wrapper img::attr(src)").get()
+            for block in info:
+                image = block.css("div.gallery-item-img-wrapper img::attr(src)").get()
                 if image:
                     data.append(image)
         elif mod_info:
-            for i in mod_info:
-                image = i.css("img::attr(src)").get()
+            for block in mod_info:
+                image = block.css("img::attr(src)").get()
                 if image:
                     data.append(image)
         return data
@@ -360,13 +411,14 @@ def get_embed_video_link(response) -> list:
         info = response.css("div.videoWrapper")
         data = []
         if info:
-            for i in info:
-                js = i.css("script").get()
-                request_link = re.findall(r"playlist\s*:\s*'(\S+)'", js)[0]
-                response = requests.get(request_link)
-                link = response.json().get("playlist")[0].get("sources")[1].get("file")
-                temp_dict = {"link": link}
-                data.append(temp_dict)
+            for block in info:
+                js = block.css("script").getall()
+                for block in js:
+                    request_link = re.findall(r"playlist\s*:\s*'(\S+)'", block)
+                    if request_link:
+                        response = requests.get(request_link[0])
+                        link = response.json().get("playlist")[0].get("sources")[1].get("file")
+                        data.append(link)
         return data
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting video links: {exception}")
@@ -375,38 +427,32 @@ def get_embed_video_link(response) -> list:
         )
 
 
-def get_publisher(response) -> list:
-    """
-    Extracts publisher information from the given response object and returns it as a dictionary.
+def get_description_publisher_title(web_page_dict, parsed_json_dict, response):
+    """get description and publisher if available
 
-    Returns:
-    - A dictionary containing information about the publisher. The dictionary has the following keys:
-        - "@id": The unique identifier for the publisher.
-        - "@type": The type of publisher (in this case, always "NewsMediaOrganization").
-        - "name": The name of the publisher.
+    Args:
+        web_page_dict (dict): webpage data from ld+json
+        response (str): response string of page
     """
-    try:
-        logo = response.css('link[rel="icon"]::attr(href)').getall()[2]
-        img_response = requests.get(logo)
-        width, height = Image.open(BytesIO(img_response.content)).size
-        a_dict = {
-            "@id": "bharat.republicworld.com",
-            "@type": "NewsMediaOrganization",
-            "name": "Bharat republic word",
-            "logo": {
-                "@type": "ImageObject",
-                "url": logo,
-                "width": {"@type": "Distance", "name": str(width) + " px"},
-                "height": {"@type": "Distance", "name": str(height) + " px"},
-            },
+    if web_page_dict:
+        return{
+            "description": web_page_dict.get("description", None),
+            "publisher": web_page_dict.get("publisher",None) or parsed_json_dict.get("publisher",None),
+            "title":web_page_dict.get("name", None) or parsed_json_dict.get("headline",None),
         }
-        return [a_dict]
-    except BaseException as exception:
-        LOGGER.info(f"Error occured while getting publisher information: {exception}")
-        raise exceptions.ArticleScrappingException(
-            f"Error occured while getting publisher information: {exception}"
-        )
-
+    elif response.css("h1.story-title::text"):
+        headline = response.css("h1.story-title::text").get().strip()
+        return{
+            "description": None,
+            "publisher": None,
+            "title": headline
+        }
+    else:
+        return{
+            "description": None,
+            "publisher": None,
+            "title": None
+    }
 def get_images(response) -> list:
     """
     Extracts all the images present in the web page.
@@ -419,9 +465,9 @@ def get_images(response) -> list:
         info = response.css("div.embedpicture")
         data = []
         if info:
-            for i in info:
+            for block in info:
                 temp_dict = {}
-                image = i.css("div.embedimgblock img::attr(src)").get()
+                image = block.css("div.embedimgblock img::attr(src)").get()
                 if image:
                     temp_dict["link"] = image
                 data.append(temp_dict)
@@ -443,7 +489,7 @@ def remove_empty_elements(parsed_data_dict):
     """
 
     def empty(value):
-        return value is None or value == {} or value == []
+        return value is None or value == {} or value == [] or value == ""
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
