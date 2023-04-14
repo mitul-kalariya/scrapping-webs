@@ -23,7 +23,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_linkfeed(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -94,7 +94,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         LOGGER.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_linkfeed)
+                yield scrapy.Request(response.url, callback=self.parse_link_feed)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -106,7 +106,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_linkfeed(self, response):  # noqa: C901
+    def parse_link_feed(self, response):  # noqa: C901
         try:
             namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             loc = response.xpath("//xmlns:loc/text()", namespaces=namespaces).getall()

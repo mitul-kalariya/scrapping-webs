@@ -173,7 +173,6 @@ def get_parsed_data(response):
         article_title = response.css("h2 span.article__headline::text").get()
         response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
-        breakpoint()
         response_data["author"] = [main_json.get("author", None)]
 
         article_published = response.css("span.article__date::text").get()
