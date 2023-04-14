@@ -3,8 +3,7 @@ import unittest
 
 from crwzdfnews.spiders.zdf_news import ZdfNewsSpider
 from crwzdfnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwzdfnews.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+from crwzdfnews.test.helpers.utils import (get_article_content, online_response_from_url)
 from crwzdfnews import Crawler
 
 # Creating an object
@@ -234,7 +233,7 @@ class TestArticle(unittest.TestCase):
                                       str, "format mismatch for parsed_data--> section")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("section"),
-                                  list, "format mismatch for parsed_data--> section")
+                                  list, "format mismatch for parsed_data--> section")  # noqa: E128
 
         if article[0].get("parsed_data").get("tags"):
             with self.subTest():
@@ -242,7 +241,7 @@ class TestArticle(unittest.TestCase):
                                       str, "format mismatch for parsed_data--> tags")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("tags"),
-                                  list, "format mismatch for parsed_data--> tags")
+                                  list, "format mismatch for parsed_data--> tags")  # noqa: E128
 
 
 class TestSitemap(unittest.TestCase):

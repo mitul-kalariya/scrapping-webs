@@ -22,7 +22,7 @@ create_log_file()
 
 class BaseSpider(ABC):
     @abstractmethod
-    def parse(response):
+    def parse(self, response):
         pass
 
     @abstractmethod

@@ -1,5 +1,6 @@
-# Utility/helper functions
-# utils.py
+"""
+Utils file for scrapping
+"""
 
 import re
 import json
@@ -14,7 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from crwzdfnews import exceptions
-from crwzdfnews.constant import TODAYS_DATE, LOGGER
+from crwzdfnews.constant import TODAYS_DATE, LOGGER, WEBDRIVER_EXECUTABLE_PATH
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
@@ -426,7 +427,7 @@ def get_embed_video_link(response) -> list:
                     EC.presence_of_all_elements_located(
                         (
                             By.XPATH,
-                            "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']",
+                            "//button[@class='start-screen-play-button-26tC6k zdfplayer-button zdfplayer-tooltip svelte-mmt6rm']",  # noqa: E501
                         )
                     )
                 )
@@ -444,7 +445,7 @@ def get_embed_video_link(response) -> list:
                         EC.presence_of_all_elements_located(
                             (
                                 By.XPATH,
-                                "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']",
+                                "//div[@class='zdfplayer-video-container svelte-jemki7']/video[@class='video-1QZyVO svelte-ljt583 visible-1ZzN48']",  # noqa: E501
                             )
                         )
                     )

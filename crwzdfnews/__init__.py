@@ -1,1 +1,1 @@
-from crwzdfnews.main import Crawler
+from crwzdfnews.main import Crawler  # noqa: F401
