@@ -22,6 +22,7 @@ from scrapy.selector import Selector
 # create log file
 create_log_file()
 
+
 class BaseSpider(ABC):
     @abstractmethod
     def parse(response):
