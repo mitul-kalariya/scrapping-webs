@@ -204,18 +204,14 @@ def get_parsed_data(response):
 
         if main_data[0].get("@type") == "VideoObject":
             main_dict["video"] = extract_videos(response)
-            breakpoint()
             main_dict["section"] = [response.css(
                 "div.t360-terratv--header__container span::text"
-                ).get()]
+            ).get()]
         else:
             main_dict["section"] = get_section(response)
         main_dict["tags"] = response.css(
             "meta[name='keywords']::attr(content)"
         ).getall()
-        
-
-        
 
         return remove_empty_elements(main_dict)
     except BaseException as exception:
