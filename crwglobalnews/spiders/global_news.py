@@ -3,7 +3,7 @@ from datetime import datetime
 from lxml import etree
 from crwglobalnews import exceptions
 from scrapy.loader import ItemLoader
-from crwglobalnews.constant import TODAYS_DATE, LOGGER, SITEMAP_URL
+from crwglobalnews.constant import TODAYS_DATE, LOGGER, LINK_FEED_URL
 from abc import ABC, abstractmethod
 from crwglobalnews.items import ArticleData
 from crwglobalnews.utils import (
@@ -23,7 +23,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_linkfeed(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -35,7 +35,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
     name = "global_news"
 
     def __init__(
-            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """
         A spider to crawl globalnews.ca for news articles. The spider can be initialized with two modes:
@@ -65,7 +65,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException(
                         "Date Filter is not available for this website"
                     )
-                self.start_urls.append(SITEMAP_URL)
+                self.start_urls.append(LINK_FEED_URL)
 
             if self.type == "article":
                 if url:
@@ -88,7 +88,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
         try:
             LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_linkfeed)
+                yield scrapy.Request(response.url, callback=self.parse_link_feed)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -100,7 +100,7 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {e}"
             )
 
-    def parse_linkfeed(self, response):
+    def parse_link_feed(self, response):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
