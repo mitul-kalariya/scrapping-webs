@@ -52,10 +52,10 @@ def remove_empty_elements(parsed_data_dict):
 
 def get_raw_response(response):
     """generate dictrionary of raw html data
-        Args:
-            response (object): page_data
-        Returns:
-            raw_response (dict): targeted data
+    Args:
+        response (object): page_data
+    Returns:
+        raw_response (dict): targeted data
     """
     try:
         raw_resopnse = {
@@ -110,47 +110,82 @@ def get_parsed_json(response):
         )
 
 
+def get_parsed_data_dict() -> dict:
+    """
+    Return base data dictionary
+
+    Args:
+    None
+
+    Returns:
+        dict: Return base data dictionary
+    """
+    return {
+        "source_country": None,
+        "source_language": None,
+        "author": [{"@type": None, "name": None, "url": None}],
+        "description": None,
+        "modified_at": None,
+        "published_at": None,
+        "publisher": None,
+        "text": None,
+        "thumbnail_image": None,
+        "title": None,
+        "images": None,
+        "section": None,
+        "embed_video_link": None,
+    }
+
+
 def get_parsed_data(response):
     try:
         response_data = {}
         pattern = r"[\r\n\t\"]+"
+        main_json = get_main(response)
+        article_json = main_json.get("article")
+        videoobject_json = main_json.get("VideoObject")
+        if article_json:
+            main_json = article_json
+        else:
+            main_json = videoobject_json
 
+        response_data = get_parsed_data_dict()
         article_title = response.css("h2 span.article__headline::text").get()
         response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
-        article_author = get_main(response)
-        response_data['author'] = [article_author[0].get('author')]
+        response_data["author"] = [main_json.get("author", None)]
 
         article_published = response.css("span.article__date::text").get()
         response_data["published_at"] = [article_published]
 
-        article_modified = response.css('meta[name="last-modified"]::attr(content)').get()
+        article_modified = response.css(
+            'meta[name="last-modified"]::attr(content)'
+        ).get()
         response_data["modified_at"] = [article_modified]
 
         article_description = response.css("p strong::text").get()
         response_data["description"] = [article_description]
 
-        article_section = response.css("span[class=\"title title--dark\"]::text").get()
+        article_section = response.css('span[class="title title--dark"]::text').get()
         if article_section:
             response_data["section"] = [article_section]
 
-        article_publisher = get_main(response)
-        response_data["publisher"] = [article_publisher[0].get("publisher")]
+        response_data["publisher"] = [main_json.get("publisher", None)]
 
         article_text = " ".join(response.css("p::text").getall())
         if article_text:
             response_data["text"] = [article_text]
         elif response.css("div.article__text::text").get():
             response_data["text"] = [
-                re.sub(pattern, "", response.css("div.article__text::text").get()).strip()
+                re.sub(
+                    pattern, "", response.css("div.article__text::text").get()
+                ).strip()
             ]
 
         article_thumbnail = get_thumbnail(response)
         response_data["thumbnail_image"] = article_thumbnail
 
-        article_video = response.css("div.vplayer__video div video source::attr(src)").get()
-        link = re.findall(r"http?.*?\.mp4", str(article_video))
-        response_data["embed_video_link"] = link
+        response_data |= get_video_info(main_json, response)
 
         article_tags = response.css("section.article__tags ul li a::text").getall()
         response_data["tags"] = article_tags
@@ -167,6 +202,17 @@ def get_parsed_data(response):
         )
 
 
+def get_video_info(parsed_json_dict, response):
+    if parsed_json_dict:
+        return {"embed_video_link": [parsed_json_dict.get("contentUrl", None)]}
+    else:
+        article_video = response.css(
+            "div.vplayer__video div video source::attr(src)"
+        ).get()
+        link = re.findall(r"http?.*?\.mp4", str(article_video))
+        return {"embed_video_link": [link] or None}
+
+
 def get_main(response):
     """
     returns a list of main data available in the article from application/ld+json
@@ -176,16 +222,24 @@ def get_main(response):
         main data
     """
     try:
-        data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data
 
+        information = {}
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        for block in main:
+            data = json.loads(block)
+            if data.get("@type") == "NewsArticle":
+                information["article"] = data
+            elif data.get("@type") == "WebPage":
+                information["WebPage"] = data
+            elif data.get("@type") == "VideoObject":
+                information["VideoObject"] = data
+            else:
+                pass
+        return information
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting main: {exception}")
+        LOGGER.info("Error while getting main %s ", exception)
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting main: {exception}"
+            f"Error while getting main: {exception}"
         )
 
 
