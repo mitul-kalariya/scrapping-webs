@@ -468,7 +468,6 @@ def get_text_title_section_tag_details(parsed_data: list, response: str) -> dict
         dict: text, title, section, tag details
     """
     if parsed_data.get("@type")[0] in {"Article", "VideoObject"}:
-        breakpoint()
         keywords = parsed_data.get("keywords",None)
         if keywords:
             keywords = keywords[0].split(",")
