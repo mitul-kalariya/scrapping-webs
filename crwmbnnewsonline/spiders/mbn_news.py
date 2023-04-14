@@ -54,7 +54,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
     }
 
     def __init__(
-        self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs
+        self, type=None, start_date=None, end_date=None, url=None, enable_selenium=True, *args, **kwargs
     ):
         try:
             super(Mbn_news, self).__init__(*args, **kwargs)
@@ -68,6 +68,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
             self.start_date = start_date
             self.end_date = end_date
             self.today_date = None
+            self.enable_selenium = enable_selenium
 
             check_cmd_args(self, self.start_date, self.end_date)
 
@@ -217,7 +218,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 parsed_json_data,
             )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_dict)
+                "parsed_data", get_parsed_data(response, parsed_json_dict, self.enable_selenium)
             )
             self.articles.append(dict(articledata_loader.load_item()))
             return self.articles[0]

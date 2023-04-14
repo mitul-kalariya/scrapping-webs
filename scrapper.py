@@ -5,7 +5,7 @@ from crwmbnnewsonline import Crawler
 
 links = [
     {
-        "link": "https://www.mbn.co.kr/news/society/4917663",
+        "link": "https://www.mbn.co.kr/news/entertain/4917683",
         "test_data_path": "crwmbnnewsonline/test/data/test_article_1.json",
     },
     {
@@ -18,7 +18,7 @@ links = [
     },
 ]
 for link in links[:5]:
-    article = Crawler(query={"type": "article", "link": link["link"]})
+    article = Crawler(query={"type": "article", "link": link["link"]}, enable_selenium=True)
     data = article.crawl()
     print(data)
     print("----------------------------------------------------")

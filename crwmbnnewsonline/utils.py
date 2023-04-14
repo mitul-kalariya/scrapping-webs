@@ -187,7 +187,7 @@ def get_parsed_data_dict() -> dict:
     }
 
 
-def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
+def get_parsed_data(response: str, parsed_json_dict: dict, enable_selenium: str) -> dict:
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
@@ -229,7 +229,8 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["source_country"] = ["South Korea"]
     parsed_data_dict["source_language"] = ["Korean"]
     parsed_data_dict["tags"] = response.css(".gnb_depth_in li a::text").getall()
-    parsed_data_dict["images"] = get_images(response)
+    if enable_selenium:
+        parsed_data_dict["images"] = get_images(response)
     return remove_empty_elements(parsed_data_dict)
 
 
