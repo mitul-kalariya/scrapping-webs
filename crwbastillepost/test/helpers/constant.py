@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://www.bastillepost.com/hongkong/sitemap/generate/index"
+LINK_FEED_URL = "https://www.bastillepost.com/hongkong/sitemap/generate/index"

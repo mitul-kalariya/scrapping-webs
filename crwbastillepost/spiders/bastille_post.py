@@ -3,7 +3,7 @@ from lxml import etree
 from datetime import datetime
 from crwbastillepost import exceptions
 from scrapy.loader import ItemLoader
-from crwbastillepost.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
+from crwbastillepost.constant import LOGGER, LINK_FEED_URL, TODAYS_DATE
 from abc import ABC, abstractmethod
 from crwbastillepost.items import ArticleData
 from crwbastillepost.utils import (
@@ -24,7 +24,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -68,7 +68,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
             self.type = type.lower()
 
             if self.type == "sitemap":
-                self.start_urls.append(SITEMAP_URL)
+                self.start_urls.append(LINK_FEED_URL)
 
                 self.start_date = (
                     datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
@@ -112,7 +112,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                         namespaces={"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"},
                     )
                     for link in links:
-                        yield scrapy.Request(link, callback=self.parse_sitemap)
+                        yield scrapy.Request(link, callback=self.parse_link_feed)
                 except Exception as exception:
                     LOGGER.info(
                         f"Error occurring while parsing sitemap {exception} in parse function"
@@ -128,7 +128,7 @@ class BastillePostSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {e}"
             )
 
-    def parse_sitemap(self, response: str) -> None:    # noqa: C901
+    def parse_link_feed(self, response: str) -> None:    # noqa: C901
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """

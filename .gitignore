@@ -139,3 +139,5 @@ dmypy.json
 # Output Data
 Article/
 Links/
+
+test_scrapper.py

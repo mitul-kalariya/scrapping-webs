@@ -3,7 +3,7 @@ import unittest
 
 from crwbastillepost import Crawler
 from crwbastillepost.spiders.bastille_post import BastillePostSpider
-from crwbastillepost.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwbastillepost.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
 from crwbastillepost.test.helpers.utils import (
     get_article_content,
     online_response_from_url,
@@ -341,7 +341,7 @@ class TestArticle(unittest.TestCase):
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "link_feed"
-        self.crawler = Crawler(query={"type": "link_feed", "domain": SITEMAP_URL})
+        self.crawler = Crawler(query={"type": "link_feed", "domain": LINK_FEED_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object
