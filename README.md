@@ -4,7 +4,7 @@
 
 This repo contains the code to scrap all article links and articles from www.lemonde.fr website and the tech stacks used are
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
 
 
 #### Environment Setup
@@ -19,7 +19,7 @@ This repo contains the code to scrap all article links and articles from www.lem
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
-
+*Note:* Here we are getting data from sitemap
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 ```
