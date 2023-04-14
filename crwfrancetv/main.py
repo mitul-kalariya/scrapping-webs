@@ -72,7 +72,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
             if self.query.get("since") and self.query.get("until"):
                 spider_args["start_date"] = self.query["since"]
