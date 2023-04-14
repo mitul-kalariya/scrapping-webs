@@ -7,6 +7,9 @@ This repo contains the code to scrap all article links and articles from https:/
 - Python 3.10
 - Scrapy 2.8.0
 - requests 2.28.2
+- selenium-wire 5.1.0
+- selenium 4.8.3
+- webdriver-manager 3.8.5
 
 #### Environment Setup
 
@@ -16,7 +19,7 @@ This repo contains the code to scrap all article links and articles from https:/
 
 _Note:_ Make sure to activate the virtual environment before executing code or installing the package.
 
-> ```imp:``` generating **cookies &  request headers** using seleniumwire and webdriver manager for all pages requests, Hence ```not including enable_selenium``` args
+> ```imp:``` generating **cookies &  request headers** using seleniumwire and webdriver manager for all pages requests, Hence  ***not including enable_selenium*** args
 ### Installation
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
