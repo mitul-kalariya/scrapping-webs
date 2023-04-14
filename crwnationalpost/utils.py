@@ -186,7 +186,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     parsed_json_flter_dict = {
         "main": None,
         "imageObjects": None,
-        "VideoObjects": None,
+        "videoObjects": None,
         "other": [],
         "misc": [],
     }
