@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from crwntv import exceptions
-from crwntv.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
+from crwntv.constant import LOGGER, LINK_FEED_URL, TODAYS_DATE
 from crwntv.items import ArticleData
 from crwntv.utils import (
     create_log_file,
@@ -23,7 +23,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_linkfeed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -66,7 +66,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                     raise exceptions.InvalidInputException(
                         "Date Filter is not available for this website"
                     )
-                self.start_urls.append(SITEMAP_URL)
+                self.start_urls.append(LINK_FEED_URL)
 
             elif self.type == "article":
                 if url:
@@ -94,7 +94,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
         LOGGER.info("Parse function called on %s", response.url)
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_linkfeed)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -106,7 +106,7 @@ class NTvSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_sitemap(self, response):  # noqa: C901
+    def parse_linkfeed(self, response):  # noqa: C901
         try:
             namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             loc = response.xpath("//xmlns:loc/text()", namespaces=namespaces).getall()

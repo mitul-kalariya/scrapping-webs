@@ -138,21 +138,42 @@ def get_parsed_data_dict() -> dict:
 
 
 def get_parsed_data(response):
+    """
+        Extracts data from a news article webpage and returns it in a dictionary format.
+        Parameters:
+        response (scrapy.http.Response): A scrapy response object of the news article webpage.
+        Returns:
+        dict: A dictionary containing the extracted data from the webpage, including:
+            - 'publisher': (str) The name of the publisher of the article.
+            - 'article_catagory': The region of the news that the article refers to
+            - 'headline': (str) The headline of the article.
+            - 'authors': (list) The list of authors of the article, if available.
+            - 'published_on': (str) The date and time the article was published.
+            - 'updated_on': (str) The date and time the article was last updated, if available.
+            - 'text': (list) The list of text paragraphs in the article.
+            - 'images': (list) The list of image URLs in the article, if available. (using bs4)
+    """
     try:
         response_data = {}
         pattern = r"[\r\n\t\"]+"
         main_json = get_main(response)
         article_json = main_json.get("article")
         videoobject_json = main_json.get("VideoObject")
+        web_page = main_json.get("WebPage")
         if article_json:
             main_json = article_json
-        else:
+        elif videoobject_json:
             main_json = videoobject_json
+        elif web_page:
+            main_json = web_page
+        else:
+            main_json = {}
 
         response_data = get_parsed_data_dict()
         article_title = response.css("h2 span.article__headline::text").get()
         response_data["title"] = [re.sub(pattern, "", article_title).strip()]
 
+        breakpoint()
         response_data["author"] = [main_json.get("author", None)]
 
         article_published = response.css("span.article__date::text").get()

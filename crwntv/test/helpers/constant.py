@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://www.n-tv.de/sitemap.xml"
+LINK_FEED_URL = "https://www.n-tv.de/sitemap.xml"
