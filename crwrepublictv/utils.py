@@ -116,7 +116,7 @@ def get_parsed_json(response):
             else:
                 other_data.append(data)
 
-        parsed_json["Other"] = other_data
+        parsed_json["other"] = other_data
         misc = get_misc(response)
         if misc:
             parsed_json["misc"] = misc

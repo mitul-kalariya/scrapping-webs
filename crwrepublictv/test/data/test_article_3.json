@@ -37,7 +37,7 @@
         },
         "description": "Om Raut ने उत्तर प्रदेश के मुख्यमंत्री Yogi Adityanath से मुलाकात कर उन्हें एक खास उपहार भेंट किया है।"
       },
-      "Other": [
+      "other": [
         {
           "@context": "https://schema.org",
           "@type": "WebPage",

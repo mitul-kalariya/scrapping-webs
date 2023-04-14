@@ -37,7 +37,7 @@
         },
         "description": "शुक्रवार को पिकअप ट्रक राहुल गांधी के सरकारी आवास से सामान ले जाते हुए दिखे।"
       },
-      "Other": [
+      "other": [
         {
           "@context": "https://schema.org",
           "@type": "WebPage",

@@ -37,7 +37,7 @@
         },
         "description": "KKR vs SRH Dream 11: कोलकाता नाइट राइडर्स और सनराइजर्स हैदराबाद के बीच आज शाम 7:30 बजे से ईडन गार्डन में खेला जाएगा मुकाबला"
       },
-      "Other": [
+      "other": [
         {
           "@context": "https://schema.org",
           "@type": "WebPage",
