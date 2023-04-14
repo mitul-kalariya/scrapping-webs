@@ -1,12 +1,9 @@
 # Utility/helper functions
 # utils.py
 
-import os
 import re
 import json
 import requests
-from io import BytesIO
-from PIL import Image
 import logging
 from datetime import datetime
 from crwrepublictv import exceptions
@@ -250,7 +247,9 @@ def get_parsed_data(response):
         # get author and published,modified date
         parsed_data |= get_author_dates(main_data, response)
         # get description and publisher info and title
-        parsed_data |= get_description_publisher_title(web_page_json, main_data,response)
+        parsed_data |= get_description_publisher_title(
+            web_page_json, main_data, response
+        )
         # get section information
         parsed_data |= get_section(breadcrumbs)
         article_text = response.css("section p::text").getall()
@@ -270,7 +269,7 @@ def get_parsed_data(response):
         parsed_data["source_language"] = [mapper.get(article_lang)]
         parsed_data["tags"] = get_tags(response)
 
-        final_dict =  remove_empty_elements(parsed_data)
+        final_dict = remove_empty_elements(parsed_data)
         return format_dictionary(final_dict)
 
     except Exception as exception:
@@ -279,6 +278,7 @@ def get_parsed_data(response):
             f"Error while extracting parsed data: {exception}"
         )
 
+
 def get_section(breadcrumbs_dict):
 
     section = ""
@@ -286,13 +286,11 @@ def get_section(breadcrumbs_dict):
         for item in breadcrumbs_dict.get("itemListElement"):
             if item.get("position") == 2:
                 section = (item.get("item")).get("name")
-        return {
-            "section" : section
-        }
+        return {"section": section}
     else:
-        return {
-            "section": None
-        }
+        return {"section": None}
+
+
 def get_author_dates(parsed_json_dict, response):
     """extracts author and published data,modified data inforomation
 
@@ -361,7 +359,7 @@ def format_dictionary(raw_dictionary):
 def get_tags(response):
     try:
         tags = []
-        raw_tags = response.css("meta[name=\"keywords\"]::attr(content)").get()
+        raw_tags = response.css('meta[name="keywords"]::attr(content)').get()
         if raw_tags:
             return raw_tags.split(",")
         return tags
@@ -417,7 +415,12 @@ def get_embed_video_link(response) -> list:
                     request_link = re.findall(r"playlist\s*:\s*'(\S+)'", block)
                     if request_link:
                         response = requests.get(request_link[0])
-                        link = response.json().get("playlist")[0].get("sources")[1].get("file")
+                        link = (
+                            response.json()
+                            .get("playlist")[0]
+                            .get("sources")[1]
+                            .get("file")
+                        )
                         data.append(link)
         return data
     except BaseException as exception:
@@ -435,24 +438,20 @@ def get_description_publisher_title(web_page_dict, parsed_json_dict, response):
         response (str): response string of page
     """
     if web_page_dict:
-        return{
+        return {
             "description": web_page_dict.get("description", None),
-            "publisher": web_page_dict.get("publisher",None) or parsed_json_dict.get("publisher",None),
-            "title":web_page_dict.get("name", None) or parsed_json_dict.get("headline",None),
+            "publisher": web_page_dict.get("publisher", None)
+            or parsed_json_dict.get("publisher", None),
+            "title": web_page_dict.get("name", None)
+            or parsed_json_dict.get("headline", None),
         }
     elif response.css("h1.story-title::text"):
         headline = response.css("h1.story-title::text").get().strip()
-        return{
-            "description": None,
-            "publisher": None,
-            "title": headline
-        }
+        return {"description": None, "publisher": None, "title": headline}
     else:
-        return{
-            "description": None,
-            "publisher": None,
-            "title": None
-    }
+        return {"description": None, "publisher": None, "title": None}
+
+
 def get_images(response) -> list:
     """
     Extracts all the images present in the web page.
@@ -509,32 +508,3 @@ def remove_empty_elements(parsed_data_dict):
             if not empty(value)
         }
     return data_dict
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
