@@ -15,14 +15,12 @@ from crweconomist.utils import (
     check_cmd_args,
     get_parsed_data,
     get_parsed_json,
-    get_raw_response
+    get_raw_response,
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="economist_canada.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -49,7 +47,7 @@ class Economist(scrapy.Spider, BaseSpider):
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
-    def __init__(self, type=None, start_date=None, end_date=None, url=None, *args, **kwargs):
+    def __init__(self, *args, type=None, start_date=None, end_date=None, url=None, **kwargs):
         try:
             super(Economist, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
@@ -140,7 +138,6 @@ class Economist(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
@@ -174,7 +171,6 @@ class Economist(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
         except Exception as exception:
             self.log(
                 f"Error occurred while exporting file:- {str(exception)} - {reason}",

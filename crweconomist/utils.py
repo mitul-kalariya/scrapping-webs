@@ -133,10 +133,6 @@ def get_parsed_json(selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
@@ -204,7 +200,6 @@ def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
 
     parsed_data_dict["publisher"] = get_publisher(main, logo_width, logo_height, parsed_json_data)
     parsed_data_dict["text"] = [main.get("articleBody")]
-    parsed_data_dict["thumbnail_image"] = [main.get("thumbnailUrl")]
 
     parsed_data_dict["title"] = [headline]
 
@@ -215,14 +210,24 @@ def get_parsed_data(response: Response, parsed_json_data: dict) -> dict:
         caption = response.css('span.css-1a0w51d::text').get()
     if not caption:
         caption = response.css('span.css-1a0w51d::text').get()
-    if caption:
-        parsed_data_dict["images"] = [{"link": main.get("image"),
-                                       "caption": caption}]
+    img_link = response.css("section.ekjxuah0 figure.e12yhaj20 img::attr('srcset')").get()
+    if img_link:
+        img_url = img_link.split(' ')[0]
     else:
-        parsed_data_dict["images"] = [{"link": main.get("image")}]
+        img_url = main.get("thumbnailUrl")
+    parsed_data_dict["thumbnail_image"] = [img_url]
+    if caption:
+        parsed_data_dict["images"] = [{
+            "link": img_url,
+            "caption": caption}]
+    else:
+        parsed_data_dict["images"] = [{
+            "link": img_url
+        }]
     parsed_data_dict["section"] = [main.get("articleSection")]
 
     parsed_data_dict["tags"] = main.get("keywords")
+    parsed_data_dict['time_scraped'] = [str(datetime.now())]
 
     return remove_empty_elements(parsed_data_dict)
 

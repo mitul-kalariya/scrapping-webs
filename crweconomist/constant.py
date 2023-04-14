@@ -2,6 +2,7 @@
 
 # Initial url for sitemap
 SITEMAP_URL = "https://www.economist.com/sitemap.xml"
+BASE_URL = "https://www.economist.com/"
 
 # date format used in spider arguments
 DATE_FORMAT = '%Y-%m-%d'

@@ -26,7 +26,6 @@ class ArticleRawResponse(Item):
 class ArticleRawParsedJson(Item):
     main = Field()
     misc = Field()
-    ImageGallery = Field()
     videoObjects = Field()
     imageObjects = Field()
     other = Field()
