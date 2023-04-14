@@ -82,7 +82,6 @@ class Sternpider(scrapy.Spider, BaseSpider):
     """Spider"""
 
     name = "stern"
-
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -141,8 +140,8 @@ class Sternpider(scrapy.Spider, BaseSpider):
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
-
     def parse(self, response):
+
         """
         Parses the given Scrapy response based on the specified type of parsing.
         Returns:
