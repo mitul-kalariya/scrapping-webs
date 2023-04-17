@@ -6,7 +6,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 from crwddnews.items import ArticleData
 from crwddnews import exceptions
-from crwddnews.constant import SITEMAP_URL, LOGGER
+from crwddnews.constant import ARCHIVE_URL, LOGGER
 from crwddnews.utils import (
     create_log_file,
     validate_sitemap_date_range,
@@ -85,7 +85,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             self.type = type.lower()
 
             if self.type == "sitemap":
-                self.start_urls.append(SITEMAP_URL)
+                self.start_urls.append(ARCHIVE_URL)
 
                 self.since = (
                     datetime.strptime(since, "%Y-%m-%d").date() if since else None
@@ -111,7 +111,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         """
         Parses the given Scrapy response based on the specified type of parsing.
         Returns:
@@ -154,29 +154,26 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                         "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
                         + today
                     )
+                elif until == today:
+                    url = (
+                        "https://ddnews.gov.in/about/news-archive?\
+                            title=&news_type=All&changed_1="
+                        + since
+                    )
                 else:
-                    if until == today:
-                        url = (
-                            "https://ddnews.gov.in/about/news-archive?\
+                    url = (
+                        "https://ddnews.gov.in/about/news-archive?\
                             title=&news_type=All&changed_1="
-                            + since
-                        )
-                    else:
-                        url = (
-                            "https://ddnews.gov.in/about/news-archive?\
-                            title=&news_type=All&changed_1="
-                            + since
-                            + "&changed_2="
-                            + until
-                        )
-                yield scrapy.Request(url, callback=self.parse_archive_article)
+                        + since
+                        + "&changed_2="
+                        + until
+                    )
             else:
                 url = (
                     "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
                     + today
                 )
-                yield scrapy.Request(url, callback=self.parse_archive_article)
-
+            yield scrapy.Request(url, callback=self.parse_archive_article)
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
@@ -196,17 +193,16 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-
             links = response.css("span.field-content a::attr(href)").getall()
             titles = response.css("p.archive-title::text").getall()
             for link, title in zip(links, titles):
                 if link and title:
                     self.articles.append(
-                        {"link": "https://ddnews.gov.in/" + link, "title": title}
+                        {"link": f"https://ddnews.gov.in/{link}", "title": title}
                     )
             pagination = response.css("li.pager-item a::attr(href)").getall()
             for pagination_wise in pagination:
-                pagination_url = "https://ddnews.gov.in" + pagination_wise
+                pagination_url = f"https://ddnews.gov.in{pagination_wise}"
                 if len(pagination) >= 1:
                     yield scrapy.Request(
                         pagination_url, callback=self.parse_archive_article
@@ -270,9 +266,9 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
-            exceptions.ExportOutputFileException(
-                "Error occurred while writing json file %s - %s", str(exception), reason
-            )
             LOGGER.info(
                 "Error occurred while writing json file %s - %s", str(exception), reason
+            )
+            raise exceptions.ExportOutputFileException(
+                f"Error occurred while writing json file {str(exception)} - {reason}"
             )
