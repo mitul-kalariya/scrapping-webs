@@ -37,7 +37,19 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_archive_categories(self, response: str) -> None:
+        """Parses a sitemap page and extracts categories links for further processing.
+        Args:
+            response (scrapy.http.Response): The HTTP response object
+            containing the sitemap page.
+        Yields:
+            scrapy.http.Request: A request object for each link on the sitemap page.
+        Raises:
+            exceptions.SitemapScrappingException: If there is an error
+            while parsing the sitemap page.
+        """
+        pass
+    def parse_archive(self, response: str) -> None:
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
             response (scrapy.http.Response): The HTTP response object
@@ -50,7 +62,7 @@ class BaseSpider(ABC):
         """
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_archive_article(self, response: str) -> None:
         """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
         Args:
@@ -78,7 +90,7 @@ class BaseSpider(ABC):
         pass
 
 
-class Sternpider(scrapy.Spider, BaseSpider):
+class SternSpider(scrapy.Spider, BaseSpider):
     """Spider"""
 
     name = "stern"
@@ -106,7 +118,7 @@ class Sternpider(scrapy.Spider, BaseSpider):
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
         try:
-            super(Sternpider, self).__init__(*args, **kwargs)
+            super(SternSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
             self.start_urls = []
             self.date_range_lst = []
@@ -151,7 +163,7 @@ class Sternpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                yield scrapy.Request(response.url, callback=self.parse_archive_categories)
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -163,7 +175,7 @@ class Sternpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_archive_categories(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
             response (scrapy.http.Response): The HTTP response object
@@ -176,27 +188,38 @@ class Sternpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            if "sitemap.xml" in response.url:
-                if self.since and self.until:
-                    for single_date in date_range(self.since, self.until):
-                        yield scrapy.Request(
-                            f"https://www.ndtv.com/sitemap.xml/?yyyy={single_date.year}&mm={single_date.month}&dd={single_date.day}&sitename=&category=",
-                            callback=self.parse_sitemap_article,
-                        )
-                else:
-                    today = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
-                    yield scrapy.Request(
-                        f"https://www.ndtv.com/sitemap.xml/?yyyy={today[0]}&mm={today[1]}&dd={today[2]}&sitename=&category=",
-                        callback=self.parse_sitemap_article,
-                    )
-
+            links = response.css("div.teaser__text-content a::attr(href)").getall()
+            for link in links:
+                yield scrapy.Request(link, callback=self.parse_archive_article)
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
-    def parse_sitemap_article(self, response):
+    # def parse_archive_categories(self, response):
+    #     """Parses a sitemap page and extracts links and titles for further processing.
+    #     Args:
+    #         response (scrapy.http.Response): The HTTP response object
+    #         containing the sitemap page.
+    #     Yields:
+    #         scrapy.http.Request: A request object for each link on the sitemap page.
+    #     Raises:
+    #         exceptions.SitemapScrappingException: If there is an error
+    #         while parsing the sitemap page.
+    #     """
+    #
+    #     try:
+    #         links = response.css("div.teaser__text-content a::attr(href)").getall()
+    #         for link in links:
+    #             yield scrapy.Request(link, callback=self.parse_archive_article)
+    #     except BaseException as exception:
+    #         LOGGER.info("Error while parsing sitemap: %s", exception)
+    #         raise exceptions.SitemapScrappingException(
+    #             f"Error while parsing sitemap: {str(exception)}"
+    #         )
+
+    def parse_archive_article(self, response):
         """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
         Args:
@@ -209,23 +232,67 @@ class Sternpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-            namespaces = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath(
-                "//sitemap:loc/text()", namespaces=namespaces
-            ).getall()
 
-            for link in links:
-                if link != "https://www.ndtv.com/sitemap/google-news-sitemap":
-                    data = {"link": link}
-                    self.articles.append(data)
+            if self.since and self.until:
+                since = str(self.since.month) + str(self.since.year)
+                until = str(self.until.month) + str(self.until.year)
+                if since == until:
+                    date = self.since.strftime("%Y-%m-%d").split("-")
+                    link = response.url + f"/?month={date[1]}&year={date[0]}"
+                    yield scrapy.Request(link, callback=self.parse_archive_article_links)
                 else:
-                    continue
-
+                    since_date = self.since.strftime("%Y-%m-%d").split("-")
+                    until_date = self.until.strftime("%Y-%m-%d").split("-")
+                    links = [response.url + f"/?month={since_date[1]}&year={since_date[0]}", response.url + f"/?month={until_date[1]}&year={until_date[0]}"]
+                    for link in links:
+                        yield scrapy.Request(link, callback=self.parse_archive_article_links)
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
                 "Error while parsing sitemap article::%s-", str(exception)
             )
+    def parse_archive_article_links(self, response):
+        try:
+            # for link in response.css(".teaser.teaser--plaintext.group-teaserlist__item.group-teaserlist__item--teaser-plaintext.item--context-group-teaserlist"):
+            links = response.css(".group-teaserlist__item.group-teaserlist__item--teaser-plaintext a::attr(href)").getall()
+            title = response.css(".group-teaserlist__item.group-teaserlist__item--teaser-plaintext h3::text").getall()
+            published_date = response.css(".group-teaserlist__item.group-teaserlist__item--teaser-plaintext time::attr(datetime)").getall()
+
+            for link,title, pub_date in zip(links,title, published_date):
+                publish_date = pub_date.split("T")
+                published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
+                today_date = datetime.today().date()
+                if self.since and published_at < self.since:
+                    continue
+                if self.since and published_at > self.until:
+                    continue
+
+                if self.since and self.until:
+                    data = {"link": link,
+                            "title":title
+                            }
+                    self.articles.append(data)
+                elif today_date == published_at:
+                    data = {"link": link,
+                            "title": title
+                            }
+                    self.articles.append(data)
+                else:
+                    continue
+        except Exception as exception:
+            LOGGER.info("Error while parsing sitemap article: %s", str(exception))
+            raise exceptions.SitemapArticleScrappingException(
+                "Error while parsing sitemap article::%s-", str(exception)
+            )
+
+        pagination = response.css("div.pagination__step a[class='u-typo']")
+        if pagination:
+            total_pagination = response.css("li.pagination__page a::attr(href)").getall()
+            breakpoint()
+        else:
+            pass
+
+
 
     def parse_article(self, response) -> list:
         """
@@ -248,7 +315,7 @@ class Sternpider(scrapy.Spider, BaseSpider):
             articledata_loader.add_value("raw_response", raw_response)
             articledata_loader.add_value(
                 "parsed_json",
-                response_json,
+                "response_json",
             )
             articledata_loader.add_value("parsed_data", response_data)
 
