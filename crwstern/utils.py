@@ -10,7 +10,6 @@ from crwstern import exceptions
 from crwstern.constant import TODAYS_DATE, LOGGER
 
 
-
 def create_log_file():
     """creating log file"""
     logging.basicConfig(
@@ -181,18 +180,22 @@ def get_parsed_data(response):
 
         main_dict["author"] = [main_data[0].get("author")]
 
+        main_dict["section"] = [
+            response.css(
+                "a.breadcrumb__link.u-typo.u-typo--breadcrumb-link::text"
+            ).getall()[0]
+        ]
 
-        main_dict["section"] = [response.css("a.breadcrumb__link.u-typo.u-typo--breadcrumb-link::text").getall()[0]]
-
-
-        main_dict["publisher"] = main_data[0].get("publisher")
+        main_dict["publisher"] = [main_data[0].get("publisher")]
 
         main_dict["text"] = get_content(response)
 
         main_dict["tags"] = get_tags(response)
 
-        main_dict["thumbnail_image"] = [response.css('meta[property="og:image"]::attr(content)').get()]
-        
+        main_dict["thumbnail_image"] = [
+            response.css('meta[property="og:image"]::attr(content)').get()
+        ]
+
         main_dict["images"] = get_images(response)
         source_language = "English"
         main_dict["source_language"] = [source_language]
@@ -217,33 +220,49 @@ def get_main(response):
     Returns:
         dict: main data related details
     """
-    ld_json = response.css(
-        'script[type="application/ld+json"]::text'
-    ).get()
+    ld_json = response.css('script[type="application/ld+json"]::text').get()
     if ld_json:
         return json.loads(ld_json)
 
 
 def get_content(response):
+    """
+    get the content for the article
+    Args:
+        response: provided response
+    Returns:
+        list: content related details
+    """
     pattern = r"[\n\t\r\"]"
     content = response.css("p.text-element.u-richtext.u-typo.u-typo--article-text.article__text-element.text-element--context-article::text").getall()
     text = " ".join(content)
     if text:
         return [re.sub(pattern, "", text).strip()]
-    
+
 
 def get_images(response):
+    """
+    get images for the article
+    Args:
+        response: provided response
+    Returns:
+
+    """
     images = []
     image = response.css("img.image.image-element__image::attr(src)").getall()
-    image_caption = response.css("figcaption.image-element__caption div.image\
-                                 -element__description.u-richtext.u-typo.u-typo--caption::text").getall()
+    image_caption = response.css(
+        "figcaption.image-element__caption div.image\
+                                 -element__description.u-richtext.u-typo.u-typo--caption::text"
+    ).getall()
 
     image_second = response.css("img.image.group-gallery__img::attr(src)").getall()
-    image_caption_second = response.css("img.image.group-gallery__img::attr(alt)").getall()
+    image_caption_second = response.css(
+        "img.image.group-gallery__img::attr(alt)"
+    ).getall()
 
     if image:
-        new_caption = [re.sub("[\n\t\r\"]", "", s).strip() for s in image_caption]
-        caption = [x for x in new_caption if x != '']
+        new_caption = [re.sub('[\n\t\r"]', "", s).strip() for s in image_caption]
+        caption = [x for x in new_caption if x != ""]
 
         for i in range(len(image)):
             temp_dict = {}
@@ -252,7 +271,7 @@ def get_images(response):
                 temp_dict["caption"] = caption[i]
             images.append(temp_dict)
         return images
-    
+
     if image_second:
         for i in range(len(image_second)):
             temp_dict = {}
@@ -264,17 +283,22 @@ def get_images(response):
         return images
 
 
-
-
-
 def get_tags(response):
-
+    """
+    get the tags for the article
+    Args:
+        response: provided response
+    Returns:
+        list: tags related details
+    """
     img_tags = response.css('meta[property="article:tag"]::attr(content)').getall()
     vid_tags = response.css('meta[property="video:tag"]::attr(content)').getall()
     if img_tags:
         return img_tags
     if vid_tags:
         return vid_tags
+
+
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
     """
     Export data to json file

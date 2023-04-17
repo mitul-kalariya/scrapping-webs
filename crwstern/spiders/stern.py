@@ -7,7 +7,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 
 from crwstern import exceptions
-from crwstern.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
+from crwstern.constant import SITEMAP_URL, LOGGER
 from crwstern.items import ArticleData
 from crwstern.utils import (
     validate_sitemap_date_range,
@@ -15,7 +15,6 @@ from crwstern.utils import (
     get_parsed_data,
     get_parsed_json,
     export_data_to_json_file,
-    date_range,
 )
 
 
@@ -49,6 +48,7 @@ class BaseSpider(ABC):
             while parsing the sitemap page.
         """
         pass
+
     def parse_archive(self, response: str) -> None:
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
@@ -94,6 +94,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
     """Spider"""
 
     name = "stern"
+
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -152,8 +153,8 @@ class SternSpider(scrapy.Spider, BaseSpider):
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
-    def parse(self, response):
 
+    def parse(self, response):
         """
         Parses the given Scrapy response based on the specified type of parsing.
         Returns:
@@ -163,7 +164,9 @@ class SternSpider(scrapy.Spider, BaseSpider):
         """
         try:
             if self.type == "sitemap":
-                yield scrapy.Request(response.url, callback=self.parse_archive_categories)
+                yield scrapy.Request(
+                    response.url, callback=self.parse_archive_categories
+                )
 
             elif self.type == "article":
                 article_data = self.parse_article(response)
@@ -197,28 +200,6 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
-    # def parse_archive_categories(self, response):
-    #     """Parses a sitemap page and extracts links and titles for further processing.
-    #     Args:
-    #         response (scrapy.http.Response): The HTTP response object
-    #         containing the sitemap page.
-    #     Yields:
-    #         scrapy.http.Request: A request object for each link on the sitemap page.
-    #     Raises:
-    #         exceptions.SitemapScrappingException: If there is an error
-    #         while parsing the sitemap page.
-    #     """
-    #
-    #     try:
-    #         links = response.css("div.teaser__text-content a::attr(href)").getall()
-    #         for link in links:
-    #             yield scrapy.Request(link, callback=self.parse_archive_article)
-    #     except BaseException as exception:
-    #         LOGGER.info("Error while parsing sitemap: %s", exception)
-    #         raise exceptions.SitemapScrappingException(
-    #             f"Error while parsing sitemap: {str(exception)}"
-    #         )
-
     def parse_archive_article(self, response):
         """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
@@ -232,33 +213,45 @@ class SternSpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-
             if self.since and self.until:
                 since = str(self.since.month) + str(self.since.year)
                 until = str(self.until.month) + str(self.until.year)
                 if since == until:
                     date = self.since.strftime("%Y-%m-%d").split("-")
                     link = response.url + f"/?month={date[1]}&year={date[0]}"
-                    yield scrapy.Request(link, callback=self.parse_archive_article_links)
+                    yield scrapy.Request(
+                        link, callback=self.parse_archive_article_links
+                    )
                 else:
                     since_date = self.since.strftime("%Y-%m-%d").split("-")
                     until_date = self.until.strftime("%Y-%m-%d").split("-")
-                    links = [response.url + f"/?month={since_date[1]}&year={since_date[0]}", response.url + f"/?month={until_date[1]}&year={until_date[0]}"]
+                    links = [
+                        response.url + f"/?month={since_date[1]}&year={since_date[0]}",
+                        response.url + f"/?month={until_date[1]}&year={until_date[0]}",
+                    ]
                     for link in links:
-                        yield scrapy.Request(link, callback=self.parse_archive_article_links)
+                        yield scrapy.Request(
+                            link, callback=self.parse_archive_article_links
+                        )
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
                 "Error while parsing sitemap article::%s-", str(exception)
             )
+
     def parse_archive_article_links(self, response):
         try:
-            # for link in response.css(".teaser.teaser--plaintext.group-teaserlist__item.group-teaserlist__item--teaser-plaintext.item--context-group-teaserlist"):
-            links = response.css(".group-teaserlist__item.group-teaserlist__item--teaser-plaintext a::attr(href)").getall()
-            title = response.css(".group-teaserlist__item.group-teaserlist__item--teaser-plaintext h3::text").getall()
-            published_date = response.css(".group-teaserlist__item.group-teaserlist__item--teaser-plaintext time::attr(datetime)").getall()
+            links = response.css(
+                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext a::attr(href)"
+            ).getall()
+            title = response.css(
+                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext h3::text"
+            ).getall()
+            published_date = response.css(
+                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext time::attr(datetime)"
+            ).getall()
 
-            for link,title, pub_date in zip(links,title, published_date):
+            for link, title, pub_date in zip(links, title, published_date):
                 publish_date = pub_date.split("T")
                 published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
                 today_date = datetime.today().date()
@@ -268,14 +261,10 @@ class SternSpider(scrapy.Spider, BaseSpider):
                     continue
 
                 if self.since and self.until:
-                    data = {"link": link,
-                            "title":title
-                            }
+                    data = {"link": link, "title": title}
                     self.articles.append(data)
                 elif today_date == published_at:
-                    data = {"link": link,
-                            "title": title
-                            }
+                    data = {"link": link, "title": title}
                     self.articles.append(data)
                 else:
                     continue
@@ -287,12 +276,11 @@ class SternSpider(scrapy.Spider, BaseSpider):
 
         pagination = response.css("div.pagination__step a[class='u-typo']")
         if pagination:
-            total_pagination = response.css("li.pagination__page a::attr(href)").getall()
-            breakpoint()
+            total_pagination = response.css(
+                "li.pagination__page a::attr(href)"
+            ).getall()
         else:
             pass
-
-
 
     def parse_article(self, response) -> list:
         """
@@ -315,7 +303,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
             articledata_loader.add_value("raw_response", raw_response)
             articledata_loader.add_value(
                 "parsed_json",
-                "response_json",
+                response_json
             )
             articledata_loader.add_value("parsed_data", response_data)
 
