@@ -42,9 +42,11 @@ crawler = Crawler(
 
 data = crawler.crawl()
 ```
+Note: We have made image extraction optional which we can control by extra parameter i.e enable_selenium. By default it is False.
+
 
 ```
-#  To fetch the specific article details
+#  To scrap data with selenium while scrapping article
 
 from crwmbnnewsonline import Crawler
 
@@ -61,6 +63,7 @@ crawler = Crawler(
         "link": "https://www.mbn.co.kr/news/entertain/4917683"
     },
     proxies=proxies
+    enable_selenium=True
 )
 
 data = crawler.crawl()
