@@ -1,10 +1,12 @@
-# {ScrapperName} Scrapping
+# HKET Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
-- Python 3.10
-- Scrapy
+This repo contains the code to scrap all article links and articles from "https://www.hket.com/" website and the tech stacks used are
+- Python 3.10 
+- Scrapy 2.8.0 
+- selenium 4.8.3 
+- webdriver-manager 3.8.5 
 
 
 #### Environment Setup
@@ -22,34 +24,13 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-```
-# To fetch all the article links
 
-from {package_name} import Crawler
+*Note:* Here we are only getting today's data from the sitemap.
 
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "{BASE_URL}",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwhket import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -60,8 +41,8 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "type": "link_feed",
+        "domain": ""https://www.hket.com/""
     },
     proxies=proxies
 )
@@ -72,7 +53,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwhket import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +65,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://wealth.hket.com/article/3496862/44-港人擬增奢侈品消費   最捨得邊三類洗費？兩成愛直播帶貨"
     },
     proxies=proxies
 )

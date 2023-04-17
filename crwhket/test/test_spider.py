@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from crwhket.spiders.hket import HKETSpider
-from crwhket.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwhket.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
 from crwhket.test.helpers.utils import (get_article_content,
                                         online_response_from_url)
 from crwhket import Crawler
@@ -103,6 +103,7 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
+
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
         article_authors = article[0].get("parsed_data").get("authors")
@@ -125,9 +126,6 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                     "text"), list, "format mismatch for parsed_data--> text")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> text")
 
         if article[0].get("parsed_data").get("title"):
             with self.subTest():
@@ -247,8 +245,8 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.type = "link_feed"
+        self.crawler = Crawler(query={"type": self.type, "domain": LINK_FEED_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

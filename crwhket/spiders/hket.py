@@ -1,4 +1,4 @@
-"""Spider to scrap Sankei News (JP) news website"""
+"""Spider to scrap HKET news website"""
 
 import logging
 from datetime import datetime
@@ -11,12 +11,11 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 
 from crwhket.items import ArticleData
-from crwhket.constant import SITEMAP_URL, BASE_URL
+from crwhket.constant import LINK_FEED_URL, BASE_URL
 from crwhket.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
     get_all_data_from_selenium,
@@ -32,8 +31,6 @@ from crwhket.exceptions import (
 # Setting the threshold of logger to DEBUG
 logging.basicConfig(
     level=logging.INFO,
-    filename="logs.log",
-    filemode="a",
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -47,11 +44,10 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        # parse_sitemap_article will be called from here
+    def parse_link_feed(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_link_feed_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -96,7 +92,7 @@ class HKETSpider(scrapy.Spider, BaseSpider):
             self.start_urls.append(
                 url
                 if self.type == "article"
-                else SITEMAP_URL
+                else LINK_FEED_URL
             )
 
         except Exception as exception:
@@ -129,11 +125,11 @@ class HKETSpider(scrapy.Spider, BaseSpider):
             )
         self.logger.info("Parse function called on %s", response.url)
         if "sitemap.xml" in response.url:
-            self.parse_sitemap(response)
+            self.parse_link_feed(response)
         else:
             yield self.parse_article(response)
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         """
         parse sitemap from sitemap url and callback parser to parse title and link
         Args:
@@ -144,8 +140,19 @@ class HKETSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            self.parse_sitemap_article(response)
-        except SitemapScrappingException as exception:
+            for url, date, title in zip(
+                Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
+                Selector(response, type="xml").xpath(
+                    "//sitemap:publication_date/text()",
+                    namespaces=self.news_namespace
+                ).getall(),
+                Selector(response, type="xml").xpath("//sitemap:title/text()", namespaces=self.news_namespace).getall(),
+            ):
+                date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
+                if date_datetime.date() in self.date_range_lst:
+                    data = {"link": url, "title": title.strip()}
+                    self.articles.append(data)
+        except Exception as exception:
             self.log(
                 "Error occurred while scrapping urls from given sitemap url. "
                 + str(exception),
@@ -154,38 +161,6 @@ class HKETSpider(scrapy.Spider, BaseSpider):
             raise SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        for url, date, title in zip(
-            Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-            Selector(response, type="xml").xpath(
-                "//sitemap:publication_date/text()",
-                namespaces=self.news_namespace
-            ).getall(),
-            Selector(response, type="xml").xpath("//sitemap:title/text()", namespaces=self.news_namespace).getall(),
-        ):
-            try:
-                date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
-                if date_datetime.date() in self.date_range_lst:
-                    data = {"link": url, "title": title.strip()}
-                    self.articles.append(data)
-            except Exception as exception:
-                self.log(
-                    f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                    level=logging.ERROR,
-                )
-                raise SitemapArticleScrappingException(
-                    f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-                ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -259,8 +234,6 @@ class HKETSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

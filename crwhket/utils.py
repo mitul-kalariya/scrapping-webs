@@ -1,7 +1,6 @@
 """Utility Functions"""
 from datetime import timedelta, datetime
 import json
-import os
 import re
 import itertools
 
@@ -241,41 +240,6 @@ def get_parsed_json(response) -> dict:
     return dict(article_raw_parsed_json_loader.load_item())
 
 
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-
 def get_parsed_data_dict() -> dict:
     """
     Return base data dictionary
@@ -369,7 +333,7 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
     }
     parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
     parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
-    parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
+    parsed_data_dict |= {"publisher": get_publisher_detail(data_dict)}
     parsed_data_dict |= {
         "title": [data_dict.get("title")] if data_dict.get("title")
         else response.css("title::text").getall(),
@@ -381,7 +345,7 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
     parsed_data_dict |= {
         "images": images,
     }
-    return parsed_data_dict
+    return remove_empty_elements(parsed_data_dict)
 
 
 def get_parsed_data_using_selenium(response: str, parsed_json: dict, selenium_data: dict) -> dict:
@@ -419,13 +383,15 @@ def get_parsed_data_using_selenium(response: str, parsed_json: dict, selenium_da
     }
     parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
     parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
-    parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
+    parsed_data_dict |= {"publisher": get_publisher_detail(data_dict)}
     parsed_data_dict |= {
         "title": [data_dict.get("title").strip()] if data_dict.get("title")
         else response.css("title::text").getall(),
         "text": [selenium_data.get("text")],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
-        "section": [data_dict.get("sections")] if data_dict.get("sections") else response.css("li.article-header-section-list-item a::text").getall(),
+        "section": [data_dict.get("sections")] if data_dict.get("sections") else response.css(
+            "li.article-header-section-list-item a::text"
+        ).getall(),
         "tags": data_dict.get("tags")
     }
     parsed_data_dict |= {
@@ -438,7 +404,7 @@ def get_all_details_of_block(block: dict) -> dict:
     """
     get all details from main block
     Args:
-        blocks: json/+ld data
+        block: json/+ld data
     Returns:
         str : author and publisher details
     """
@@ -476,11 +442,14 @@ def get_all_details_of_block(block: dict) -> dict:
     return data_dict
 
 
-def get_formated_images(response, block, image_block, image_url_data=None) -> str:
+def get_formated_images(response, block, image_block, image_url_data: dict={}) -> list:
     """return formated images response using block and response
 
     Args:
         response : response object of scrapy
+        block : main block of ld+json
+        image_block : imageobjects block of ld+json
+        image_url_data : data of image url
 
     Returns:
         str: return link of image
@@ -503,10 +472,11 @@ def get_formated_images(response, block, image_block, image_url_data=None) -> st
     captions = response.css('span.article-detail_caption::text').getall()
     formated_images = []
     for link, caption in itertools.zip_longest(image_links, captions):
-        formated_images.append({
-            "link": get_full_url(link),
-            "caption": caption,
-        })
+        if get_full_url(link):
+            formated_images.append({
+                "link": get_full_url(link),
+                "caption": caption,
+            })
     return formated_images
 
 
@@ -524,11 +494,10 @@ def get_full_url(link: str) -> str:
     return link
 
 
-def get_publisher_detail(response: str, data_dict: dict) -> dict:
+def get_publisher_detail(data_dict: dict) -> list:
     """generate publisher detail and return dict
 
     Args:
-        response: reponse object scrapy
         data_dict (dict): data_dict which contains info of main
 
     Returns:

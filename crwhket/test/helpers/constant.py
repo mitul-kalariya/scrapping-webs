@@ -1,4 +1,4 @@
-"""list of article/sitemap URLs for testing"""
+"""list of article/linkfeed URLs for testing"""
 
 TEST_ARTICLES = [
     {
@@ -43,4 +43,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://www.hket.com/sitemap.xml"
+LINK_FEED_URL = "https://www.hket.com/sitemap.xml"
