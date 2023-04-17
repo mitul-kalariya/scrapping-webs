@@ -42,9 +42,12 @@ def validate_sitemap_date_range(since, until):
             raise InvalidDateException(
                 "since and until should not be greater than today's date"
             )
-    except InvalidDateException as exception:
-        LOGGER.error(f"Error in __init__: {str(exception)}", exc_info=True)
-        raise InvalidDateException(f"Error in __init__: {str(exception)}")
+
+    except InvalidDateException as expception:
+        LOGGER.info(f"Error occured while checking date range: {expception}")
+        raise InvalidDateException(
+            f"Error occured while checking date range: {expception}"
+        )
 
 
 def get_raw_response(response: str, selector_and_key: dict) -> dict:

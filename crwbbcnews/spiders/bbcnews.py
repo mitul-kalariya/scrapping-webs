@@ -85,7 +85,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
             if url:
                 self.start_urls.append(url)
             else:
-                LOGGER.error("Must have a URL to scrap")
+                LOGGER.info("Must have a URL to scrap")
                 raise InvalidInputException("Must have a URL to scrap")
 
     def parse(self, response):
@@ -147,7 +147,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
                         if article_date == self.since and article_date == self.until:
                             self.articles.append(article)
         except BaseException as exception:
-            LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
+            LOGGER.info(f"Error while parsing sitemap: {str(exception)}")
             raise SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
@@ -221,10 +221,10 @@ class BBCNews(scrapy.Spider, BaseSpider):
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
         except BaseException as exception:
-            LOGGER.error(
-                f"Error occurred while closing crawler{str(exception)} - {reason}",
+            LOGGER.info(
+                f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
             raise ExportOutputFileException(
-                f"Error occurred while closing crawler{str(exception)} - {reason}"
+                f"Error occurred while writing json file{str(exception)} - {reason}"
             )
