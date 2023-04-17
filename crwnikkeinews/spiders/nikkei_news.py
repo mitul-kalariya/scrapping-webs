@@ -42,7 +42,7 @@ class BaseSpider(ABC):
 class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
     name = "nikkei_news"
 
-    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, enable_selenium=False, **kwargs):
         """
         Initializes a web scraper object with the given parameters.
         Parameters:
