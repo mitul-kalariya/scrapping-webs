@@ -7,7 +7,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 
 from crwstern import exceptions
-from crwstern.constant import SITEMAP_URL, LOGGER
+from crwstern.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
 from crwstern.items import ArticleData
 from crwstern.utils import (
     validate_sitemap_date_range,
@@ -193,7 +193,11 @@ class SternSpider(scrapy.Spider, BaseSpider):
         try:
             links = response.css("div.teaser__text-content a::attr(href)").getall()
             for link in links:
-                yield scrapy.Request(link, callback=self.parse_archive_article)
+                if link != "https://www.stern.de/noch-fragen/archiv/":
+                    yield scrapy.Request(link, callback=self.parse_archive_article)
+                else:
+                    continue
+
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
@@ -220,7 +224,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
                     date = self.since.strftime("%Y-%m-%d").split("-")
                     link = response.url + f"/?month={date[1]}&year={date[0]}"
                     yield scrapy.Request(
-                        link, callback=self.parse_archive_article_links
+                        link, dont_filter=True, callback=self.parse_archive_article_links
                     )
                 else:
                     since_date = self.since.strftime("%Y-%m-%d").split("-")
@@ -231,8 +235,14 @@ class SternSpider(scrapy.Spider, BaseSpider):
                     ]
                     for link in links:
                         yield scrapy.Request(
-                            link, callback=self.parse_archive_article_links
+                            link,dont_filter=True, callback=self.parse_archive_article_links
                         )
+            else:
+                current_date = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
+                link = response.url + f"/?month={current_date[1]}&year={current_date[0]}"
+                yield scrapy.Request(
+                    link, dont_filter=True, callback=self.parse_archive_article_links
+                )
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
@@ -254,7 +264,6 @@ class SternSpider(scrapy.Spider, BaseSpider):
             for link, title, pub_date in zip(links, title, published_date):
                 publish_date = pub_date.split("T")
                 published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
-                today_date = datetime.today().date()
                 if self.since and published_at < self.since:
                     continue
                 if self.since and published_at > self.until:
@@ -263,25 +272,34 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 if self.since and self.until:
                     data = {"link": link, "title": title}
                     self.articles.append(data)
-                elif today_date == published_at:
+                elif TODAYS_DATE == published_at:
                     data = {"link": link, "title": title}
                     self.articles.append(data)
                 else:
                     continue
+
+
+            pagination = response.css(".button.u-typo.u-typo--button-text.button--icon.button--icon-arrow-right.button--icon-pos-right").get()
+
+            if pagination:
+                total_pagination = response.css(
+                    "li.pagination__page a::attr(href)"
+                ).getall()[1:]
+                for pagination_wise in total_pagination:
+                    pagination_url = pagination_wise
+                    if len(pagination) > 1:
+                        yield scrapy.Request(
+                            pagination_url, callback=self.parse_archive_article_links
+                        )
+
+            else:
+                pass
+
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
                 "Error while parsing sitemap article::%s-", str(exception)
             )
-
-        pagination = response.css("div.pagination__step a[class='u-typo']")
-        if pagination:
-            total_pagination = response.css(
-                "li.pagination__page a::attr(href)"
-            ).getall()
-        else:
-            pass
-
     def parse_article(self, response) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
