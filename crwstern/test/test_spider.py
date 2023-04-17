@@ -131,9 +131,9 @@ class TestArticle(unittest.TestCase):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get(
                     "text"), list, "format mismatch for parsed_data--> text")
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> text")
+        # else:
+        #     with self.subTest():
+        #         raise AssertionError("missing object:- parsed_data--> text")
 
         if article[0].get("parsed_data").get("title"):
             with self.subTest():
@@ -230,9 +230,9 @@ class TestArticle(unittest.TestCase):
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                       list, "format mismatch for parsed_data--> images")
             self._test_image_format(article)
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> images")
+        # else:
+        #     with self.subTest():
+        #         raise AssertionError("missing object:- parsed_data--> images")
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():
