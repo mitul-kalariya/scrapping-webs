@@ -168,14 +168,7 @@
             "author": [
                 {
                     "@type": "NewsMediaOrganization",
-                    "name": "BBC News 中文",
-                    "logo": {
-                        "@type": "ImageObject",
-                        "width": 1024,
-                        "height": 576,
-                        "url": "https://news.files.bbci.co.uk/ws/img/logos/og/zhongwen.png"
-                    },
-                    "noBylinesPolicy": "https://www.bbc.com/zhongwen/simp/institutional-51359584#authorexpertise"
+                    "name": "BBC News 中文"
                 }
             ],
             "description": [
@@ -189,14 +182,20 @@
             ],
             "publisher": [
                 {
+                    "@id": "bbc.com",
                     "@type": "NewsMediaOrganization",
                     "name": "BBC News 中文",
-                    "publishingPrinciples": "https://www.bbc.com/zhongwen/simp/institutional-51359584",
                     "logo": {
                         "@type": "ImageObject",
-                        "width": 1024,
-                        "height": 576,
-                        "url": "https://news.files.bbci.co.uk/ws/img/logos/og/zhongwen.png"
+                        "url": "https://news.files.bbci.co.uk/ws/img/logos/og/zhongwen.png",
+                        "width": {
+                            "@type": "Distance",
+                            "name": "1024 px"
+                        },
+                        "height": {
+                            "@type": "Distance",
+                            "name": "576 px"
+                        } 
                     }
                 }
             ],

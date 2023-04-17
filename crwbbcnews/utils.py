@@ -2,13 +2,12 @@
 import json
 import logging
 from datetime import datetime
-import os
 
 import requests
 from scrapy.loader import ItemLoader
 
-from crwbbcnews.constant import LOGGER, TODAYS_DATE, BASE_URL
-from crwbbcnews.exceptions import InvalidDateException, ArticleScrappingException
+from crwbbcnews.constant import BASE_URL, LOGGER, TODAYS_DATE
+from crwbbcnews.exceptions import ArticleScrappingException, InvalidDateException
 from crwbbcnews.items import ArticleRawParsedJson, ArticleRawResponse
 
 
@@ -119,7 +118,9 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             else:
                 for data in value.getall():
                     data_dict = json.loads(data)
-                    data_type = data_dict.get('@graph')[0].get('@type')
+                    graph_data = data_dict.get('@graph')
+                    if graph_data and isinstance(graph_data, list):
+                        data_type = graph_data[0].get('@type') or None
                     if data_dict is dict and data_type not in ["NewsArticle", "ImageGallery", "ImageObject", "VideoObject"]:
                         article_raw_parsed_json_loader.add_value(key, data_dict)
         return dict(article_raw_parsed_json_loader.load_item())
@@ -211,11 +212,42 @@ def get_data_from_json(response, parsed_main):
 
         main_block = parsed_main.get("main").get("@graph")
         if main_block and isinstance(main_block, list) and len(main_block) > 0:
-            parsed_json['author'] = [main_block[0].get('author')]
+            author_data = main_block[0].get('author')
+
+            author = [
+                {
+                    "@type": author_data.get("@type"),
+                    "name": author_data.get("name")
+                }
+            ]
+
+            parsed_json['author'] = author
             parsed_json['description'] = [main_block[0].get('description')]
             parsed_json['modified_at'] = [main_block[0].get('dateModified')]
             parsed_json['published_at'] = [main_block[0].get('datePublished')]
-            parsed_json['publisher'] = [main_block[0].get('publisher')]
+
+            publisher_data = main_block[0].get('publisher')
+            publisher = [
+                {
+                    "@id": "bbc.com",
+                    "@type": publisher_data.get("@type"),
+                    "name": publisher_data.get("name"),
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": publisher_data.get("logo").get("url"),
+                        "width": {
+                            "@type": "Distance",
+                            "name": f"{publisher_data.get('logo').get('width')} px"
+                        },
+                        "height": {
+                            "@type": "Distance",
+                            "name": f"{publisher_data.get('logo').get('height')} px"
+                        }
+                    }
+                }
+            ]
+
+            parsed_json['publisher'] = publisher
 
         promo_block = response_data.get("promo")
         if promo_block and isinstance(promo_block, dict):
@@ -318,35 +350,3 @@ def get_images(response, thumbnail) -> list:
         raise ArticleScrappingException(
             f"Error occured while getting article images urls: {exception}"
         )
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
