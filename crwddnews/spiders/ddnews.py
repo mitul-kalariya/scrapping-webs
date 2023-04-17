@@ -155,60 +155,32 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                         + today
                     )
                 else:
-                    url = (
-                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-                        + since
-                        + "&changed_2="
-                        + until
-                    )
-                yield scrapy.Request(
-                    url, callback=self.parse_archive_pagination_sitemap
-                )
+                    if until == today:
+                        url = (
+                            "https://ddnews.gov.in/about/news-archive?\
+                            title=&news_type=All&changed_1="
+                            + since
+                        )
+                    else:
+                        url = (
+                            "https://ddnews.gov.in/about/news-archive?\
+                            title=&news_type=All&changed_1="
+                            + since
+                            + "&changed_2="
+                            + until
+                        )
+                yield scrapy.Request(url, callback=self.parse_archive_article)
             else:
                 url = (
                     "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
                     + today
                 )
-                yield scrapy.Request(
-                    url, callback=self.parse_archive_pagination_sitemap
-                )
+                yield scrapy.Request(url, callback=self.parse_archive_article)
 
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
-            )
-
-    def parse_archive_pagination_sitemap(self, response):
-        """Parses a archive page and extracts page links and titles for further processing.
-        Args:
-            response (scrapy.http.Response): The HTTP response object containing the archive page.
-        Yields:
-            scrapy.http.Request: A request object for each article link on the page.
-        Raises:
-            exceptions.SitemapScrappingException: If there is an error while
-            parsing the archive page.
-        """
-        try:
-            pagination_exists = response.css("ul.pager")
-            if pagination_exists:
-                total_page = (
-                    response.css("a[title='Go to last page']::attr(href)")
-                    .get()
-                    .split("page=")[1]
-                )
-                for page in range(int(total_page) + 1):
-                    url = response.url + "&page=" + str(page)
-                    yield scrapy.Request(url, callback=self.parse_archive_article)
-
-            else:
-                yield scrapy.Request(
-                    response.url, dont_filter=True, callback=self.parse_archive_article
-                )
-        except BaseException as exception:
-            # LOGGER.info(f"Error while parsing sitemap article: {exception}")
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article: {str(exception)}"
             )
 
     def parse_archive_article(self, response):
@@ -224,12 +196,20 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
+
             links = response.css("span.field-content a::attr(href)").getall()
             titles = response.css("p.archive-title::text").getall()
             for link, title in zip(links, titles):
                 if link and title:
                     self.articles.append(
                         {"link": "https://ddnews.gov.in/" + link, "title": title}
+                    )
+            pagination = response.css("li.pager-item a::attr(href)").getall()
+            for pagination_wise in pagination:
+                pagination_url = "https://ddnews.gov.in" + pagination_wise
+                if len(pagination) >= 1:
+                    yield scrapy.Request(
+                        pagination_url, callback=self.parse_archive_article
                     )
 
         except BaseException as exception:
