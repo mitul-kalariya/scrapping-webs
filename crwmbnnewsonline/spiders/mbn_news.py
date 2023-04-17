@@ -37,7 +37,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -91,7 +91,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
         If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for
-        each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        each of them to Scrapy's engine with the callback function `parse_link_feed`.
         If `type` is "articles", sends a request for the given URL to Scrapy's engine
         with the callback function `parse_article`.
         This function is intended to be used as a Scrapy spider callback function.
@@ -111,7 +111,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 )
 
                 for site_map_url in sitemap_urls:
-                    yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                    yield scrapy.Request(site_map_url, callback=self.parse_link_feed)
 
             except Exception as exception:
                 self.log(
@@ -134,7 +134,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                     f"Error occured while iterating article url. {str(exception)}"
                 )
 
-    def parse_sitemap(self, response):
+    def parse_link_feed(self, response):
         """
         Parses the sitemap and extracts the article URLs and their last modified date.
         If the last modified date is within the specified date range, sends a request to the article URL
