@@ -235,17 +235,33 @@ def get_content(response):
 def get_images(response):
     images = []
     image = response.css("img.image.image-element__image::attr(src)").getall()
-    image_caption = response.css("figcaption.image-element__caption div.image-element__description.u-richtext.u-typo.u-typo--caption::text").getall()
+    image_caption = response.css("figcaption.image-element__caption div.image\
+                                 -element__description.u-richtext.u-typo.u-typo--caption::text").getall()
 
-    new_caption = [re.sub("[\n\t\r\"]", "", s).strip() for s in image_caption]
-    caption = [x for x in new_caption if x != '']
+    image_second = response.css("img.image.group-gallery__img::attr(src)").getall()
+    image_caption_second = response.css("img.image.group-gallery__img::attr(alt)").getall()
 
-    for i in range(len(image)):
-        temp_dict = {}
-        temp_dict["link"] = image[i]
-        temp_dict["caption"] = caption[i]
-        images.append(temp_dict)
-    return images
+    if image:
+        new_caption = [re.sub("[\n\t\r\"]", "", s).strip() for s in image_caption]
+        caption = [x for x in new_caption if x != '']
+
+        for i in range(len(image)):
+            temp_dict = {}
+            temp_dict["link"] = image[i]
+            if caption:
+                temp_dict["caption"] = caption[i]
+            images.append(temp_dict)
+        return images
+    
+    if image_second:
+        for i in range(len(image_second)):
+            temp_dict = {}
+            temp_dict["link"] = image_second[i]
+            if image_caption_second:
+                temp_dict["caption"] = image_caption_second[i]
+            temp_dict["caption"] = image_caption_second[i]
+            images.append(temp_dict)
+        return images
 
 
 
