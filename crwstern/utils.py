@@ -166,7 +166,6 @@ def get_parsed_data(response):
         pattern = r"[\r\n\t]+"
         main_dict = {}
         main_data = get_main(response)
-        # breakpoint()
         main_dict["description"] = [main_data[0].get("description")]
 
         title = response.css('meta[property="og:title"]::attr(content)').get()

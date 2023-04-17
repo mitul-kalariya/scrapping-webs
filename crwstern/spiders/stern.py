@@ -297,8 +297,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
                     continue
 
             pagination = response.css(
-                ".button.u-typo.u-typo--button-text.button--icon.button\
-                    --icon-arrow-right.button--icon-pos-right"
+                ".button.u-typo.u-typo--button-text.button--icon.button--icon-arrow-right.button--icon-pos-right"
             ).get()
 
             if pagination:
@@ -318,7 +317,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-            "Error while parsing sitemap article::%s-", str(exception)
+            "Error while parsing sitemap article:: %s ", str(exception)
             )
 
     def parse_article(self, response) -> list:
