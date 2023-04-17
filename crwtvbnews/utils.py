@@ -127,10 +127,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 key, [json.loads(data) for data in value.getall()
                       if json.loads(data).get('@type') == "NewsArticle"]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
@@ -140,14 +136,13 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
         elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data).get('video') for data in value.getall()[:1] if
-                      json.loads(data).get('video') and (json.loads(data).get('video').get("@type") == "ImageObject"
-                                                         or json.loads(data).get('video').get("@type")
-                                                         == "ImageGallery")]
+                      json.loads(data).get('video') and (json.loads(data).get('video').get("@type")
+                      in ["ImageObject", "ImageGallery"])]
             )
         else:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type')
-                      in list(selector_and_key.keys()) or json.loads(data).get('@type') != "NewsArticle"]
+                      in ["NewsArticle", "ImageObject", "ImageGallery", "VideoObject"]]
             )
     return dict(article_raw_parsed_json_loader.load_item())
 
