@@ -44,6 +44,9 @@ crawler = Crawler(
 
 data = crawler.crawl()
 ```
+**Note:** We have made *embed_video_link* extraction optional which we can control by extra parameter i.e enable_selenium. By default it is False.
+
+
 
 ```
 #  To fetch the specific article details
@@ -63,6 +66,7 @@ crawler = Crawler(
         "link": "https://www.nikkei.com/article/DGXZQOUA310WT0R30C23A3000000/"
     },
     proxies=proxies
+    enable_selenium=True
 )
 
 data = crawler.crawl()

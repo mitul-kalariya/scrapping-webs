@@ -3,9 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 import scrapy
-from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
-from scrapy.utils.project import get_project_settings
 from scrapy.http import XmlResponse
 from scrapy.selector import Selector
 from crwnikkeinews import exceptions
@@ -17,8 +15,11 @@ from crwnikkeinews.utils import (
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
-    validate_sitemap_date_range
+    validate_sitemap_date_range,
 )
+
+# create log file
+create_log_file()
 
 
 class BaseSpider(ABC):
@@ -27,10 +28,10 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
+    def parse_link_feed_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -46,7 +47,7 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
         Initializes a web scraper object with the given parameters.
         Parameters:
         type (str): The type of scraping to be performed. Either "sitemap" or "article".
-        sinde (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
+        since (str): The start date of the time period to be scraped, in the format "YYYY-MM-DD".
         url (str): The URL of the article to be scraped. Required if type is "article".
         until (str): The end date of the time period to be scraped, in the format "YYYY-MM-DD".
         **kwargs: Additional keyword arguments to be passed to the superclass constructor.
@@ -62,8 +63,7 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
         self.type = type.lower()
         self.main_json = None
         self.article_url = url
-
-        create_log_file()
+        self.enable_selenium = enable_selenium
 
         if self.type == "sitemap":
             if self.type == "sitemap":
@@ -98,9 +98,9 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
         try:
             if self.type == "sitemap":
                 if self.since and self.until:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                    yield scrapy.Request(response.url, callback=self.parse_link_feed)
                 else:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                    yield scrapy.Request(response.url, callback=self.parse_link_feed)
             elif self.type == "article":
                 article_data = self.parse_article(response)
                 yield article_data
@@ -111,21 +111,25 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_link_feed(self, response):
         try:
-            xmlresponse = XmlResponse(url=response.url, body=response.body, encoding="utf-8")
+            xmlresponse = XmlResponse(
+                url=response.url, body=response.body, encoding="utf-8"
+            )
             xml_selector = Selector(xmlresponse)
             xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath("//xmlns:loc/text()", namespaces=xml_namespaces):
+            for sitemap in xml_selector.xpath(
+                "//xmlns:loc/text()", namespaces=xml_namespaces
+            ):
                 for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                    yield scrapy.Request(link, callback=self.parse_link_feed_article)
         except BaseException as exception:
             LOGGER.error(f"Error while parsing sitemap: {str(exception)}")
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
-    def parse_sitemap_article(self, response):
+    def parse_link_feed_article(self, response):
         """
         Extracts URLs, titles, and publication dates from a sitemap response and saves them to a list.
         """
@@ -133,19 +137,22 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
             namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
             title = response.xpath('//*[local-name()="title"]/text()').getall()
-            published_date = response.xpath('//*[local-name()="publication_date"]/text()').getall()
+            published_date = response.xpath(
+                '//*[local-name()="publication_date"]/text()'
+            ).getall()
 
             for link, title, pub_date in zip(links, title, published_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
 
-                data = {
-                    'link': link,
-                    'title': title
-                }
+                data = {"link": link, "title": title}
                 if self.since is None and self.until is None:
                     if TODAYS_DATE == published_at:
                         self.articles.append(data)
-                elif self.since and self.until and self.since <= published_at <= self.until:
+                elif (
+                    self.since
+                    and self.until
+                    and self.since <= published_at <= self.until
+                ):
                     self.articles.append(data)
                 elif self.since and self.until:
                     if published_at == self.since and published_at == self.until:
@@ -170,7 +177,9 @@ class NikkeiNewsSpider(scrapy.Spider, BaseSpider):
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
-            response_data = get_parsed_data(response)
+            response_data = get_parsed_data(
+                response, enable_selenium=self.enable_selenium
+            )
             response_data["source_country"] = ["Japan"]
             response_data["time_scraped"] = [str(datetime.now())]
 

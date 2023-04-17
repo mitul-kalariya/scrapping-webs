@@ -143,7 +143,7 @@ def get_misc(response):
         print(f"Error while getting misc: {str(exception)}")
 
 
-def get_parsed_data(response):
+def get_parsed_data(response, enable_selenium=False):
     """
     Extracts data from a news article webpage and returns it in a dictionary format.
     Parameters:
@@ -208,8 +208,9 @@ def get_parsed_data(response):
         main_dict["images"] = article_images
 
         # Videos
-        video = get_embed_video_link(response)
-        main_dict["embed_video_link"] = video
+        if enable_selenium:
+            video = get_embed_video_link(response)
+            main_dict["embed_video_link"] = video
 
         # Language
         mapper = {"ja": "Japanese"}
@@ -317,13 +318,14 @@ def get_embed_video_link(response) -> list:
     driver.get(response.url)
 
     try:
-        embed_videos = driver.find_elements(By.XPATH, "//section[@class='container_c1suc6un']//iframe")
+        embed_videos = driver.find_elements(
+            By.XPATH, "//section[@class='container_c1suc6un']//iframe"
+        )
         data = []
         if embed_videos:
             for video in embed_videos:
                 link = video.get_attribute("src").replace("blob:", "")
-                temp_dict = {"link": link}
-                data.append(temp_dict)
+                data.append(link)
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting embed video: {str(exception)}")
@@ -377,11 +379,11 @@ def get_images(response, parsed_json=False) -> list:
     """
     try:
         data = []
-        images = response.css('.paragraph_p15tm1hb+ .figure_fv30jf .image_i6zn6lo')
+        images = response.css(".paragraph_p15tm1hb+ .figure_fv30jf .image_i6zn6lo")
         if images:
             for image in images:
                 temp_dict = {}
-                link = image.css('::attr(src)').get()
+                link = image.css("::attr(src)").get()
                 alt_text = image.css("::attr(alt)").get()
                 if link:
                     temp_dict["link"] = link
@@ -475,6 +477,7 @@ def remove_empty_elements(parsed_data_dict):
     :rtype: dict
     """
     try:
+
         def empty(value):
             return value is None or value == {} or value == []
 
@@ -483,7 +486,9 @@ def remove_empty_elements(parsed_data_dict):
         elif isinstance(parsed_data_dict, list):
             data_dict = [
                 value
-                for value in (remove_empty_elements(value) for value in parsed_data_dict)
+                for value in (
+                    remove_empty_elements(value) for value in parsed_data_dict
+                )
                 if not empty(value)
             ]
         else:
