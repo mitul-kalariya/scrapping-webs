@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 
-from crwcp24.constant import SITEMAP_URL
+from crwcp24.constant import LINK_FEED_URL
 from crwcp24.exceptions import (
     InputMissingException,
     InvalidArgumentException,
@@ -58,12 +58,12 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
         if self.end_date is not None and self.start_date is not None:
             set_date_range(start_date, end_date)
             validate_date_range()
-            add_start_url(SITEMAP_URL)
+            add_start_url(LINK_FEED_URL)
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
             self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
-            add_start_url(SITEMAP_URL)
+            add_start_url(LINK_FEED_URL)
 
         elif self.end_date is not None or self.start_date is not None:
             raise InvalidArgumentException(
@@ -317,34 +317,3 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
             if not empty(value)
         }
     return data_dict
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)

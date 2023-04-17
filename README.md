@@ -39,31 +39,8 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.cp24.com/"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
-```
-# To fetch all the article links from selected dates
-from crwcp24 import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://www.cp24.com/",
-        "since": "2023-04-01",
-        "until: "2023-04-15"
     },
     proxies=proxies
 )

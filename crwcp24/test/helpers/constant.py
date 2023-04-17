@@ -44,4 +44,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://www.cp24.com/sitemap.xml"
+LINK_FEED_URL = "https://www.cp24.com/sitemap.xml"
