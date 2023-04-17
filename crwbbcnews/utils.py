@@ -75,7 +75,7 @@ def get_raw_response(response: str, selector_and_key: dict) -> dict:
         )
 
 
-def get_parsed_json(response: str, selector_and_key: dict) -> dict:
+def get_parsed_json(response: str, selector_and_key: dict) -> dict:  # noqa: C901
     """
      Parsed json response from generated data using given response and selector
 
@@ -95,7 +95,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             if key == "main":
                 article_raw_parsed_json_loader.add_value(
                     key,
-                    [json.loads(data) if type(json.loads(data)) is dict else json.loads(data)[0] for data in value.getall()
+                    [json.loads(data) if type(json.loads(data)) is dict else json.loads(
+                        data)[0] for data in value.getall()
                      if (type(json.loads(data)) is dict and json.loads(data).get('@type') == "NewsArticle") or (
                         type(json.loads(data)) is list and json.loads(data)[0].get('@type') == "NewsArticle") or (
                         type(json.loads(data)) in [list, dict])]
@@ -104,7 +105,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             elif key == "imageObjects":
                 article_raw_parsed_json_loader.add_value(
                     key, [json.loads(data) for data in value.getall() if
-                          (type(json.loads(data)) is dict and json.loads(data).get('@type') in ["ImageGallery", "ImageObject"]) or (
+                          (type(json.loads(data)) is dict and json.loads(data).get(
+                           '@type') in ["ImageGallery", "ImageObject"]) or (
                         type(json.loads(data)) is list and json.loads(data)[0].get(
                             '@type') in ["ImageGallery", "ImageObject"])]
                 )
@@ -124,7 +126,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                     graph_data = data_dict.get('@graph')
                     if graph_data and isinstance(graph_data, list):
                         data_type = graph_data[0].get('@type') or None
-                    if data_dict is dict and data_type not in ["NewsArticle", "ImageGallery", "ImageObject", "VideoObject"]:
+                    if data_dict is dict and data_type not in ["NewsArticle", "ImageGallery",
+                                                               "ImageObject", "VideoObject"]:
                         article_raw_parsed_json_loader.add_value(key, data_dict)
         return dict(article_raw_parsed_json_loader.load_item())
     except BaseException as exception:

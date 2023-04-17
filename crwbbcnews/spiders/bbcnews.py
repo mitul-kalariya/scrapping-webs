@@ -110,7 +110,7 @@ class BBCNews(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_sitemap(self, response):
+    def parse_sitemap(self, response):  # noqa: C901
         """
         Parses the sitemap and extracts the article URLs and their last modified date.
         If the last modified date is within the specified date range, sends a request to the article URL
