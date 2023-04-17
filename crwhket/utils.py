@@ -442,7 +442,7 @@ def get_all_details_of_block(block: dict) -> dict:
     return data_dict
 
 
-def get_formated_images(response, block, image_block, image_url_data: dict={}) -> list:
+def get_formated_images(response, block, image_block, image_url_data: dict = dict()) -> list:
     """return formated images response using block and response
 
     Args:

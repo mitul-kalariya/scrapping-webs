@@ -23,7 +23,6 @@ from crwhket.utils import (
 )
 from crwhket.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
 )
