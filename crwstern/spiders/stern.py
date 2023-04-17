@@ -22,10 +22,10 @@ class BaseSpider(ABC):
     """
     Base class for making abstract methods
     """
+    # pylint: disable=unnecessary-pass
 
     @abstractmethod
     def parse(self, response):
-        # pylint disable=W0107
         """
         Parses the given Scrapy response based on the specified type of parsing.
         Returns:
@@ -224,7 +224,9 @@ class SternSpider(scrapy.Spider, BaseSpider):
                     date = self.since.strftime("%Y-%m-%d").split("-")
                     link = response.url + f"/?month={date[1]}&year={date[0]}"
                     yield scrapy.Request(
-                        link, dont_filter=True, callback=self.parse_archive_article_links
+                        link,
+                        dont_filter=True,
+                        callback=self.parse_archive_article_links,
                     )
                 else:
                     since_date = self.since.strftime("%Y-%m-%d").split("-")
@@ -235,21 +237,36 @@ class SternSpider(scrapy.Spider, BaseSpider):
                     ]
                     for link in links:
                         yield scrapy.Request(
-                            link,dont_filter=True, callback=self.parse_archive_article_links
+                            link,
+                            dont_filter=True,
+                            callback=self.parse_archive_article_links,
                         )
             else:
                 current_date = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
-                link = response.url + f"/?month={current_date[1]}&year={current_date[0]}"
+                link = (
+                    response.url + f"/?month={current_date[1]}&year={current_date[0]}"
+                )
                 yield scrapy.Request(
                     link, dont_filter=True, callback=self.parse_archive_article_links
                 )
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                "Error while parsing sitemap article::%s-", str(exception)
+            "Error while parsing sitemap article::%s-", str(exception)
             )
 
     def parse_archive_article_links(self, response):
+        """
+        gets article links from the archive
+        Args:
+            self: The Scrapy spider instance calling this method.
+            response: The response object obtained after making a request to a sitemap URL.
+        Yields:
+            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
+            method as the callback and the article link and title as metadata.
+        Raises:
+            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+        """
         try:
             links = response.css(
                 ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext a::attr(href)"
@@ -258,7 +275,8 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext h3::text"
             ).getall()
             published_date = response.css(
-                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext time::attr(datetime)"
+                ".group-teaserlist__item.group-teaserlist__item--teaser\
+                    -plaintext time::attr(datetime)"
             ).getall()
 
             for link, title, pub_date in zip(links, title, published_date):
@@ -278,8 +296,10 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 else:
                     continue
 
-
-            pagination = response.css(".button.u-typo.u-typo--button-text.button--icon.button--icon-arrow-right.button--icon-pos-right").get()
+            pagination = response.css(
+                ".button.u-typo.u-typo--button-text.button--icon.button\
+                    --icon-arrow-right.button--icon-pos-right"
+            ).get()
 
             if pagination:
                 total_pagination = response.css(
@@ -298,8 +318,9 @@ class SternSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-                "Error while parsing sitemap article::%s-", str(exception)
+            "Error while parsing sitemap article::%s-", str(exception)
             )
+
     def parse_article(self, response) -> list:
         """
         Parses the article data from the response object and returns it as a dictionary.
@@ -319,10 +340,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value(
-                "parsed_json",
-                response_json
-            )
+            articledata_loader.add_value("parsed_json", response_json)
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
