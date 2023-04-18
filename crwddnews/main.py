@@ -4,6 +4,7 @@ from multiprocessing import Process, Queue
 from crwddnews.spiders.ddnews import DDNewsSpider
 from crwddnews import exceptions
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.

@@ -276,7 +276,7 @@ def get_author(response):
         if "संवाददाता" in second_author[-1]:
             author["name "] = second_author[-1].replace(
                 "संवाददाता", ""
-                ).replace("की रिपोर्ट", "  ").strip()
+            ).replace("की रिपोर्ट", "  ").strip()
             return [author]
     return None
 

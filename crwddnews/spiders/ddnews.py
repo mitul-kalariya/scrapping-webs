@@ -254,7 +254,8 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             stats = self.crawler.stats.get_stats()
             if (
                 stats.get(
-                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    "downloader/exception_type_count/scrapy\
+                        .core.downloader.handlers.http11.TunnelError",
                     0,
                 )
                 > 0
