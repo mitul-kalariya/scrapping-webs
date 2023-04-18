@@ -248,6 +248,7 @@ def get_parsed_data_dict() -> dict:
         "description": None,
         "modified_at": None,
         "published_at": None,
+        "time_scraped": None,
         "publisher": None,
         "text": None,
         "thumbnail_image": None,
@@ -324,6 +325,7 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
     }
     parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
     parsed_data_dict |= {"published_at": [data_dict.get("published_at") or article_date]}
+    parsed_data_dict |= {"time_scraped": [datetime.today().strftime("%Y-%m-%d")]}
     parsed_data_dict |= {"publisher": get_publisher_detail(data_dict)}
     parsed_data_dict |= {
         "title": [data_dict.get("title")] if data_dict.get("title")
