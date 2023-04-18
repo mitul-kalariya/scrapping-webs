@@ -126,9 +126,9 @@ def get_parsed_data(response):
         main_dict = {}
 
         json_data = [data for data in get_ld_json(response) if data.get("@type") == "NewsArticle"][0]
-
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n",json_data)
         # Author
-        authors = get_author(response)
+        authors = get_author(json_data)
         main_dict["author"] = authors
 
         # Last Updated Date
@@ -317,8 +317,8 @@ def get_publisher(response) -> list:
         - "name": The name of the publisher.
     """
     try:
-        json_data = get_ld_json(response)
-        publisher_data = json_data[0].get("publisher")
+        # json_data = get_ld_json(response)
+        publisher_data = response.get("publisher")
         logo = publisher_data.get("logo")
         a_dict = {
             "@id": publisher_data.get("@id"),
@@ -380,7 +380,7 @@ def get_tags(response) -> list:
     """
     try:
         keyword_data = get_meta_information(response, property="news_keywords", key="name")
-        tags = [data.strip() for data in keyword_data.split(",")]
+        tags = [data.strip() for data in keyword_data.split(",") if data]
         return tags
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
