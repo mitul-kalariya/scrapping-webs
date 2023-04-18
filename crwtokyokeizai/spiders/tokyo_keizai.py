@@ -41,7 +41,7 @@ class BaseSpider(ABC):
         pass
 
 
-class TokyoKeizaiOnlineSpider(scrapy.Spider):
+class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
     name = "tokyo_keizai"
 
     def __init__(
@@ -109,8 +109,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
         try:
             if self.type == "sitemap":
                 if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
-                else:
                     yield scrapy.Request(response.url, callback=self.parse_sitemap)
 
             elif self.type == "article":
@@ -191,25 +189,28 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
 
-            pagination_links = response.css(
-                "div#article-body div.mp-ie-end a::attr(href)"
-            ).getall()
-            pagination_links = list(set(pagination_links))
-            if pagination_links:
-                for link in pagination_links:
-                    print("##################################################", link)
-                    response_str = "https://toyokeizai.net" + link
-                    yield scrapy.Request(
-                        url=response_str,
-                        callback=self.parse_pagination_page,
-                        meta={
-                            "raw_response": raw_response,
-                            "response_json": response_json,
-                            "response_data": response_data,
-                        },
-                    )
+            premium_class = response.css(".member-login-parts p::text").getall()
+            if not premium_class:
+                pagination_links = response.css(
+                    "div#article-body div.mp-ie-end a::attr(href)"
+                ).getall()
+                pagination_links = list(set(pagination_links))
+                if pagination_links:
+                    for link in pagination_links:
+                        print("##################################################", link)
+                        response_str = "https://toyokeizai.net" + link
+                        breakpoint()
+                        yield scrapy.Request(
+                            url=response_str,
+                            callback=self.parse_pagination_page,
+                            meta={
+                                "raw_response": raw_response,
+                                "response_json": response_json,
+                                "response_data": response_data,
+                            },
+                        )
 
-                # Retun data after all pagination pages are scrapped
+                    # Retun data after all pagination pages are scrapped
 
             else:
                 articledata_loader = ItemLoader(item=ArticleData(), response=response)
@@ -240,8 +241,15 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider):
         response_data = [get_parsed_data(response)]
 
         # Merge previous and current data
+        previous_raw_response.update(raw_response)
+        previous_response_json.update(response_json)
+        for data in response_data:
+            previous_response_data.update(data)
 
         # return updated data
+        return previous_raw_response, previous_response_json, previous_response_data
+
+
 
     def closed(self, reason: any) -> None:
         """
