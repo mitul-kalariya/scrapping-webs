@@ -17,6 +17,7 @@ from crwtbsnews.utils import (
     get_parsed_json,
 )
 
+
 class BaseSpider(ABC):
     @abstractmethod
     def parse(self, response):
@@ -38,7 +39,7 @@ class BaseSpider(ABC):
 create_log_file()
 
 
-class NewsdigTbsSpider(scrapy.Spider):
+class NewsdigTbsSpider(scrapy.Spider, BaseSpider):
     name = "tbs_news"
 
     def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
@@ -233,12 +234,17 @@ class NewsdigTbsSpider(scrapy.Spider):
         response_data = [get_parsed_data(response)]
 
         # Merge previous and current data
-
+        previous_raw_response.update(raw_response)
+        previous_response_json.update(response_json)
+        for data in response_data:
+            previous_response_data.update(data)
 
         # return updated data
+        return previous_raw_response, previous_response_json, previous_response_data
+
 
 def closed(self, reason: any) -> None:
-        """
+    """
         store all scrapped data into json file with given date in filename
         Args:
             reason: generated reason
@@ -247,19 +253,19 @@ def closed(self, reason: any) -> None:
         Returns:
             Values of parameters
         """
-        try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
-            if not self.articles:
-                LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
+    try:
+        if self.output_callback is not None:
+            self.output_callback(self.articles)
+        if not self.articles:
+            LOGGER.info("No articles or sitemap url scrapped.")
+        else:
+            export_data_to_json_file(self.type, self.articles, self.name)
 
-        except Exception as exception:
-            exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
-            )
-            self.log(
-                f"Error occurred while writing json file{str(exception)} - {reason}",
-                level=logging.ERROR,
-            )
+    except Exception as exception:
+        exceptions.ExportOutputFileException(
+            f"Error occurred while writing json file{str(exception)} - {reason}"
+        )
+        self.log(
+            f"Error occurred while writing json file{str(exception)} - {reason}",
+            level=logging.ERROR,
+        )
