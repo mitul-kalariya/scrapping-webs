@@ -1,7 +1,6 @@
 """Utility Functions"""
 from datetime import timedelta, datetime
 import json
-import os
 
 from scrapy.loader import ItemLoader
 
@@ -115,6 +114,7 @@ def validate_arg(param_name, param_value, custom_msg=None) -> None:
     Args:
         param_name: Name of the parameter to be validated
         param_value: Value of the required parameter
+        custom_msg: Custom messages to be displayed
 
     Raises:
         ValueError if not provided
@@ -214,7 +214,6 @@ def get_parsed_json(response) -> dict:
 
     Args:
         response: provided response
-        selector_and_key: A dictionary with key and selector
 
     Returns:
         Dictionary with Parsed json response from generated data
@@ -230,41 +229,6 @@ def get_parsed_json(response) -> dict:
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -360,7 +324,7 @@ def get_parsed_data(response: str, parsed_json_main: dict) -> dict:
     }
     parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
     parsed_data_dict |= {"published_at": [data_dict.get("published_at") or article_date]}
-    parsed_data_dict |= {"publisher": get_publisher_detail(response, data_dict)}
+    parsed_data_dict |= {"publisher": get_publisher_detail(data_dict)}
     parsed_data_dict |= {
         "title": [data_dict.get("title")] if data_dict.get("title")
         else response.css("title::text").getall(),
@@ -378,9 +342,9 @@ def get_all_details_of_block(block: dict) -> dict:
     """
     get all details from main block
     Args:
-        blocks: json/+ld data
+        block: json/+ld data
     Returns:
-        str : author and publisher details
+        dict : author and publisher details
     """
     data_dict = {
         "description": block.get("description", "").strip(),
@@ -406,14 +370,15 @@ def get_all_details_of_block(block: dict) -> dict:
     return data_dict
 
 
-def get_formated_images(response, block) -> str:
+def get_formated_images(response, block) -> list:
     """return formated images response using block and response
 
     Args:
         response : response object of scrapy
+        block : main json ld block
 
     Returns:
-        str: return link of image
+        list: return link of image
     """
     formated_images = []
     for link, caption in zip(
@@ -453,7 +418,7 @@ def get_full_url(link: str) -> str:
     return link
 
 
-def get_publisher_detail(response: str, data_dict: dict) -> dict:
+def get_publisher_detail(data_dict: dict) -> list:
     """generate publisher detail and return dict
 
     Args:
@@ -461,7 +426,7 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
         data_dict (dict): data_dict which contains info of main
 
     Returns:
-        dict: details of publisher to pass to json
+        list: details of publisher to pass to json
     """
     return [{
             "@id": data_dict.get("publisher_id", "https://www.sankei.com/"),

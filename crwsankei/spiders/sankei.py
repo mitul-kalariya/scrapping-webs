@@ -16,7 +16,6 @@ from crwsankei.utils import (
     validate,
     get_raw_response,
     get_parsed_json,
-    # export_data_to_json_file,
     get_parsed_data,
     remove_empty_elements,
 )
@@ -170,18 +169,6 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
 
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        pass
-
     def parse_article(self, response: str) -> None:
         """
         parse article and append related data to class's articles variable
@@ -241,8 +228,6 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            # else:
-            #     export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

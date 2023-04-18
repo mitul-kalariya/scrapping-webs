@@ -1,5 +1,5 @@
-import requests
 import json
+import requests
 from scrapy.http import Request, TextResponse
 
 
@@ -31,7 +31,7 @@ def get_article_content(file_name: str) -> dict:
     Returns:
         dict: JSON data
     """
-    with open(file_name, 'r') as f:
-        data = json.load(f)
+    with open(file_name, 'r') as file_obj:
+        data = json.load(file_obj)
 
     return data
