@@ -25,10 +25,6 @@ def validate_sitemap_date_range(start_date, end_date):
     """
     validating date range given for sitemap
     """
-    start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    )
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if (start_date and not end_date) or (not start_date and end_date):
             raise exceptions.InvalidDateException(
