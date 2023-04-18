@@ -1,4 +1,5 @@
 """ General functions """
+from asyncio import exceptions
 from datetime import timedelta, datetime
 import json
 from scrapy.loader import ItemLoader
@@ -301,14 +302,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
     """
     data_dict = get_author_and_publisher_details(parsed_json_main)
     text = response.css("section.article-content__content-group > p::text").getall()
-    image = {
-        "link": data_dict.get("image_url"),
-        "caption": response.css(
-            "#main-content > article > header > div > figure > picture > img::attr(alt)"
-        ).get(),
-    }
-
-    caption = response.css(".c-text span::text").getall()
+    
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
@@ -334,9 +328,7 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "tags": data_dict.get("tags"),
         "time_scraped": [datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")],
     }
-    parsed_data_dict |= {
-        "images": [image] or [{"link": image, "caption": caption}],
-    }
+    parsed_data_dict |= get_thumbnail_image_video(response)
     return parsed_data_dict
 
 
@@ -404,3 +396,31 @@ def get_publisher_detail(response: str, data_dict: dict) -> dict:
             },
         }
     ]
+
+def get_thumbnail_image_video(response: str) -> dict:
+    """
+    Returns thumbnail images, images and video details
+    Args:
+        video_object: response of VideoObject data
+        parsed_data: response of application/ld+json data
+    Returns:
+        dict: thumbnail images, images and video details
+    """
+    try:
+        data = []
+        breakpoint()
+        images = response.css("#main-content > article > header > div > figure > picture > img::attr(src)").getall()
+        caption = response.css("#main-content > article > header > div > figure > picture > img::attr(alt)").getall()
+        if images:
+            for image, caption in zip(images, caption):
+                temp_dict = {}
+                if image:
+                    temp_dict["link"] = image
+                    if caption:
+                        temp_dict["caption"] = caption
+                data.append(temp_dict)
+
+        return {"images": data if data else None}
+    except exceptions.URLNotFoundException as exception:
+
+        print(f"Error while getting news content images: {str(exception)}")
