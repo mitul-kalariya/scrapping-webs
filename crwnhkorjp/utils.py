@@ -113,10 +113,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(

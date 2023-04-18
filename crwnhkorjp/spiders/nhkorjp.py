@@ -22,10 +22,8 @@ from crwnhkorjp.exceptions import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -53,12 +51,13 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
                  'news': 'http://www.google.com/schemas/sitemap-news/0.9'}
 
     def __init__(
-        self, type=None, start_date=None,
-        end_date=None, url=None, *args, **kwargs
+        self, *args, type=None, start_date=None,
+        end_date=None, url=None, **kwargs
     ):
         try:
             super(NhkOrJpNews, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -190,7 +189,6 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
@@ -231,6 +229,25 @@ class NhkOrJpNews(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
+
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
