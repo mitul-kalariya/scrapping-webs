@@ -128,38 +128,35 @@ def get_parsed_data(response):
         json_data = [data for data in get_ld_json(response) if data.get("@type") == "NewsArticle"][0]
 
         # Author
-        authors = get_author(json_data)
+        authors = get_author(response)
         main_dict["author"] = authors
 
         # Last Updated Date
-        last_updated_date = json_data.get('dateModified')
+        last_updated_date = get_lastupdated(json_data)
         main_dict["modified_at"] = [last_updated_date]
 
         # Published Date
-        published = json_data.get('datePublished')
+        published = get_published_at(json_data)
         main_dict["published_at"] = [published]
 
         # Description
-        description = json_data.get("description")
+        description = get_description(json_data)
         main_dict["description"] = [description]
 
         # Publisher
-        publisher = get_publisher(response)
+        publisher = get_publisher(json_data)
         main_dict["publisher"] = publisher
 
         # Article Text
-        raw_article_text = response.css(
-            ".article_content:nth-child(1)::text, u::text"
-        ).getall()
-        article_text = [text.replace("\\n", "") if text.strip()=="\\n" else text.strip() for text in raw_article_text]
-        main_dict["text"] = [" ".join(article_text)]
+        article_text = get_text(response)
+        main_dict["text"] = [article_text]
 
         # Thumbnail
         thumbnail = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail
 
         # Title
-        title = response.css("#articletitle #jtbcBody::text").get().strip()
+        title = get_title(response)
         main_dict["title"] = [title]
 
         # Images
@@ -187,7 +184,7 @@ def get_parsed_data(response):
         print(f"Error while getting article data (utils --> get_parsed_data): {str(exception)}")
 
 
-def get_lastupdated(response) -> str:
+def get_lastupdated(json_data) -> str:
     """
     This function extracts the last updated date and time of an article from a given Scrapy response object.
     It returns a string representation of the date and time in ISO 8601 format.
@@ -196,12 +193,75 @@ def get_lastupdated(response) -> str:
         response: A Scrapy response object representing the web page from which to extract the information.
     """
     try:
-        info = response.css(".inline+ span time")
-        if info:
-            return info.css("time::attr(datetime)").get()
+        last_updated = json_data.get("dateModified")
+        return last_updated
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting last updated date: {str(exception)}")
+
+
+def get_published_at(json_data) -> str:
+    """get data of when article was published
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        published_at = json_data.get("datePublished")
+        return published_at
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting published date: {str(exception)}")
+
+
+def get_description(json_data) -> list:
+    """get article description
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        description = json_data.get("description")
+        return description
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article description: {str(exception)}")
+
+
+def get_text(response) -> str:
+    """get article text
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        raw_article_text = response.css(".article_content:nth-child(1)::text, u::text").getall()
+        article_text = [text.replace("\\n", "") if text.strip()=="\\n" else text.strip() for text in raw_article_text]
+        text = " ".join(article_text)
+        return text
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article text: {str(exception)}")
+
+
+def get_title(response) -> str:
+    """get article title
+    Args:
+        response (object):page data
+    Returns:
+        str: datetime of published date
+    """
+    try:
+        title = response.css("#articletitle #jtbcBody::text").get()
+        if isinstance(title, str):
+            title.strip()
+        return title
+    except exceptions.ArticleScrappingException as exception:
+        LOGGER.error(f"{str(exception)}")
+        print(f"Error while getting article title: {str(exception)}")
 
 
 def get_author(json_data) -> list:
