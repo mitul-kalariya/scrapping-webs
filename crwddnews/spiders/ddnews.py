@@ -1,5 +1,4 @@
 """Spider to scrap DD news website"""
-import logging
 from datetime import datetime, date
 from abc import ABC, abstractmethod
 import scrapy
@@ -76,6 +75,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
+        # pylint: disable=super-with-arguments
         try:
             super(DDNewsSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
@@ -83,6 +83,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             self.articles = []
             self.article_url = url
             self.type = type.lower()
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
 
             if self.type == "sitemap":
                 self.start_urls.append(ARCHIVE_URL)
@@ -93,8 +94,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 self.until = (
                     datetime.strptime(until, "%Y-%m-%d").date() if until else None
                 )
-
-                validate_sitemap_date_range(since, until)
+                validate_sitemap_date_range(self.since, self.until)
 
             if self.type == "article":
                 if url:
@@ -143,6 +143,7 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException: If there is an error while
             parsing the sitemap page.
         """
+        # pylint: disable=pointless-statement
         try:
             today = date.today().strftime("%m/%d/%Y")
             if self.since and self.until:
@@ -150,29 +151,20 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
                 until = self.until.strftime("%m/%d/%Y")
 
                 if since == until and since == today:
-                    url = (
-                        "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-                        + today
-                    )
+                    url = f"https://ddnews.gov.in/hi/about/news-archive?\
+                        title=&news_type=All&changed_1={today}"
+
                 elif until == today:
-                    url = (
-                        "https://ddnews.gov.in/about/news-archive?\
-                            title=&news_type=All&changed_1="
-                        + since
-                    )
+                    url = f"https://ddnews.gov.in/hi/about/news-archive?\
+                            title=&news_type=All&changed_1={since}"
+
                 else:
-                    url = (
-                        "https://ddnews.gov.in/about/news-archive?\
-                            title=&news_type=All&changed_1="
-                        + since
-                        + "&changed_2="
-                        + until
-                    )
+                    url = f"https://ddnews.gov.in/hi/about/news-archive?\
+                        title=&news_type=All&changed_1={since}&changed_2={until}"
             else:
-                url = (
-                    "https://ddnews.gov.in/about/news-archive?title=&news_type=All&changed_1="
-                    + today
-                )
+                url = f"https://ddnews.gov.in/hi/about/news-archive?\
+                    title=&news_type=All&changed_1={today}"
+
             yield scrapy.Request(url, callback=self.parse_archive_article)
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
@@ -259,10 +251,28 @@ class DDNewsSpider(scrapy.Spider, BaseSpider):
         in the filename.
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
+                LOGGER.info("No articles or sitemap url scrapped.")
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:

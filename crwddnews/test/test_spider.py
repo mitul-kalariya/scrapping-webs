@@ -84,11 +84,6 @@ class TestArticle(unittest.TestCase):
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
-
-        # with self.subTest():
-        #     self.assertDictEqual(article[0].get("parsed_data").get("author")[0],
-        #                          test_article_data[0].get("parsed_data").get("author")[0],
-        #                          "author mismatch in parsed_data")
         with self.subTest():
             self.assertEqual(
                 article[0].get("parsed_data").get("published_at"),
@@ -136,8 +131,6 @@ class TestArticle(unittest.TestCase):
                         image.get("link"),
                         "missing object:- parsed_data--> images --> link",
                     )
-                # with self.subTest():
-                #     self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -176,9 +169,6 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> text",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> text")
 
         if article[0].get("parsed_data").get("title"):
             with self.subTest():
@@ -209,8 +199,6 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> description",
                 )
-        # else:
-        #     raise AssertionError("missing object:- parsed_data--> description")
 
         if article[0].get("parsed_data").get("source_country"):
             with self.subTest():
@@ -260,9 +248,6 @@ class TestArticle(unittest.TestCase):
                     "format mismatch for parsed_data--> author",
                 )
             self._test_author_format(article)
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> author")
 
         if article[0].get("parsed_data").get("modified_at"):
             with self.subTest():
@@ -277,9 +262,6 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> modified_at",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> modified_at")
 
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
@@ -311,9 +293,6 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> publisher",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> publisher")
 
         if article[0].get("parsed_data").get("images"):
             with self.subTest():
@@ -329,9 +308,6 @@ class TestArticle(unittest.TestCase):
                     "format mismatch for parsed_data--> images",
                 )
             self._test_image_format(article)
-        # else:
-        # with self.subTest():
-        #     raise AssertionError("missing object:- parsed_data--> images")
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():
@@ -363,15 +339,19 @@ class TestArticle(unittest.TestCase):
                     list,
                     "format mismatch for parsed_data--> tags",
                 )
-        # else:
-        #     with self.subTest():
-        #         raise AssertionError("missing object:- parsed_data--> tags")
 
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
         self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": ARCHIVE_URL})
+        self.crawler = Crawler(
+            query={
+                "type": "sitemap",
+                "domain": ARCHIVE_URL,
+                "since": "2023-04-15",
+                "until": "2023-04-15"
+            }
+        )
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

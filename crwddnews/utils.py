@@ -25,10 +25,6 @@ def validate_sitemap_date_range(start_date, end_date):
     """
     validating date range given for sitemap
     """
-    start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    )
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
             raise exceptions.InvalidDateException(
@@ -54,6 +50,10 @@ def validate_sitemap_date_range(start_date, end_date):
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
+        if start_date and end_date:
+            total_days = int((end_date - start_date).days)
+            if total_days > 30:
+                raise exceptions.InvalidDateException("Date must be in range of 30 days")
 
     except exceptions.InvalidDateException as exception:
         LOGGER.error("Error in __init__: %s", exception, exc_info=True)
@@ -70,7 +70,7 @@ def remove_empty_elements(parsed_data_dict):
     """
 
     def empty(value):
-        return value is None or value == {} or value == []
+        return value is None or value == {} or value == [] or value == ""
 
     if not isinstance(parsed_data_dict, (dict, list)):
         data_dict = parsed_data_dict
@@ -113,27 +113,31 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-
         main_dict = {}
 
         main_dict["source_country"] = ["India"]
-        mapper = {"en": "English"}
+        mapper = {"hi": "Hindi", "en": "English"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
-        topline = response.css("p.heading_small::text").get()
-        main_dict["description"] = [topline]
+        main_dict["description"] = [response.css("p.heading_small::text").get()]
 
-        published_on = response.css("p.date::text").get()
-        main_dict["published_at"] = [published_on]
+        main_dict["published_at"] = [response.css("p.date::text").get()]
 
         thumbnail_image = get_thumbnail(response)
         if thumbnail_image:
             main_dict["thumbnail_image"] = [thumbnail_image]
 
-        title = response.css("meta[name='title']::attr(content)").get()
-        main_dict["title"] = [title]
+        if "video" in response.url:
+            title = response.css(
+                "div.views-field.views-field-nothing.social_share h1.heading_big::text"
+            ).get()
 
+        else:
+            title = response.css("h1.news_heading.detail_title::text").get()
+
+        main_dict["title"] = [title]
+        main_dict["author"] = get_author(response)
         section = get_section(response)
         if section:
             main_dict["section"] = [section]
@@ -141,15 +145,7 @@ def get_parsed_data(response):
         keyword = get_keywords(response)
         main_dict["tags"] = keyword
 
-        display_text = response.css(
-            "div.news_content p[class!='heading_small']::text"
-        ).getall()
-        if display_text:
-            main_dict["text"] = [
-                " ".join(
-                    [re.sub("[\r\n\t]+", "", text).strip() for text in display_text]
-                )
-            ]
+        main_dict["text"] = get_text(response)
 
         images = get_images(response)
         if images:
@@ -168,6 +164,39 @@ def get_parsed_data(response):
         raise exceptions.ArticleScrappingException(
             f"while scrapping parsed data :{exception}"
         )
+
+
+def get_text(response):
+    """
+    parsing a article text from the article
+    returns : text from the article
+    """
+    display_text = response.css(
+        "div.news_content p[class!='heading_small']::text"
+    ).getall()
+
+    if display_text:
+        return [
+            " ".join([re.sub("[\r\n\t]+", "", text).strip() for text in display_text])
+        ]
+
+    if "video" in response.url:
+        video_text_h1 = response.css(
+            "div.views-field.views-field-nothing.social_share h1[class!='heading_big']::text"
+        ).get()
+        video_text_p = response.css(
+            "div.views-field.views-field-nothing.social_share p[class!='date']::text"
+        ).get()
+        video_text_pre = response.css(
+            "div.views-field.views-field-nothing.social_share pre::text"
+        ).get()
+        if video_text_h1:
+            return [video_text_h1]
+        if video_text_p:
+            return [video_text_p]
+        if video_text_pre:
+            return [video_text_pre]
+    return None
 
 
 def get_thumbnail(response):
@@ -229,19 +258,44 @@ def get_main(response):
         )
 
 
+def get_author(response):
+    """
+    returns a author details from the article
+    Parameters:
+        response:
+    Returns:
+        author
+    """
+    author = {}
+    first_author = response.css("div.news_content p strong::text").get()
+    second_author = response.css("div.news_content p.rtejustify::text").getall()
+    if first_author:
+        author["name"] = first_author.replace(", संवाददाता", "")
+        return [author]
+    if second_author:
+        if "संवाददाता" in second_author[-1]:
+            author["name "] = second_author[-1].replace(
+                "संवाददाता", ""
+                ).replace("की रिपोर्ट", "  ").strip()
+            return [author]
+    return None
+
+
 def get_images(response) -> list:
     """
     returns a images from the articles
     returns : Images
     """
     try:
-        images = response.css("span.field-content img")
         data = []
-        for image in images:
+        image = response.css("span.field-content img::attr(src)").get()
+        if image:
+            data.append({"link": image})
+        article_images = response.css("div.news_content p img::attr(src)").getall()
+        for article_img in article_images:
             temp_dict = {}
-            link = image.css("img::attr(src)").get()
-            if link:
-                temp_dict["link"] = link
+            if article_img:
+                temp_dict["link"] = article_img
             data.append(temp_dict)
         return data
     except BaseException as exception:
