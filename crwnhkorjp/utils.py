@@ -242,7 +242,6 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
         if "videoObjects" in list(parsed_json_dict.keys()):
             parsed_data_dict["embed_video_link"] = [parsed_json_dict.get("other")[1].get("url")[:-1] + response.css(
                 "iframe.video-player-fixed::attr('src')").get()]
-        breakpoint()
         parsed_data_dict["time_scraped"] = datetime.today()
     return remove_empty_elements(parsed_data_dict)
 
