@@ -70,6 +70,7 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
 
         try:
             self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -224,10 +225,38 @@ class SankeiSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.ConnectionRefusedError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
