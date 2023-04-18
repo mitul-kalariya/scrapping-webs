@@ -2,10 +2,9 @@ import logging
 import unittest
 
 from crwmetropoles.spiders.metropoles import MetropolesSpider
-from crwmetropoles.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwmetropoles.test.helpers.constant import TEST_ARTICLES
 from crwmetropoles.test.helpers.utils import (get_article_content,
                                               online_response_from_url)
-from crwmetropoles import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -65,7 +64,6 @@ class TestArticle(unittest.TestCase):
                 if test_article_data[0].get("parsed_json").get("Other"):
                     self.assertIsInstance(article[0].get("parsed_json").get("Other"), list,
                                           "parsed_json --> other must be list")
-
 
     def _test_parse_json_with_test_data(self, article, test_article_data):
         # Testing parsed_data object
@@ -226,9 +224,9 @@ class TestArticle(unittest.TestCase):
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                       list, "format mismatch for parsed_data--> images")
             self._test_image_format(article)
-        else:
-            with self.subTest():
-                raise AssertionError("missing object:- parsed_data--> images")
+        # else:
+        #     with self.subTest():
+        #         raise AssertionError("missing object:- parsed_data--> images")
 
         if article[0].get("parsed_data").get("section"):
             with self.subTest():

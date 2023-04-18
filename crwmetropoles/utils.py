@@ -441,8 +441,11 @@ def get_images(response) -> list:
         for caption in captions:
             cap_text = ""
             text = caption.css("*::text").getall()
-            for i in text:
-                cap_text += i.strip()
+            if text:
+                for i in text:
+                    cap_text += i.strip()
+            else:
+                cap_text = None
             captions_list.append(cap_text)
 
         temp_dict = {

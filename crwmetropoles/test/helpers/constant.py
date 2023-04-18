@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.metropoles.com/distrito-federal/para-atender-a-novas-cidades-gdf-quer-criar-69-novos-cargos-comissionados",
+        "url": "https://www.metropoles.com/saude/inteligencia-artificial-consegue-identificar-resfriados-pela-voz",
         "test_data_path": "crwmetropoles/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.metropoles.com/distrito-federal/brasilia-tem-7-129-pessoas-em-situacao-de-rua-aponta-estudo",
+        "url": "https://www.metropoles.com/entretenimento/teatro/atos-de-leitura-ceilandia-e-samambaia-receberao-apresentacoes-gratuitas#newsarticle",
         "test_data_path": "crwmetropoles/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.metropoles.com/colunas/ilca-maria-estevao/nike-e-alvo-de-comentarios-transfobicos-apos-acao-com-influencer",
+        "url": "https://www.metropoles.com/brasil/minha-casa-minha-vida-vai-financiar-2-milhoes-de-moradias-diz-jader#newsarticle",
         "test_data_path": "crwmetropoles/test/data/test_article_3.json"
     },
 

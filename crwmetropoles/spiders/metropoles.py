@@ -1,6 +1,6 @@
 import scrapy
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from lxml import etree
 from crwmetropoles import exceptions
 from scrapy.loader import ItemLoader
@@ -109,24 +109,18 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
                 root = etree.fromstring(response.body)
                 links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas"
                                                                               "/sitemap/0.9"}, )
-                # print(links)
-                # for link in links[3:5]:
-                #     yield scrapy.Request(link, callback=self.parse_sitemap)
-                # for link in links:
-                #     pass
-
-                # data_link = ["https://www.metropoles.com/sitemap-misc.xml", "https://www.metropoles.com/sitemap-tax-post_tag.xml","https://www.metropoles.com/sitemap-tax-category.xml"]
-                # for link in links:
-                #     if link in data_link:
-                #         continue
-                #     else:
-                #         yield scrapy.Request(link, callback=self.parse_sitemap)
 
                 for link in links:
-                    if "https://www.metropoles.com/sitemap-pt-post" not in link:
+                    if link in ["https://www.metropoles.com/sitemap-misc.xml",
+                                "https://www.metropoles.com/sitemap-tax-post_tag.xml",
+                                "https://www.metropoles.com/sitemap-tax-category.xml"]:
                         continue
-                    else:
-                        yield scrapy.Request(link, callback=self.parse_sitemap)
+                days_back_date = TODAYS_DATE - timedelta(days=30)
+                days_back_date = str(int(days_back_date.strftime("%Y-%m").split("-")[-1]) - 1)
+                if len(days_back_date) == 1:
+                    days_back_date = str(0) + str(days_back_date)
+                if link[-11:-4].split(".")[0] > str(TODAYS_DATE.year) + "-" + days_back_date:
+                    yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 yield self.parse_article(response)
