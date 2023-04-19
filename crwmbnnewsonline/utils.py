@@ -6,14 +6,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
-from crwmbnnewsonline.constant import SITEMAP_URL
+from crwmbnnewsonline.constant import LINK_FEED_URL
 from crwmbnnewsonline.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
 from crwmbnnewsonline.exceptions import (
     InputMissingException,
-    InvalidDateException,
     InvalidArgumentException,
     SitemapArticleScrappingException,
 )
@@ -41,39 +40,24 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     def add_start_url(url):
         self.start_urls.append(url)
 
-    def set_date_range(start_date, end_date):
-        self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
-
-    def validate_date_range():
-        if self.start_date > self.end_date:
-            raise InvalidDateException("start_date must be less then end_date")
-        if (self.end_date - self.start_date).days > 30:
-            raise InvalidDateException(
-                "Enter start_date and end_date for maximum 30 days."
-            )
-
     def validate_type():
         if self.type not in ["article", "sitemap"]:
             raise InvalidArgumentException("type should be articles or sitemap")
 
     def handle_link_feed_type():
-        if self.end_date is not None and self.start_date is not None:
-            set_date_range(start_date, end_date)
-            validate_date_range()
-            add_start_url(SITEMAP_URL)
-
-        elif self.start_date is None and self.end_date is None:
-            today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
-            add_start_url(SITEMAP_URL)
-
-        elif self.end_date is not None or self.start_date is not None:
+        add_start_url(LINK_FEED_URL)
+        today_time = datetime.today().strftime("%Y-%m-%d")
+        self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
+        if self.end_date is not None or self.start_date is not None:
             raise InvalidArgumentException(
-                "to use type sitemap give only type sitemap or with start date and end date"
+                "date is not required for link_feed"
             )
 
     def handle_article_type():
+        if self.end_date is not None or self.start_date is not None:
+            raise InvalidArgumentException(
+                "date is not required for article"
+            )
         if self.url is not None:
             add_start_url(self.url)
         else:
@@ -154,8 +138,8 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
                 [
                     json.loads(data)
                     for data in value.getall()
-                    if json.loads(data).get("@type") not in ["ImageObject", "VideoObject", "ImageGallery"]
-                    and json.loads(data).get("@type") != "NewsArticle"
+                    if json.loads(data).get("@type") not in ["ImageObject", "VideoObject",
+                                                             "ImageGallery", "NewsArticle"]
                 ],
             )
 
@@ -229,6 +213,9 @@ def get_parsed_data(response: str, parsed_json_dict: dict, enable_selenium: str)
     parsed_data_dict["source_country"] = ["South Korea"]
     parsed_data_dict["source_language"] = ["Korean"]
     parsed_data_dict["tags"] = response.css(".gnb_depth_in li a::text").getall()
+    parsed_data_dict["embed_video_link"] = [response.css("meta[property='og:video']::attr('content')").get()]
+    date_time = datetime.now()
+    parsed_data_dict['time_scraped'] = [date_time.strftime("%d/%m/%YT%H:%M:%S")]
     if enable_selenium:
         parsed_data_dict["images"] = get_images(response)
     return remove_empty_elements(parsed_data_dict)

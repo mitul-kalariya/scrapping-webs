@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
+from crwmbnnewsonline import exceptions
 from crwmbnnewsonline.spiders.mbn_news import Mbn_news
 
 
@@ -52,7 +52,13 @@ class Crawler:
             target=self.start_crawler, args=(self.query, self.output_queue)
         )
         process.start()
-        return self.output_queue.get()
+
+        articles = self.output_queue.get()
+
+        if articles == "Error in Proxy Configuration":
+            raise exceptions.ProxyConnectionException("Error in Proxy Configuration")
+
+        return articles
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
@@ -67,11 +73,11 @@ class Crawler:
 
         process = CrawlerProcess()
         process_settings = process.settings
+        process_settings["DOWNLOADER_MIDDLEWARES"]["crwmbnnewsonline.middlewares.CustomProxyMiddleware"] = 110
         process_settings["DOWNLOAD_DELAY"] = 0.25
         process_settings["REFERER_ENABLED"] = False
         process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
         process.settings = process_settings
-        print(self.query["type"])
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
@@ -96,6 +102,6 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
         spider_args["enable_selenium"] = self.enable_selenium
-
+        spider_args["args"]["proxies"] = self.proxies
         process.crawl(Mbn_news, **spider_args)
         process.start()

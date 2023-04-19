@@ -4,7 +4,9 @@
 
 This repo contains the code to scrap all article links and articles from https://www.mbn.co.kr/news/ website and the tech stacks used are
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
+- selenium 4.8.3
+- webdriver_manager 3.8.5
 
 
 #### Environment Setup
