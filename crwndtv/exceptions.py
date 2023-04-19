@@ -7,20 +7,6 @@ class InvalidDateException(Exception):
     pass
 
 
-class InvalidArgumentException(Exception):
-    """Raise when invalid date is passed"""
-
-    # Use InvalidDateException("Please enter valid date")
-    pass
-
-
-class InputMissingException(Exception):
-    """Raise when any of the required input is missing"""
-
-    # Use InputMissingException(f"Please enter {input_param}")
-    pass
-
-
 class SitemapScrappingException(Exception):
     """Raise when exception arise while fetching sitemap"""
     # Use SitemapScrappingException(f"Error occurred while fetching sitemap:- {str(e)}")
@@ -45,21 +31,6 @@ class ExportOutputFileException(Exception):
     pass
 
 
-class ServiceUnavailableException(Exception):
-    """Rise when getting 403, 406, 429 or >500 status code"""
-    # Use ServiceUnavailableException(f"Service Unavailable for {website_name} and {url}
-    # with {response.status_code} and {response.reason}")
-    pass
-
-
-class URLNotFoundException(Exception):
-    """Rise when getting 404 status code"""
-
-    # Use URLNotFoundException(f"Given {url} not found for website {website_name}
-    # with status code{response.status_code}")
-    pass
-
-
 class ParseFunctionFailedException(Exception):
     """An exception raised when parse function fails."""
 
@@ -71,4 +42,9 @@ class InvalidInputException(Exception):
     """An exception raised when input is invalid."""
 
     # use InvalidInputException(f"Invalid input: {e}")
+    pass
+
+class ProxyConnectionException(Exception):
+    """Rise when getting 403 or 407 status code"""
+
     pass
