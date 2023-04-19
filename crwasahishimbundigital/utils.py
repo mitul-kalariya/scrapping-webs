@@ -1,19 +1,18 @@
 import json
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from crwasahishimbundigital.constant import SITEMAP_URL
+from crwasahishimbundigital.constant import LINK_FEED_URL
 from crwasahishimbundigital.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
 from crwasahishimbundigital.exceptions import (
     InputMissingException,
-    InvalidDateException,
     InvalidArgumentException,
 )
 
 
-def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa:C901
+def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
     """
     Checks the command-line arguments and sets the appropriate parameters for the TimesNow spider.
     Args:
@@ -34,35 +33,24 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa:C901
     def add_start_url(url):
         self.start_urls.append(url)
 
-    def set_date_range(start_date, end_date):
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
-
-    def validate_date_range():
-        if self.start_date > self.end_date:
-            raise InvalidDateException("start_date must be less then end_date")
-        if (self.end_date - self.start_date).days > 30:
-            raise InvalidDateException("Enter start_date and end_date for maximum 30 days.")
-
     def validate_type():
         if self.type not in ["article", "sitemap"]:
             raise InvalidArgumentException("type should be articles or sitemap")
 
-    def handle_sitemap_type():
-        if self.end_date is not None and self.start_date is not None:
-            set_date_range(start_date, end_date)
-            validate_date_range()
-            add_start_url(SITEMAP_URL)
-
-        elif self.start_date is None and self.end_date is None:
-            today_time = datetime.today().strftime("%Y-%m-%d")
-            self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            add_start_url(SITEMAP_URL)
-
-        elif self.end_date is not None or self.start_date is not None:
-            raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
+    def handle_link_feed_type():
+        add_start_url(LINK_FEED_URL)
+        today_time = datetime.today().strftime("%Y-%m-%d")
+        self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
+        if self.end_date is not None or self.start_date is not None:
+            raise InvalidArgumentException(
+                "date is not required for link_feed"
+            )
 
     def handle_article_type():
+        if self.end_date is not None or self.start_date is not None:
+            raise InvalidArgumentException(
+                "date is not required for article"
+            )
         if self.url is not None:
             add_start_url(self.url)
         else:
@@ -71,7 +59,7 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa:C901
     validate_type()
 
     if self.type == "sitemap":
-        handle_sitemap_type()
+        handle_link_feed_type()
 
     elif self.type == "article":
         handle_article_type()
@@ -114,19 +102,22 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if "NewsArticle" in json.loads(data).get('@type')]
             )
-        elif key == "ImageGallery":
+
+        elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type") == "VideoObject"]
             )
 
-        elif key == "VideoObject":
+        elif key == "imageObjects":
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "VideoObject"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type")
+                      in ["ImageObject", "ImageGallery"]]
             )
+
         else:
             article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') not in
-                      selector_and_key.keys() and json.loads(data).get('@type') != "NewsArticle"]
+                key, [json.loads(data) for data in value.getall() if json.loads(data).get("@type")
+                      not in ["ImageObject", "VideoObject", "NewsArticle"]]
             )
 
     return dict(article_raw_parsed_json_loader.load_item())
@@ -176,16 +167,10 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     publisher['logo']['height'] = {'@type': 'Distance', 'name': str(publisher['logo']['height']) + ' ' + 'px'}
     publisher['logo']['width'] = {'@type': 'Distance', 'name': str(publisher['logo']['width']) + ' ' + 'px'}
     parsed_data_dict['publisher'] = [publisher]
-    texts = []
-    for p in response.css('.nfyQp p'):
-        text = ''
-        for a in p.css('a'):
-            text += a.css('::text').get().strip() + ' '
-        for t in p.css('::text'):
-            if t.get().strip():
-                text += t.get().strip() + ' '
-        texts.append(text.strip())
-    parsed_data_dict["text"] = [data for data in texts if data]
+    text_data = response.xpath('//div[@class="nfyQp"]//p//a | //div[@class="nfyQp"]//p')
+    text_list = [tag.xpath('string()').get().strip() for tag in text_data]
+    text = ' '.join(text_list)
+    parsed_data_dict["text"] = [text]
     parsed_data_dict['thumbnail_image'] = [response.css('.rXjfG a img::attr(src)').get().lstrip('/')]
     parsed_data_dict['title'] = [response.css('#main h1::text').get()]
     parsed_data_dict['modified_at'] = [article_data.get('main').get('dateModified')]
@@ -201,6 +186,8 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["source_country"] = ["Japan"]
     parsed_data_dict["source_language"] = [mapper[response.css('html::attr(lang)').get()]]
     parsed_data_dict["embed_video_link"] = []
+    date_time = datetime.now()
+    parsed_data_dict['time_scraped'] = [date_time.strftime("%d/%m/%YT%H:%M:%S")]
     return remove_empty_elements(parsed_data_dict)
 
 

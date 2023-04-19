@@ -16,4 +16,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "http://www.asahi.com/sitemap.xml"
+LINK_FEED_URL = "http://www.asahi.com/sitemap.xml"

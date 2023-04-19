@@ -1,9 +1,5 @@
 # Exception
 # exceptions.py
-class InvalidDateException(Exception):
-    """Raise when invalid date is passed"""
-
-    pass
 
 
 class InvalidArgumentException(Exception):
@@ -38,24 +34,6 @@ class ArticleScrappingException(Exception):
     pass
 
 
-class ExportOutputFileException(Exception):
-    """Raise when exception arise while exporting output file"""
-
-    # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
-    pass
-
-
-class ServiceUnavailableException(Exception):
-    """Rise when getting 403, 406, 429 or >500 status code"""
-
-    # Use ServiceUnavailableException(f"Service Unavailable for {website_name} and {url}
-    # with {response.status_code} and {response.reason}")
-    pass
-
-
-class URLNotFoundException(Exception):
-    """Rise when getting 404 status code"""
-
-    # Use URLNotFoundException(f"Given {url} not found for website {website_name}
-    # with status code{response.status_code}")
+class ProxyConnectionException(Exception):
+    """Rise when getting 403 or 407 status code"""
     pass

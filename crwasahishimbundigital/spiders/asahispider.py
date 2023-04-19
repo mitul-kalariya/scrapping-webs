@@ -22,7 +22,7 @@ from crwasahishimbundigital.exceptions import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
     filename="logs.log",
     filemode="a",
@@ -38,7 +38,7 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
+    def parse_link_feed(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -59,6 +59,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
         try:
             super(AsahiSDigital, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
             self.start_urls = []
             self.articles = []
             self.type = type
@@ -87,7 +88,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
         If `type` is "sitemap", extracts sitemap URLs from the XML content of the response and sends a request for
-        each of them to Scrapy's engine with the callback function `parse_sitemap`.
+        each of them to Scrapy's engine with the callback function `parse_link_feed`.
         If `type` is "articles", sends a request for the given URL to Scrapy's engine
         with the callback function `parse_article`.
         This function is intended to be used as a Scrapy spider callback function.
@@ -100,23 +101,23 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             )
         if self.type == "sitemap":
             try:
-                sitemap_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()',
-                                                                    namespaces=self.namespace).getall()
+                link_feed_urls = Selector(response, type='xml').xpath('//sitemap:loc/text()',
+                                                                      namespaces=self.namespace).getall()
 
                 sitemap_last_mod_dates = Selector(response, type='xml').xpath('//sitemap:lastmod/text()',
                                                                               namespaces=self.namespace).getall()
 
-                for site_map_url, last_mod_date in zip(sitemap_urls[::-1], sitemap_last_mod_dates[::-1]):
+                for site_map_url, last_mod_date in zip(link_feed_urls[::-1], sitemap_last_mod_dates[::-1]):
                     _date = datetime.strptime(last_mod_date.split("T")[0], '%Y-%m-%d')
 
                     if self.today_date:
                         if (self.today_date.year, self.today_date.month) == (_date.year, _date.month):
-                            yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                            yield scrapy.Request(site_map_url, callback=self.parse_link_feed)
 
                     else:
                         if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <=\
                            (self.end_date.year, self.end_date.month):
-                            yield scrapy.Request(site_map_url, callback=self.parse_sitemap)
+                            yield scrapy.Request(site_map_url, callback=self.parse_link_feed)
             except Exception as exception:
                 self.log(
                     f"Error occured while iterating sitemap url. {str(exception)}",
@@ -134,7 +135,7 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
                 )
                 raise SitemapArticleScrappingException(f"Error occured while iterating article url. {str(exception)}")
 
-    def parse_sitemap(self, response):
+    def parse_link_feed(self, response):
         """
            Parses the sitemap and extracts the article URLs and their last modified date.
            If the last modified date is within the specified date range, sends a request to the article URL
@@ -244,6 +245,24 @@ class AsahiSDigital(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
