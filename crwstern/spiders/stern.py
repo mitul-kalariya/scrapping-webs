@@ -127,6 +127,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
             self.article_url = url
             self.type = type.lower()
             self.today = date.today().strftime("%Y-%m-%d")
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -365,6 +366,24 @@ class SternSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:

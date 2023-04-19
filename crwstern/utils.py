@@ -236,6 +236,7 @@ def get_content(response):
     content = response.css("p.text-element.u-richtext.u-typo.u-typo--article-text.article__text-element.text-element--context-article::text").getall()
     text = " ".join(content)
     if text:
+        
         return [re.sub(pattern, "", text).strip()]
 
 
