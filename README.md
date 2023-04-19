@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://www.metropoles.com/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },

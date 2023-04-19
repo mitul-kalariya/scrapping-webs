@@ -2,15 +2,15 @@
 
 TEST_ARTICLES = [
     {
-        "url": "https://www.metropoles.com/saude/inteligencia-artificial-consegue-identificar-resfriados-pela-voz",
+        "url": "https://www.metropoles.com/entretenimento/musica/joss-stone-canta-no-meio-do-publico-e-e-ovacionada-em-brasilia-veja-video",
         "test_data_path": "crwmetropoles/test/data/test_article_1.json"
     },
     {
-        "url": "https://www.metropoles.com/entretenimento/teatro/atos-de-leitura-ceilandia-e-samambaia-receberao-apresentacoes-gratuitas#newsarticle",
+        "url": "https://www.metropoles.com/brasil/governo-chega-ao-4-mes-sem-base-solida-e-mapa-de-votos-para-arcabouco-fiscal",
         "test_data_path": "crwmetropoles/test/data/test_article_2.json"
     },
     {
-        "url": "https://www.metropoles.com/brasil/minha-casa-minha-vida-vai-financiar-2-milhoes-de-moradias-diz-jader#newsarticle",
+        "url": "https://www.metropoles.com/distrito-federal/na-mira/laudo-mostra-detalhes-do-quarto-de-motel-onde-modelo-matou-noivo",
         "test_data_path": "crwmetropoles/test/data/test_article_3.json"
     },
 

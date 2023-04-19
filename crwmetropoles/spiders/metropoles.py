@@ -37,7 +37,9 @@ class BaseSpider(ABC):
 class MetropolesSpider(scrapy.Spider, BaseSpider):
     name = "metropoles"
 
-    def __init__(self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs):
+    def __init__(
+        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+    ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -59,7 +61,8 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
         try:
             super(MetropolesSpider, self).__init__(*args, **kwargs)
 
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get("args", {}).get("proxies", None)
             self.start_urls = []
             self.articles = []
             self.article_url = url
@@ -71,7 +74,9 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
                 self.start_urls.append(SITEMAP_URL)
 
                 self.start_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                    datetime.strptime(start_date, "%Y-%m-%d").date()
+                    if start_date
+                    else None
                 )
                 self.end_date = (
                     datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
@@ -107,19 +112,30 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
             LOGGER.info("Parse function called on %s", response.url)
             if self.type == "sitemap":
                 root = etree.fromstring(response.body)
-                links = root.xpath("//xmlns:loc/text()", namespaces={"xmlns": "http://www.sitemaps.org/schemas"
-                                                                              "/sitemap/0.9"}, )
+                links = root.xpath(
+                    "//xmlns:loc/text()",
+                    namespaces={
+                        "xmlns": "http://www.sitemaps.org/schemas" "/sitemap/0.9"
+                    },
+                )
 
                 for link in links:
-                    if link in ["https://www.metropoles.com/sitemap-misc.xml",
-                                "https://www.metropoles.com/sitemap-tax-post_tag.xml",
-                                "https://www.metropoles.com/sitemap-tax-category.xml"]:
+                    if link in [
+                        "https://www.metropoles.com/sitemap-misc.xml",
+                        "https://www.metropoles.com/sitemap-tax-post_tag.xml",
+                        "https://www.metropoles.com/sitemap-tax-category.xml",
+                    ]:
                         continue
                     days_back_date = TODAYS_DATE - timedelta(days=30)
-                    days_back_date = str(int(days_back_date.strftime("%Y-%m").split("-")[-1]) - 1)
+                    days_back_date = str(
+                        int(days_back_date.strftime("%Y-%m").split("-")[-1]) - 1
+                    )
                     if len(days_back_date) == 1:
                         days_back_date = str(0) + str(days_back_date)
-                    if link[-11:-4].split(".")[0] > str(TODAYS_DATE.year) + "-" + days_back_date:
+                    if (
+                        link[-11:-4].split(".")[0]
+                        > str(TODAYS_DATE.year) + "-" + days_back_date
+                    ):
                         yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
@@ -218,6 +234,24 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
 

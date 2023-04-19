@@ -21,7 +21,9 @@ def create_log_file():
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    start_date = (
+        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    )
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
@@ -49,9 +51,7 @@ def validate_sitemap_date_range(start_date, end_date):
             )
 
     except exceptions.InvalidDateException as expception:
-        LOGGER.info(
-            f"Error occured while checking date range: {expception}"
-        )
+        LOGGER.info(f"Error occured while checking date range: {expception}")
         raise exceptions.InvalidDateException(
             f"Error occured while checking date range: {expception}"
         )
@@ -102,7 +102,7 @@ def get_main(response):
         main = response.css('script[type="application/ld+json"]::text').getall()
         for block in main:
             data.append(json.loads(block))
-        return data[0]
+        return data
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting main: {exception}")
         raise exceptions.ArticleScrappingException(
@@ -223,12 +223,13 @@ def get_parsed_data(response):
         description = response.css("meta[name='description']::attr(content)").getall()
         main_dict["description"] = description
 
-        main_data = get_main(response)
-        for block in main_data.get("@graph"):
-            if "datePublished" in block:
-                main_dict["published_at"] = [block.get("datePublished")]
-            if "dateModified" in block:
-                main_dict["modified_at"] = [block.get("dateModified")]
+        data = get_main(response)
+        for main_data in data:
+            for block in main_data.get("@graph"):
+                if "datePublished" in block:
+                    main_dict["published_at"] = [block.get("datePublished")]
+                if "dateModified" in block:
+                    main_dict["modified_at"] = [block.get("dateModified")]
 
         section = get_section(response)
         main_dict["section"] = section
@@ -282,15 +283,11 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         folder_structure = ""
         if scrape_type == "sitemap":
             folder_structure = "Links"
-            filename = (
-                f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-            )
+            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
 
         elif scrape_type == "article":
             folder_structure = "Article"
-            filename = (
-                f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-            )
+            filename = f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
 
         if not os.path.exists(folder_structure):
             os.makedirs(folder_structure)
@@ -365,12 +362,13 @@ def get_section(response) -> list:
     and returns the articleSection list
     """
     try:
-        section = get_main(response)
-        for block in section.get("@graph"):
-            articleSection = []
-            if "articleSection" in block:
-                articleSection.append(block.get("articleSection"))
-                return articleSection
+        section_data = get_main(response)
+        for section in section_data:
+            for block in section.get("@graph"):
+                articleSection = []
+                if "articleSection" in block:
+                    articleSection.append(block.get("articleSection"))
+                    return articleSection
     except Exception as exception:
         LOGGER.info(f"Error while fetching section {str(exception)}")
         raise exceptions.ArticleScrappingException(
@@ -386,11 +384,12 @@ def get_thumbnail_image(response) -> list:
         list: list of thumbnail images
     """
     try:
-        image = get_main(response)
-        for block in image.get("@graph"):
-            if "image" in block.keys():
-                thumbnail_image = [block.get("image").get("url")]
-                return thumbnail_image
+        image_data = get_main(response)
+        for image in image_data:
+            for block in image.get("@graph"):
+                if "image" in block.keys():
+                    thumbnail_image = [block.get("image").get("url")]
+                    return thumbnail_image
     except Exception as exception:
         LOGGER.info(f"Error while fetching thumbnail image {str(exception)}")
         raise exceptions.ArticleScrappingException(
@@ -434,8 +433,12 @@ def get_images(response) -> list:
         list: list of images inside the article
     """
     try:
-        picture_links = response.css("article figure img::attr(src), div.m-image-carousel img::attr(data-src)").getall()
-        captions = response.css("article figure figcaption, div.siema-item > div.m-subtitle-carousel p")
+        picture_links = response.css(
+            "article figure img::attr(src), div.m-image-carousel img::attr(data-src)"
+        ).getall()
+        captions = response.css(
+            "article figure figcaption, div.siema-item > div.m-subtitle-carousel p"
+        )
         captions_list = []
 
         for caption in captions:
@@ -452,7 +455,8 @@ def get_images(response) -> list:
             "images": [
                 {"link": img, "caption": cap}
                 for img, cap in itertools.zip_longest(
-                    picture_links, captions_list,
+                    picture_links,
+                    captions_list,
                     fillvalue=None,
                 )
             ]
