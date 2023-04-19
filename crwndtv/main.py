@@ -3,6 +3,7 @@ from multiprocessing import Process, Queue
 from crwndtv.spiders.ndtv import NDTVSpider
 from crwndtv import exceptions
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
@@ -43,7 +44,7 @@ class Crawler:
         self.output_queue = None
         self.query = query
         self.proxies = proxies
-    
+
     def crawl(self) -> list[dict]:
         self.output_queue = Queue()
         process = Process(
@@ -57,7 +58,6 @@ class Crawler:
             raise exceptions.ProxyConnectionException("Error in Proxy Configuration")
 
         return articles
-
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data

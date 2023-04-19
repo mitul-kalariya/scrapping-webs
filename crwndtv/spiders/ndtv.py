@@ -279,7 +279,7 @@ class NDTVSpider(scrapy.Spider, BaseSpider):
         """
         try:
             stats = self.crawler.stats.get_stats()
-            
+
             if (
                 stats.get(
                     "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
