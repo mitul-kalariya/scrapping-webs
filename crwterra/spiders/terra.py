@@ -83,6 +83,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             self.articles = []
             self.article_url = url
             self.type = type.lower()
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -245,6 +246,24 @@ class TerraSpider(scrapy.Spider, BaseSpider):
         in the filename.
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
