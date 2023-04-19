@@ -1,7 +1,6 @@
 # Utility/helper functions
 # utils.py
 
-import os
 import json
 import logging
 from datetime import datetime
@@ -40,14 +39,14 @@ def validate_sitemap_date_range(start_date, end_date):
                 "start_date should not be later than end_date"
             )
 
-        if start_date and end_date and start_date == end_date:
-            raise exceptions.InvalidDateException(
-                "start_date and end_date must not be the same"
-            )
-
         if start_date and end_date and start_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
+            )
+
+        if start_date and end_date and end_date > TODAYS_DATE:
+            raise exceptions.InvalidDateException(
+                "end_date should not be greater than today_date"
             )
 
     except exceptions.InvalidDateException as expception:
@@ -104,9 +103,9 @@ def get_main(response):
             data.append(json.loads(block))
         return data
     except BaseException as exception:
-        LOGGER.info(f"Error occured while getting main: {exception}")
+        LOGGER.info(f"Error occured while fetching main: {exception}")
         raise exceptions.ArticleScrappingException(
-            f"Error occured while getting main: {exception}"
+            f"Error occured while fetching main: {exception}"
         )
 
 
@@ -430,4 +429,3 @@ def get_images(response) -> list:
         raise exceptions.ArticleScrappingException(
             f"Error while fetching image {str(exception)}"
         )
-

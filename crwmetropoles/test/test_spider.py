@@ -141,7 +141,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("description"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("description")[
-                                          0], str, "format mismatch for parsed_data--> description")
+                    0], str, "format mismatch for parsed_data--> description")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("description"),
                                       list, "format mismatch for parsed_data--> description")
@@ -151,7 +151,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("source_country"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("source_country")[
-                                          0], str, "format mismatch for parsed_data--> source_country")
+                                      0], str, "format mismatch for parsed_data--> source_country")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("source_country"),
                                       list, "format mismatch for parsed_data--> source_country")
@@ -162,7 +162,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("source_language"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("source_language")[
-                                          0], str, "format mismatch for parsed_data--> source_language")
+                                      0], str, "format mismatch for parsed_data--> source_language")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("source_language"),
                                       list, "format mismatch for parsed_data--> source_language")
@@ -173,7 +173,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("author"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("author")[
-                                          0], dict, "format mismatch for parsed_data--> author")
+                                      0], dict, "format mismatch for parsed_data--> author")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("author"),
                                       list, "format mismatch for parsed_data--> author")
@@ -185,7 +185,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("modified_at"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at")[
-                                          0], str, "format mismatch for parsed_data--> modified_at")
+                                      0], str, "format mismatch for parsed_data--> modified_at")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("modified_at"),
                                       list, "format mismatch for parsed_data--> modified_at")
@@ -196,7 +196,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("published_at"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("published_at")[
-                                          0], str, "format mismatch for parsed_data--> published_at")
+                                      0], str, "format mismatch for parsed_data--> published_at")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("published_at"),
                                       list, "format mismatch for parsed_data--> published_at")
@@ -207,7 +207,7 @@ class TestArticle(unittest.TestCase):
         if article[0].get("parsed_data").get("publisher"):
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("publisher")[
-                                          0], dict, "format mismatch for parsed_data--> publisher")
+                                      0], dict, "format mismatch for parsed_data--> publisher")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("publisher"),
                                       list, "format mismatch for parsed_data--> publisher")
@@ -217,8 +217,8 @@ class TestArticle(unittest.TestCase):
 
         if article[0].get("parsed_data").get("images"):
             with self.subTest():
-                self.assertIsInstance(article[0].get("parsed_data").get("images")[
-                                          0], dict, "format mismatch for parsed_data--> images")
+                self.assertIsInstance(article[0].get("parsed_data").get("images")[0],
+                                      dict, "format mismatch for parsed_data--> images")
             with self.subTest():
                 self.assertIsInstance(article[0].get("parsed_data").get("images"),
                                       list, "format mismatch for parsed_data--> images")
