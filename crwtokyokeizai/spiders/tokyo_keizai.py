@@ -1,5 +1,7 @@
 import logging
 import re
+from lxml import etree
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -108,8 +110,16 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
 
         try:
             if self.type == "sitemap":
-                if self.start_date and self.end_date:
-                    yield scrapy.Request(response.url, callback=self.parse_sitemap)
+                root = etree.fromstring(response.body)
+                links = root.xpath(
+                    "//xmlns:loc/text()",
+                    namespaces={
+                        "xmlns": "http://www.sitemaps.org/schemas" "/sitemap/0.9"
+                    },
+                )
+                for link in links:
+                    if link.split(".")[-2].split("-")[-1] in [str(TODAYS_DATE.year), str(TODAYS_DATE.year - 1)]:
+                        yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 yield scrapy.Request(response.url, callback=self.parse_article)
@@ -130,17 +140,46 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            if response.url == "https://toyokeizai.net/common/files/sitemap-2023.xml":
+                root = etree.fromstring(response.body)
+                links = root.xpath(
+                    "//xmlns:url",
+                    namespaces={
+                        "xmlns": "http://www.sitemaps.org/schemas" "/sitemap/0.9"
+                    },
+                )
+                articles_links = []
+                articles_links_lastmod = []
+                for link in links:
+                    if len(link.getchildren()) > 1:
+                            for i in link:
+                                if i.text in ["", " ", None]:
+                                    continue
+                                if "category" in i.text:
+                                    break
+                                if i.tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}loc":
+                                    articles_links.append(i.text)
+                                if i.tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod":
+                                    articles_links_lastmod.append(i.text)
 
-            for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ):
-                for link in sitemap.getall():
-                    yield scrapy.Request(link, callback=self.parse_sitemap_article)
+                print(len(articles_links))
+                print(len(articles_links_lastmod))
+
+                for url, last_mod in zip(articles_links, articles_links_lastmod):
+                    last_mod_date = datetime.strptime(last_mod[:10], "%Y-%m-%d").date()
+                    if self.start_date and last_mod_date < self.start_date:
+                        continue
+                    if self.start_date and last_mod_date > self.end_date:
+                        continue
+                    if self.start_date is None and self.end_date is None:
+                        if TODAYS_DATE == last_mod_date:
+                            data = {"link": url}
+                            self.articles.append(data)
+                    else:
+                        if self.start_date and self.end_date:
+                            data = {"link": url}
+                            self.articles.append(data)
+
         except Exception as exception:
             self.log(
                 f"Error occurred while fetching sitemap:- {str(exception)}",
@@ -148,29 +187,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             )
             raise exceptions.SitemapScrappingException(
                 f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h1.cat-theme-color::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
 
     def parse_article(self, response: str) -> None:
