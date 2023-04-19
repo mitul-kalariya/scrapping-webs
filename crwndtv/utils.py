@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from crwndtv import exceptions
 from crwndtv.constant import TODAYS_DATE, LOGGER
-
+from w3lib.html import remove_tags 
 
 def create_log_file():
     """creating log file"""
@@ -343,14 +343,15 @@ def get_content(response):
     ld_json = get_parsed_json(response)
     pattern = r"[\n\t\r\"]"
     article_content = response.css(
-        "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']::text"
+        "div.sp-cn.ins_storybody p[class!='ins_instory_dv_caption sp_b']"
     ).getall()
-    text = " ".join(article_content)
+    text_with_tags = [remove_tags(i) for i in article_content]
+    text = " ".join(text_with_tags)
     if text:
         return [re.sub(pattern, "", text).strip()]
 
     elif ld_json.get("main", None):
-        return ld_json.get("main")['articleBody']
+        return [ld_json.get("main")['articleBody']]
 
 
 def get_video(response):
