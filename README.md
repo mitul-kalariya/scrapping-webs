@@ -1,10 +1,12 @@
-# TVB News Scrapping
+# MBN News Online Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from https://news.tvb.com/ website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://www.mbn.co.kr/news/ website and the tech stacks used are
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
+- selenium 4.8.3
+- webdriver_manager 3.8.5
 
 
 #### Environment Setup
@@ -18,39 +20,12 @@ This repo contains the code to scrap all article links and articles from https:/
 ### Installation
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
+Sitemap data is available only for 3 days Including today's date.
 ### Usage
-
-You can use the `Crawler` class and its `crawl` method to crawl the data.
-Quick example as shown below.
-Sitemap data is available only for 7 days Including today's date.
-```
-# To fetch all the article links
-
-from crwtvbnews import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://news.tvb.com/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 
-from crwtvbnews import Crawler
+from crwmbnnewsonline import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,19 +36,21 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
-        "domain": "https://news.tvb.com/"
+        "type": "link_feed",
+        "domain": "https://www.mbn.co.kr/news/"
     },
     proxies=proxies
 )
 
 data = crawler.crawl()
 ```
+Note: We have made image extraction optional which we can control by extra parameter i.e enable_selenium. By default it is False.
+
 
 ```
-#  To fetch the specific article details
+#  To scrap data with selenium while scrapping article
 
-from crwtvbnews import Crawler
+from crwmbnnewsonline import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -85,9 +62,10 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://news.tvb.com/tc/local/642eed3b13220566d11f2cfd/港澳-香港快運取消6月4日至10月29日所有來往日本石垣航班"
+        "link": "https://www.mbn.co.kr/news/entertain/4917683"
     },
     proxies=proxies
+    enable_selenium=True
 )
 
 data = crawler.crawl()
@@ -99,3 +77,7 @@ We have covered mainly two test cases.
 1. For Sitemap article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`
+
+### Use of Selenium
+
+Yes, we used selenium to fetch Images from the website. To manage the selenium we are using webdriver_manager(https://pypi.org/project/webdriver-manager/) package and we are using `ChromeDriverManager`.
