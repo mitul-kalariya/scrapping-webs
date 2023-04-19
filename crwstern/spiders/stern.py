@@ -275,8 +275,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext h3::text"
             ).getall()
             published_date = response.css(
-                ".group-teaserlist__item.group-teaserlist__item--teaser\
-                    -plaintext time::attr(datetime)"
+                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext time::attr(datetime)"
             ).getall()
 
             for link, title, pub_date in zip(links, title, published_date):
