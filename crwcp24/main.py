@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 
 from scrapy.crawler import CrawlerProcess
 
+from crwcp24 import exceptions
 from crwcp24.spiders.cp24 import CP24News
 
 
@@ -53,7 +54,13 @@ class Crawler:
             target=self.start_crawler, args=(self.query, self.output_queue)
         )
         process.start()
-        return self.output_queue.get()
+
+        articles = self.output_queue.get()
+
+        if articles == "Error in Proxy Configuration":
+            raise exceptions.ProxyConnectionException("Error in Proxy Configuration")
+
+        return articles
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
@@ -80,6 +87,7 @@ class Crawler:
 
         if self.proxies:
             process_settings = process.settings
+            process_settings["DOWNLOADER_MIDDLEWARES"]["crwcp24.middlewares.CustomProxyMiddleware"] = 110
             process_settings["DOWNLOADER_MIDDLEWARES"][
                 "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
             ] = 400
@@ -91,5 +99,6 @@ class Crawler:
             process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
             process.settings = process_settings
         spider_args["enable_selenium"] = self.enable_selenium
+        spider_args["args"]["proxies"] = self.proxies
         process.crawl(CP24News, **spider_args)
         process.start()

@@ -1,13 +1,13 @@
 import json
-import os
 from datetime import datetime
+
 from scrapy.loader import ItemLoader
 
 from crwcp24.constant import LINK_FEED_URL
 from crwcp24.exceptions import (
     InputMissingException,
     InvalidArgumentException,
-    InvalidDateException,
+    InvalidDateException
 )
 from crwcp24.items import ArticleRawParsedJson, ArticleRawResponse
 from crwcp24.videos import get_video
@@ -205,7 +205,7 @@ def get_parsed_data(self, response: str, parsed_json_dict: dict, enable_selenium
     article_data["img_url"] = response.css("div.article div.image img::attr(src)").get()
     article_data["img_caption"] = response.css("div.article div.image p::text").get()
     article_data["author_url"] = response.css('div.prof a::attr("href")').get()
-    article_data["text"] = " ".join(response.css("div.articleBody > p::text").getall())
+    article_data["text"] = " ".join(response.xpath('//div[@class="articleBody"]/p//text()').getall())
     section_meta = response.xpath('//meta[@property="article:section"]')
     article_data["section_content"] = section_meta.xpath("@content").get()
     language = response.css("html::attr(lang)").get()

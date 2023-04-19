@@ -46,3 +46,8 @@ class ServiceUnavailableException(Exception):
 class URLNotFoundException(Exception):
     """Rise when getting 404 status code"""
     pass
+
+
+class ProxyConnectionException(Exception):
+    """Rise when getting 403 or 407 status code"""
+    pass
