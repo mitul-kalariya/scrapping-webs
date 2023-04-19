@@ -4,6 +4,7 @@ from multiprocessing import Process, Queue
 from crwstern.spiders.stern import SternSpider
 from crwstern import exceptions
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.

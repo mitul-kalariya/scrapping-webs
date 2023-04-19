@@ -22,6 +22,7 @@ class BaseSpider(ABC):
     """
     Base class for making abstract methods
     """
+
     # pylint: disable=unnecessary-pass
 
     @abstractmethod
@@ -76,6 +77,20 @@ class BaseSpider(ABC):
         """
         pass
 
+    def parse_archive_article_links(self, response):
+        """
+        gets article links from the archive
+        Args:
+            self: The Scrapy spider instance calling this method.
+            response: The response object obtained after making a request to a sitemap URL.
+        Yields:
+            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
+            method as the callback and the article link and title as metadata.
+        Raises:
+            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+        """
+        pass
+
     @abstractmethod
     def parse_article(self, response: str) -> list:
         """
@@ -96,6 +111,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
     name = "stern"
 
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
+        # pylint: disable=redefined-builtin
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
         Args:
@@ -118,6 +134,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
             If the type argument is "article",
             the URL to be scraped is validated and set. A log file is created for the web scraper.
         """
+        # pylint: disable=super-with-arguments
         try:
             super(SternSpider, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
@@ -127,7 +144,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
             self.article_url = url
             self.type = type.lower()
             self.today = date.today().strftime("%Y-%m-%d")
-            self.proxies = kwargs.get('args', {}).get('proxies', None)
+            self.proxies = kwargs.get("args", {}).get("proxies", None)
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -179,6 +196,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
+    # pylint: disable=pointless-statement
     def parse_archive_categories(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
@@ -222,8 +240,8 @@ class SternSpider(scrapy.Spider, BaseSpider):
                 since = str(self.since.month) + str(self.since.year)
                 until = str(self.until.month) + str(self.until.year)
                 if since == until:
-                    date = self.since.strftime("%Y-%m-%d").split("-")
-                    link = response.url + f"/?month={date[1]}&year={date[0]}"
+                    article_date = self.since.strftime("%Y-%m-%d").split("-")
+                    link = response.url + f"/?month={article_date[1]}&year={article_date[0]}"
                     yield scrapy.Request(
                         link,
                         dont_filter=True,
@@ -253,7 +271,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-            "Error while parsing sitemap article::%s-", str(exception)
+                "Error while parsing sitemap article::%s-", str(exception)
             )
 
     def parse_archive_article_links(self, response):
@@ -317,7 +335,7 @@ class SternSpider(scrapy.Spider, BaseSpider):
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-            "Error while parsing sitemap article:: %s ", str(exception)
+                "Error while parsing sitemap article:: %s ", str(exception)
             )
 
     def parse_article(self, response) -> list:

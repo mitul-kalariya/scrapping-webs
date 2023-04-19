@@ -6,6 +6,7 @@ import re
 import json
 import logging
 from datetime import datetime, timedelta
+import w3lib.html
 from crwstern import exceptions
 from crwstern.constant import TODAYS_DATE, LOGGER
 
@@ -222,6 +223,7 @@ def get_main(response):
     ld_json = response.css('script[type="application/ld+json"]::text').get()
     if ld_json:
         return json.loads(ld_json)
+    return None
 
 
 def get_content(response):
@@ -233,11 +235,23 @@ def get_content(response):
         list: content related details
     """
     pattern = r"[\n\t\r\"]"
-    content = response.css("p.text-element.u-richtext.u-typo.u-typo--article-text.article__text-element.text-element--context-article::text").getall()
-    text = " ".join(content)
-    if text:
-        
-        return [re.sub(pattern, "", text).strip()]
+    content = response.css(
+        "p.text-element.u-richtext.u-typo.u-typo--article-text.article__text-element.text-element--context-article"
+    ).getall()
+    content_imageobj = response.css(
+        "div.gallery__content-main.js-gallery-content-main p"
+    ).getall()
+
+    if content:
+        text = " ".join(content)
+        article_text = re.sub(pattern, "", text)
+        return [w3lib.html.remove_tags(article_text).strip()]
+
+    if content_imageobj:
+        text = " ".join(content_imageobj)
+        article_text = re.sub(pattern, "", text)
+        return [w3lib.html.remove_tags(article_text).strip()]
+    return None
 
 
 def get_images(response):
@@ -251,15 +265,13 @@ def get_images(response):
     images = []
     image = response.css("img.image.image-element__image::attr(src)").getall()
     image_caption = response.css(
-        "figcaption.image-element__caption div.image\
-                                 -element__description.u-richtext.u-typo.u-typo--caption::text"
+        "figcaption.image-element__caption div.image-element__description.u-richtext.u-typo.u-typo--caption::text"
     ).getall()
 
     image_second = response.css("img.image.group-gallery__img::attr(src)").getall()
     image_caption_second = response.css(
-        "img.image.group-gallery__img::attr(alt)"
+        "div.group-gallery__caption x-clamp::text"
     ).getall()
-
     if image:
         new_caption = [re.sub('[\n\t\r"]', "", s).strip() for s in image_caption]
         caption = [x for x in new_caption if x != ""]
@@ -270,17 +282,17 @@ def get_images(response):
             if caption:
                 temp_dict["caption"] = caption[i]
             images.append(temp_dict)
-        return images
 
     if image_second:
+        new_caption = [re.sub('[\n\t\r"]', "", s).strip() for s in image_caption_second]
+        caption = [x for x in new_caption if x != ""]
         for i in range(len(image_second)):
             temp_dict = {}
             temp_dict["link"] = image_second[i]
             if image_caption_second:
-                temp_dict["caption"] = image_caption_second[i]
-            temp_dict["caption"] = image_caption_second[i]
+                temp_dict["caption"] = caption[i]
             images.append(temp_dict)
-        return images
+    return images
 
 
 def get_tags(response):
@@ -297,6 +309,7 @@ def get_tags(response):
         return img_tags
     if vid_tags:
         return vid_tags
+    return None
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:

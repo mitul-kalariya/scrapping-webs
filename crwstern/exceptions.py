@@ -73,6 +73,8 @@ class InvalidInputException(Exception):
     # use InvalidInputException(f"Invalid input: {e}")
     pass
 
+
 class ProxyConnectionException(Exception):
     """Rise when getting 403 or 407 status code"""
+
     pass
