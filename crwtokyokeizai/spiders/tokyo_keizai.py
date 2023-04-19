@@ -1,18 +1,9 @@
+import scrapy
 import logging
-import re
 from lxml import etree
-
 from abc import ABC, abstractmethod
 from datetime import datetime
-
-import requests
-import scrapy
-from scrapy.crawler import CrawlerProcess
-from scrapy.http import HtmlResponse, XmlResponse
 from scrapy.loader import ItemLoader
-from scrapy.selector import Selector
-from scrapy.utils.project import get_project_settings
-
 from crwtokyokeizai import exceptions
 from crwtokyokeizai.constant import LOGGER, SITEMAP_URL, TODAYS_DATE
 from crwtokyokeizai.items import ArticleData
@@ -33,9 +24,6 @@ class BaseSpider(ABC):
 
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -292,9 +280,3 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while writing json file{str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-
-
-if __name__ == "__main__":
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(TokyoKeizaiOnlineSpider)
-    process.start()
