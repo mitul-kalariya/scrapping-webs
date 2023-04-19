@@ -129,7 +129,7 @@ def get_parsed_json(response):
         other_data = []
         ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
         for ld_json in ld_json_data:
-            data = json.loads(ld_json)
+            data = json.loads(ld_json,strict=False)
             if data.get("@type") == "NewsArticle":
                 parsed_json["main"] = data
             elif data.get("@type") in {"ImageGallery", "ImageObject"}:
@@ -227,7 +227,7 @@ def get_main(response):
         'script[type="application/ld+json"]:contains("description")::text'
     ).get()
     if ld_json:
-        return json.loads(ld_json)
+        return json.loads(ld_json,strict=False)
 
 
 def get_author(response):
