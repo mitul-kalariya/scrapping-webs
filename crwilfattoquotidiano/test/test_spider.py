@@ -1,13 +1,13 @@
 import logging
 import unittest
 
-# TODO: Update the path here replace newton_scrapping --> your project name
-from newton_scrapping.spiders.indian_express import IndianExpressSpider
-from newton_scrapping.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from newton_scrapping.test.helpers.utils import (get_article_content,
-                                                 online_response_from_url)
+# TODO: Update the path here replace crwilfattoquotidiano --> your project name
+from crwilfattoquotidiano.spiders.ilfattoquotidianos import IlfattoquotidianoSpider
+from crwilfattoquotidiano.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwilfattoquotidiano.test.helpers.utils import (get_article_content,
+                                                     online_response_from_url)
 # TODO: Update below path here
-from crwindianexpress import Crawler
+from crwilfattoquotidiano import Crawler
 
 # Creating an object
 logger = logging.getLogger()
