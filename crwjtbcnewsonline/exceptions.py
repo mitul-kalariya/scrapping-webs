@@ -69,3 +69,8 @@ class ParseFunctionFailedException(Exception):
 
     # use ParseFunctionFailedException(f"Error occured in parse function: {e}")
     pass
+
+
+class ProxyConnectionException(Exception):
+    """Rise when getting 403 or 407 status code"""
+    pass

@@ -17,6 +17,12 @@ def create_log_file():
 
 
 def get_raw_response(response):
+    """generate dictrionary of raw html data
+        Args:
+            response (object): page_data
+        Returns:
+            raw_response (dict): targeted data
+    """
     try:
         raw_resopnse = {
             "content_type": "text/html; charset=utf-8",
@@ -126,7 +132,7 @@ def get_parsed_data(response):
         main_dict = {}
 
         json_data = [data for data in get_ld_json(response) if data.get("@type") == "NewsArticle"][0]
-        print("\n\n\n\n\n\n\n\n\n\n\n\n\n",json_data)
+
         # Author
         authors = get_author(json_data)
         main_dict["author"] = authors
@@ -194,7 +200,8 @@ def get_lastupdated(json_data) -> str:
     """
     try:
         last_updated = json_data.get("dateModified")
-        return last_updated
+        if last_updated:
+            return last_updated
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")
         print(f"Error while getting last updated date: {str(exception)}")
@@ -294,13 +301,20 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         data = []
+        # thumbnails = response.css(
+        #     ".articledetail-image-left picture img::attr(src), .articledetail-image2-left picture img::attr(src)"
+        # ).get()
+        #
+        # if not thumbnails:
+        #     thumbnails = response.css("#articledetail-body .image-mask img::attr(src)").get()
+        # data.append(thumbnails)
+
         thumbnails = response.css(
-            ".articledetail-image-left picture img::attr(src), .articledetail-image2-left picture img::attr(src)"
+            "#articlebody img::attr(src)"
         ).get()
 
-        if not thumbnails:
-            thumbnails = response.css("#articledetail-body .image-mask img::attr(src)").get()
-        data.append(thumbnails)
+        if thumbnails:
+            data.append(thumbnails)
         return data
     except exceptions.ArticleScrappingException as exception:
         LOGGER.error(f"{str(exception)}")

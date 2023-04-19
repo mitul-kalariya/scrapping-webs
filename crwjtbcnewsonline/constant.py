@@ -8,3 +8,4 @@ FORMATTED_DATE = TODAYS_DATE.strftime('%Y%m%d')
 SITEMAP_URL = "https://jtbc.co.kr/sitemap"
 BASE_URL = 'https://jtbc.co.kr/'
 LOGGER = logging.getLogger()
+PROXY_TIMEOUT = 5
