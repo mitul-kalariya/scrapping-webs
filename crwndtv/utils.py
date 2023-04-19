@@ -136,7 +136,7 @@ def get_parsed_json(response):
                 parsed_json["main"] = data
             elif data.get("@type") in {"ImageGallery", "ImageObject"}:
                 image_objects.append(data)
-            elif data.get("@type") == "VideoObject":
+            elif data.get("@type") in {"VideoObject","VideoGallery"}:
                 video_objects.append(data)
             else:
                 other_data.append(data)
@@ -284,12 +284,10 @@ def get_images(response):
         dict: images related details
     """
     images = []
-    image = response.css("div.ntv_vidgall_img img::attr(src)").getall()
-    image_caption = response.css("div.ntv_description::text").getall()
-    for i in range(len(image)):
+    for image_block in response.css("article div.ins_instory_dv"):
         temp_dict = {}
-        temp_dict["link"] = image[i]
-        temp_dict["caption"] = image_caption[i]
+        temp_dict["link"] = image_block.css("img::attr(data-src)").get() or image_block.css("img::attr(src)").get()
+        temp_dict["caption"] = image_block.css("p::text").get()
         images.append(temp_dict)
     return images
 
