@@ -115,12 +115,12 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
                                 "https://www.metropoles.com/sitemap-tax-post_tag.xml",
                                 "https://www.metropoles.com/sitemap-tax-category.xml"]:
                         continue
-                days_back_date = TODAYS_DATE - timedelta(days=30)
-                days_back_date = str(int(days_back_date.strftime("%Y-%m").split("-")[-1]) - 1)
-                if len(days_back_date) == 1:
-                    days_back_date = str(0) + str(days_back_date)
-                if link[-11:-4].split(".")[0] > str(TODAYS_DATE.year) + "-" + days_back_date:
-                    yield scrapy.Request(link, callback=self.parse_sitemap)
+                    days_back_date = TODAYS_DATE - timedelta(days=30)
+                    days_back_date = str(int(days_back_date.strftime("%Y-%m").split("-")[-1]) - 1)
+                    if len(days_back_date) == 1:
+                        days_back_date = str(0) + str(days_back_date)
+                    if link[-11:-4].split(".")[0] > str(TODAYS_DATE.year) + "-" + days_back_date:
+                        yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 yield self.parse_article(response)
@@ -155,10 +155,9 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
             for url, pub_date in zip(urls, last_modified_date):
                 published_at = datetime.strptime(pub_date[:10], "%Y-%m-%d").date()
                 if self.start_date and published_at < self.start_date:
-                    return
+                    continue
                 if self.start_date and published_at > self.end_date:
-                    return
-
+                    continue
                 if self.start_date is None and self.end_date is None:
                     if TODAYS_DATE == published_at:
                         data = {"link": url}
