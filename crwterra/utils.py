@@ -156,7 +156,7 @@ def get_parsed_json(response):
         ) from exception
 
 
-def get_parsed_data(response):
+def get_parsed_data(response,enable_selenium):
     """generate required data as response json and response data
 
     Args:
@@ -202,8 +202,10 @@ def get_parsed_data(response):
 
         main_dict["images"] = get_images(response)
 
+        
         if main_data[0].get("@type") == "VideoObject":
-            main_dict["video"] = extract_videos(response)
+            if enable_selenium:
+                main_dict["video"] = extract_videos(response)
             main_dict["section"] = [response.css(
                 "div.t360-terratv--header__container span::text"
             ).get()]

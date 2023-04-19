@@ -55,7 +55,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
 
     name = "terra"
 
-    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
+    def __init__(self, *args, type=None, url=None, since=None, until=None,enable_selenium=False, **kwargs):
         # pylint: disable=redefined-builtin
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -83,6 +83,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             self.articles = []
             self.article_url = url
             self.type = type.lower()
+            self.enalble_selenium = enable_selenium
             self.proxies = kwargs.get('args', {}).get('proxies', None)
 
             if self.type == "sitemap":
@@ -147,7 +148,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
-            response_data = get_parsed_data(response)
+            response_data = get_parsed_data(response,self.enalble_selenium)
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
