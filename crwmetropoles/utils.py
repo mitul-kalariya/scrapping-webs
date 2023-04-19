@@ -249,8 +249,7 @@ def get_parsed_data(response):
         if images:
             main_dict["images"] = images
 
-        videos = get_embed_video_link(response)
-        main_dict["embed_video_link"] = videos
+        main_dict["embed_video_link"] = response.css("article iframe::attr(src)").getall()
         main_dict["source_language"] = ["Portuguese"]
 
         main_dict["source_country"] = ["Brazil"]
@@ -432,31 +431,3 @@ def get_images(response) -> list:
             f"Error while fetching image {str(exception)}"
         )
 
-
-def get_embed_video_link(response) -> list:
-    """
-    extracting all the videos available from article
-    parameters:
-        response: html response
-    returns:
-        a list of dictionary containing object type link and decryption
-    """
-    try:
-        data = []
-        thumbnail_video = response.css("figure.l-article__featured")
-        for video in thumbnail_video:
-            link = video.css(".c-video::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
-
-        videos = response.css("div.c-video.c-videoPlay")
-        for video in videos:
-            link = video.css("div::attr(data-displayinline)").get()
-            if link:
-                data.append(link)
-        return data
-    except Exception as exception:
-        LOGGER.info(f"Error while fetching video links {str(exception)}")
-        raise exceptions.ArticleScrappingException(
-            f"Error while fetching video links {str(exception)}"
-        )
