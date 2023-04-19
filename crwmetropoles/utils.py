@@ -224,6 +224,7 @@ def get_parsed_data(response):
         main_dict["description"] = description
 
         data = get_main(response)
+        # breakpoint()
         for main_data in data:
             for block in main_data.get("@graph"):
                 if "datePublished" in block:
@@ -261,44 +262,6 @@ def get_parsed_data(response):
         LOGGER.info(f"Error while extracting parsed data: {exception}")
         raise exceptions.ArticleScrappingException(
             f"Error while extracting parsed data: {exception}"
-        )
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    try:
-        folder_structure = ""
-        if scrape_type == "sitemap":
-            folder_structure = "Links"
-            filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-
-        elif scrape_type == "article":
-            folder_structure = "Article"
-            filename = f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-
-        if not os.path.exists(folder_structure):
-            os.makedirs(folder_structure)
-
-        with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-            json.dump(file_data, file, indent=4, ensure_ascii=False)
-
-    except Exception as exception:
-        LOGGER.info(f"Error occurred while writing json file {str(exception)}")
-        raise exceptions.ArticleScrappingException(
-            f"Error occurred while writing json file {str(exception)}"
         )
 
 
