@@ -225,10 +225,10 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 if self.since and published_at > self.until:
                     return
 
-                if self.since and self.until:
+                if self.since and self.until and "https://www.terra.com.br/amp/story/" not in link:
                     data = {"link": link}
                     self.articles.append(data)
-                elif today_date == published_at:
+                elif today_date == published_at and "https://www.terra.com.br/amp/story/" not in link:
                     data = {"link": link}
                     self.articles.append(data)
                 else:
