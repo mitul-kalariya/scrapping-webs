@@ -35,7 +35,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
     name = "tokyo_keizai"
 
     def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -193,6 +193,9 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
 
+
+            # read_more = response.css("div.gallery-follow-btn a::attr(href)").get()
+            # if read_more:
             premium_class = response.css(".member-login-parts p::text").getall()
             if not premium_class:
                 pagination_links = response.css(
@@ -236,24 +239,114 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
 
     def parse_pagination_page(self, response):
         # Extract article data from paginated pages
+        global final_parsed_data, final_raw_response, final_parsed_json
+        # breakpoint()
+        print("1111111111111111111111111111111111111111111111111111111")
         previous_raw_response = response.meta.get("raw_response")
         previous_response_json = response.meta.get("response_json")
         previous_response_data = response.meta.get("response_data")
+
 
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = [get_parsed_data(response)]
 
+        # breakpoint()
         # Merge previous and current data
-        previous_raw_response.update(raw_response)
-        previous_response_json.update(response_json)
-        for data in response_data:
-            previous_response_data.update(data)
+
+        # dict1 = {'m': 11, 'n': 4} #previous_raw_response
+        # dict2 = {'m': 3, 'n': 1} #raw_response
+
+        # dict2_sorted = {i: dict2[i] for i in dict1.keys()}
+        # keys = dict1.keys()
+        # values = zip(dict1.values(), dict2_sorted.values())
+        # dictionary = dict(zip(keys, values))
+        # print(dictionary)
+
+        raw_response_sorted = {i: raw_response[i] for i in previous_raw_response.keys()}
+        keys = previous_raw_response.keys()
+        if raw_response_sorted.values() not in previous_raw_response.values():
+            values = zip(previous_raw_response.values(), raw_response_sorted.values())
+            final_raw_response = dict(zip(keys, values))
+            print("*****************************",final_raw_response)
+
+        response_json_sorted = {i: response_json[i] for i in previous_response_json.keys()}
+        keys = previous_response_json.keys()
+        if response_json_sorted.values() not in previous_response_json.values():
+            values = zip(previous_response_json.values(), response_json_sorted.values())
+            final_parsed_json = dict(zip(keys, values))
+            print("*****************************",final_parsed_json)
+
+        # for r_data in response_data:
+        #     response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
+        #     keys = previous_response_data[0].keys()
+        #     if response_data_sorted.values() not in previous_response_data[0].values():
+        #         values = zip(previous_response_data[0].values(), response_data_sorted.values())
+        #         final_parsed_data = dict(zip(keys, values))
+        #         print("*****************************",final_parsed_data)
+
+        for r_data in response_data:
+            response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
+            keys = previous_response_data[0].keys()
+            breakpoint()
+            # if response_data_sorted not in keys:
+            # for key in previous_response_data:
+            #     if response_data[0].get(key):
+            #         continue
+            # if response_data[0].keys() in keys:
+            #     continue
+            # for key in crucial.keys():
+            #     if key in dishes.keys():
+            #         print(dishes[key])
+            # for r_val in response_data[0].values():
+            #     if r_val in previous_response_data[0].values():
+            #         continue
+            #     else:
+            #         values = zip(r_val, response_data_sorted.values())
+            #         final_parsed_data = dict(zip(keys, values))
+            #         print("*****************************", final_parsed_data)
+            for k, v in response_data[0].items():
+                if v in previous_response_data[0].values():
+                    continue
+                else:
+                    previous_response_data[0][k] = v
+                    final_parsed_data = dict(zip(keys, values))
+                    print("*****************************", final_parsed_data)
+
+
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        articledata_loader.add_value("raw_response", final_raw_response)
+        articledata_loader.add_value("parsed_json", final_parsed_json)
+        articledata_loader.add_value("parsed_data", final_parsed_data)
+
+        # for key in raw_response.keys():
+        #     breakpoint()
+        #     if previous_raw_response.get(key):
+        #         #
+        #         pass
+        #     else:
+        #         previous_raw_response[key] = raw_response[key]
+
+        # previous_raw_response.update(raw_response)
+        # previous_response_json.update(response_json)
+        # # breakpoint()
+        # # for data in response_data:
+        # #     breakpoint()
+        # #     previous_response_data.update(data)
+        # previous_response_data.append(response_data)
 
         # return updated data
-        return previous_raw_response, previous_response_json, previous_response_data
+        # return previous_raw_response, previous_response_json, previous_response_data[0]
+        # breakpoint()
+        # articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        # articledata_loader.add_value("raw_response", previous_raw_response)
+        # articledata_loader.add_value("parsed_json", previous_response_json)
+        # articledata_loader.add_value("parsed_data", previous_response_data[0])
+        #
+        # breakpoint()
 
-
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
     def closed(self, reason: any) -> None:
         """
