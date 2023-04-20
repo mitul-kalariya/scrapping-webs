@@ -1,6 +1,6 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
+from crwilfattoquotidiano import exceptions
 from crwilfattoquotidiano.spiders.ilfattoquotidiano import IlfattoquotidianoSpider
 
 
@@ -51,6 +51,20 @@ class Crawler:
             target=self.start_crawler, args=(self.query, self.output_queue)
         )
         process.start()
+
+        articles = self.output_queue.get()
+
+        if articles == "Error in Proxy Configuration":
+            raise exceptions.ProxyConnectionException("Error in Proxy Configuration")
+
+        return articles
+
+    def crawl(self) -> list[dict]:
+        self.output_queue = Queue()
+        process = Process(
+            target=self.start_crawler, args=(self.query, self.output_queue)
+        )
+        process.start()
         return self.output_queue.get()
 
     def start_crawler(self, query, output_queue):
@@ -66,6 +80,7 @@ class Crawler:
 
         process = CrawlerProcess()
         process_settings = process.settings
+        process_settings["DOWNLOADER_MIDDLEWARES"]["your_spider_name.middlewares.CustomProxyMiddleware"] = 110
         process_settings["DOWNLOAD_DELAY"] = 0.25
         process_settings["REFERER_ENABLED"] = False
         process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
@@ -84,19 +99,8 @@ class Crawler:
         else:
             raise Exception("Invalid Type")
 
-        if self.proxies:
-            process_settings = process.settings
-            process_settings["DOWNLOADER_MIDDLEWARES"][
-                "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
-            ] = 400
-            process_settings["HTTPPROXY_ENABLED"] = True
-            process_settings["HTTP_PROXY"] = (
-                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
-            )
-            process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
-            process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
-            process.settings = process_settings
+        spider_args["args"]["proxies"] = self.proxies
 
         # TODO: Change path and spider name here
-        process.crawl(ilfattoquotidiano, **spider_args)
+        process.crawl(IlfattoquotidianoSpider, **spider_args)
         process.start()

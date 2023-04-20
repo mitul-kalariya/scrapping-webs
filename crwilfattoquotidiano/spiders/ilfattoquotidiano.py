@@ -6,7 +6,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 
 from crwilfattoquotidiano import exceptions
-from crwilfattoquotidiano.constant import SITEMAP_URL, LOGGER, TODAYS_DATE
+from crwilfattoquotidiano.constant import SITEMAP_URL, LOGGER, TODAYS_DATE, BASE_URL
 from crwilfattoquotidiano.items import ArticleData
 from crwilfattoquotidiano.utils import (
     validate_sitemap_date_range,
@@ -14,6 +14,7 @@ from crwilfattoquotidiano.utils import (
     get_parsed_data,
     get_parsed_json,
     export_data_to_json_file,
+    date_range,
 )
 
 
@@ -34,21 +35,9 @@ class BaseSpider(ABC):
         """
         pass
 
-    @abstractmethod
-    def parse_archive_categories(self, response: str) -> None:
-        """Parses a sitemap page and extracts categories links for further processing.
-        Args:
-            response (scrapy.http.Response): The HTTP response object
-            containing the sitemap page.
-        Yields:
-            scrapy.http.Request: A request object for each link on the sitemap page.
-        Raises:
-            exceptions.SitemapScrappingException: If there is an error
-            while parsing the sitemap page.
-        """
-        pass
 
-    def parse_archive(self, response: str) -> None:
+    @abstractmethod
+    def parse_sitemap(self, response: str) -> None:
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
             response (scrapy.http.Response): The HTTP response object
@@ -61,7 +50,7 @@ class BaseSpider(ABC):
         """
         pass
 
-    def parse_archive_article(self, response: str) -> None:
+    def parse_sitemap_article(self, response: str) -> None:
         """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
         Args:
@@ -93,7 +82,6 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
     """Spider"""
 
     name = "ilfattoquotidiano"
-
     def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -126,6 +114,7 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
             self.article_url = url
             self.type = type.lower()
             self.today = date.today().strftime("%Y-%m-%d")
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -164,7 +153,7 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
         try:
             if self.type == "sitemap":
                 yield scrapy.Request(
-                    response.url, callback=self.parse_archive_categories
+                    response.url, callback=self.parse_sitemap
                 )
 
             elif self.type == "article":
@@ -177,7 +166,7 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
                 f"Error occured in parse function: {exception}"
             )
 
-    def parse_archive_categories(self, response):
+    def parse_sitemap(self, response):
         """Parses a sitemap page and extracts links and titles for further processing.
         Args:
             response (scrapy.http.Response): The HTTP response object
@@ -190,12 +179,39 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            links = response.css("div.teaser__text-content a::attr(href)").getall()
-            for link in links:
-                if link != "https://www.stern.de/noch-fragen/archiv/":
-                    yield scrapy.Request(link, callback=self.parse_archive_article)
+            if "sitemap.xml" in response.url:
+                if self.since and self.until:
+                    since = str(self.since.month) + str(self.since.year)
+                    until = str(self.until.month) + str(self.until.year)
+                    if since == until:
+                        date = self.since.strftime("%Y-%m-%d").split("-")
+                        link = f"https://www.ilfattoquotidiano.it/sitemap-pt-post-{date[0]}-{date[1]}.xml"
+                        yield scrapy.Request(
+                            link,
+                            dont_filter=True,
+                            callback=self.parse_sitemap_article,
+                        )
+                    else:
+                        since_date = self.since.strftime("%Y-%m-%d").split("-")
+                        until_date = self.until.strftime("%Y-%m-%d").split("-")
+                        links = [
+                            f"https://www.ilfattoquotidiano.it/sitemap-pt-post-{since_date[0]}-{since_date[1]}.xml",
+                            f"https://www.ilfattoquotidiano.it/sitemap-pt-post-{until_date[0]}-{until_date[1]}.xml",
+                        ]
+                        for link in links:
+                            yield scrapy.Request(
+                                link,
+                                dont_filter=True,
+                                callback=self.parse_sitemap_article,
+                            )
                 else:
-                    continue
+                    current_date = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
+                    link = (
+                            f"https://www.ilfattoquotidiano.it/sitemap-pt-post-{current_date[0]}-{current_date[1]}.xml"
+                    )
+                    yield scrapy.Request(
+                        link, dont_filter=True, callback=self.parse_sitemap_article
+                    )
 
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
@@ -203,7 +219,7 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
-    def parse_archive_article(self, response):
+    def parse_sitemap_article(self, response):
         """Extracts article titles and links from the response object
         and yields a Scrapy request for each article.
         Args:
@@ -216,106 +232,33 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
             SitemapArticleScrappingException: If an error occurs while filtering articles by date.
         """
         try:
-            if self.since and self.until:
-                since = str(self.since.month) + str(self.since.year)
-                until = str(self.until.month) + str(self.until.year)
-                if since == until:
-                    date = self.since.strftime("%Y-%m-%d").split("-")
-                    link = response.url + f"/?month={date[1]}&year={date[0]}"
-                    yield scrapy.Request(
-                        link,
-                        dont_filter=True,
-                        callback=self.parse_archive_article_links,
-                    )
-                else:
-                    since_date = self.since.strftime("%Y-%m-%d").split("-")
-                    until_date = self.until.strftime("%Y-%m-%d").split("-")
-                    links = [
-                        response.url + f"/?month={since_date[1]}&year={since_date[0]}",
-                        response.url + f"/?month={until_date[1]}&year={until_date[0]}",
-                    ]
-                    for link in links:
-                        yield scrapy.Request(
-                            link,
-                            dont_filter=True,
-                            callback=self.parse_archive_article_links,
-                        )
-            else:
-                current_date = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
-                link = (
-                    response.url + f"/?month={current_date[1]}&year={current_date[0]}"
-                )
-                yield scrapy.Request(
-                    link, dont_filter=True, callback=self.parse_archive_article_links
-                )
-        except Exception as exception:
-            LOGGER.info("Error while parsing sitemap article: %s", str(exception))
-            raise exceptions.SitemapArticleScrappingException(
-            "Error while parsing sitemap article::%s-", str(exception)
-            )
+            namespaces = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            links = response.xpath("//sitemap:loc/text()", namespaces=namespaces).getall()
+            published_date = response.xpath('//sitemap:lastmod/text()', namespaces=namespaces).getall()
 
-    def parse_archive_article_links(self, response):
-        """
-        gets article links from the archive
-        Args:
-            self: The Scrapy spider instance calling this method.
-            response: The response object obtained after making a request to a sitemap URL.
-        Yields:
-            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
-            method as the callback and the article link and title as metadata.
-        Raises:
-            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
-        """
-        try:
-            links = response.css(
-                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext a::attr(href)"
-            ).getall()
-            title = response.css(
-                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext h3::text"
-            ).getall()
-            published_date = response.css(
-                ".group-teaserlist__item.group-teaserlist__item--teaser-plaintext time::attr(datetime)"
-            ).getall()
-
-            for link, title, pub_date in zip(links, title, published_date):
+            for link, pub_date in zip(links, published_date):
                 publish_date = pub_date.split("T")
                 published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
+                today_date = datetime.today().date()
+
                 if self.since and published_at < self.since:
-                    continue
+                    return
                 if self.since and published_at > self.until:
-                    continue
+                    return
 
                 if self.since and self.until:
-                    data = {"link": link, "title": title}
+                    data = {"link": link}
                     self.articles.append(data)
-                elif TODAYS_DATE == published_at:
-                    data = {"link": link, "title": title}
+                elif today_date == published_at:
+                    data = {"link": link}
                     self.articles.append(data)
                 else:
                     continue
 
-            pagination = response.css(
-                ".button.u-typo.u-typo--button-text.button--icon.button--icon-arrow-right.button--icon-pos-right"
-            ).get()
-
-            if pagination:
-                total_pagination = response.css(
-                    "li.pagination__page a::attr(href)"
-                ).getall()[1:]
-                for pagination_wise in total_pagination:
-                    pagination_url = pagination_wise
-                    if len(pagination) > 1:
-                        yield scrapy.Request(
-                            pagination_url, callback=self.parse_archive_article_links
-                        )
-
-            else:
-                pass
-
         except Exception as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
-            "Error while parsing sitemap article:: %s ", str(exception)
+                "Error while parsing sitemap article::%s-", str(exception)
             )
 
     def parse_article(self, response) -> list:
@@ -333,7 +276,7 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = get_parsed_data(response)
-            response_data["source_country"] = ["India"]
+            response_data["source_country"] = ["Italy"]
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
@@ -364,6 +307,24 @@ class IlfattoquotidianoSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                    stats.get(
+                        "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                        0,
+                    )
+                    > 0
+            ) or (
+                    stats.get(
+                        "downloader/request_count",
+                        0,
+                    )
+                    == stats.get(
+                "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                0,
+            )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
