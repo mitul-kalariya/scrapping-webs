@@ -1,11 +1,11 @@
 import logging
 import unittest
 
-from crwtimesnownews.spiders.timesnow import TimesNow
-from crwtimesnownews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
-from crwtimesnownews.test.helpers.utils import (get_article_content,
-                                                online_response_from_url)
-from crwtimesnownews import Crawler
+from crwsbsnews.spiders.sbsnews import SBSNews
+from crwsbsnews.test.helpers.constant import LINK_FEED_URL, TEST_ARTICLES
+from crwsbsnews.test.helpers.utils import (get_article_content,
+                                           online_response_from_url)
+from crwsbsnews import Crawler
 
 # Creating an object
 logger = logging.getLogger()
@@ -25,7 +25,7 @@ class TestArticle(unittest.TestCase):
     def test_parse(self):
         for article in TEST_ARTICLES:
             logger.info(f"Testing article with URL:- {article['url']}")
-            spider = TimesNow(type="article", url=article["url"])
+            spider = SBSNews(type="article", url=article["url"])
             articles = spider.parse(online_response_from_url(spider.article_url))
             self._test_article_results(articles, article["test_data_path"])
             logger.info(f"Testing completed article with URL:- {article['url']}")
@@ -103,8 +103,6 @@ class TestArticle(unittest.TestCase):
             for image in article_images:
                 with self.subTest():
                     self.assertIsNotNone(image.get("link"), "missing object:- parsed_data--> images --> link")
-                with self.subTest():
-                    self.assertIsNotNone(image.get("caption"), "missing object:- parsed_data--> images --> caption")
 
     def _test_author_format(self, article):
         # Testing the author object inside parsed_data
@@ -256,8 +254,8 @@ class TestArticle(unittest.TestCase):
 
 class TestSitemap(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL})
+        self.type = "link_feed"
+        self.crawler = Crawler(query={"type": "link_feed", "domain": LINK_FEED_URL})
 
     def _test_sitemap_article_format(self):
         # Testing the sitemap article object

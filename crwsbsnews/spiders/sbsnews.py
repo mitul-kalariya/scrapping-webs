@@ -6,15 +6,15 @@ from scrapy.selector import Selector
 from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
-from crwtimesnownews.items import ArticleData
+from crwsbsnews.items import ArticleData
 
-from crwtimesnownews.utils import (
+from crwsbsnews.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
     get_parsed_json
 )
-from crwtimesnownews.exceptions import (
+from crwsbsnews.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
@@ -22,10 +22,8 @@ from crwtimesnownews.exceptions import (
 )
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -38,25 +36,21 @@ class BaseSpider(ABC):
         pass
 
     @abstractmethod
-    def parse_sitemap(self, response: str) -> None:
-        pass
-
-    @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
 
 
-class TimesNow(scrapy.Spider, BaseSpider):
-    name = "times_now_news"
+class SBSNews(scrapy.Spider, BaseSpider):
+    name = "sbs_news"
     namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
                  'news': "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
-            self, type=None, start_date=None,
-            end_date=None, url=None, *args, **kwargs
+            self, *args, type=None, start_date=None,
+            end_date=None, url=None, **kwargs
     ):
         try:
-            super(TimesNow, self).__init__(*args, **kwargs)
+            super(SBSNews, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
             self.start_urls = []
             self.articles = []
@@ -100,20 +94,28 @@ class TimesNow(scrapy.Spider, BaseSpider):
                 )
 
             if self.type == "sitemap":
-                site_map_url = Selector(response, type='xml') \
+                article_url = Selector(response, type='xml') \
                     .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-
-                for url in site_map_url:
-                    date = "-".join(url.split('/')[-1].split('.')[0].split('-')[:2])
-                    _date = datetime.strptime(f"{date}", '%Y-%B')
+                article_title = Selector(response, type='xml') \
+                    .xpath('//news:title/text()', namespaces=self.namespace).getall()
+                article_publish_date = Selector(response, type='xml') \
+                    .xpath('//news:publication_date/text()', namespaces=self.namespace).getall()
+                for url, title, date in zip(article_url, article_title, article_publish_date):
+                    _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
                     if self.today_date:
-                        if (_date.year, _date.month) == (self.today_date.year, self.today_date.month):
-                            yield response.follow(url, callback=self.parse_sitemap)
+                        if _date == self.today_date:
+                            article = {
+                                "link": url,
+                                "title": title
+                            }
+                            self.articles.append(article)
                     else:
-                        if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= \
-                                (self.end_date.year, self.start_date.month):
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap)
+                        if self.start_date <= _date <= self.end_date:
+                            article = {
+                                "link": url,
+                                "title": title
+                            }
+                            self.articles.append(article)
 
             elif self.type == "article":
                 yield self.parse_article(response)
@@ -125,44 +127,6 @@ class TimesNow(scrapy.Spider, BaseSpider):
             )
             raise SitemapScrappingException(
                 f"Error occurred while iterating {self.type} url:- {str(exception)}"
-            ) from exception
-
-    def parse_sitemap(self, response):
-        """
-           Parses the sitemap and extracts the article URLs and their last modified date.
-           If the last modified date is within the specified date range, sends a request to the article URL
-           :param response: the response from the sitemap request
-           :return: scrapy.Request object
-        """
-
-        article_urls = Selector(response, type='xml'). \
-            xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
-        mod_date = Selector(response, type='xml') \
-            .xpath('//sitemap:lastmod/text()',
-                   namespaces=self.namespace).getall()
-        try:
-            for url, date in zip(article_urls, mod_date):
-                _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
-                if self.today_date:
-                    if _date == self.today_date:
-                        article = {
-                            "link": url
-                        }
-                        self.articles.append(article)
-                else:
-                    if self.start_date <= _date <= self.end_date:
-                        article = {
-                            "link": url
-                        }
-                        self.articles.append(article)
-
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
 
     def parse_article(self, response):
@@ -190,7 +154,6 @@ class TimesNow(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
                 parsed_json_dict["imageObjects"] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
@@ -229,6 +192,24 @@ class TimesNow(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:

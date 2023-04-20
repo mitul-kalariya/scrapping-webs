@@ -1,8 +1,8 @@
-# Times Now News Scrapping
+# SBS News Korea Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from https://www.timesnownews.com/ website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://news.sbs.co.kr/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -22,35 +22,12 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-Article data is available for more than 1 month including today's date
-```
-# To fetch all the article links
+Article data is available for last 1 day including today's date
 
-from crwtimesnownews import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "https://www.timesnownews.com/",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 
-from crwtimesnownews import Crawler
+from crwsbsnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,8 +38,8 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
-        "domain": "https://www.timesnownews.com/"
+        "type": "link_feed",
+        "domain": "https://news.sbs.co.kr/"
     },
     proxies=proxies
 )
@@ -73,7 +50,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from crwtimesnownews import Crawler
+from crwsbsnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -85,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": "https://www.timesnownews.com/web-stories/health/world-health-day-2023-everyday-aches-and-pains-you-should-not-ignore-article-99285223"
+        "link": "https://news.sbs.co.kr/news/endPage.do?news_id=N1007161821"
     },
     proxies=proxies
 )

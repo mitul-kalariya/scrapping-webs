@@ -1,8 +1,8 @@
 import json
 from datetime import datetime
 from scrapy.loader import ItemLoader
-from crwtimesnownews.constant import SITEMAP_URL
-from crwtimesnownews.items import (
+from crwsbsnews.constant import LINK_FEED_URL
+from crwsbsnews.items import (
     ArticleRawParsedJson,
     ArticleRawResponse
 )
@@ -56,12 +56,12 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
         if self.end_date is not None and self.start_date is not None:
             set_date_range(start_date, end_date)
             validate_date_range()
-            add_start_url(SITEMAP_URL)
+            add_start_url(LINK_FEED_URL)
 
         elif self.start_date is None and self.end_date is None:
             today_time = datetime.today().strftime("%Y-%m-%d")
             self.today_date = datetime.strptime(today_time, '%Y-%m-%d')
-            add_start_url(SITEMAP_URL)
+            add_start_url(LINK_FEED_URL)
 
         elif self.end_date is not None or self.start_date is not None:
             raise InvalidArgumentException("to use type sitemap give only type sitemap or with start date and end date")
@@ -121,10 +121,6 @@ def get_parsed_json(response: str, selector_and_key: dict) -> dict:
             article_raw_parsed_json_loader.add_value(
                 key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "NewsArticle"]
             )
-        elif key == "ImageGallery":
-            article_raw_parsed_json_loader.add_value(
-                key, [json.loads(data) for data in value.getall() if json.loads(data).get('@type') == "ImageGallery"]
-            )
 
         elif key == "videoObjects":
             article_raw_parsed_json_loader.add_value(
@@ -162,8 +158,8 @@ def get_parsed_data_dict() -> dict:
         dict: Return base data dictionary
     """
     return {
-        "country": None,
-        "language": None,
+        "source_country": None,
+        "source_language": None,
         "author": [{"@type": None, "name": None, "url": None}],
         "description": None,
         "modified_at": None,
@@ -180,54 +176,64 @@ def get_parsed_data_dict() -> dict:
 
 def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
 
-    article_data = parsed_json_dict
-    article_data["title"] = response.css('#readtrinity0  h1._1FcxJ::text').getall()
-    article_data["sub_title"] = response.css('#readtrinity0 div.QA-An h2::text').get()
-    article_data["img_url"] = response.css('#readtrinity0 div._3lDdd img::attr(src)').get()
-    article_data["img_caption"] = response.css('#readtrinity0 div._3NUGP div.trinity-skip-it p::text').get()
-    article_data["text"] = response.css('#readtrinity0 div._18840::text').getall()
-    article_data["category"] = response.css('#readtrinity0 div.Faqqe li a p::text').getall()
-    article_data["tags"] = response.css('#readtrinity0 div.regular a div::text').getall()
-    mapper = {"en": "English"}
+    article_raw_parsed_json_loader = ItemLoader(
+        item=ArticleRawParsedJson(), response=response
+    )
+    for key, value in parsed_json_dict.items():
+        article_raw_parsed_json_loader.add_value(
+            key, [json.loads(data) for data in value.getall()]
+        )
+    article_data = dict(article_raw_parsed_json_loader.load_item())
+
+    mapper = {"ko": "Korean"}
     parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict["source_country"] = ["India"]
-    parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
-    article_data["main_copy"] = json.loads(article_data.get("main")[2].get())
-    article_data['other'] = json.loads(article_data.get("other")[0].get())
-    parsed_data_dict["author"] = [article_data.get("main_copy").get('author')[0]]
-    parsed_data_dict["description"] = [article_data.get("sub_title")]
-    parsed_data_dict["modified_at"] = [article_data.get("main_copy").get('dateModified')]
-    parsed_data_dict["published_at"] = [article_data.get("main_copy").get('datePublished')]
+    parsed_data_dict["author"] = [{"@type": article_data.get("main").get('author').get("@type"),
+                                   "name": article_data.get("main").get('author').get("name"),
+                                   "url": article_data.get("main").get('author').get("url")}]
+    parsed_data_dict["description"] = [article_data.get("description")]
+    parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
+    parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
+
+    if "1024x1024" in article_data.get("main").get('publisher').get("logo").get('url'):
+        height = article_data.get("main").get('publisher').get("logo").get('url').split('-')[1].split("x")[1].split(".")[0]
+        width = article_data.get("main").get('publisher').get("logo").get('url').split('-')[1].split("x")[0]
+    else:
+        link = response.css('link')
+        link = link[4].css("::attr('href')").get()
+        height = link.split("x")[0].split('_')[1]
+        width = link.split("x")[1].split(".")[0]
     parsed_data_dict["publisher"] = [{
-        '@id': article_data.get("other").get('url').split('/')[2],
-        '@type': article_data.get("main_copy").get('publisher').get('@type'),
-        "name": article_data.get("main_copy").get('publisher').get('name'),
-        'url': article_data.get("main_copy").get('publisher').get('url'),
+        '@id': article_data.get('main').get('publisher').get('url'),
+        '@type': article_data.get('main').get('publisher').get('@type'),
+        "name": article_data.get('main').get('publisher').get('name'),
         "logo": {
-            "@type": article_data.get("main_copy").get('publisher').get("logo").get('@type'),
-            "url": article_data.get("main_copy").get('publisher').get("logo").get('url'),
+            "@type": article_data.get("main").get('publisher').get("logo").get('@type'),
+            "url": article_data.get("main").get('publisher').get("logo").get('url'),
             'width': {
                 '@type': "Distance",
-                "name": str(article_data.get("main_copy").get('publisher').get('logo').get('width')) + " Px"},
+                "name": width + " Px"},
             'height': {
                 '@type': "Distance",
-                'name': str(article_data.get("main_copy").get('publisher').get('logo').get('height')) + " Px"}}
+                'name': height + " Px"}}
     }]
 
-    parsed_data_dict["text"] = [article_data.get("main_copy").get("articleBody")]
-    parsed_data_dict["thumbnail_image"] = [article_data.get("main_copy").get('image').get('url')]
-    parsed_data_dict["title"] = [article_data.get("title")[0]]
-    parsed_data_dict["images"] = [{"link": article_data.get("main_copy").get('image').get('url'),
-                                   "caption": article_data.get("main_copy").get('image').get('caption')}]
-    parsed_data_dict["section"] = article_data.get("category")[1:]
-    parsed_data_dict["tags"] = article_data.get("tags")
-    video_link = None
-    for type in article_data.get('main'):
-
-        if json.loads(type.get()).get("@type") == 'VideoObject':
-            video_link = json.loads(type.get()).get("ContentUrl")
-    if video_link:
-        parsed_data_dict['embed_video_link'] = [video_link]
+    parsed_data_dict["text"] = [" ".join(response.xpath('//div[@class="text_area"]//text()').getall())]
+    parsed_data_dict["thumbnail_image"] = [article_data.get('main').get('thumbnailUrl')[0]]
+    parsed_data_dict["title"] = [article_data.get("main").get("headline")]
+    img_caption = response.css('div.article_image img::attr("alt")').get()
+    parsed_data_dict["images"] = [{"link": article_data.get("main").get('image')[0],
+                                   "caption": img_caption}]
+    parsed_data_dict["section"] = [article_data.get("main").get("articleSection")]
+    parsed_data_dict["tags"] = article_data.get("main").get('keywords')
+    parsed_data_dict["source_country"] = ["Korea"]
+    parsed_data_dict["source_language"] = [mapper.get(response.css("html::attr(lang)").get())]
+    parsed_data_dict["time_scraped"] = [str(datetime.now())]
+    link_url = ""
+    for video in article_data.get('videoObjects'):
+        if video.get("@type") == "VideoObject":
+            link_url = video.get("embedUrl")
+    if link_url:
+        parsed_data_dict['embed_video_link'] = [link_url]
     return remove_empty_elements(parsed_data_dict)
 
 
