@@ -80,10 +80,11 @@ class Crawler:
 
         process = CrawlerProcess()
         process_settings = process.settings
-        process_settings["DOWNLOADER_MIDDLEWARES"]["your_spider_name.middlewares.CustomProxyMiddleware"] = 110
+        process_settings["DOWNLOADER_MIDDLEWARES"]["crwilfattoquotidiano.middlewares.CustomProxyMiddleware"] = 110
         process_settings["DOWNLOAD_DELAY"] = 0.25
+        process_settings["ROBOTSTXT_OBEY"] = False
         process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process_settings["USER_AGENT"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"  # noqa: E501
         process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {

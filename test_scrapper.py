@@ -25,12 +25,12 @@ from crwilfattoquotidiano import Crawler
 #     "proxyPassword": "testpass",
 #     "proxyTimeout": 5,
 # }
-proxies = {
-    "proxyIp": "3.20.87.239",
-    "proxyPort": "3128",
-    "proxyUsername": "giqpeohf",
-    "proxyPassword": "entVdShG",
-}
+# proxies = {
+#     "proxyIp": "3.20.87.239",
+#     "proxyPort": "3128",
+#     "proxyUsername": "giqpeohf",
+#     "proxyPassword": "entVdShG",
+# }
 
 try:
     crawler = Crawler(
