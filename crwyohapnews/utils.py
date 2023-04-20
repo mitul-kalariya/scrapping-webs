@@ -3,8 +3,8 @@ import os
 import json
 import logging
 import re
-from w3lib.html import remove_tags
 from datetime import datetime
+from w3lib.html import remove_tags
 from crwyohapnews import exceptions
 from crwyohapnews.constant import LOGGER
 

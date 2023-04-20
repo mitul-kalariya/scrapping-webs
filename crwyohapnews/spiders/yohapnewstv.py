@@ -1,10 +1,11 @@
+"""yohap news spider"""
+from datetime import datetime
+from abc import ABC, abstractmethod
 import scrapy
 import requests
-from datetime import datetime
-from crwyohapnews.constant import LINK_FEED_URL, LOGGER, TODAYS_DATE, BASE_URL
-from crwyohapnews import exceptions
-from abc import ABC, abstractmethod
 from scrapy.loader import ItemLoader
+from crwyohapnews import exceptions
+from crwyohapnews.constant import LINK_FEED_URL, LOGGER, TODAYS_DATE, BASE_URL
 from crwyohapnews.items import ArticleData
 from crwyohapnews.utils import (
     create_log_file,
@@ -63,6 +64,8 @@ class BaseSpider(ABC):
 
 
 class YohapNewsSpider(scrapy.Spider):
+    """yohap news spider"""
+
     name = "yohapnews"
     start_urls = [BASE_URL]
 
@@ -71,7 +74,8 @@ class YohapNewsSpider(scrapy.Spider):
         Initializes a web scraper object to scrape data from a website or sitemap.
 
         Args:
-            type (str): A string indicating the type of data to scrape. Must be either "sitemap" or "article".
+            type (str): A string indicating the type of
+                        data to scrape. Must be either "sitemap" or "article".
 
             start_date (str): A string representing the start date of
             the sitemap to be scraped. Must be in the format "YYYY-MM-DD".
@@ -80,14 +84,17 @@ class YohapNewsSpider(scrapy.Spider):
             end_date (str): A string representing the end date of the sitemap to be scraped.
             Must be in the format "YYYY-MM-DD".
 
-            **kwargs: Additional keyword arguments that can be used to pass information to the web scraper.
+            **kwargs: Additional keyword arguments that can be
+                      used to pass information to the web scraper.
 
         Raises:
             InvalidInputException: If a URL is not provided for an "article" type scraper.
 
         Notes:
-            This function initializes a web scraper object and sets various properties based on the arguments passed to
-            it. If the type argument is "sitemap", the start and end dates of the sitemap are validated and set.
+            This function initializes a web scraper object and sets
+            various properties based on the arguments passed to
+            it. If the type argument is "sitemap",
+            the start and end dates of the sitemap are validated and set.
             If the type argument is "article", the URL to be scraped is validated and set.
             A log file is created for the web scraper.
 
@@ -95,7 +102,8 @@ class YohapNewsSpider(scrapy.Spider):
             InvalidInputException: If a URL is not provided for an "article" type scraper.
 
         Notes:
-        This function initializes a web scraper object and sets various properties based on the arguments passed to it.
+        This function initializes a web scraper object and
+        sets various properties based on the arguments passed to it.
         If the type argument is "sitemap",
             the start and end dates of the sitemap are validated and set.
         If the type argument is "article", the URL to be scraped is validated and set.
@@ -109,7 +117,6 @@ class YohapNewsSpider(scrapy.Spider):
             self.article_url = url
             self.type = type.lower()
             self.proxies = kwargs.get("args", {}).get("proxies", None)
-            
 
             if self.type == "sitemap":
                 self.start_urls.append(BASE_URL)
@@ -118,15 +125,17 @@ class YohapNewsSpider(scrapy.Spider):
                     self.start_urls.append(url)
                 else:
                     LOGGER.info("Must have a URL to scrap")
-                    raise exceptions.InvalidInputException("Must have a URL to scrap")
+                    raise exceptions.InputMissingException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info(f"Error occured in init function in {self.name}:-- {exception}")
+            LOGGER.info(
+                "Error occured in init function in %s :--  %s ", self.name, exception
+            )
             raise exceptions.InvalidInputException(
                 f"Error occured in init function in {self.name}:-- {exception}"
             )
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         """
         Parses the given Scrapy response based on the specified type of parsing.
 
@@ -145,60 +154,79 @@ class YohapNewsSpider(scrapy.Spider):
                 yield self.parse_article(response)
 
         except BaseException as exception:
-            LOGGER.info(f"Error occured in parse function: {exception}")
+            LOGGER.info("Error occured in parse function: %s", exception)
             raise exceptions.ParseFunctionFailedException(
                 f"Error occured in parse function: {exception}"
             )
 
     def parse_link_feed(self, response):
-        today = TODAYS_DATE.strftime("%Y%m%d")
-        ct_counter = 1
-        api_response = True
-        # for ct_counter there are 1- 8or9 possible values
-        while api_response is True:
-            # getting the api response for given ct_counter
-            params = {"ct": ct_counter, "srt": "l", "d": today}
-            response_json = requests.get(
-                LINK_FEED_URL,
-                params=params,
+        """
+        This function takes in a response object and parses the sitemap.
+        It extracts the links and published dates from the response object
+        and uses them to make requests to other pages.
+        """
+        try:
+            today = TODAYS_DATE.strftime("%Y%m%d")
+            ct_counter = 1
+            api_response = True
+            # for ct_counter there are 1- 8or9 possible values
+            while api_response is True:
+                # getting the api response for given ct_counter
+                params = {"ct": ct_counter, "srt": "l", "d": today}
+                response_json = requests.get(
+                    LINK_FEED_URL,
+                    params=params,
+                    timeout=5,
+                )
+                if response_json:
+                    # if we get response we search for all the number of pages
+                    page_count = (response_json.json()).get("totalPage")
+                    page_block = 1
+                    while page_block <= page_count:
+                        # setting value of p as per the counter of
+                        # the page in given page count index
+                        params["p"] = page_block
+                        page_response_json = requests.get(
+                            LINK_FEED_URL,
+                            params=params,
+                            timeout=5,
+                        ).json()
+                        # from each page index getting the article data list
+                        article_list = page_response_json.get("list")
+                        for article_data in article_list:
+                            # fetching the published date for each block in article_list
+                            article_date = datetime.fromtimestamp(
+                                int(article_data.get("createdAt")) / 1000
+                            ).date()
+
+                            # if the article_date is
+                            if article_date < TODAYS_DATE:
+                                page_block = page_count
+                                break
+                            self.articles.append(
+                                {
+                                    "link": BASE_URL
+                                    + "news/"
+                                    + article_data.get("sequence"),
+                                    "title": article_data.get("title"),
+                                }
+                            )
+                        page_block += 1
+
+                    # updating the counter after searching pages of current ct_counter
+                    ct_counter += 1
+                else:
+                    api_response = False
+                    break
+        except Exception as exception:
+            LOGGER.INFO(
+                "Error Occurred while fetching Link Feeds for: %s %s",
+                response.url,
+                exception,
             )
-            if response_json:
-                # if we get response we search for all the number of pages
-                page_count = (response_json.json()).get("totalPage")
-                page_block = 1
-                while page_block <= page_count:
-                    # setting value of p as per the counter of the page in given page count index
-                    params["p"] = page_block
-                    page_response_json = requests.get(
-                        LINK_FEED_URL, params=params
-                    ).json()
-                    # from each page index getting the article data list
-                    article_list = page_response_json.get("list")
-                    for article_data in article_list:
-                        # fetching the published date for each block in article_list
-                        article_date = datetime.fromtimestamp(
-                            int(article_data.get("createdAt")) / 1000
-                        ).date()
-
-                        # if the article_date is
-                        if article_date < TODAYS_DATE:
-                            page_block = page_count
-                            break
-                        self.articles.append(
-                            {
-                                "link": BASE_URL
-                                + "news/"
-                                + article_data.get("sequence"),
-                                "title": article_data.get("title"),
-                            }
-                        )
-                    page_block += 1
-
-                # updating the counter after searching pages of current ct_counter
-                ct_counter += 1
-            else:
-                api_response = False
-                break
+            raise exceptions.LinkFeedScrappingException(
+                f"Error Occurred while fetching Link Feeds : {exception}"
+            )
 
     def parse_article(self, response: str) -> list:
         """
@@ -278,7 +306,9 @@ class YohapNewsSpider(scrapy.Spider):
 
         except Exception as exception:
             LOGGER.info(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+                "Error occurred while writing json file %s - %s",
+                str(exception),
+                {reason},
             )
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

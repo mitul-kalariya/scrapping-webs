@@ -1,11 +1,5 @@
 # Exception
 # exceptions.py
-class InvalidDateException(Exception):
-    """Raise when invalid date is passed"""
-
-    # Use InvalidDateException("Please enter valid date")
-    pass
-
 
 class InvalidInputException(Exception):
     """Raise when invalid input is given"""
@@ -20,18 +14,12 @@ class InputMissingException(Exception):
     pass
 
 
-class SitemapScrappingException(Exception):
-    """Raise when exception arise while fetching sitemap"""
+class LinkFeedScrappingException(Exception):
+    """Raise when exception arise while fetching Link Feed"""
 
     # Use SitemapScrappingException(f"Error occurred while fetching sitemap:- {str(e)}")
     pass
 
-
-class SitemapArticleScrappingException(Exception):
-    """Raise when exception arise while fetching article details from sitemap"""
-
-    # Use SitemapArticleScrappingException(f"Error occurred while fetching article details from sitemap:- {str(e)}")
-    pass
 
 
 class ArticleScrappingException(Exception):
@@ -47,21 +35,6 @@ class ExportOutputFileException(Exception):
     # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
     pass
 
-
-class ServiceUnavailableException(Exception):
-    """Rise when getting 403, 406, 429 or >500 status code"""
-
-    # Use ServiceUnavailableException(f"Service Unavailable for {website_name} and {url}
-    # with {response.status_code} and {response.reason}")
-    pass
-
-
-class URLNotFoundException(Exception):
-    """Rise when getting 404 status code"""
-
-    # Use URLNotFoundException(f"Given {url} not found for website {website_name}
-    # with status code{response.status_code}")
-    pass
 
 
 class ParseFunctionFailedException(Exception):
