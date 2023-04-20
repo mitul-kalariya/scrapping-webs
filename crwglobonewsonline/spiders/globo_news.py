@@ -192,8 +192,7 @@ class GloboNewsOnline(scrapy.Spider, BaseSpider):
 
             if parsed_json_main:
                 parsed_json_dict["main"] = parsed_json_main
-                parsed_json_dict['ImageGallery'] = parsed_json_main
-                parsed_json_dict["imageObjects"] = parsed_json_main
+                parsed_json_dict['imageObjects'] = parsed_json_main
                 parsed_json_dict['videoObjects'] = parsed_json_main
                 parsed_json_dict['other'] = parsed_json_main
             if parsed_json_misc:
@@ -206,9 +205,9 @@ class GloboNewsOnline(scrapy.Spider, BaseSpider):
                     "parsed_json",
                     parsed_json_data,
                 )
-            articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_dict)
-            )
+            # articledata_loader.add_value(
+            #     "parsed_data", get_parsed_data(response, parsed_json_dict)
+            # )
 
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
