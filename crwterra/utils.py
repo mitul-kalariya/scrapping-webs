@@ -36,10 +36,6 @@ def validate_sitemap_date_range(start_date, end_date):
     """
     validating date range given for sitemap
     """
-    start_date = (
-        datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    )
-    end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
     try:
         if start_date and not end_date:
             raise exceptions.InvalidDateException(
@@ -65,6 +61,10 @@ def validate_sitemap_date_range(start_date, end_date):
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
+        if start_date and end_date:
+            total_days = int((end_date - start_date).days)
+            if total_days > 30:
+                raise exceptions.InvalidDateException("Date must be in range of 30 days")
 
     except exceptions.InvalidDateException as exception:
         LOGGER.error("Error in __init__: %s", exception, exc_info=True)

@@ -95,7 +95,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 self.until = (
                     datetime.strptime(until, "%Y-%m-%d").date() if until else None
                 )
-                validate_sitemap_date_range(since, until)
+                validate_sitemap_date_range(self.since, self.until)
 
             if self.type == "article":
                 if url:
