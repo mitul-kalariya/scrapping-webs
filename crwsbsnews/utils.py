@@ -195,7 +195,8 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
 
     if "1024x1024" in article_data.get("main").get('publisher').get("logo").get('url'):
-        height = article_data.get("main").get('publisher').get("logo").get('url').split('-')[1].split("x")[1].split(".")[0]
+        height = article_data.get("main").get('publisher').get("logo").get('url')\
+            .split('-')[1].split("x")[1].split(".")[0]
         width = article_data.get("main").get('publisher').get("logo").get('url').split('-')[1].split("x")[0]
     else:
         link = response.css('link')

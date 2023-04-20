@@ -4,6 +4,7 @@ from crwsbsnews.spiders.sbsnews import SBSNews
 from crwsbsnews import exceptions
 from scrapy.utils.project import get_project_settings
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.
