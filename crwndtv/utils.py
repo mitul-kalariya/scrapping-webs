@@ -287,7 +287,8 @@ def get_images(response):
     for image_block in response.css("article div.ins_instory_dv"):
         temp_dict = {}
         temp_dict["link"] = image_block.css("img::attr(data-src)").get() or image_block.css("img::attr(src)").get()
-        temp_dict["caption"] = image_block.css("p::text").get()
+        if temp_dict["link"]:
+            temp_dict["caption"] = image_block.css("p::text").get()
         images.append(temp_dict)
     return images
 
@@ -366,12 +367,15 @@ def get_video(response):
     article_video = response.css('meta[itemprop="embedUrl"]::attr(content)').get()
     if article_video:
         video["link"] = article_video
+        video["caption"] = response.css("article div.ins_instory_dv p::text").get()
     article_video_2 = response.css('meta[itemprop="contentUrl"]::attr(content)').get()
     if article_video_2:
         video["link"] = article_video_2
+        video["caption"] = response.css("article div.ins_instory_dv p::text").get()
     video_link = response.xpath('//meta[@name="contentUrl"]/@content').get()
     if video_link:
         video["link"] = video_link
+        video["caption"] = response.css("article div.ins_instory_dv p::text").get()
     return video
 
 
