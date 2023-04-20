@@ -279,45 +279,70 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
 
         # for r_data in response_data:
         #     response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
+        #     breakpoint()
         #     keys = previous_response_data[0].keys()
-        #     if response_data_sorted.values() not in previous_response_data[0].values():
-        #         values = zip(previous_response_data[0].values(), response_data_sorted.values())
-        #         final_parsed_data = dict(zip(keys, values))
-        #         print("*****************************",final_parsed_data)
+        #     # if response_data_sorted.values() not in previous_response_data[0].values():
+        #         # breakpoint()
+        #     values = zip(list(set(previous_response_data[0].values(),response_data_sorted.values())))
+        #     final_parsed_data = dict(zip(keys, values))
+        #     print("*****************************",final_parsed_data)
+        #
 
-        for r_data in response_data:
-            response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
-            keys = previous_response_data[0].keys()
-            breakpoint()
-            # if response_data_sorted not in keys:
-            # for key in previous_response_data:
-            #     if response_data[0].get(key):
-            #         continue
-            # if response_data[0].keys() in keys:
-            #     continue
-            # for key in crucial.keys():
-            #     if key in dishes.keys():
-            #         print(dishes[key])
-            # for r_val in response_data[0].values():
-            #     if r_val in previous_response_data[0].values():
-            #         continue
-            #     else:
-            #         values = zip(r_val, response_data_sorted.values())
-            #         final_parsed_data = dict(zip(keys, values))
-            #         print("*****************************", final_parsed_data)
-            for k, v in response_data[0].items():
-                if v in previous_response_data[0].values():
-                    continue
-                else:
-                    previous_response_data[0][k] = v
-                    final_parsed_data = dict(zip(keys, values))
-                    print("*****************************", final_parsed_data)
+        new_dict = {i: [response_data[0][i], previous_response_data[0][i]] for i in previous_response_data[0].keys() if
+                    previous_response_data[0][i] != response_data[0][i]}
+        final_data = previous_response_data[0]
+        final_data.update(new_dict)
+        print(final_data)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # for r_data in response_data:
+        #     response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
+        #     keys = previous_response_data[0].keys()
+        #     breakpoint()
+        #     # if response_data_sorted not in keys:
+        #     # for key in previous_response_data:
+        #     #     if response_data[0].get(key):
+        #     #         continue
+        #     # if response_data[0].keys() in keys:
+        #     #     continue
+        #     # for key in crucial.keys():
+        #     #     if key in dishes.keys():
+        #     #         print(dishes[key])
+        #     # for r_val in response_data[0].values():
+        #     #     if r_val in previous_response_data[0].values():
+        #     #         continue
+        #     #     else:
+        #     #         values = zip(r_val, response_data_sorted.values())
+        #     #         final_parsed_data = dict(zip(keys, values))
+        #     #         print("*****************************", final_parsed_data)
+        #     for k, v in response_data[0].items():
+        #         if v in previous_response_data[0].values():
+        #             continue
+        #         else:
+        #             previous_response_data[0][k] = v
+        #             final_parsed_data = dict(zip(keys, values))
+        #             print("*****************************", final_parsed_data)
 
 
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         articledata_loader.add_value("raw_response", final_raw_response)
         articledata_loader.add_value("parsed_json", final_parsed_json)
-        articledata_loader.add_value("parsed_data", final_parsed_data)
+        articledata_loader.add_value("parsed_data", final_data)
 
         # for key in raw_response.keys():
         #     breakpoint()
