@@ -11,23 +11,7 @@ import base64
 from itemadapter import is_item, ItemAdapter
 
 
-class CustomProxyMiddleware(object):
-    def process_request(self, request, spider):
-        proxies = spider.proxies
-        if proxies:
-            request.meta[
-                "proxy"
-            ] = f"http://{proxies.get('proxyIp')}:{proxies.get('proxyPort')}"
-            request.meta["download_timeout"] = (
-                proxies.get("proxyTimeout") or PROXY_TIMEOUT
-            )
-            proxy_user_pass = (
-                f"{proxies.get('proxyUsername')}:{proxies.get('proxyPassword')}"
-            )
-            # setup basic authentication for the proxy
-            request.headers["Proxy-Authorization"] = "Basic " + base64.b64encode(
-                f"{proxy_user_pass}".encode("utf-8")
-            ).decode("utf-8")
+
 class NewtonScrappingSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
@@ -120,3 +104,22 @@ class NewtonScrappingDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+
+class CustomProxyMiddleware(object):
+    def process_request(self, request, spider):
+        proxies = spider.proxies
+        if proxies:
+            request.meta[
+                "proxy"
+            ] = f"http://{proxies.get('proxyIp')}:{proxies.get('proxyPort')}"
+            request.meta["download_timeout"] = (
+                proxies.get("proxyTimeout") or PROXY_TIMEOUT
+            )
+            proxy_user_pass = (
+                f"{proxies.get('proxyUsername')}:{proxies.get('proxyPassword')}"
+            )
+            # setup basic authentication for the proxy
+            request.headers["Proxy-Authorization"] = "Basic " + base64.b64encode(
+                f"{proxy_user_pass}".encode("utf-8")
+            ).decode("utf-8")

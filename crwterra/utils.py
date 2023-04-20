@@ -25,16 +25,23 @@ def create_log_file():
     """creating log file"""
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
+        format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
 
 def validate_sitemap_date_range(start_date, end_date):
-    """
-    validating date range given for sitemap
+    """validate date range given by user
+    Args:
+        start_date (datetime): start_date
+        end_date (datetime): end date
+    Raises:
+        exceptions.InvalidDateException: end_date must be specified if start_date is provided
+        exceptions.InvalidDateException: start_date must be specified if end_date is provided
+        exceptions.InvalidDateException: start_date should not be later than end_date
+        exceptions.InvalidDateException: start_date should not be greater than today_date
+        exceptions.InvalidDateException: end_date should not be greater than today_date
+        exceptions.InvalidDateException: Date must be in range of 30 days
     """
     try:
         if start_date and not end_date:
@@ -59,15 +66,17 @@ def validate_sitemap_date_range(start_date, end_date):
 
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
-                "start_date should not be greater than today_date"
+                "end_date should not be greater than today_date"
             )
         if start_date and end_date:
             total_days = int((end_date - start_date).days)
             if total_days > 30:
-                raise exceptions.InvalidDateException("Date must be in range of 30 days")
+                raise exceptions.InvalidDateException(
+                    "Date must be in range of 30 days"
+                )
 
     except exceptions.InvalidDateException as exception:
-        LOGGER.error("Error in __init__: %s", exception, exc_info=True)
+        LOGGER.info("Error in __init__: %s", exception, exc_info=True)
         raise exceptions.InvalidDateException(f"Error in __init__: {exception}")
 
 
@@ -156,7 +165,7 @@ def get_parsed_json(response):
         ) from exception
 
 
-def get_parsed_data(response,enable_selenium):
+def get_parsed_data(response, enable_selenium):
     """generate required data as response json and response data
 
     Args:
@@ -193,22 +202,21 @@ def get_parsed_data(response,enable_selenium):
 
         main_dict["text"] = get_text(response)
 
-        main_dict["thumbnail_image"] = [response.css("meta[itemprop=\"thumbnailUrl\"]::attr(content)").get()]
+        main_dict["thumbnail_image"] = [
+            response.css('meta[itemprop="thumbnailUrl"]::attr(content)').get()
+        ]
 
-        title = response.css(
-            "meta[property='og:title']::attr(content)"
-        ).get()
+        title = response.css("meta[property='og:title']::attr(content)").get()
         main_dict["title"] = [title]
 
         main_dict["images"] = get_images(response)
 
-        
         if main_data[0].get("@type") == "VideoObject":
             if enable_selenium:
                 main_dict["video"] = extract_videos(response)
-            main_dict["section"] = [response.css(
-                "div.t360-terratv--header__container span::text"
-            ).get()]
+            main_dict["section"] = [
+                response.css("div.t360-terratv--header__container span::text").get()
+            ]
         else:
             main_dict["section"] = get_section(response)
         main_dict["tags"] = response.css(
@@ -217,7 +225,7 @@ def get_parsed_data(response,enable_selenium):
 
         return remove_empty_elements(main_dict)
     except BaseException as exception:
-        LOGGER.error("while scrapping parsed data %s", exception)
+        LOGGER.info("while scrapping parsed data %s", exception)
         raise exceptions.ArticleScrappingException(
             f"while scrapping parsed data :{exception}"
         )
@@ -276,7 +284,7 @@ def get_main(response):
             data.append(json.loads(block))
         return data
     except BaseException as exception:
-        LOGGER.error("error parsing ld+json main data %s", exception)
+        LOGGER.info("error parsing ld+json main data %s", exception)
         raise exceptions.ArticleScrappingException(
             f"error parsing ld+json main data {exception}"
         )
@@ -339,7 +347,7 @@ def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -
         with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
             json.dump(file_data, file, indent=4, ensure_ascii=False)
     except BaseException as exception:
-        LOGGER.error("error while creating json file: %s", exception)
+        LOGGER.info("error while creating json file: %s", exception)
         raise exceptions.ExportOutputFileException(
             f"error while creating json file: {exception}"
         )
@@ -354,7 +362,7 @@ def extract_videos(response) -> list:
         main data
     """
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_options.add_argument("--headless")
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(response.url)

@@ -18,12 +18,18 @@ from crwterra import Crawler
 # }
 
 # Working Proxy created by us
+# proxies = {
+#     "proxyIp": "3.20.87.239",
+#     "proxyPort": "3128",
+#     "proxyUsername": "testuser",
+#     "proxyPassword": "testpass",
+#     "proxyTimeout": 5,
+# }
 proxies = {
     "proxyIp": "3.20.87.239",
     "proxyPort": "3128",
-    "proxyUsername": "testuser",
-    "proxyPassword": "testpass",
-    "proxyTimeout": 5,
+    "proxyUsername": "giqpeohf",
+    "proxyPassword": "entVdShG",
 }
 
 try:

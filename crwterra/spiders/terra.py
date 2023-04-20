@@ -1,5 +1,4 @@
 """Spider to scrap terra news article"""
-import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
 import scrapy
@@ -55,7 +54,16 @@ class TerraSpider(scrapy.Spider, BaseSpider):
 
     name = "terra"
 
-    def __init__(self, *args, type=None, url=None, since=None, until=None,enable_selenium=False, **kwargs):
+    def __init__(
+        self,
+        *args,
+        type=None,
+        url=None,
+        since=None,
+        until=None,
+        enable_selenium=False,
+        **kwargs,
+    ):
         # pylint: disable=redefined-builtin
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -79,12 +87,12 @@ class TerraSpider(scrapy.Spider, BaseSpider):
         try:
             super().__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get("args", {}).get("proxies", None)
             self.start_urls = []
             self.articles = []
             self.article_url = url
             self.type = type.lower()
             self.enalble_selenium = enable_selenium
-            self.proxies = kwargs.get('args', {}).get('proxies', None)
 
             if self.type == "sitemap":
                 self.start_urls.append(SITEMAP_URL)
@@ -104,7 +112,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                     LOGGER.info("Must have a URL to scrap")
                     raise exceptions.InvalidInputException("Must have a URL to scrap")
 
-        except Exception as exception:
+        except BaseException as exception:
             LOGGER.info(
                 "Error occured in init function in %s:-- %s", self.name, exception
             )
@@ -148,7 +156,7 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
-            response_data = get_parsed_data(response,self.enalble_selenium)
+            response_data = get_parsed_data(response, self.enalble_selenium)
             response_data["time_scraped"] = [str(datetime.now())]
 
             articledata_loader.add_value("raw_response", raw_response)
@@ -162,11 +170,11 @@ class TerraSpider(scrapy.Spider, BaseSpider):
 
             return articledata_loader.item
 
-        except Exception as exception:
+        except BaseException as exception:
             LOGGER.info(
                 "Error occurred while scrapping an article for this link %s. %s",
                 response.url,
-                str(exception)
+                str(exception),
             )
             raise exceptions.ArticleScrappingException(
                 f"Error occurred while fetching article details:-  {str(exception)}"
@@ -226,15 +234,22 @@ class TerraSpider(scrapy.Spider, BaseSpider):
                 if self.since and published_at > self.until:
                     return
 
-                if self.since and self.until and "https://www.terra.com.br/amp/story/" not in link:
+                if (
+                    self.since
+                    and self.until
+                    and "https://www.terra.com.br/amp/story/" not in link
+                ):
                     data = {"link": link}
                     self.articles.append(data)
-                elif today_date == published_at and "https://www.terra.com.br/amp/story/" not in link:
+                elif (
+                    today_date == published_at
+                    and "https://www.terra.com.br/amp/story/" not in link
+                ):
                     data = {"link": link}
                     self.articles.append(data)
                 else:
                     continue
-        except Exception as exception:
+        except BaseException as exception:
             LOGGER.info("Error while parsing sitemap article: %s", str(exception))
             raise exceptions.SitemapArticleScrappingException(
                 f"Error while parsing sitemap article::-  {str(exception)}"
@@ -268,12 +283,12 @@ class TerraSpider(scrapy.Spider, BaseSpider):
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
-                LOGGER.info("No articles or sitemap url scrapped.", level=logging.INFO)
+                LOGGER.info("No articles or sitemap url scrapped.")
             else:
                 export_data_to_json_file(self.type, self.articles, self.name)
-        except Exception as exception:
+        except BaseException as exception:
             LOGGER.info(
-                "Error occurred while writing json file %s - %s", str(exception), reason
+                f"Error occurred while writing json file{str(exception)} - {reason}"
             )
             raise exceptions.ExportOutputFileException(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

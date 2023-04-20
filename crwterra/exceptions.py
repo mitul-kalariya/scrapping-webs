@@ -40,6 +40,7 @@ class ExportOutputFileException(Exception):
     # Use ExportOutputFileException(f"Error occurred while exporting file:- {str(e)}")
     pass
 
+
 class ParseFunctionFailedException(Exception):
     """An exception raised when parse function fails."""
 
