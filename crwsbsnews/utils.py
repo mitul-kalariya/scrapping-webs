@@ -190,7 +190,7 @@ def get_parsed_data(response: str, parsed_json_dict: dict) -> dict:
     parsed_data_dict["author"] = [{"@type": article_data.get("main").get('author').get("@type"),
                                    "name": article_data.get("main").get('author').get("name"),
                                    "url": article_data.get("main").get('author').get("url")}]
-    parsed_data_dict["description"] = [article_data.get("description")]
+    parsed_data_dict["description"] = [article_data.get("main").get("description")]
     parsed_data_dict["modified_at"] = [article_data.get("main").get('dateModified')]
     parsed_data_dict["published_at"] = [article_data.get("main").get('datePublished')]
 

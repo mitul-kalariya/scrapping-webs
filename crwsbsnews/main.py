@@ -43,7 +43,6 @@ class Crawler:
         self.output_queue = None
         self.query = query
         self.proxies = proxies
-
     def crawl(self) -> list[dict]:
         self.output_queue = Queue()
         process = Process(

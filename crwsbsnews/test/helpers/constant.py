@@ -63,4 +63,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://news.sbs.co.kr/news/sitemap.do"
+LINK_FEED_URL = "https://news.sbs.co.kr/news/sitemap.do"

@@ -52,6 +52,7 @@ class SBSNews(scrapy.Spider, BaseSpider):
         try:
             super(SBSNews, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
             self.start_urls = []
             self.articles = []
             self.type = type
