@@ -3,17 +3,17 @@
 # TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
+        "url": "https://www.ilfattoquotidiano.it/2023/04/19/calderone-offerte-di-lavoro-distanti-da-casa-per-donne-con-figli-non-e-unimposizione-le-opportunita-ci-sono-anche-nei-territori/7135407/",
         "test_data_path": "crwilfattoquotidiano/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
+        "url": "https://www.ilfattoquotidiano.it/2023/04/19/sudan-chiuse-decine-di-ospedali-e-tregua-violata-germania-blocca-levacuazione-di-150-cittadini-tedeschi/7135281/",
         "test_data_path": "crwilfattoquotidiano/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
+        "url": "https://www.ilfattoquotidiano.it/2023/04/18/siccita-non-conta-solo-quanta-acqua-cade-dal-cielo-ma-come-ora-siamo-di-nuovo-in-emergenza/7133824/",
         "test_data_path": "crwilfattoquotidiano/test/data/test_article_3.json"
     }
 ]
 # TODO:Update below sitemap URL
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://www.ilfattoquotidiano.it/in-edicola/edizione/"

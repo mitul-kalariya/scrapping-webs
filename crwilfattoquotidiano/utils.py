@@ -265,22 +265,23 @@ def get_content(response):
         return [re.sub(r"[\n\t\r\"]", "", text).strip()]
 
 def get_images(response):
+    data = []
     images = response.css("div.swiper-slide.swiper-change-height a::attr(href)").getall()
     multi_images = response.css("img.alignnone.size-full::attr(src)").getall()
-    data = []
+    article_img = response.css("picture.main-image-article img::attr(src)").get()
+    if article_img:
+        data.append({"link":article_img})
     if images:
         for img in range(len(images)):
             temp_dict = {}
             temp_dict["link"] = images[img]
             data.append(temp_dict)
-        return [data]
     if multi_images:
         for img in range(len(multi_images)):
             temp_dict = {}
             temp_dict["link"] = multi_images[img]
             data.append(temp_dict)
-        return [data]
-
+    return data
 
 
 
