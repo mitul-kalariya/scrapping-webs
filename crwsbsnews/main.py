@@ -68,7 +68,6 @@ class Crawler:
         """
 
         process = CrawlerProcess()
-        process_settings = process.settings
         process_settings = get_project_settings()
         process.settings = process_settings
         if self.query["type"] == "article":
