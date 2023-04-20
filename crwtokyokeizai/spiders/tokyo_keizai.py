@@ -106,11 +106,19 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                     },
                 )
                 for link in links:
-                    if link.split(".")[-2].split("-")[-1] in [str(TODAYS_DATE.year), str(TODAYS_DATE.year - 1)]:
+                    if link.split(".")[-2].split("-")[-1] in [
+                        str(TODAYS_DATE.year),
+                        str(TODAYS_DATE.year - 1),
+                    ]:
                         yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
-                yield scrapy.Request(response.url, callback=self.parse_article)
+                read_more = response.css("div.gallery-follow-btn a::attr(href)").get()
+                if read_more:
+                    response_str = "https://toyokeizai.net" + read_more
+                    yield scrapy.Request(response_str, callback=self.parse_article)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_article)
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -140,15 +148,21 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 articles_links_lastmod = []
                 for link in links:
                     if len(link.getchildren()) > 1:
-                            for i in link:
-                                if i.text in ["", " ", None]:
-                                    continue
-                                if "category" in i.text:
-                                    break
-                                if i.tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}loc":
-                                    articles_links.append(i.text)
-                                if i.tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod":
-                                    articles_links_lastmod.append(i.text)
+                        for i in link:
+                            if i.text in ["", " ", None]:
+                                continue
+                            if "category" in i.text:
+                                break
+                            if (
+                                    i.tag
+                                    == "{http://www.sitemaps.org/schemas/sitemap/0.9}loc"
+                            ):
+                                articles_links.append(i.text)
+                            if (
+                                    i.tag
+                                    == "{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"
+                            ):
+                                articles_links_lastmod.append(i.text)
 
                 print(len(articles_links))
                 print(len(articles_links_lastmod))
@@ -188,13 +202,10 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
 
-            # read_more = response.css("div.gallery-follow-btn a::attr(href)").get()
-            # if read_more:
             premium_class = response.css(".member-login-parts p::text").getall()
             if not premium_class:
                 pagination_links = response.css(
@@ -203,9 +214,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 pagination_links = list(set(pagination_links))
                 if pagination_links:
                     for link in pagination_links:
-                        print("##################################################", link)
                         response_str = "https://toyokeizai.net" + link
-                        breakpoint()
                         yield scrapy.Request(
                             url=response_str,
                             callback=self.parse_pagination_page,
@@ -216,7 +225,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                             },
                         )
 
-                    # Retun data after all pagination pages are scrapped
 
             else:
                 articledata_loader = ItemLoader(item=ArticleData(), response=response)
@@ -237,14 +245,12 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             ) from exception
 
     def parse_pagination_page(self, response):
-        # Extract article data from paginated pages
+        """Extract article data from paginated pages"""
+
         global final_parsed_data, final_raw_response, final_parsed_json
-        # breakpoint()
-        print("1111111111111111111111111111111111111111111111111111111")
         previous_raw_response = response.meta.get("raw_response")
         previous_response_json = response.meta.get("response_json")
         previous_response_data = response.meta.get("response_data")
-        breakpoint()
 
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
@@ -252,100 +258,35 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
 
         raw_response_sorted = {i: raw_response[i] for i in previous_raw_response.keys()}
         keys = previous_raw_response.keys()
-        if raw_response_sorted.values() not in previous_raw_response.values():
-            values = zip(previous_raw_response.values(), raw_response_sorted.values())
-            final_raw_response = dict(zip(keys, values))
-            print("*****************************", final_raw_response)
 
-        response_json_sorted = {i: response_json[i] for i in previous_response_json.keys()}
+        values = zip(previous_raw_response.values(), raw_response_sorted.values())
+        final_raw_response = dict(zip(keys, values))
+
+        response_json_sorted = {
+            i: response_json[i] for i in previous_response_json.keys()
+        }
         keys = previous_response_json.keys()
-        if response_json_sorted.values() not in previous_response_json.values():
-            values = zip(previous_response_json.values(), response_json_sorted.values())
-            final_parsed_json = dict(zip(keys, values))
-            print("*****************************", final_parsed_json)
+        values = zip(previous_response_json.values(), response_json_sorted.values())
+        final_parsed_json = dict(zip(keys, values))
 
-        # for r_data in response_data:
-        #     response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
-        #     breakpoint()
-        #     keys = previous_response_data[0].keys()
-        #     # if response_data_sorted.values() not in previous_response_data[0].values():
-        #         # breakpoint()
-        #     values = zip(list(set(previous_response_data[0].values(),response_data_sorted.values())))
-        #     final_parsed_data = dict(zip(keys, values))
-        #     print("*****************************",final_parsed_data)
+        new_dict = {
+            i: [response_data[0][i], previous_response_data[0][i]]
+            for i in previous_response_data[0].keys()
+            if previous_response_data[0][i] != response_data[0][i]
+        }
+        final_data = {}
+        for i in previous_response_data[0].keys():
+            if type(previous_response_data[0][i]) is not list:
+                final_data[i] = [previous_response_data[0][i]]
+            else:
+                final_data[i] = previous_response_data[0][i]
 
-        new_dict = {i: [response_data[0][i], previous_response_data[0][i]] for i in previous_response_data[0].keys() if
-                    previous_response_data[0][i] != response_data[0][i]}
-        breakpoint()
-        # for i in new_dict.values():
-        #     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",i)
-        final_data = previous_response_data[0]
-        # for i in previous_response_data:
-        #     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!", i)
         final_data.update(new_dict)
-
-        print(final_data)
-        # for v in final_data.values():
-
-
-        # for r_data in response_data:
-        #     response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
-        #     keys = previous_response_data[0].keys()
-        #     breakpoint()
-        #     # if response_data_sorted not in keys:
-        #     # for key in previous_response_data:
-        #     #     if response_data[0].get(key):
-        #     #         continue
-        #     # if response_data[0].keys() in keys:
-        #     #     continue
-        #     # for key in crucial.keys():
-        #     #     if key in dishes.keys():
-        #     #         print(dishes[key])
-        #     # for r_val in response_data[0].values():
-        #     #     if r_val in previous_response_data[0].values():
-        #     #         continue
-        #     #     else:
-        #     #         values = zip(r_val, response_data_sorted.values())
-        #     #         final_parsed_data = dict(zip(keys, values))
-        #     #         print("*****************************", final_parsed_data)
-        #     for k, v in response_data[0].items():
-        #         if v in previous_response_data[0].values():
-        #             continue
-        #         else:
-        #             previous_response_data[0][k] = v
-        #             final_parsed_data = dict(zip(keys, values))
-        #             print("*****************************", final_parsed_data)
-
+        breakpoint()
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         articledata_loader.add_value("raw_response", final_raw_response)
         articledata_loader.add_value("parsed_json", final_parsed_json)
         articledata_loader.add_value("parsed_data", final_data)
-
-        # for key in raw_response.keys():
-        #     breakpoint()
-        #     if previous_raw_response.get(key):
-        #         #
-        #         pass
-        #     else:
-        #         previous_raw_response[key] = raw_response[key]
-
-        # previous_raw_response.update(raw_response)
-        # previous_response_json.update(response_json)
-        # # breakpoint()
-        # # for data in response_data:
-        # #     breakpoint()
-        # #     previous_response_data.update(data)
-        # previous_response_data.append(response_data)
-
-        # return updated data
-        # return previous_raw_response, previous_response_json, previous_response_data[0]
-        # breakpoint()
-        # articledata_loader = ItemLoader(item=ArticleData(), response=response)
-        # articledata_loader.add_value("raw_response", previous_raw_response)
-        # articledata_loader.add_value("parsed_json", previous_response_json)
-        # articledata_loader.add_value("parsed_data", previous_response_data[0])
-        #
-        # breakpoint()
 
         self.articles.append(dict(articledata_loader.load_item()))
         return articledata_loader.item
@@ -361,7 +302,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
