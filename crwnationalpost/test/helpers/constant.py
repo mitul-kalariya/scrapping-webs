@@ -1,6 +1,5 @@
 """list of article/sitemap URLs for testing"""
 
-#TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
         "url": "https://nationalpost.com/pmn/news-pmn/no-reason-for-china-to-overreact-to-transit-by-taiwans-president-senior-us-officials-say",
@@ -31,5 +30,4 @@ TEST_ARTICLES = [
         "test_data_path":"crwnationalpost/test/data/test_article_7.json"
     }
 ]
-#TODO:Update below sitemap URL
 SITEMAP_URL = "https://nationalpost.com/sitemap.xml"
