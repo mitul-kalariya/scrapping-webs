@@ -1,5 +1,4 @@
 import scrapy
-import logging
 from datetime import datetime, timedelta
 from lxml import etree
 from crwmetropoles import exceptions
@@ -250,10 +249,8 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
                 self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
-
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while writing json file{str(exception)} - {reason}"

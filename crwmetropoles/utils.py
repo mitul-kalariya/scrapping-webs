@@ -13,8 +13,6 @@ def create_log_file():
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        filename="logs.log",
-        filemode="a",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -237,7 +235,8 @@ def get_parsed_data(response):
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
 
-        article_text = response.css("article.m-content p::text").getall()
+        article_text = response.css(
+            "article.m-content p::text, article.m-content p a::text, article.m-content p strong::text").getall()
 
         main_dict["text"] = [" ".join(article_text)]
 
@@ -248,7 +247,7 @@ def get_parsed_data(response):
         if images:
             main_dict["images"] = images
 
-        main_dict["embed_video_link"] = response.css("article iframe::attr(src)").getall()
+        main_dict["embed_video_link"] = response.css("iframe::attr(src)").getall()[1:]
         main_dict["source_language"] = ["Portuguese"]
 
         main_dict["source_country"] = ["Brazil"]
