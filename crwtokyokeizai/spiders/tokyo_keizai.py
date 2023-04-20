@@ -193,7 +193,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
 
-
             # read_more = response.css("div.gallery-follow-btn a::attr(href)").get()
             # if read_more:
             premium_class = response.css(".member-login-parts p::text").getall()
@@ -245,37 +244,25 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
         previous_raw_response = response.meta.get("raw_response")
         previous_response_json = response.meta.get("response_json")
         previous_response_data = response.meta.get("response_data")
-
+        breakpoint()
 
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
         response_data = [get_parsed_data(response)]
-
-        # breakpoint()
-        # Merge previous and current data
-
-        # dict1 = {'m': 11, 'n': 4} #previous_raw_response
-        # dict2 = {'m': 3, 'n': 1} #raw_response
-
-        # dict2_sorted = {i: dict2[i] for i in dict1.keys()}
-        # keys = dict1.keys()
-        # values = zip(dict1.values(), dict2_sorted.values())
-        # dictionary = dict(zip(keys, values))
-        # print(dictionary)
 
         raw_response_sorted = {i: raw_response[i] for i in previous_raw_response.keys()}
         keys = previous_raw_response.keys()
         if raw_response_sorted.values() not in previous_raw_response.values():
             values = zip(previous_raw_response.values(), raw_response_sorted.values())
             final_raw_response = dict(zip(keys, values))
-            print("*****************************",final_raw_response)
+            print("*****************************", final_raw_response)
 
         response_json_sorted = {i: response_json[i] for i in previous_response_json.keys()}
         keys = previous_response_json.keys()
         if response_json_sorted.values() not in previous_response_json.values():
             values = zip(previous_response_json.values(), response_json_sorted.values())
             final_parsed_json = dict(zip(keys, values))
-            print("*****************************",final_parsed_json)
+            print("*****************************", final_parsed_json)
 
         # for r_data in response_data:
         #     response_data_sorted = {i: r_data[i] for i in previous_response_data[0].keys()}
@@ -286,28 +273,19 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
         #     values = zip(list(set(previous_response_data[0].values(),response_data_sorted.values())))
         #     final_parsed_data = dict(zip(keys, values))
         #     print("*****************************",final_parsed_data)
-        #
 
         new_dict = {i: [response_data[0][i], previous_response_data[0][i]] for i in previous_response_data[0].keys() if
                     previous_response_data[0][i] != response_data[0][i]}
+        breakpoint()
+        # for i in new_dict.values():
+        #     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",i)
         final_data = previous_response_data[0]
+        # for i in previous_response_data:
+        #     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!", i)
         final_data.update(new_dict)
+
         print(final_data)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        # for v in final_data.values():
 
 
         # for r_data in response_data:
@@ -337,7 +315,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
         #             previous_response_data[0][k] = v
         #             final_parsed_data = dict(zip(keys, values))
         #             print("*****************************", final_parsed_data)
-
 
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         articledata_loader.add_value("raw_response", final_raw_response)
