@@ -12,7 +12,8 @@ from crwglobonewsonline.utils import (
     check_cmd_args,
     get_parsed_data,
     get_raw_response,
-    get_parsed_json
+    get_parsed_json,
+    export_data_to_json_file
 )
 from crwglobonewsonline.exceptions import (
     SitemapScrappingException,
@@ -47,8 +48,7 @@ class BaseSpider(ABC):
 
 class GloboNewsOnline(scrapy.Spider, BaseSpider):
     name = "globo_news"
-    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9',
-                 'news': "http://www.google.com/schemas/sitemap-news/0.9"}
+    namespace = {'sitemap': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
 
     def __init__(
             self, type=None, start_date=None,
@@ -103,17 +103,15 @@ class GloboNewsOnline(scrapy.Spider, BaseSpider):
                     .xpath('//sitemap:loc/text()', namespaces=self.namespace).getall()
 
                 for url in site_map_url:
-                    breakpoint()
-                    date = "-".join(url.split('/')[-1].split('.')[0].split('-')[:2])
-                    _date = datetime.strptime(f"{date}", '%Y-%B')
+                    split_url = url.split('/')
+                    url_date = str(split_url[-3]) + '/' + str(split_url[-2]) + '/' + str(split_url[-1].split('_')[0])
+                    _date = datetime.strptime(f"{url_date}", '%Y/%m/%d')
                     if self.today_date:
-                        if (_date.year, _date.month) == (self.today_date.year, self.today_date.month):
+                        if (_date.year, _date.month, _date.day) == (self.today_date.year, self.today_date.month, self.today_date.day):
                             yield response.follow(url, callback=self.parse_sitemap)
                     else:
-                        if (self.start_date.year, self.start_date.month) <= (_date.year, _date.month) <= \
-                                (self.end_date.year, self.start_date.month):
-                            yield scrapy.Request(
-                                url, callback=self.parse_sitemap)
+                        if self.start_date <= _date <= self.end_date:
+                            yield response.follow(url, callback=self.parse_sitemap)
 
             elif self.type == "article":
                 yield self.parse_article(response)
@@ -142,7 +140,11 @@ class GloboNewsOnline(scrapy.Spider, BaseSpider):
                    namespaces=self.namespace).getall()
         try:
             for url, date in zip(article_urls, mod_date):
+                # split_url = url.split('/')
+                # url_date = str(split_url[-4]) + '/' + str(split_url[-3]) + '/' + str(split_url[-2])
+                # _date = datetime.strptime(f"{url_date}", '%Y/%m/%d')
                 _date = datetime.strptime(date.split("T")[0], '%Y-%m-%d')
+                
                 if self.today_date:
                     if _date == self.today_date:
                         article = {
@@ -229,10 +231,12 @@ class GloboNewsOnline(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            if self.output_callback is not None:
-                self.output_callback(self.articles)
+            # if self.output_callback is not None:
+            #     self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(
