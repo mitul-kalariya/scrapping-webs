@@ -31,7 +31,7 @@ ERROR_MESSAGES = {
     "InvalidArgumentException": "Please provide a valid arguments.",
 }
 
-language_mapper = {"en": "English", "zh-hk": "Chinese", "zh-hant": "Chinese (Traditional)"}
+language_mapper = {"en": "English", "pt-br": "Portuguese (Brazil)"}
 
 
 def sitemap_validations(
@@ -312,7 +312,10 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
     """
     parsed_json_images = parsed_json.get("imageObjects")
     parsed_json_main = parsed_json.get("main")
-    data_dict = get_all_details_of_block(parsed_json_main)
+    parsed_json_misc = parsed_json.get("misc")
+    misc_data = json.loads(parsed_json_misc[0][0])
+
+    data_dict = get_all_details_of_block(parsed_json_main, misc_data)
     text = " ".join(response.css("div.article-detail p::text, div.article-detail p a::text").getall())
     space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
 
@@ -320,10 +323,10 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
-        "source_country": ["China"],
+        "source_country": ["brazil"],
         "source_language": [language_mapper.get(
             response.css("html::attr(lang)").get("").lower(),
-            response.css("html::attr(lang)").get("Chinese")
+            response.css("html::attr(lang)").get()
         )],
     }
     parsed_data_dict |= {"author": data_dict.get("author")}
@@ -400,16 +403,59 @@ def get_parsed_data_using_selenium(response: str, parsed_json: dict, selenium_da
     return parsed_data_dict
 
 
-def get_all_details_of_block(block: dict) -> dict:
+def get_all_details_of_misc_block(misc_block) -> dict:
+    """get realted details from misc block and return related dict
+
+    Args:
+        misc_block (dict): misc block of application json
+
+    Returns:
+        dict: data from misc block
+    """
+
+    data_dict = {
+        "description": misc_block.get("description", "").strip(),
+        "modified_at": misc_block.get("dateModified"),
+        "published_at": misc_block.get("datePublished"),
+        "publisher_id": misc_block.get("publisher", {}).get("url"),
+        "publisher_type": misc_block.get("publisher", {}).get("@type"),
+        "publisher_name": misc_block.get("publisher", {}).get("name"),
+        "logo_type": misc_block.get("publisher", {}).get("logo", {}).get("@type"),
+        "logo_url": misc_block.get("publisher", {}).get("logo", {}).get("url"),
+        "logo_width": misc_block.get("publisher", {}).get("logo", {}).get("width"),
+        "logo_height": misc_block.get("publisher", {}).get("logo", {}).get("height"),
+        "title": misc_block.get("headline", {}),
+        "thumbnail_image": misc_block.get("thumbnailUrl"),
+        "headline": misc_block.get("headline"),
+        "tags": misc_block.get("keywords"),
+        "sections": misc_block.get("articleSection")
+    }
+    data_dict["author"] = []
+    if misc_block.get("authors"):
+        author_names = misc_block.get("authors", [])
+        if not isinstance(author_names, list) and isinstance(author_names, str):
+            author_names_list = [author_names]
+        else:
+            author_names_list = author_names
+        for author_name in author_names_list:
+            data_dict["author"].append({
+                "@type": misc_block.get("author").get("@type"),
+                "name": author_name
+            })
+    return data_dict
+
+
+def get_all_details_of_block(block: dict, misc_block: dict) -> dict:
     """
     get all details from main block
     Args:
         block: json/+ld data
+        misc_block: json block
     Returns:
         str : author and publisher details
     """
     if not block:
-        return {}
+        return get_all_details_of_misc_block(misc_block)
     data_dict = {
         "description": block.get("description", "").strip(),
         "modified_at": block.get("dateModified"),
@@ -519,52 +565,3 @@ def get_publisher_detail(data_dict: dict) -> list:
                     "name": f"{data_dict.get('logo_height')} px"
                 } if data_dict.get("logo_width") else None
             }}]
-
-
-def get_all_data_from_selenium(url: str) -> dict:
-    """return all data_scrapped using selenium
-
-    Args:
-        url (str): url of article
-
-    Returns:
-        dict: data with key, value pair
-    """
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    driver.get(url)
-    total_height = int(driver.execute_script("return document.body.scrollHeight"))
-    for i in range(1, total_height, 10):
-        driver.execute_script("window.scrollTo(0, {});".format(i))
-    ld_json_blocks = WebDriverWait(driver, 20).until(
-        EC.presence_of_all_elements_located((By.XPATH, '//script[@type="application/ld+json"]'))
-    )
-    misc = driver.find_elements(By.XPATH, '//script[@type="application/json"]')
-    ld_json_blocks_list = []
-    for ld_json_block in ld_json_blocks:
-        ld_json_blocks_list.append(ld_json_block.get_attribute("innerHTML"))
-    misc_lst = [element.get_attribute("innerHTML") for element in misc]
-    parsed_json = get_parsed_json_filter(ld_json_blocks_list, misc_lst)
-    text_elements = WebDriverWait(driver, 50).until(
-        EC.presence_of_all_elements_located((
-            By.CSS_SELECTOR,
-            'div.article-detail p, div.article-detail p a, div.article-detail p span, div.article-detail p'
-        ))
-    )
-    text = " ".join([text_element.text for text_element in text_elements])
-    space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
-
-    image_data = [img.get_property("src") for img in driver.find_elements(By.CSS_SELECTOR, 'div.photo-group-item img')]
-
-    data = {
-        "ld_json_blocks": ld_json_blocks_list,
-        "misc": misc_lst,
-        "content-type": "text/html;charset=UTF-8",
-        'content': driver.page_source,
-        "parsed_json": parsed_json,
-        "text": space_removed_text,
-        "images": image_data,
-    }
-    driver.close()
-    return data

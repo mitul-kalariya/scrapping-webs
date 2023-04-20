@@ -18,8 +18,6 @@ from crwoglobo.utils import (
     get_parsed_json,
     get_parsed_data,
     remove_empty_elements,
-    get_all_data_from_selenium,
-    get_parsed_data_using_selenium,
 )
 from crwoglobo.exceptions import (
     SitemapScrappingException,
@@ -57,7 +55,6 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
     name = "oglobo"
     start_urls = [BASE_URL]
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-    news_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
@@ -122,7 +119,29 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
             )
         self.logger.info("Parse function called on %s", response.url)
         if "sitemap.xml" in response.url:
-            self.parse_sitemap(response)
+            for single_date in self.date_range_lst:
+                try:
+                    day = (
+                        single_date.day
+                        if len(str(single_date.day)) > 1
+                        else f"0{single_date.day}"
+                    )
+                    month = (
+                        single_date.month
+                        if len(str(single_date.month)) > 1
+                        else f"0{single_date.month}"
+                    )
+                    year = single_date.year
+                    self.logger.debug("Parse function called on %s", response.url)
+                    yield scrapy.Request(
+                        f"https://oglobo.globo.com/sitemap/oglobo/{year}/{month}/{day}_1.xml",
+                        callback=self.parse_sitemap,
+                    )
+                except Exception as exception:
+                    self.log(
+                        f"Error occurred while iterating sitemap url. {str(exception)}",
+                        level=logging.ERROR,
+                    )
         else:
             yield self.parse_article(response)
 
@@ -137,18 +156,11 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            for url, date, title in zip(
-                Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-                Selector(response, type="xml").xpath(
-                    "//sitemap:publication_date/text()",
-                    namespaces=self.news_namespace
-                ).getall(),
-                Selector(response, type="xml").xpath("//sitemap:title/text()", namespaces=self.news_namespace).getall(),
+            for article_url in (
+                Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall()
             ):
-                date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
-                if date_datetime.date() in self.date_range_lst:
-                    data = {"link": url, "title": title.strip()}
-                    self.articles.append(data)
+                data = {"link": article_url}
+                self.articles.append(data)
         except Exception as exception:
             self.log(
                 "Error occurred while scrapping urls from given sitemap url. "
@@ -170,24 +182,12 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            use_selenium = False
-            if "https://invest.hket.com/" in response.url or "https://ps.hket.com/" in response.url:
-                use_selenium = True
-                data = get_all_data_from_selenium(response.url)
-            if use_selenium:
-                raw_response_dict = {
-                    "content_type": data.get("content-type"),
-                    "content": data.get("content"),
-                }
-                parsed_json_data = data.get("parsed_json")
-                parsed_data = get_parsed_data_using_selenium(response, parsed_json_data, data)
-            else:
-                raw_response_dict = {
-                    "content_type": response.headers.get("Content-Type").decode("utf-8"),
-                    "content": response.text,
-                }
-                parsed_json_data = get_parsed_json(response)
-                parsed_data = get_parsed_data(response, parsed_json_data)
+            raw_response_dict = {
+                "content_type": response.headers.get("Content-Type").decode("utf-8"),
+                "content": response.text,
+            }
+            parsed_json_data = get_parsed_json(response)
+            parsed_data = get_parsed_data(response, parsed_json_data)
 
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
@@ -251,7 +251,7 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
                 import json
-                with open("/home/siddharth/scrapy/newton-scrapping/Article/{datetime.now()}.json", "+w", encoding="utf-8") as file:
+                with open(f"/home/siddharth/scrapy/newton-scrapping/Article/{datetime.strftime(datetime.now(),'%d_%m_%Y')}.json", "+w", encoding="utf-8") as file:
                     json.dump(self.articles, file, indent=4, ensure_ascii = False)
         except Exception as exception:
             self.log(
