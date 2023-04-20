@@ -193,7 +193,7 @@ def get_parsed_data(response,enable_selenium):
 
         main_dict["text"] = get_text(response)
 
-        main_dict["thumbnail_image"] = get_thumbnail_image(response)
+        main_dict["thumbnail_image"] = [response.css("meta[itemprop=\"thumbnailUrl\"]::attr(content)").get()]
 
         title = response.css(
             "meta[property='og:title']::attr(content)"
@@ -261,25 +261,6 @@ def get_text(response):
         raise exceptions.ArticleScrappingException(
             f"Error occured while getting parsed json {exception}"
         ) from exception
-
-
-def get_thumbnail_image(response):
-    """
-    extract thumbnail images from the article
-    Returns:
-        thumbnail image url
-    """
-    images = []
-    main_data = get_main(response)
-    thumbnail_url = main_data[0].get("thumbnailUrl", None)
-    image = main_data[0].get("image", None)
-    if thumbnail_url:
-        images.append(thumbnail_url)
-    elif image:
-        images.append(image[0])
-    else:
-        return []
-    return images
 
 
 def get_main(response):
