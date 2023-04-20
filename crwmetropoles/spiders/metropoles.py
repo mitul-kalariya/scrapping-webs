@@ -252,7 +252,7 @@ class MetropolesSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
 
             if not self.articles:
-                self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+                LOGGER.info("No articles or sitemap url scrapped.")
 
         except Exception as exception:
             LOGGER.info(

@@ -1,4 +1,4 @@
-# {MetropolesSpider} Scrapping
+# MetropolesSpider Scrapping
 
 #### Setup and execution instructions: - 
 
@@ -19,6 +19,8 @@ This repo contains the code to scrap all article links and articles from {BASE_U
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
+
+*Note:* Here we are getting data from sitemap.
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
