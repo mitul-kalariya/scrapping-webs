@@ -124,7 +124,6 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 link = link[2:]
             article = {"link": link,
                        "title": sitemap_data.css('::text').get()}
-            breakpoint()
             self.articles.append(article)
 
     # def parse_link_feed(self, response: scrapy):
