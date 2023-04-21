@@ -6,6 +6,7 @@ import re
 import json
 import logging
 from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 from w3lib.html import remove_tags
 from crwskytg24 import exceptions
 from crwskytg24.constant import TODAYS_DATE, LOGGER
@@ -132,17 +133,22 @@ def get_parsed_json(response):
         image_objects = []
         video_objects = []
         other_data = []
-        ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-        for ld_json in ld_json_data:
-            data = json.loads(ld_json)
-            if data.get("@type") == "NewsArticle" or "BlogPosting":
-                parsed_json["main"] = data
-            elif "ImageObject" in data.get("@type"):
-                image_objects.append(data)
-            elif "VideoObject" in data.get("@type"):
-                video_objects.append(data)
+        ld_json_data = [
+            json.loads(ld_json)
+            for ld_json in response.css(
+                'script[type="application/ld+json"]::text'
+            ).getall()
+        ]
+
+        for ld_json in ld_json_data[0]:
+            if ld_json.get("@type") == "NewsArticle":
+                parsed_json["main"] = ld_json
+            elif "ImageObject" in ld_json.get("@type"):
+                image_objects.append(ld_json)
+            elif "VideoObject" in ld_json.get("@type"):
+                video_objects.append(ld_json)
             else:
-                other_data.append(data)
+                other_data.append(ld_json)
 
         parsed_json["imageObjects"] = image_objects
         parsed_json["videoObjects"] = video_objects
@@ -164,15 +170,15 @@ def get_parsed_data(response):
         dict: returns 2 dictionary parsed_json and parsed_data
     """
     try:
-        pattern = r"[\r\n\t]+"
         main_dict = {}
         main_data = get_main(response)
-        main_dict["description"] = [response.css("meta[property=\"og:description\"]::attr(content)").get()]
+        main_dict["description"] = [
+            response.css('meta[property="og:description"]::attr(content)').get()
+        ]
 
-        title = main_data.get("headline")
-        if title:
-            title = re.sub(pattern, "", title).strip()
-            main_dict["title"] = [title]
+        main_dict["title"] = [
+            response.css('meta[property="og:title"]::attr(content)').get()
+        ]
 
         main_dict["published_at"] = [main_data.get("datePublished")]
 
@@ -186,13 +192,13 @@ def get_parsed_data(response):
 
         main_dict["text"] = get_content(response)
 
-        main_dict["tags"] = get_tags(response)
+        main_dict["tags"] = main_data.get("keywords")
 
-        main_dict["thumbnail_image"] = [main_data.get("image")]
+        main_dict["thumbnail_image"] = [main_data.get("thumbnailurl")]
 
         main_dict["images"] = get_images(response)
 
-        mapper = {"it-IT": "Italian"}
+        mapper = {"it": "Italian"}
         article_lang = response.css("html::attr(lang)").get()
         main_dict["source_language"] = [mapper.get(article_lang)]
 
@@ -214,75 +220,110 @@ def get_main(response):
     Returns:
         dict: main data related details
     """
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
+    ld_json_data = json.loads(
+        response.css('script[type="application/ld+json"]::text').get()
+    )
     for ld_json in ld_json_data:
-        if "NewsArticle" or "BlogPosting" in ld_json:
-            return json.loads(ld_json)
-
-def get_tags(response):
-    """
-    get the tags for the article
-    Args:
-        response: provided response
-    Returns:
-        dict: tags related details
-    """
-    tags = response.css("meta[property=\"article:tag\"]::attr(content)").getall()
-    if tags:
-        return tags
+        if "NewsArticle" in ld_json.get("@type"):
+            return ld_json
 
 
-def get_video(response):
+def get_images(response):
     """
-    get the video for the article
-    Args:
-        response: provided response
-    Returns:
-        dict: video related details
+    function to get the images from the response
+    Args: response object
+    returns: list of images and caption
     """
-    ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
-    data={}
-    for ld_json in ld_json_data:
-        if "VideoObject" in ld_json:
-            data =  json.loads(ld_json)
-    if data:
-        video_url = data.get("contentUrl")
-        return [video_url]
+    images_block = response.css("div.c-gallery-item__content-wrapper")
+    intro_image = response.css("img.c-intro__img::attr(src)").get()
+    image_gallery = response.css(
+        "div.s-gallery-inline div.c-inline-gallery__carousel-wrapper img"
+    )
+    image_gallery_caption = response.css(
+        "div.s-gallery-inline div.c-inline-gallery__text p"
+    )
+    hero_image = response.css(
+        "div.c-hero.c-hero--reverse-m.c-hero--reverse-t.c-hero--bg-colored-m img[class='c-hero__img']::attr(src)"
+    ).get()
+    image_between_block = response.css("div[class='c-inline-image l-spacing-m'] figure")
+    data = []
+    if hero_image:
+        dict = {}
+        dict["link"] = hero_image
+        data.append(dict)
+    if intro_image:
+        dict = {}
+        dict["link"] = intro_image
+        data.append(dict)
+    if images_block:
+        for image in images_block:
+            temp_dict = {}
+            temp_dict["link"] = image.css(
+                "noscript img.c-gallery-item__img::attr(src)"
+            ).get()
+            caption = image.css("p.c-gallery-item__caption::text").getall()
+
+            temp_dict["caption"] = "".join(
+                [re.sub(r"[\r\n\t]+", "", cap).strip() for cap in caption]
+            )
+            data.append(temp_dict)
+    if image_gallery:
+        for image, caption in zip(image_gallery, image_gallery_caption):
+            temp_dict = {}
+            temp_dict["link"] = image.css("img::attr(src)").get()
+            temp_dict["caption"] = caption.css("p::text").get()
+            data.append(temp_dict)
+    if image_between_block:
+        for article in image_between_block:
+            temp_dict = {}
+            temp_dict["link"] = article.css("noscript img::attr(src)").get()
+            temp_dict["caption"] = article.css("figcaption::text").get()
+            data.append(temp_dict)
+    return data
 
 
 def get_content(response):
     """
-    function to get the text content for the given article
-    Args:
-        response: provided response
-    Returns:
-        dict: text related details
+    function to get content from the response object
+    Args: response object 
+    Returns: content list
     """
-    article_content = response.css("section.article-content p").getall()
-    content = [remove_tags(i) for i in article_content]
-    text = " ".join(content)
-    if text:
-        return [re.sub(r"[\n\t\r\"]", "", text).strip()]
+    article_first = response.css("div.c-article-abstract p::text").get()
+    article_content = response.css(
+        "div.c-article-section.j-article-section.l-spacing-m"
+    ).getall()
+    art = []
+    for article in article_content:
+        if article:
+            soup = BeautifulSoup(article, "html.parser")
+            for div in soup.find_all("a", {"class": "c-inline-card"}):
+                div.decompose()
+            art.append(str(soup))
+    content = [
+        re.sub(r"[\r\n\t]+", "", remove_tags(article)).strip() for article in art
+    ]
+    article = "".join(content)
+    if article_first and article:
+        return [article_first + article]
+    return [article_first]
 
-def get_images(response):
-    data = []
-    images = response.css("div.swiper-slide.swiper-change-height a::attr(href)").getall()
-    multi_images = response.css("img.alignnone.size-full::attr(src)").getall()
-    article_img = response.css("picture.main-image-article img::attr(src)").get()
-    if article_img:
-        data.append({"link":article_img})
-    if images:
-        for img in range(len(images)):
-            temp_dict = {}
-            temp_dict["link"] = images[img]
-            data.append(temp_dict)
-    if multi_images:
-        for img in range(len(multi_images)):
-            temp_dict = {}
-            temp_dict["link"] = multi_images[img]
-            data.append(temp_dict)
-    return data
 
+def get_video(response):
+    """
+    function to get video information
+
+    Arguments: response object 
+    return: list of video links
+    """
+    ld_json_data = json.loads(
+        response.css('script[type="application/ld+json"]::text').get()
+    )
+    data = {}
+    for ld_json in ld_json_data:
+        if ld_json.get("@type") == "VideoObject":
+            data = ld_json
+    if data:
+        return [data.get("embedUrl")]
 
 
 def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
