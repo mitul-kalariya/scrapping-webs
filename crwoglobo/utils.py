@@ -313,13 +313,21 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
     parsed_json_images = parsed_json.get("imageObjects")
     parsed_json_main = parsed_json.get("main")
     parsed_json_misc = parsed_json.get("misc")
-    misc_data = json.loads(parsed_json_misc[0][0])
+    response_detail = get_all_detail_from_response(response)
 
-    data_dict = get_all_details_of_block(parsed_json_main, misc_data)
-    text = " ".join(response.css("div.article-detail p::text, div.article-detail p a::text").getall())
-    space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
+    data_dict = get_all_details_of_block(parsed_json_main, parsed_json_misc)
 
-    images = get_formated_images(response, parsed_json_main, parsed_json_images)
+    images = response_detail.get("images")
+    if not images:
+        images = get_formated_images(response, parsed_json_main, parsed_json_images)
+
+    if data_dict.get("description"):
+        description = [data_dict.get("description")]
+    elif response_detail.get("alternativeHeadline"):
+        description = [response_detail.get("alternativeHeadline")]
+    else:
+        description = response.xpath("//meta[@name='description']/@content").extract()
+    
 
     parsed_data_dict = get_parsed_data_dict()
     parsed_data_dict |= {
@@ -329,20 +337,19 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
             response.css("html::attr(lang)").get()
         )],
     }
-    parsed_data_dict |= {"author": data_dict.get("author")}
+    parsed_data_dict |= {"author": response_detail.get("authors") or data_dict.get("author")}
     parsed_data_dict |= {
-        "description": [data_dict.get("description")] if data_dict.get("description")
-        else response.xpath("//meta[@name='description']/@content").extract()
+        "description": description
     }
-    parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
-    parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
+    parsed_data_dict |= {"modified_at": [data_dict.get("modified_at") or response_detail.get("date_published")]}
+    parsed_data_dict |= {"published_at": [data_dict.get("published_at") or response_detail.get("date_modified")]}
     parsed_data_dict |= {"publisher": get_publisher_detail(data_dict)}
     parsed_data_dict |= {
-        "title": [data_dict.get("title")] if data_dict.get("title")
+        "title": [response_detail.get("title")] if response_detail.get("title")
         else response.css("title::text").getall(),
-        "text": [space_removed_text],
+        "text": [response_detail.get("text")],
         "thumbnail_image": [data_dict.get("thumbnail_image")],
-        "section": response.css("li.article-header-section-list-item a::text").getall(),
+        "section": [data_dict.get("section")] or [response_detail.get("section")],
         "tags": data_dict.get("tags")
     }
     parsed_data_dict |= {
@@ -351,56 +358,49 @@ def get_parsed_data(response: str, parsed_json: dict) -> dict:
     return remove_empty_elements(parsed_data_dict)
 
 
-def get_parsed_data_using_selenium(response: str, parsed_json: dict, selenium_data: dict) -> dict:
-    """
-     Parsed data response from generated data using given response and selector
+def get_all_detail_from_response(response) -> dict:
+    """get all detail from response using scrapping
 
     Args:
-        response: provided response
-        parsed_json_main: A list of dictionary with applications/+ld data
-        selenium_data: data fetched using selenium
+        response (response): response of scrapy parse function
 
     Returns:
-        Dictionary with Parsed json response from generated data
+        dict: detail of all details in dict
     """
-    parsed_json_images = parsed_json.get("imageObjects")
-    parsed_json_main = parsed_json.get("main")
-    data_dict = get_all_details_of_block(parsed_json_main)
-    image_data = {
-        "image_urls": selenium_data.get("images")
-    }
-    images = get_formated_images(response, parsed_json_main, parsed_json_images, image_data)
+    images = []
+    captions = response.css("span.name::text").getall()
+    if not captions:
+        captions = (" ".join(response.css("figure figcaption::text").getall())).split("1 de 1 \r")
+    for image_link, caption in itertools.zip_longest(
+        response.css("figure img::attr(src)").getall(), captions
+    ):
+        if image_link:
+            images.append({
+                "link": image_link,
+                "caption": caption
+            })
+    text = " ".join(response.css("article p::text,article p a::text,article li::text,article li a::text,article h3::text, article strong::text, article h2::text").getall())
+    space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
+    authors = response.css("p.content-publication-data__from::attr(title)").getall()
+    for author_name in [author.replace("Por","").strip() for author in response.css("p.content-publication-data__from::attr(title)").getall()]:
+        if author_name not in authors:
+            authors.append(author_name)
+    author_dict_list = []
+    for author in authors:
+        author_dict_list.append({
+            "name": author
+        })
 
-    parsed_data_dict = get_parsed_data_dict()
-    parsed_data_dict |= {
-        "source_country": ["China"],
-        "source_language": [language_mapper.get(
-            response.css("html::attr(lang)").get("").lower(),
-            response.css("html::attr(lang)").get()
-        )],
-    }
-    parsed_data_dict |= {"author": data_dict.get("author")}
-    parsed_data_dict |= {
-        "description": [data_dict.get("description")] if data_dict.get("description")
-        else response.xpath("//meta[@name='description']/@content").extract()
-    }
-    parsed_data_dict |= {"modified_at": [data_dict.get("modified_at")]}
-    parsed_data_dict |= {"published_at": [data_dict.get("published_at")]}
-    parsed_data_dict |= {"publisher": get_publisher_detail(data_dict)}
-    parsed_data_dict |= {
-        "title": [data_dict.get("title").strip()] if data_dict.get("title")
-        else response.css("title::text").getall(),
-        "text": [selenium_data.get("text")],
-        "thumbnail_image": [data_dict.get("thumbnail_image")],
-        "section": [data_dict.get("sections")] if data_dict.get("sections") else response.css(
-            "li.article-header-section-list-item a::text"
-        ).getall(),
-        "tags": data_dict.get("tags")
-    }
-    parsed_data_dict |= {
+    return {
+        "title": response.css("h1.content-head__title::text").get() or response.css("title::text").get(),
+        "alternativeHeadline": response.css("h2.content-head__subtitle::text").get(),
+        "authors": author_dict_list,
+        "date_published": response.css("time[itemprop='datePublished']::attr(datetime)").getall(),
+        "date_modified": response.css("time[itemprop='dateModified']::attr(datetime)").getall(),
         "images": images,
+        "text": space_removed_text
     }
-    return parsed_data_dict
+
 
 
 def get_all_details_of_misc_block(misc_block) -> dict:
@@ -415,20 +415,15 @@ def get_all_details_of_misc_block(misc_block) -> dict:
 
     data_dict = {
         "description": misc_block.get("description", "").strip(),
-        "modified_at": misc_block.get("dateModified"),
-        "published_at": misc_block.get("datePublished"),
-        "publisher_id": misc_block.get("publisher", {}).get("url"),
-        "publisher_type": misc_block.get("publisher", {}).get("@type"),
-        "publisher_name": misc_block.get("publisher", {}).get("name"),
-        "logo_type": misc_block.get("publisher", {}).get("logo", {}).get("@type"),
-        "logo_url": misc_block.get("publisher", {}).get("logo", {}).get("url"),
-        "logo_width": misc_block.get("publisher", {}).get("logo", {}).get("width"),
-        "logo_height": misc_block.get("publisher", {}).get("logo", {}).get("height"),
+        "modified_at": misc_block.get("modified_time"),
+        "published_at": misc_block.get("published_time"),
+        "publisher_name": misc_block.get("publisher", {}),
         "title": misc_block.get("headline", {}),
         "thumbnail_image": misc_block.get("thumbnailUrl"),
-        "headline": misc_block.get("headline"),
-        "tags": misc_block.get("keywords"),
-        "sections": misc_block.get("articleSection")
+        "category": misc_block.get("category"),
+        "tags": misc_block.get("tag"),
+        "section": misc_block.get("section"),
+        "image": misc_block.get("image")
     }
     data_dict["author"] = []
     if misc_block.get("authors"):
@@ -439,13 +434,12 @@ def get_all_details_of_misc_block(misc_block) -> dict:
             author_names_list = author_names
         for author_name in author_names_list:
             data_dict["author"].append({
-                "@type": misc_block.get("author").get("@type"),
                 "name": author_name
             })
     return data_dict
 
 
-def get_all_details_of_block(block: dict, misc_block: dict) -> dict:
+def get_all_details_of_block(block: dict, parsed_json_misc: dict) -> dict:
     """
     get all details from main block
     Args:
@@ -454,8 +448,9 @@ def get_all_details_of_block(block: dict, misc_block: dict) -> dict:
     Returns:
         str : author and publisher details
     """
+    misc_block_string = re.sub(SPACE_REMOVER_PATTERN, "", parsed_json_misc[0][0]).strip()
     if not block:
-        return get_all_details_of_misc_block(misc_block)
+        return get_all_details_of_misc_block(json.loads(misc_block_string))
     data_dict = {
         "description": block.get("description", "").strip(),
         "modified_at": block.get("dateModified"),

@@ -22,7 +22,7 @@ from crwoglobo.utils import (
 from crwoglobo.exceptions import (
     SitemapScrappingException,
     ArticleScrappingException,
-    ExportOutputFileException,
+    CrawlerClosingException,
 )
 
 # Setting the threshold of logger to DEBUG
@@ -64,8 +64,8 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
         super(OGloboSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
-            self.proxies = kwargs.get('args', {}).get('proxies', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get("args", {}).get("proxies", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -229,19 +229,39 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
         try:
             stats = self.crawler.stats.get_stats()
             if (
-                stats.get(
-                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
-                    0,
+                (
+                    stats.get(
+                        "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                        0,
+                    )
+                    > 0
                 )
-                > 0
-            ) or (
-                stats.get(
-                    "downloader/request_count",
-                    0,
+                or (
+                    stats.get(
+                        "downloader/request_count",
+                        0,
+                    )
+                    == stats.get(
+                        "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                        0,
+                    )
                 )
-                == stats.get(
-                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
-                    0,
+                or (
+                    stats.get(
+                        "downloader/request_count",
+                        0,
+                    )
+                    == stats.get(
+                        "downloader/exception_type_count/twisted.internet.error.ConnectionRefusedError",
+                        0,
+                    )
+                )
+                or (
+                    stats.get(
+                        "downloader/exception_type_count/twisted.internet.error.ConnectionRefusedError",
+                        0,
+                    )
+                    > 0
                 )
             ):
                 self.output_callback("Error in Proxy Configuration")
@@ -249,15 +269,11 @@ class OGloboSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            else:
-                import json
-                with open(f"/home/siddharth/scrapy/newton-scrapping/Article/{datetime.strftime(datetime.now(),'%d_%m_%Y')}.json", "+w", encoding="utf-8") as file:
-                    json.dump(self.articles, file, indent=4, ensure_ascii = False)
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
+            raise CrawlerClosingException(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}"
             ) from exception
