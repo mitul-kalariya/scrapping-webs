@@ -7,10 +7,6 @@ import logging
 import os
 import re
 from datetime import datetime
-
-import requests
-from bs4 import BeautifulSoup
-
 from crwtokyokeizai import exceptions
 from crwtokyokeizai.constant import LOGGER, TODAYS_DATE
 
@@ -198,6 +194,7 @@ def get_parsed_data(response):
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
     try:
+        # breakpoint()
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         publisher = get_publisher(response)
@@ -223,10 +220,7 @@ def get_parsed_data(response):
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
 
-        article_text = response.css(
-            "div.article-box-blue, .market h2, .market p::text"
-        ).getall()
-        # response.css(".life div.article-box-blue, .life h2, .life p::text").getall()
+        article_text = response.css("div#article-body-inner p::text").getall()
 
         main_dict["text"] = [" ".join(article_text)]
 
@@ -327,26 +321,13 @@ def get_publisher(response):
     logo: Logo of the publisher as an image object
     """
     try:
-        try:
-            response = response.css('script[type="application/ld+json"]::text').getall()
-            json_loads = json.loads(response[0])
-            data = []
-            for block in json_loads:
-                if "publisher" in block.keys():
-                    data.append(block.get("publisher"))
-                    return data
-        except:
-            response = requests.get(response)
-            soup = BeautifulSoup(response.text, "html.parser")
-            ee = soup.find_all("script", {"type": "application/ld+json"})
-
-            # json_loads = json.loads(response[0])
-            data = []
-            for block in ee:
-                if "publisher" in block:
-                    data.append(block.get("publisher"))
-                    return data
-
+        response = response.css('script[type="application/ld+json"]::text').getall()
+        json_loads = json.loads(response[0])
+        data = []
+        for block in json_loads:
+            if "publisher" in block.keys():
+                data.append(block.get("publisher"))
+                return data
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")

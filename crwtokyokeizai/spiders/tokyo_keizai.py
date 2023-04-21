@@ -35,7 +35,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
     name = "tokyo_keizai"
 
     def __init__(
-        self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
+            self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
         """
         Initializes a web scraper object to scrape data from a website or sitemap.
@@ -106,11 +106,19 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                     },
                 )
                 for link in links:
-                    if link.split(".")[-2].split("-")[-1] in [str(TODAYS_DATE.year), str(TODAYS_DATE.year - 1)]:
+                    if link.split(".")[-2].split("-")[-1] in [
+                        str(TODAYS_DATE.year),
+                        str(TODAYS_DATE.year - 1),
+                    ]:
                         yield scrapy.Request(link, callback=self.parse_sitemap)
 
             elif self.type == "article":
-                yield scrapy.Request(response.url, callback=self.parse_article)
+                read_more = response.css("div.gallery-follow-btn a::attr(href)").get()
+                if read_more:
+                    response_str = "https://toyokeizai.net" + read_more
+                    yield scrapy.Request(response_str, callback=self.parse_article)
+                else:
+                    yield scrapy.Request(response.url, callback=self.parse_article)
 
         except BaseException as e:
             print(f"Error: {e}")
@@ -184,7 +192,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
@@ -197,9 +204,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 pagination_links = list(set(pagination_links))
                 if pagination_links:
                     for link in pagination_links:
-                        print("##################################################", link)
                         response_str = "https://toyokeizai.net" + link
-                        breakpoint()
                         yield scrapy.Request(
                             url=response_str,
                             callback=self.parse_pagination_page,
@@ -210,7 +215,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                             },
                         )
 
-                    # Retun data after all pagination pages are scrapped
 
             else:
                 articledata_loader = ItemLoader(item=ArticleData(), response=response)
@@ -231,7 +235,9 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             ) from exception
 
     def parse_pagination_page(self, response):
-        # Extract article data from paginated pages
+        """Extract article data from paginated pages"""
+
+        global final_parsed_data, final_raw_response, final_parsed_json
         previous_raw_response = response.meta.get("raw_response")
         previous_response_json = response.meta.get("response_json")
         previous_response_data = response.meta.get("response_data")
@@ -240,14 +246,40 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
         response_json = get_parsed_json(response)
         response_data = [get_parsed_data(response)]
 
-        # Merge previous and current data
-        previous_raw_response.update(raw_response)
-        previous_response_json.update(response_json)
-        for data in response_data:
-            previous_response_data.update(data)
+        raw_response_sorted = {i: raw_response[i] for i in previous_raw_response.keys()}
+        keys = previous_raw_response.keys()
 
-        # return updated data
-        return previous_raw_response, previous_response_json, previous_response_data
+        values = zip(previous_raw_response.values(), raw_response_sorted.values())
+        final_raw_response = dict(zip(keys, values))
+
+        response_json_sorted = {
+            i: response_json[i] for i in previous_response_json.keys()
+        }
+        keys = previous_response_json.keys()
+        values = zip(previous_response_json.values(), response_json_sorted.values())
+        final_parsed_json = dict(zip(keys, values))
+
+        new_dict = {
+            i: [response_data[0][i], previous_response_data[0][i]]
+            for i in previous_response_data[0].keys()
+            if previous_response_data[0][i] != response_data[0][i]
+        }
+        final_data = {}
+        for i in previous_response_data[0].keys():
+            if type(previous_response_data[0][i]) is not list:
+                final_data[i] = [previous_response_data[0][i]]
+            else:
+                final_data[i] = previous_response_data[0][i]
+
+        final_data.update(new_dict)
+        breakpoint()
+        articledata_loader = ItemLoader(item=ArticleData(), response=response)
+        articledata_loader.add_value("raw_response", final_raw_response)
+        articledata_loader.add_value("parsed_json", final_parsed_json)
+        articledata_loader.add_value("parsed_data", final_data)
+
+        self.articles.append(dict(articledata_loader.load_item()))
+        return articledata_loader.item
 
     def closed(self, reason: any) -> None:
         """
@@ -260,7 +292,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
