@@ -4,6 +4,7 @@ from crwmbnnewsonline import exceptions
 from crwmbnnewsonline.spiders.mbn_news import Mbn_news
 from scrapy.utils.project import get_project_settings
 
+
 class Crawler:
     """
     A class used to crawl the sitemap and article data.

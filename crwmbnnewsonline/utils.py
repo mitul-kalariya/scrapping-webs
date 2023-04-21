@@ -6,7 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
-from crwmbnnewsonline.constant import LINK_FEED_URL
+from crwmbnnewsonline.constant import LINK_FEED_URL, CURRENT_DATE
 from crwmbnnewsonline.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
@@ -45,7 +45,8 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
             raise InvalidArgumentException("type should be articles or sitemap")
 
     def handle_link_feed_type():
-        add_start_url(LINK_FEED_URL)
+        link_feed_url = LINK_FEED_URL + f'?page=1&date={CURRENT_DATE}'
+        add_start_url(link_feed_url)
         today_time = datetime.today().strftime("%Y-%m-%d")
         self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
         if self.end_date is not None or self.start_date is not None:

@@ -1,5 +1,6 @@
 """exceptions.py file"""
 
+
 class InvalidArgumentException(Exception):
     pass
 
