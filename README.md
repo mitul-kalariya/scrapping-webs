@@ -1,8 +1,8 @@
-# {ScrapperName} Scrapping
+# GlobalNews Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://globalnews.ca/ website and the tech stacks used are
 - Python 3.10
 - Scrapy
 
@@ -15,6 +15,7 @@ This repo contains the code to scrap all article links and articles from {BASE_U
 
 *Note:* Make sure to activate the virtual environment before executing code or installing the package.
 
+> ```Importent```: In this website's sitemap past 3 day's data is available including today
 ### Installation
 
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
@@ -22,34 +23,11 @@ Use the command `python setup.py install`. This will install the whole package i
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
-```
-# To fetch all the article links
 
-from {package_name} import Crawler
-
-proxies = {
-    "proxyIp": "168.92.23.26", # just added dummy IP
-    "proxyPort": "yourport", # example 3199
-    "proxyUsername": "yourusername",
-    "proxyPassword": "yourpassword"
-}
-
-crawler = Crawler(
-    query={
-        "type": "sitemap",
-        "domain": "{BASE_URL}",
-        "since": "2023-02-25",
-        "until": "2023-03-26"
-    },
-    proxies=proxies
-)
-
-data = crawler.crawl()
-```
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwglobalnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -60,8 +38,8 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "type": "link_feed",
+        "domain": "https://globalnews.ca/"
     },
     proxies=proxies
 )
@@ -72,7 +50,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwglobalnews import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +62,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://globalnews.ca/news/9596460/nasa-artemis-ii-moon-mission/"
     },
     proxies=proxies
 )

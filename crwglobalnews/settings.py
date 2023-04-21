@@ -1,4 +1,4 @@
-# Scrapy settings for newton_scrapping project
+# Scrapy settings for crwglobalnews project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,17 +7,23 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "newton_scrapping"
+BOT_NAME = "crwglobalnews"
 
-SPIDER_MODULES = ["newton_scrapping.spiders"]
-NEWSPIDER_MODULE = "newton_scrapping.spiders"
+SPIDER_MODULES = ["crwglobalnews.spiders"]
+NEWSPIDER_MODULE = "crwglobalnews.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "newton_scrapping (+http://www.yourdomain.com)"
+#USER_AGENT = "crwglobalnews (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
+DOWNLOADER_MIDDLEWARES = {
+    "crwglobalnews.middlewares.CustomProxyMiddleware":110
+}
+DOWNLOAD_DELAY = 0.25
+REFERER_ENABLED = False
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
@@ -45,13 +51,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "newton_scrapping.middlewares.NewtonScrappingSpiderMiddleware": 543,
+#    "crwglobalnews.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "newton_scrapping.middlewares.NewtonScrappingDownloaderMiddleware": 543,
+#    "crwglobalnews.middlewares.NewtonScrappingDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +69,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "newton_scrapping.pipelines.NewtonScrappingPipeline": 300,
+#    "crwglobalnews.pipelines.NewtonScrappingPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
