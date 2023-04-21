@@ -368,7 +368,7 @@ def get_all_detail_from_response(response) -> dict:
         dict: detail of all details in dict
     """
     images = []
-    captions = response.css("span.name::text").getall()
+    captions = response.css("span.name::text, span.name font::text").getall()
     if not captions:
         captions = (" ".join(response.css("figure figcaption::text").getall())).split("1 de 1 \r")
     for image_link, caption in itertools.zip_longest(
@@ -379,7 +379,9 @@ def get_all_detail_from_response(response) -> dict:
                 "link": image_link,
                 "caption": caption
             })
-    text = " ".join(response.css("article p::text,article p a::text,article li::text,article li a::text,article h3::text, article strong::text, article h2::text").getall())
+    text = " ".join(text.strip() for text in response.css("article p::text,article p a::text,article li::text,\
+                                 article li a::text,article h3::text, article strong::text, article h2::text,\
+                                 article font::text,article::text").getall())
     space_removed_text = re.sub(SPACE_REMOVER_PATTERN, "", text).strip()
     authors = response.css("p.content-publication-data__from::attr(title)").getall()
     for author_name in [author.replace("Por","").strip() for author in response.css("p.content-publication-data__from::attr(title)").getall()]:

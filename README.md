@@ -1,10 +1,10 @@
-# {ScrapperName} Scrapping
+# O Globo online (PT) Scrapping
 
 #### Setup and execution instructions: - 
 
-This repo contains the code to scrap all article links and articles from {BASE_URL} website and the tech stacks used are
+This repo contains the code to scrap all article links and articles from https://oglobo.globo.com/ website and the tech stacks used are
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
 
 
 #### Environment Setup
@@ -25,7 +25,7 @@ Quick example as shown below.
 ```
 # To fetch all the article links
 
-from {package_name} import Crawler
+from crwoglobo import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -37,7 +37,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}",
+        "domain": "https://oglobo.globo.com/",
         "since": "2023-02-25",
         "until": "2023-03-26"
     },
@@ -49,7 +49,7 @@ data = crawler.crawl()
 ```
 # To fetch all the article links from today's date only
 
-from {package_name} import Crawler
+from crwoglobo import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -61,7 +61,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "sitemap",
-        "domain": "{BASE_URL}"
+        "domain": "https://oglobo.globo.com/"
     },
     proxies=proxies
 )
@@ -72,7 +72,7 @@ data = crawler.crawl()
 ```
 #  To fetch the specific article details
 
-from {package_name} import Crawler
+from crwoglobo import Crawler
 
 proxies = {
     "proxyIp": "168.92.23.26", # just added dummy IP
@@ -84,7 +84,7 @@ proxies = {
 crawler = Crawler(
     query={
         "type": "article",
-        "link": {Sample article URL from test case}
+        "link": "https://oglobo.globo.com/economia/noticia/2023/04/no-stf-2-votos-a-0-para-aumentar-os-ganhos-para-o-trabalhador-com-o-fgts.ghtml"
     },
     proxies=proxies
 )
