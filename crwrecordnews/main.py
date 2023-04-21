@@ -1,7 +1,8 @@
-from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
-from crwsueddeutsche.spiders.sueddeutsche import SueddeutscheSpider
+from scrapy.crawler import CrawlerProcess
+from crwrecordnews.spiders.recordnewsonline import RecordNewsOnlineSpider
+from crwrecordnews import exceptions
+from scrapy.utils.project import get_project_settings
 
 
 class Crawler:
@@ -26,7 +27,7 @@ class Crawler:
         set data to output attribute
     """
 
-    def __init__(self, query={'type': None}, proxies={}):
+    def __init__(self, query={"type": None}, proxies={}):
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
@@ -51,7 +52,13 @@ class Crawler:
             target=self.start_crawler, args=(self.query, self.output_queue)
         )
         process.start()
-        return self.output_queue.get()
+
+        articles = self.output_queue.get()
+
+        if articles == "Error in Proxy Configuration":
+            raise exceptions.ProxyConnectionException("Error in Proxy Configuration")
+
+        return articles
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
@@ -65,10 +72,7 @@ class Crawler:
         """
 
         process = CrawlerProcess()
-        process_settings = process.settings
-        process_settings["DOWNLOAD_DELAY"] = 0.25
-        process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process_settings = get_project_settings()
         process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
@@ -76,27 +80,11 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "sitemap":
+        elif self.query["type"] == "link_feed":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
-            if self.query.get("since") and self.query.get("until"):
-                spider_args["start_date"] = self.query["since"]
-                spider_args["end_date"] = self.query["until"]
         else:
             raise Exception("Invalid Type")
 
-        if self.proxies:
-            process_settings = process.settings
-            process_settings["DOWNLOADER_MIDDLEWARES"][
-                "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
-            ] = 400
-            process_settings["HTTPPROXY_ENABLED"] = True
-            process_settings["HTTP_PROXY"] = (
-                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
-            )
-            process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
-            process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
-            process.settings = process_settings
-
-        # TODO: Change path and spider name here
-        process.crawl(NTvSpider, **spider_args)
+        spider_args["args"]["proxies"] = self.proxies
+        process.crawl(RecordNewsOnlineSpider, **spider_args)
         process.start()
