@@ -1,12 +1,14 @@
 """Spider to scrap terra news article"""
 import logging
+import requests
+import json
 from datetime import datetime, date
 from abc import ABC, abstractmethod
 import scrapy
 from scrapy.http import XmlResponse
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
-from crwskytg24.constant import SITEMAP_URL, LOGGER
+from crwskytg24.constant import LINK_FEED, LOGGER
 from crwskytg24.items import ArticleData
 from crwskytg24 import exceptions
 from crwskytg24.utils import (
@@ -116,6 +118,7 @@ class SkyTg24Spider(scrapy.Spider, BaseSpider):
         try:
             super().__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get("args", {}).get("proxies", None)
             self.start_urls = []
             self.articles = []
             self.article_url = url
@@ -124,7 +127,7 @@ class SkyTg24Spider(scrapy.Spider, BaseSpider):
             self.proxies = kwargs.get("args", {}).get("proxies", None)
 
             if self.type == "sitemap":
-                self.start_urls.append(SITEMAP_URL)
+                self.start_urls.append(LINK_FEED)
 
                 self.since = (
                     datetime.strptime(since, "%Y-%m-%d").date() if since else None
@@ -219,62 +222,86 @@ class SkyTg24Spider(scrapy.Spider, BaseSpider):
             exceptions.SitemapScrappingException: If there is an error while parsing the sitemap page.
         """  # pylint: disable=line-too-long
         try:
-            xmlresponse = XmlResponse(
-                url=response.url, body=response.body, encoding="utf-8"
-            )
-            xml_selector = Selector(xmlresponse)
-            xml_namespaces = {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            for sitemap in xml_selector.xpath(
-                "//xmlns:loc/text()", namespaces=xml_namespaces
-            ):
-                for link in sitemap.getall():
-                    if self.current_year in link:
-                        yield scrapy.Request(link, callback=self.parse_sitemap_article)
+            today_date = date.today()
+            start = 40
+            boolean_start = True
+            while boolean_start is True:
+                end = start+20
+                response_json = requests.request("GET", response.url+"/_jcr_content/root/infinite.model."+str(start)+"."+str(end)+".json")
+                article_data = json.loads(response_json.text)
+                start =end
+                for article in article_data["cardList"]:
+                    if boolean_start == True:
+                        for data in article:
+                            publish_date = data["editorialPublishedDate"]
+                            article_pub_date = datetime.fromtimestamp(publish_date / 1000).date()
+                            # data_dict = {}
+                            # data_dict["title"] = j["title"]
+                            # data_dict["url"] = j["url"]
+                            # data_dict["date"] = str(article_date)
+                            
+                            if self.since and article_pub_date < self.since:
+                                boolean_start =False
+                                break
+                            if self.since and article_pub_date > self.until:
+                                boolean_start =False
+                                break
 
+                            if self.since and self.until:
+                                link_data = {"link": data["url"], "title": data["title"]}
+                                self.articles.append(link_data)
+                            elif today_date == article_pub_date:
+                                link_data = {"link": data["url"], "title": data["title"]}
+                                self.articles.append(link_data)
+                            else:
+                                boolean_start = False
+                                break
+                    else:
+                        break    
+                        
         except BaseException as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
             )
 
-    def parse_sitemap_article(self, response):
-        """Extracts article titles and links from the response object and
-        yields a Scrapy request for each article.
-        Args:
-            self: The Scrapy spider instance calling this method.
-            response: The response object obtained after making a request to a sitemap URL.
-        Yields:
-            A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
-            method as the callback and the article link and title as metadata.
-        Raises:
-            SitemapArticleScrappingException: If an error occurs while filtering articles by date.
-        """
-        try:
-            namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
-            for link in links:
-                today = date.today().strftime("%Y/%m/%d")
-                start = link.find(self.current_year)
-                pub_date = link[start:start + 10]
-                published_at = datetime.strptime(pub_date, "%Y/%m/%d").date()
-                if self.since and published_at < self.since:
-                    continue
-                if self.since and published_at > self.until:
-                    continue
+    # def parse_sitemap_article(self, response):
+    #     """Extracts article titles and links from the response object and
+    #     yields a Scrapy request for each article.
+    #     Args:
+    #         self: The Scrapy spider instance calling this method.
+    #         response: The response object obtained after making a request to a sitemap URL.
+    #     Yields:
+    #         A Scrapy request for each article URL in the sitemap, with the `parse_sitemap_datewise`
+    #         method as the callback and the article link and title as metadata.
+    #     Raises:
+    #         SitemapArticleScrappingException: If an error occurs while filtering articles by date.
+    #     """
+    #     try:
+    #         namespaces = {"n": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    #         links = response.xpath("//n:loc/text()", namespaces=namespaces).getall()
+    #         for link in links:
+    #             today = date.today().strftime("%Y/%m/%d")
+    #             start = link.find(self.current_year)
+    #             pub_date = link[start:start + 10]
+    #             published_at = datetime.strptime(pub_date, "%Y/%m/%d").date()
+    #             if self.since and published_at < self.since:
+    #                 continue
+    #             if self.since and published_at > self.until:
+    #                 continue
 
-                if self.since and self.until:
-                    data = {"link": link, "date": str(published_at)}
-                    self.articles.append(data)
-                elif today == pub_date:
-                    data = {"link": link}
-                    self.articles.append(data)
-                else:
-                    continue
-        except Exception as exception:
-            LOGGER.info("Error while parsing sitemap article: %s", str(exception))
-            raise exceptions.SitemapArticleScrappingException(
-                f"Error while parsing sitemap article::-  {str(exception)}"
-            )
+    #             if self.since and self.until:
+    #                 data = {"link": link, "date": str(published_at)}
+    #                 self.articles.append(data)
+    #             elif today == pub_date:
+    #                 data = {"link": link, "date": str(published_at)}
+    #                 self.articles.append(data)
+                
+    #     except Exception as exception:
+    #         LOGGER.info("Error while parsing sitemap article: %s", str(exception))
+    #         raise exceptions.SitemapArticleScrappingException(
+    #             f"Error while parsing sitemap article::-  {str(exception)}"
+    #         )
 
     def closed(self, reason: any) -> None:
         """
