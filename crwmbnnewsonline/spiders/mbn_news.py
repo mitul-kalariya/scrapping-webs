@@ -10,7 +10,8 @@ from crwmbnnewsonline.items import ArticleData
 from crwmbnnewsonline.utils import (check_cmd_args,
                                     get_parsed_data,
                                     get_raw_response,
-                                    get_parsed_json
+                                    get_parsed_json,
+                                    export_data_to_json_file
                                     )
 
 from crwmbnnewsonline.exceptions import (SitemapScrappingException,
@@ -91,7 +92,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
             try:
                 total_pages = int(len(response.css('.paging_2018 a').getall())) - 4
                 for page_num in range(1, total_pages + 1):
-                    page_url = f'https://www.mbn.co.kr/news/date/?page={page_num}&date={CURRENT_DATE}'
+                    page_url = f'https://www.mbn.co.kr/news/date/?page={page_num}'
                     yield scrapy.Request(page_url, callback=self.parse_link_feed)
 
                 # sitemap_urls = (
@@ -121,7 +122,7 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         for sitemap_data in response.css('.list_area .article_list .tit a'):
             link = sitemap_data.css('::attr(href)').get()
             if link.startswith('//'):
-                link = link[2:]
+                link = link[2:].split('?')[0]
             article = {"link": link,
                        "title": sitemap_data.css('::text').get()}
             self.articles.append(article)
@@ -218,6 +219,8 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
+            else:
+                export_data_to_json_file(self.type, self.articles, self.name)
 
         except Exception as exception:
             self.log(

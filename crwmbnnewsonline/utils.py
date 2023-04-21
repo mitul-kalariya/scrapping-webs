@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from scrapy.loader import ItemLoader
 from selenium import webdriver
@@ -45,7 +46,8 @@ def check_cmd_args(self, start_date: str, end_date: str) -> None:  # noqa: C901
             raise InvalidArgumentException("type should be articles or sitemap")
 
     def handle_link_feed_type():
-        link_feed_url = LINK_FEED_URL + f'?page=1&date={CURRENT_DATE}'
+        #link_feed_url = LINK_FEED_URL + f'?page=1&date={CURRENT_DATE}'
+        link_feed_url = LINK_FEED_URL + f'?page=1'
         add_start_url(link_feed_url)
         today_time = datetime.today().strftime("%Y-%m-%d")
         self.today_date = datetime.strptime(today_time, "%Y-%m-%d")
@@ -300,3 +302,34 @@ def get_images(response, parsed_json=False) -> list:
         )
     driver.close()
     return data
+
+def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
+    """
+    Export data to json file
+    Args:
+        scrape_type: Name of the scrape type
+        file_data: file data
+        file_name: Name of the file which contain data
+    Raises:
+        ValueError if not provided
+    Returns:
+        Values of parameters
+    """
+    folder_structure = ""
+    if scrape_type == "sitemap":
+        folder_structure = "Links"
+        filename = (
+            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    elif scrape_type == "article":
+        folder_structure = "Article"
+        filename = (
+            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        )
+
+    if not os.path.exists(folder_structure):
+        os.makedirs(folder_structure)
+
+    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
+        json.dump(file_data, file, indent=4, ensure_ascii=False)
