@@ -84,8 +84,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 LOGGER.error("Error while")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
-        self.articledata_loader = []
-
     def parse(self, response: str, **kwargs) -> None:
         """
         differentiate sitemap and article and redirect its callback to different parser
@@ -126,7 +124,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             print(f"Error: {e}")
             self.logger.error(f"{e}")
 
-    def parse_sitemap(self, response: str) -> None:
+    def parse_sitemap(self, response: str) -> None:     # noqa: C901
         """
         parse sitemap from sitemap url and callback parser to parse title and link
         Args:
@@ -138,48 +136,41 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
         """
 
         try:
-            if response.url == "https://toyokeizai.net/common/files/sitemap-2023.xml":
-                root = etree.fromstring(response.body)
-                links = root.xpath(
-                    "//xmlns:url",
-                    namespaces={
-                        "xmlns": "http://www.sitemaps.org/schemas" "/sitemap/0.9"
-                    },
-                )
-                articles_links = []
-                articles_links_lastmod = []
-                for link in links:
-                    if len(link.getchildren()) > 1:
-                        for i in link:
-                            if i.text in ["", " ", None]:
-                                continue
-                            if "category" in i.text:
-                                break
-                            if (
-                                    i.tag
-                                    == "{http://www.sitemaps.org/schemas/sitemap/0.9}loc"
-                            ):
-                                articles_links.append(i.text)
-                            if (
-                                    i.tag
-                                    == "{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"
-                            ):
-                                articles_links_lastmod.append(i.text)
+            root = etree.fromstring(response.body)
+            links = root.xpath(
+                "//xmlns:url",
+                namespaces={
+                    "xmlns": "http://www.sitemaps.org/schemas" "/sitemap/0.9"
+                },
+            )
+            articles_links = []
+            articles_links_lastmod = []
+            for link in links:
+                if len(link.getchildren()) > 1:
+                    for i in link:
+                        if i.text in ["", " ", None]:
+                            continue
+                        if "category" in i.text:
+                            break
+                        if i.tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}loc":
+                            articles_links.append(i.text)
+                        if i.tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod":
+                            articles_links_lastmod.append(i.text)
 
-                for url, last_mod in zip(articles_links, articles_links_lastmod):
-                    last_mod_date = datetime.strptime(last_mod[:10], "%Y-%m-%d").date()
-                    if self.start_date and last_mod_date < self.start_date:
-                        continue
-                    if self.start_date and last_mod_date > self.end_date:
-                        continue
-                    if self.start_date is None and self.end_date is None:
-                        if TODAYS_DATE == last_mod_date:
-                            data = {"link": url}
-                            self.articles.append(data)
-                    else:
-                        if self.start_date and self.end_date:
-                            data = {"link": url}
-                            self.articles.append(data)
+            for url, last_mod in zip(articles_links, articles_links_lastmod):
+                last_mod_date = datetime.strptime(last_mod[:10], "%Y-%m-%d").date()
+                if self.start_date and last_mod_date < self.start_date:
+                    continue
+                if self.start_date and last_mod_date > self.end_date:
+                    continue
+                if self.start_date is None and self.end_date is None:
+                    if TODAYS_DATE == last_mod_date:
+                        data = {"link": url}
+                        self.articles.append(data)
+                else:
+                    if self.start_date and self.end_date:
+                        data = {"link": url}
+                        self.articles.append(data)
 
         except Exception as exception:
             self.log(
@@ -201,7 +192,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-            self.articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
@@ -301,7 +291,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
-
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:
