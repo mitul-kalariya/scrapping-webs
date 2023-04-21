@@ -84,6 +84,8 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 LOGGER.error("Error while")
                 raise exceptions.InvalidInputException("Must have a URL to scrap")
 
+        self.articledata_loader = []
+
     def parse(self, response: str, **kwargs) -> None:
         """
         differentiate sitemap and article and redirect its callback to different parser
@@ -164,9 +166,6 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                             ):
                                 articles_links_lastmod.append(i.text)
 
-                print(len(articles_links))
-                print(len(articles_links_lastmod))
-
                 for url, last_mod in zip(articles_links, articles_links_lastmod):
                     last_mod_date = datetime.strptime(last_mod[:10], "%Y-%m-%d").date()
                     if self.start_date and last_mod_date < self.start_date:
@@ -202,6 +201,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            self.articledata_loader = ItemLoader(item=ArticleData(), response=response)
             raw_response = get_raw_response(response)
             response_json = get_parsed_json(response)
             response_data = [get_parsed_data(response)]
@@ -222,6 +222,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                                 "raw_response": raw_response,
                                 "response_json": response_json,
                                 "response_data": response_data,
+                                "total_links": pagination_links
                             },
                         )
 
@@ -247,10 +248,12 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
     def parse_pagination_page(self, response):
         """Extract article data from paginated pages"""
 
-        global final_parsed_data, final_raw_response, final_parsed_json
         previous_raw_response = response.meta.get("raw_response")
         previous_response_json = response.meta.get("response_json")
         previous_response_data = response.meta.get("response_data")
+
+        total_links = response.meta.get("total_links")
+        f_parsed_json = []
 
         raw_response = get_raw_response(response)
         response_json = get_parsed_json(response)
@@ -258,13 +261,10 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
 
         raw_response_sorted = {i: raw_response[i] for i in previous_raw_response.keys()}
         keys = previous_raw_response.keys()
-
         values = zip(previous_raw_response.values(), raw_response_sorted.values())
         final_raw_response = dict(zip(keys, values))
 
-        response_json_sorted = {
-            i: response_json[i] for i in previous_response_json.keys()
-        }
+        response_json_sorted = {i: response_json[i] for i in previous_response_json.keys()}
         keys = previous_response_json.keys()
         values = zip(previous_response_json.values(), response_json_sorted.values())
         final_parsed_json = dict(zip(keys, values))
@@ -280,9 +280,8 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
                 final_data[i] = [previous_response_data[0][i]]
             else:
                 final_data[i] = previous_response_data[0][i]
-
         final_data.update(new_dict)
-        breakpoint()
+
         articledata_loader = ItemLoader(item=ArticleData(), response=response)
         articledata_loader.add_value("raw_response", final_raw_response)
         articledata_loader.add_value("parsed_json", final_parsed_json)
@@ -302,6 +301,7 @@ class TokyoKeizaiOnlineSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
             else:

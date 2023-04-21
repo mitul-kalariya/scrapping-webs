@@ -45,7 +45,7 @@ def validate_sitemap_date_range(start_date, end_date):
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
-        
+
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
                 "end_date should not be greater than today_date"
@@ -97,11 +97,13 @@ def get_main(response):
         main data
     """
     try:
+        # breakpoint()
         data = []
-        misc = response.css('script[type="application/ld+json"]::text').getall()
-        for block in misc:
-            data.append(json.loads(block))
-        return data[0]
+        main = response.css('script[type="application/ld+json"]::text').getall()
+        if main:
+            for block in main:
+                data.append(json.loads(block))
+            return data[0]
     except BaseException as e:
         LOGGER.error(f"{e}")
         print(f"Error while getting main: {e}")
@@ -153,7 +155,6 @@ def get_parsed_json(response):
     Returns
         parsed_json(dictionary): available json data
     """
-    # breakpoint()
     parsed_json = {}
     other_data = []
     ld_json_data = response.css('script[type="application/ld+json"]::text').getall()
@@ -177,9 +178,6 @@ def get_parsed_json(response):
     return remove_empty_elements(parsed_json)
 
 
-import scrapy
-
-
 def get_parsed_data(response):
     """
     Extracts data from a news article webpage and returns it in a dictionary format.
@@ -197,7 +195,6 @@ def get_parsed_data(response):
          - 'images': (list) The list of image URLs in the article, if available. (using bs4)
     """
     try:
-        # breakpoint()
         pattern = r"[\r\n\t\</h2>\<h2>]+"
         main_dict = {}
         publisher = get_publisher(response)
@@ -212,13 +209,14 @@ def get_parsed_data(response):
         main_dict["author"] = authors
 
         main_data = get_main(response)
-        for block in main_data:
-            if "description" in block:
-                main_dict["description"] = block.get("description")
-            if "datePublished" in block:
-                main_dict["published_at"] = block.get("datePublished")
-            if "dateModified" in block:
-                main_dict["modified_at"] = block.get("dateModified")
+        if main_data:
+            for block in main_data:
+                if "description" in block:
+                    main_dict["description"] = block.get("description")
+                if "datePublished" in block:
+                    main_dict["published_at"] = block.get("datePublished")
+                if "dateModified" in block:
+                    main_dict["modified_at"] = block.get("dateModified")
 
         thumbnail_image = get_thumbnail_image(response)
         main_dict["thumbnail_image"] = thumbnail_image
@@ -325,12 +323,13 @@ def get_publisher(response):
     """
     try:
         response = response.css('script[type="application/ld+json"]::text').getall()
-        json_loads = json.loads(response[0])
-        data = []
-        for block in json_loads:
-            if "publisher" in block.keys():
-                data.append(block.get("publisher"))
-                return data
+        if response:
+            json_loads = json.loads(response[0])
+            data = []
+            for block in json_loads:
+                if "publisher" in block.keys():
+                    data.append(block.get("publisher"))
+                    return data
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching : {e}")
@@ -347,17 +346,30 @@ def get_author(response) -> list:
     """
     try:
         parsed_data = response.css('script[type="application/ld+json"]::text').getall()
-        for a_block in parsed_data:
-            for data in json.loads(a_block):
-                if data.get("@type") == "NewsArticle":
-                    list_of_ele = []
-                    var = {
-                        "@type": data.get("author", [{}]).get("@type"),
-                        "name": data.get("author", [{}]).get("name"),
-                        "url": data.get("author", [{}]).get("url", None),
-                    }
-                    list_of_ele.append(var)
-                    return list_of_ele
+        if parsed_data:
+            for a_block in parsed_data:
+                for data in json.loads(a_block):
+                    if data.get("@type") == "NewsArticle":
+                        if type(data.get("author")) == list:
+                            author_data = data.get("author")[0]
+                            list_of_ele = []
+                            var = {
+                                "@type": author_data.get("@type"),
+                                "name": author_data.get("name"),
+                                "url": author_data.get("url", None),
+                            }
+                            list_of_ele.append(var)
+                            return list_of_ele
+
+                        elif "author" in data.keys():
+                            list_of_ele = []
+                            var = {
+                                "@type": data.get("author", [{}]).get("@type"),
+                                "name": data.get("author", [{}]).get("name"),
+                                "url": data.get("author", [{}]).get("url", None),
+                            }
+                            list_of_ele.append(var)
+                            return list_of_ele
     except BaseException as e:
         LOGGER.error(f"{e}")
         raise exceptions.ArticleScrappingException(f"Error while fetching author: {e}")
@@ -371,11 +383,12 @@ def get_thumbnail_image(response) -> list:
         list: list of thumbnail images
     """
     image = get_main(response)
-    for block in image:
-        if "image" in block.keys():
-            thumbnail_image = []
-            thumbnail_image.append(block.get("image").get("url"))
-            return thumbnail_image
+    if image:
+        for block in image:
+            if "image" in block.keys():
+                thumbnail_image = []
+                thumbnail_image.append(block.get("image").get("url"))
+                return thumbnail_image
 
 
 def get_tags(response) -> list:
