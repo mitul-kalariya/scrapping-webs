@@ -292,15 +292,15 @@ def get_content(response):
     article_content = response.css(
         "div.c-article-section.j-article-section.l-spacing-m"
     ).getall()
-    art = []
+    article_content_list = []
     for article in article_content:
         if article:
             soup = BeautifulSoup(article, "html.parser")
             for div in soup.find_all("a", {"class": "c-inline-card"}):
                 div.decompose()
-            art.append(str(soup))
+            article_content_list.append(str(soup))
     content = [
-        re.sub(r"[\r\n\t]+", "", remove_tags(article)).strip() for article in art
+        re.sub(r"[\r\n\t]+", "", remove_tags(article)).strip() for article in article_content_list
     ]
     article = "".join(content)
     if article_first and article:
