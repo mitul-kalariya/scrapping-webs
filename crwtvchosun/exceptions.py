@@ -28,12 +28,6 @@ class SitemapScrappingException(Exception):
     pass
 
 
-class SitemapArticleScrappingException(Exception):
-    """Raise when exception arise while fetching article details from sitemap"""
-
-    # Use SitemapArticleScrappingException(f"Error occurred while fetching article details from sitemap:- {str(e)}")
-    pass
-
 
 class ArticleScrappingException(Exception):
     """Raise when exception arise while fetching article details from sitemap"""
@@ -42,24 +36,11 @@ class ArticleScrappingException(Exception):
     pass
 
 
-class ExportOutputFileException(Exception):
-    """Raise when exception arise while exporting output file"""
-
-    # Use ExportOutputFileException(f"Error occurred while closing crawler:- {str(e)}")
+class ProxyConnectionException(Exception):
+    """Rise when getting 403 or 407 status code"""
     pass
 
 
-class ServiceUnavailableException(Exception):
-    """Rise when getting 403, 406, 429 or >500 status code"""
-
-    # Use ServiceUnavailableException(f"Service Unavailable for {website_name} and {url}
-    # with {response.status_code} and {response.reason}")
-    pass
-
-
-class URLNotFoundException(Exception):
-    """Rise when getting 404 status code"""
-
-    # Use URLNotFoundException(f"Given {url} not found for website {website_name}
-    # with status code{response.status_code}")
+class CrawlerClosingException(Exception):
+    """Rise when getting error while closing crawler status code"""
     pass

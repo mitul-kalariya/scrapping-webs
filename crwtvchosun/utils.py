@@ -191,26 +191,23 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     """
     parsed_json_flter_dict = {
         "main": None,
-        "ImageGallery": None,
-        "VideoObject": None,
-        "Other": [],
+        "imageObjects": None,
+        "videoObjects": None,
+        "other": [],
         "misc": [],
     }
     for block in blocks:
-        try:
-            if "NewsArticle" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["main"] = json.loads(block)[0]
-            elif "ImageGallery" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["ImageGallery"] = json.loads(block)[0]
-            elif "VideoObject" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["VideoObject"] = json.loads(block)[0]
-            elif json.loads(block).get("@type"):
-                continue
-            else:
-                parsed_json_flter_dict["Other"].append(json.loads(block))
-        except KeyError:
-            pass
-    parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
+        if "NewsArticle" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["main"] = json.loads(block)
+        elif "ImageGallery" in json.loads(block).get(
+                "@type", [{}]
+        ) or "ImageObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["imageObjects"] = json.loads(block)
+        elif "VideoObject" in json.loads(block).get("@type", [{}]):
+            parsed_json_flter_dict["videoObjects"] = json.loads(block)
+        else:
+            parsed_json_flter_dict["other"].append(json.loads(block))
+    parsed_json_flter_dict["misc"].append(misc)
     return parsed_json_flter_dict
 
 
@@ -388,8 +385,19 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
         "modified_at": None,
         "published_at": None,
     }
+    pub_date = None
+    mod_date = None
+    date_pattern = re.compile(r'\d{4}\.\d{2}\.\d{2}\s\d{2}:\d{2}')
+    dates = response.css("p.date::text").get()
+    date =  dates.split('/')
+    pub_date = date_pattern.search(date[0]).group()
+    try:
+        mod_date = date_pattern.search(date[1]).group() if date[1] else None
+    except Exception:
+        print("modified date is mising")
     article_data |= {
-        "published_at": [response.css("meta[property*='article:published_time']::attr(content)").get()],
+        "published_at": [pub_date],
+        "modified_at": [mod_date],
         "description": [response.css("meta[property*='og:description']::attr(content)").get()]
     }
     return article_data
@@ -404,16 +412,16 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: publisher details like name, type, id related details
     """
-    publisher_details = []
-    if link := response.css("h1.logo img::attr(src)").get():
-        publisher_details.extend(
-            {
-                "name": response.css("h1.logo img::attr(alt)").get(),
-                "logo": {
-                    "url": BASE_URL + link[1:],
-                },
-            }
-        )
+    publisher_details = [
+    
+    
+        {
+            "name": "TV CHOSUN 뉴스",
+            "logo": {
+                "url": "https://img.tvchosun.com/upload_img/n2022/images/h1_logo_v3L.png",
+            },
+        }
+    ]
     return {"publisher": publisher_details}
     
 
@@ -429,11 +437,13 @@ def get_text_title_section_details(parsed_data: list, response:str) -> dict:
     pattern = r"[\r\n\t\"]+"
     article_text = " ".join(response.css(".article_detail_body .article p::text,div.article::text").getall())
     text = [re.sub(pattern, "", article_text).strip()]
+    tags = response.css("meta[name*='keywords']::attr(content)").get().split(', ')
+    tag_list = list(tags)
     return {
         "title": [response.css("h3.title::text").get()],
         "text": text,
         "section": response.css("meta[property*='article:section']::attr(content)").getall(),
-        "tags": response.css("div.tag span.tag_icon::text").getall(),
+        "tags": tag_list,
     }
 
 
@@ -447,13 +457,12 @@ def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
         dict: thumbnail images, images and video details
     """
     images = []
-    videos = []
-    captions = []
+    thumbnail_url = None
     for link, caption in zip_longest(
         response.css("div.article_img img::attr(src)").getall(),
         response.css("p.aboutPhoto::text").getall(),
     ):
         images.append({"link": link, "caption": caption})
-
-    return {"images": images}
+    thumbnail_url = response.css("meta[property*='og:image']::attr(content)").get()
+    return {"thumbnail_image": [thumbnail_url], "images": images, "time_scraped": [datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")],}
     

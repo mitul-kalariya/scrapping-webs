@@ -4,22 +4,17 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-import lxml.etree as etree
 import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy.loader import ItemLoader
-from scrapy.selector import Selector
-
-from crwtvchosun.constant import BASE_URL
+from crwtvchosun.constant import BASE_URL, SITEMAP_URL
 from crwtvchosun.exceptions import (
     ArticleScrappingException,
-    ExportOutputFileException,
-    SitemapArticleScrappingException,
+    CrawlerClosingException,
     SitemapScrappingException,
 )
 from crwtvchosun.items import ArticleData
 from crwtvchosun.utils import (
-    export_data_to_json_file,
     get_parsed_data,
     get_parsed_json,
     get_raw_response,
@@ -31,8 +26,6 @@ from crwtvchosun.utils import (
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -47,9 +40,6 @@ class BaseSpider(ABC):
     @abstractmethod
     def parse_sitemap(self, response: str) -> None:
         # parse_sitemap_article will be called from here
-        pass
-
-    def parse_sitemap_article(self, response: str) -> None:
         pass
 
     @abstractmethod
@@ -73,6 +63,7 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
 
         try:
             self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -94,7 +85,7 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
             self.start_urls.append(
                 url
                 if self.type == "article"
-                else "https://news.tvchosun.com/svc/news/ospc_news_all_list.html?catid=1"
+                else SITEMAP_URL
             )
 
         except Exception as exception:
@@ -127,8 +118,31 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
             )
 
         self.logger.info("Parse function called on %s", response.url)
+        
         if "ospc_news_all_list.html" in response.url:
-            yield scrapy.Request(response.url, callback=self.parse_sitemap)
+            for single_date in self.date_range_lst:
+                try:
+                    day = (
+                        single_date.day
+                        if len(str(single_date.day)) > 1
+                        else f"0{single_date.day}"
+                    )
+                    month = (
+                        single_date.month
+                        if len(str(single_date.month)) > 1
+                        else f"0{single_date.month}"
+                    )
+                    year = single_date.year
+                    self.logger.debug("Parse function called on %s", response.url)
+                    yield scrapy.Request(
+                        f"https://news.tvchosun.com/svc/news/ospc_news_all_list.html?catid=1&indate={year}{month}{day}",
+                                         callback=self.parse_sitemap,)
+                except Exception as exception:
+                    self.log(
+                        f"Error occurred while iterating sitemap url. {str(exception)}",
+                        level=logging.ERROR,
+                    )
+
         else:
             yield self.parse_article(response)
 
@@ -160,8 +174,6 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching sitemap:- {str(exception)}"
             ) from exception
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
 
     def parse_article(self, response: str) -> None:
         """
@@ -217,16 +229,39 @@ class TvChosunSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                    stats.get(
+                        "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                        0,
+                    )
+                    > 0
+            ) or (
+                    stats.get(
+                        "downloader/request_count",
+                        0,
+                    )
+                    == stats.get(
+                "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                0,
+            )
+            ) or (
+                    stats.get(
+                        "downloader/exception_type_count/twisted.internet.error.ConnectionRefusedError",
+                        0,
+                    )
+                    > 0):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",
                 level=logging.ERROR,
             )
-            raise ExportOutputFileException(
-                f"Error occurred while closing crawler:- {str(exception)} - {reason}"
+            raise CrawlerClosingException(
+                f"Error occurred while closing the crawler:- {str(exception)} - {reason}"
             ) from exception
+

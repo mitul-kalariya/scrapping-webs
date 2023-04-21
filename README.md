@@ -4,7 +4,7 @@
 
 This repo contains the code to scrap all article links and articles from https://news.tvchosun.com/ website and the tech stacks used are
 - Python 3.10
-- Scrapy
+- Scrapy 2.8.0
 
 
 #### Environment Setup
@@ -24,7 +24,7 @@ You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
 
 ```
-# To fetch all the article links from today's date only
+# To fetch all the article links
 
 from crwtvchosun import Crawler
 
@@ -37,8 +37,10 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "link_feed",
-        "domain": "https://news.tvchosun.com/"
+        "type": "sitemap",
+        "domain": "https://news.tvchosun.com/",
+        "since": "2023-02-25",
+        "until": "2023-03-26"
     },
     proxies=proxies
 )

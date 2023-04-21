@@ -3,6 +3,8 @@ from multiprocessing import Process, Queue
 from scrapy.crawler import CrawlerProcess
 
 from crwtvchosun.spiders.tv_chosun import TvChosunSpider
+from scrapy.utils.project import get_project_settings
+from crwtvchosun.exceptions import ProxyConnectionException
 
 
 class Crawler:
@@ -52,7 +54,13 @@ class Crawler:
             target=self.start_crawler, args=(self.query, self.output_queue)
         )
         process.start()
-        return self.output_queue.get()
+
+        articles = self.output_queue.get()
+
+        if articles == "Error in Proxy Configuration":
+            raise ProxyConnectionException("Error in Proxy Configuration")
+
+        return articles
 
     def start_crawler(self, query, output_queue):
         """Crawls the sitemap URL and article URL and return final data
@@ -66,29 +74,20 @@ class Crawler:
         """
 
         process = CrawlerProcess()
+        process_settings = get_project_settings()
+        process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
                 "type": "article",
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "link_feed":
+        elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
-
-        if self.proxies:
-            process_settings = process.settings
-            process_settings["DOWNLOADER_MIDDLEWARES"][
-                "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
-            ] = 400
-            process_settings["HTTPPROXY_ENABLED"] = True
-            process_settings["HTTP_PROXY"] = (
-                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
-            )
-            process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
-            process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
-            process.settings = process_settings
+  
+        spider_args["args"]["proxies"] = self.proxies
 
         process.crawl(TvChosunSpider, **spider_args)
         process.start()

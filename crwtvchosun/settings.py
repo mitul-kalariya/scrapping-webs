@@ -13,6 +13,8 @@ SPIDER_MODULES = ["crwtvchosun.spiders"]
 NEWSPIDER_MODULE = "crwtvchosun.spiders"
 
 
+DOWNLOAD_DELAY = 0.25
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "crwtvchosun (+http://www.yourdomain.com)"
 
@@ -47,6 +49,10 @@ ROBOTSTXT_OBEY = False
 #SPIDER_MIDDLEWARES = {
 #    "crwtvchosun.middlewares.NewtonScrappingSpiderMiddleware": 543,
 #}
+DOWNLOADER_MIDDLEWARES = {
+    "crwtvchosun.middlewares.CustomProxyMiddleware": 110,
+}
+
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
