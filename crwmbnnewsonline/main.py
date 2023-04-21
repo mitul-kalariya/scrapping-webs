@@ -84,19 +84,6 @@ class Crawler:
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
         else:
             raise Exception("Invalid Type")
-
-        if self.proxies:
-            process_settings = process.settings
-            process_settings["DOWNLOADER_MIDDLEWARES"][
-                "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
-            ] = 400
-            process_settings["HTTPPROXY_ENABLED"] = True
-            process_settings["HTTP_PROXY"] = (
-                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
-            )
-            process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
-            process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
-            process.settings = process_settings
         spider_args["enable_selenium"] = self.enable_selenium
         spider_args["args"]["proxies"] = self.proxies
         process.crawl(Mbn_news, **spider_args)

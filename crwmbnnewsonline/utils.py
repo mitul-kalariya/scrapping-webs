@@ -292,10 +292,10 @@ def get_images(response, parsed_json=False) -> list:
                         temp_dict["caption"] = caption
                 data.append(temp_dict)
             return data
-    except Exception as e:
-        LOGGER.error(f"{str(e)}")
+    except Exception as exception:
+        LOGGER.error(f"{str(exception)}")
         raise SitemapArticleScrappingException(
-            f"Error occured while scrapping sitemap:-{str(e)}"
+            f"Error occurred while scrapping sitemap:-{str(exception)}"
         )
     driver.close()
     return data

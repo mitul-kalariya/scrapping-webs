@@ -8,23 +8,13 @@ from scrapy.exceptions import CloseSpider
 
 from crwmbnnewsonline.items import ArticleData
 
-from crwmbnnewsonline.utils import (
-    check_cmd_args,
-    get_parsed_data,
-    get_raw_response,
-    get_parsed_json,
-)
-from crwmbnnewsonline.exceptions import (
-    SitemapScrappingException,
-    ArticleScrappingException,
-    InvalidArgumentException,
-)
+from crwmbnnewsonline.utils import (check_cmd_args, get_parsed_data, get_raw_response, get_parsed_json, )
+from crwmbnnewsonline.exceptions import (SitemapScrappingException, ArticleScrappingException,
+                                         InvalidArgumentException,CrawlerClosingException )
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(name)s] %(levelname)s:   %(message)s",
-    filename="logs.log",
-    filemode="a",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # Creating an object
@@ -33,7 +23,7 @@ logger = logging.getLogger()
 
 class BaseSpider(ABC):
     @abstractmethod
-    def parse(self, response):
+    def parse(self, response: scrapy):
         pass
 
     @abstractmethod
@@ -48,14 +38,10 @@ class BaseSpider(ABC):
 class Mbn_news(scrapy.Spider, BaseSpider):
     name = "mbn_news"
 
-    namespace = {
-        "sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9",
-        "news": "http://www.google.com/schemas/sitemap-news/0.9",
-    }
+    namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9",
+        "news": "http://www.google.com/schemas/sitemap-news/0.9", }
 
-    def __init__(
-        self, type=None, start_date=None, end_date=None, url=None, enable_selenium=True, *args, **kwargs
-    ):
+    def __init__(self, type=None, start_date=None, end_date=None, url=None, enable_selenium=True, *args, **kwargs):
         try:
             super(Mbn_news, self).__init__(*args, **kwargs)
             self.output_callback = kwargs.get("args", {}).get("callback", None)
@@ -75,19 +61,13 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, start_date and end_date args. "
-                + str(exception)
-            )
-            self.log(
-                "Error occurred while taking type, url, start_date and end_date args. "
-                + str(exception),
-                level=logging.ERROR,
-            )
+                    "Error occurred while taking type, url, start_date and end_date args. " + str(exception))
+            self.log("Error occurred while taking type, url, start_date and end_date args. " + str(exception),
+                level=logging.ERROR, )
             raise InvalidArgumentException(
-                f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}"
-            )
+                f"Error occurred while taking type, url, start_date and end_date args.:- {str(exception)}")
 
-    def parse(self, response):
+    def parse(self, response: scrapy, **kwargs):
         """
         Parses the given `response` object and extracts sitemap URLs or sends a
         request for articles based on the `type` attribute of the class instance.
@@ -100,63 +80,38 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         :return: A generator of Scrapy Request objects, one for each sitemap or article URL found in the response.
         """
         if response.status != 200:
-            raise CloseSpider(
-                f"Unable to scrape due to getting this status code {response.status}"
-            )
+            raise CloseSpider(f"Unable to scrape due to getting this status code {response.status}")
         if self.type == "sitemap":
             try:
                 sitemap_urls = (
-                    Selector(response, type="xml")
-                    .xpath("//sitemap:loc/text()", namespaces=self.namespace)
-                    .getall()
-                )
+                    Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall())
 
                 for site_map_url in sitemap_urls:
                     yield scrapy.Request(site_map_url, callback=self.parse_link_feed)
 
             except Exception as exception:
-                self.log(
-                    f"Error occured while iterating sitemap url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-                raise SitemapScrappingException(
-                    f"Error occured while iterating sitemap url. {str(exception)}"
-                )
+                self.log(f"Error occurred while iterating sitemap url. {str(exception)}", level=logging.ERROR, )
+                raise SitemapScrappingException(f"Error occurred while iterating sitemap url. {str(exception)}")
 
         elif self.type == "article":
             try:
                 yield self.parse_article(response)
             except Exception as exception:
-                self.log(
-                    f"Error occured while iterating article url. {str(exception)}",
-                    level=logging.ERROR,
-                )
-                raise ArticleScrappingException(
-                    f"Error occured while iterating article url. {str(exception)}"
-                )
+                self.log(f"Error occurred while iterating article url. {str(exception)}", level=logging.ERROR, )
+                raise ArticleScrappingException(f"Error occurred while iterating article url. {str(exception)}")
 
-    def parse_link_feed(self, response):
+    def parse_link_feed(self, response: scrapy):
         """
         Parses the sitemap and extracts the article URLs and their last modified date.
         If the last modified date is within the specified date range, sends a request to the article URL
         :param response: the response from the sitemap request
         :return: scrapy.Request object
         """
-        article_url = (
-            Selector(response, type="xml")
-            .xpath("//sitemap:loc/text()", namespaces=self.namespace)
-            .getall()
-        )
+        article_url = (Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall())
         mod_date = (
-            Selector(response, type="xml")
-            .xpath("//news:publication_date/text()", namespaces=self.namespace)
-            .getall()
-        )
+            Selector(response, type="xml").xpath("//news:publication_date/text()", namespaces=self.namespace).getall())
         article_titles = (
-            Selector(response, type="xml")
-            .xpath("//news:title/text()", namespaces=self.namespace)
-            .getall()
-        )
+            Selector(response, type="xml").xpath("//news:title/text()", namespaces=self.namespace).getall())
         try:
             for url, date, title in zip(article_url, mod_date, article_titles):
                 _date = datetime.strptime(date.split("T")[0].strip(), "%Y-%m-%d")
@@ -166,15 +121,10 @@ class Mbn_news(scrapy.Spider, BaseSpider):
                         self.articles.append(article)
 
         except Exception as exception:
-            self.log(
-                f"Error occurred while fetching sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
-            ) from exception
+            self.log(f"Error occurred while fetching sitemap:- {str(exception)}", level=logging.ERROR, )
+            raise SitemapScrappingException(f"Error occurred while fetching sitemap:- {str(exception)}") from exception
 
-    def parse_article(self, response):
+    def parse_article(self, response: scrapy):
         """
         parse article and append related data to class's articles variable
         Args:
@@ -186,10 +136,8 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         """
 
         try:
-            raw_response_dict = {
-                "content_type": response.headers.get("Content-Type").decode("utf-8"),
-                "content": response.text,
-            }
+            raw_response_dict = {"content_type": response.headers.get("Content-Type").decode("utf-8"),
+                "content": response.text, }
             raw_response = get_raw_response(response, raw_response_dict)
             articledata_loader = ItemLoader(item=ArticleData(), response=response)
             parsed_json_dict = {}
@@ -208,24 +156,16 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
             parsed_json_data = get_parsed_json(response, parsed_json_dict)
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value(
-                "parsed_json",
-                parsed_json_data,
-            )
-            articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_dict, self.enable_selenium)
-            )
+            articledata_loader.add_value("parsed_json", parsed_json_data, )
+            articledata_loader.add_value("parsed_data",
+                get_parsed_data(response, parsed_json_dict, self.enable_selenium))
             self.articles.append(dict(articledata_loader.load_item()))
             return self.articles[0]
 
         except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details:- {str(exception)}",
-                level=logging.ERROR,
-            )
+            self.log(f"Error occurred while fetching article details:- {str(exception)}", level=logging.ERROR, )
             raise ArticleScrappingException(
-                f"Error occurred while fetching article details:-  {str(exception)}"
-            ) from exception
+                f"Error occurred while fetching article details:-  {str(exception)}") from exception
 
     def closed(self, reason: any) -> None:
         """
@@ -239,22 +179,10 @@ class Mbn_news(scrapy.Spider, BaseSpider):
         """
         try:
             stats = self.crawler.stats.get_stats()
-            if (
-                stats.get(
-                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
-                    0,
-                )
-                > 0
-            ) or (
-                stats.get(
-                    "downloader/request_count",
-                    0,
-                )
-                == stats.get(
-                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
-                    0,
-                )
-            ):
+            if (stats.get("downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                0, ) > 0) or (stats.get("downloader/request_count", 0, ) == stats.get(
+                "downloader/exception_type_count/twisted.internet.error.TimeoutError", 0, )) or (
+                    stats.get("downloader/exception_type_count/twisted.internet.error.ConnectionRefusedError", 0, )):
                 self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
@@ -263,9 +191,8 @@ class Mbn_news(scrapy.Spider, BaseSpider):
 
         except Exception as exception:
             self.log(
-                f"Error occurred while closing crawler:- {str(exception)} - {reason}",
-                level=logging.ERROR,
+                f"Error occurred while closing crawler: {str(exception)} - {reason}"
             )
-            raise Exception(
-                f"Error occurred while closing crawler:- {str(exception)} - {reason}"
-            ) from exception
+            raise CrawlerClosingException(
+                f"Error occurred while closing crawler: {str(exception)} - {reason}"
+            )
