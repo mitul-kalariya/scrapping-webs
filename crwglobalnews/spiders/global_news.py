@@ -7,7 +7,8 @@ from crwglobalnews.exceptions import (
     ParseFunctionFailedException,
     SitemapScrappingException,
     ArticleScrappingException,
-    CrawlerClosingException
+    CrawlerClosingException,
+    CategoryScrappingException
 )
 from scrapy.loader import ItemLoader
 from crwglobalnews.constant import TODAYS_DATE, LOGGER, LINK_FEED_URL, CATEGORIES_URLS
@@ -18,7 +19,6 @@ from crwglobalnews.utils import (
     get_raw_response,
     get_parsed_data,
     get_parsed_json,
-    export_data_to_json_file,
 )
 
 # create log file
@@ -186,38 +186,46 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 f"Error occurred while fetching article details:-  {str(exception)}"
             )
 
-    def parse_category(self, response: scrapy):
-        
-        sub_categories = response.css("#archive-menu li a::attr(href)").getall()
-        if len(sub_categories) > 0:
-            for category in sub_categories:
-                yield scrapy.Request(category, callback=self.parse_category)
+    def parse_category(self, response: scrapy):         # noqa: C901
+        try:
+            sub_categories = response.css("#archive-menu li a::attr(href)").getall()
+            if len(sub_categories) > 0:
+                for category in sub_categories:
+                    yield scrapy.Request(category, callback=self.parse_category)
 
-        if response.url in ["https://etcanada.com/"]:
-            return
-        if ".pdf" in response.url:
-            return
-        if "/news/" in response.url:
-            return
-        if "/contests" in response.url:
+            if response.url in ["https://etcanada.com/"]:
+                return
+            if ".pdf" in response.url:
+                return
+            if "/news/" in response.url:
+                return
+            if "/contests" in response.url:
+                return
+
+            links = response.css("div.l-section__main ul.c-posts li a::attr(href)").getall()
+            titles = response.css("div.l-section__main ul.c-posts li a span.c-posts__headlineText::text").getall()
+            dates = response.css("div.l-section__main ul.c-posts li a div.c-posts__info:nth-child(2)::text").getall()
+            today_date_keywords = ["hours", "mins", "hour", "min", "secs", "sec"]
+
+            for link, title, date in zip(links, titles, dates):
+                for keyword in today_date_keywords:
+                    if keyword.lower() in date:
+                        data = {"link": link, "title": title}
+                        self.articles.append(data)
+                        break
+
+            unique_articles = list(set([tuple(d.items()) for d in self.articles]))
+            self.articles = [dict(t) for t in unique_articles]
             return
 
-        links = response.css("div.l-section__main ul.c-posts li a::attr(href)").getall()
-        titles = response.css("div.l-section__main ul.c-posts li a span.c-posts__headlineText::text").getall()
-        dates = response.css("div.l-section__main ul.c-posts li a div.c-posts__info:nth-child(2)::text").getall()
-        today_date_keywords = ["hours", "mins", "hour", "min", "secs", "sec"]
-
-        for link, title, date in zip(links, titles ,dates):
-            for keyword in today_date_keywords:
-                if keyword.lower() in date:
-                    data = {"link": link, "title": title}
-                    self.articles.append(data)
-                    break
-
-        unique_articles = list(set([tuple(d.items()) for d in self.articles]))
-        self.articles = [dict(t) for t in unique_articles]
-        return
-                    
+        except Exception as exception:
+            LOGGER.info(
+                f"Error occurred while extracting article for link: {response.url}."
+                + str(exception)
+            )
+            raise CategoryScrappingException(
+                f"Error occurred while extracting article for link: {str(exception)}"
+            )
 
     def closed(self, reason: any) -> None:
         """
@@ -258,8 +266,6 @@ class GlobalNewsSpider(scrapy.Spider, BaseSpider):
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
         except Exception as exception:
             LOGGER.info(
                 f"Error occurred while closing crawler: {str(exception)} - {reason}"

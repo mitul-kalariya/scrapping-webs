@@ -39,3 +39,9 @@ class CrawlerClosingException(Exception):
     """Rise when getting error while closing crawler status code"""
 
     pass
+
+
+class CategoryScrappingException(Exception):
+    """Rise when getting error while extracting articles from link"""
+
+    pass

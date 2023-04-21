@@ -1,6 +1,6 @@
 # Utility/helper functions
 # utils.py
-import os
+
 import re
 import json
 import logging
@@ -21,7 +21,7 @@ def create_log_file():
     )
 
 
-def remove_empty_elements(parsed_data_dict : dict) -> dict:
+def remove_empty_elements(parsed_data_dict: dict) -> dict:
     """
     Recursively remove empty lists, empty dicts, or None elements from a dictionary.
     :param: parsed_data_dict
@@ -317,7 +317,7 @@ def get_thumbnail_image(response: scrapy) -> list:
         )
 
 
-def get_tags(response:scrapy) -> list:
+def get_tags(response: scrapy) -> list:
     """
     Extracts lables associated to the news article in form of a list of dictionary
     containing name of the tag and the corrosponding link to the tag
@@ -344,7 +344,7 @@ def get_tags(response:scrapy) -> list:
         )
 
 
-def get_images(response:scrapy) -> list:
+def get_images(response: scrapy) -> list:
     """extracting image links from provided response
     Args:
         response (_type_): html page object
@@ -376,7 +376,7 @@ def get_images(response:scrapy) -> list:
         )
 
 
-def get_embed_video_link(response:scrapy) -> list:
+def get_embed_video_link(response: scrapy) -> list:
     """
     extracting all the videos available from article
     parameters:
@@ -398,32 +398,3 @@ def get_embed_video_link(response:scrapy) -> list:
         raise ArticleScrappingException(
             f"Error occurred while getting video links: {exception}"
         )
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-    with open(f"{folder_structure}/{filename}.json", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
