@@ -181,18 +181,29 @@ class LiberoquotidianoSpider(scrapy.Spider, BaseSpider):
             if "sitemap.xml" in response.url:
                 if self.since and self.until:
                     for single_date in date_range(self.since, self.until):
-                        yield scrapy.Request(
-                            f"https://www.ndtv.com/sitemap.xml/?yyyy={single_date.year}&mm={single_date.month}&dd={single_date.day}&sitename=&category=",
-                            callback=self.parse_sitemap_article,
-                        )
+                        links = [
+                            f"https://www.liberoquotidiano.it/sitemap/foto/{single_date.year}/{single_date.month}/sitemap.xml",
+                            f"https://www.liberoquotidiano.it/sitemap/video/{single_date.year}/{single_date.month}/sitemap.xml",
+                            f"https://www.liberoquotidiano.it/sitemap/articolo/{single_date.year}/{single_date.month}/sitemap.xml"
+                        ]
+                        for link in links:
+                            yield scrapy.Request(
+                                link,
+                                callback=self.parse_sitemap_article,
+                            )
                 else:
                     today = TODAYS_DATE.strftime("%Y-%m-%d").split("-")
-                    yield scrapy.Request(
-                        f"https://www.ndtv.com/sitemap.xml/?yyyy={today[0]}&mm={today[1]}&dd={today[2]}&sitename=&category=",
-                        callback=self.parse_sitemap_article,
-                    )
-
-        except BaseException as exception:
+                    links = [
+                        f"https://www.liberoquotidiano.it/sitemap/foto/{today[0]}/{today[1]}/sitemap.xml",
+                        f"https://www.liberoquotidiano.it/sitemap/video/{today[0]}/{today[1]}/sitemap.xml",
+                        f"https://www.liberoquotidiano.it/sitemap/articolo/{today[0]}/{today[1]}/sitemap.xml"
+                    ]
+                    for link in links:
+                        yield scrapy.Request(
+                            link,
+                            callback=self.parse_sitemap_article,
+                        )
+        except Exception as exception:
             LOGGER.info("Error while parsing sitemap: %s", exception)
             raise exceptions.SitemapScrappingException(
                 f"Error while parsing sitemap: {str(exception)}"
@@ -212,12 +223,23 @@ class LiberoquotidianoSpider(scrapy.Spider, BaseSpider):
         """
         try:
             namespaces = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            links = response.xpath(
-                "//sitemap:loc/text()", namespaces=namespaces
-            ).getall()
+            links = response.xpath("//sitemap:loc/text()", namespaces=namespaces).getall()
+            published_date = response.xpath('//sitemap:lastmod/text()', namespaces=namespaces).getall()
 
-            for link in links:
-                if link != "https://www.ndtv.com/sitemap/google-news-sitemap":
+            for link, pub_date in zip(links, published_date):
+                publish_date = pub_date.split("T")
+                published_at = datetime.strptime(publish_date[0], "%Y-%m-%d").date()
+                today_date = datetime.today().date()
+
+                if self.since and published_at < self.since:
+                    continue
+                if self.since and published_at > self.until:
+                    continue
+
+                if self.since and self.until:
+                    data = {"link": link}
+                    self.articles.append(data)
+                elif today_date == published_at:
                     data = {"link": link}
                     self.articles.append(data)
                 else:
