@@ -1,2 +1,1 @@
-# TODO: Update the path below
-# from newton_scrapping import Crawler  # noqa: F401
+from crwtokyokeizai import Crawler  # noqa: F401

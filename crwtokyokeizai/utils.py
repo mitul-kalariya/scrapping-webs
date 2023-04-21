@@ -49,7 +49,7 @@ def validate_sitemap_date_range(start_date, end_date):
             raise exceptions.InvalidDateException(
                 "start_date should not be greater than today_date"
             )
-        
+
         if start_date and end_date and end_date > TODAYS_DATE:
             raise exceptions.InvalidDateException(
                 "end_date should not be greater than today_date"
@@ -179,9 +179,6 @@ def get_parsed_json(response):
         parsed_json["misc"] = misc
 
     return remove_empty_elements(parsed_json)
-
-
-import scrapy
 
 
 def get_parsed_data(response):
