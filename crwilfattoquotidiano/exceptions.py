@@ -48,3 +48,8 @@ class InvalidInputException(Exception):
 class ProxyConnectionException(Exception):
     """Rise when getting 403 or 407 status code"""
     pass
+
+class RequestHeadersException(Exception):
+    """raise when getting error in request headers or cookies"""
+
+    pass

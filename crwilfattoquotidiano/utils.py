@@ -5,11 +5,19 @@ import os
 import re
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 from w3lib.html import remove_tags
 from crwilfattoquotidiano import exceptions
 from crwilfattoquotidiano.constant import TODAYS_DATE, LOGGER
-
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from seleniumwire.undetected_chromedriver.v2 import Chrome, ChromeOptions
+# import undetected_chromedriver as uc
 
 def create_log_file():
     """creating log file"""
@@ -21,6 +29,128 @@ def create_log_file():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+
+def get_request_headers():
+    """fetching headers from selenium instance
+
+    Returns:
+        dict: containing formatted request headers containing cookies
+    """
+    headers = {}
+    chrome_options = uc.ChromeOptions()
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    # driver = uc.Chrome(service=service, options=chrome_options)
+    driver.get("https://www.ilfattoquotidiano.it/sitemap-pt-post-2023-04.xml")
+    try:
+        time.sleep(5)
+
+
+        # element = WebDriverWait(driver, 50).until(
+        #     EC.presence_of_element_located(
+        #         (By.XPATH, "/html/body/table/tbody/tr/td/div/div[1]/table/tbody/tr/td[1]/div[1]/div/label/input")
+        #     )
+        # )
+
+        # if element:
+        #     time.sleep(2)
+        #     element.click()
+        #     time.sleep(2)
+        # article = WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located((By.XPATH, "/html/body"))
+        # )
+        a = driver.get_cookies()
+        print("++++++++++++++++++++++++++++++++++++++++++++++",a)
+        breakpoint()
+        
+        # if article:
+        #     for request in driver.requests:
+        #         print(request)
+        #         breakpoint()
+        #         if "ilfattoquotidiano" in str(
+        #                 request.url
+        #         ) and "cookie:" in str(request.headers):
+        #             headers = format_headers(str(request.headers))
+        #             breakpoint()
+        #             driver.close()
+
+        #             return headers
+        # breakpoint()
+        driver.close()
+        return a
+
+    except BaseException as exception:
+        LOGGER.debug("error while running selenium instance: %s", exception)
+        raise exceptions.RequestHeadersException(
+            f"error while running selenium instance: {exception}"
+        )
+
+
+def format_headers(
+        request_headers, sep=": ", strip_cookie=False, strip_cl=True, strip_headers=[]
+) -> dict:
+    """
+    formates a string of headers to a dictionary containing key-value pairs of request headers
+    :param request_headers:
+    :param sep:
+    :param strip_cookie:
+    :param strip_cl:
+    :param strip_headers:
+    :return: -> dictionary
+    """
+    try:
+        headers_dict = {}
+        for keyvalue in request_headers.split("\n"):
+            keyvalue = keyvalue.strip()
+            if keyvalue and sep in keyvalue:
+                value = ""
+                key = keyvalue.split(sep)[0]
+                if len(keyvalue.split(sep)) == 1:
+                    value = ""
+                else:
+                    value = keyvalue.split(sep)[1]
+                if value == "''":
+                    value = ""
+                if strip_cookie and key.lower() == "cookie":
+                    continue
+                if strip_cl and key.lower() == "content-length":
+                    continue
+                if key in strip_headers:
+                    continue
+                headers_dict[key] = value
+
+        headers_dict["cookie"] = parse_cookies(headers_dict.get("cookie", None))
+        return headers_dict
+    except BaseException as exception:
+        LOGGER.debug("error while folding header data: %s ", exception)
+        raise exceptions.RequestHeadersException(
+            f"error while folding headers data: {exception}"
+        )
+
+
+def parse_cookies(raw_cookies):
+    """parsing cookies from raw string"""
+    cookies = {}
+
+    # loop over cookies
+    for cookie in raw_cookies.split("; "):
+        try:
+            # init cookie key
+            key = cookie.split("=")[0]
+
+            # init cookie value
+            val = cookie.split("=")[1]
+
+            # parse raw cookie string
+            cookies[key] = val
+
+        except BaseException as exception:
+            LOGGER.debug("error while folding cookies data: %s", exception)
+            raise exceptions.RequestHeadersException(
+                f"error while folding cookies data: {exception}"
+            )
+
+    return cookies
 
 def validate_sitemap_date_range(start_date, end_date):
     """
