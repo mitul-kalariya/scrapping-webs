@@ -1,13 +1,15 @@
 """Utility Functions"""
 import json
 import logging
+import re
 from datetime import datetime
 
 import requests
 from scrapy.loader import ItemLoader
 
 from crwbbcnews.constant import BASE_URL, LOGGER, TODAYS_DATE
-from crwbbcnews.exceptions import ArticleScrappingException, InvalidDateException
+from crwbbcnews.exceptions import (ArticleScrappingException,
+                                   InvalidDateException)
 from crwbbcnews.items import ArticleRawParsedJson, ArticleRawResponse
 
 
@@ -19,7 +21,7 @@ def create_log_file():
     )
 
 
-def validate_sitemap_date_range(since, until):
+def validate_date_range(since, until):
     """validated date range given by user
     Args:
         since (str): since
@@ -261,7 +263,7 @@ def get_data_from_json(response, parsed_main):
             parsed_json['title'] = [promo_block.get('headlines').get('headline')]
 
         parsed_json['tags'] = tags
-        parsed_json['text'] = [raw_text]
+        parsed_json['text'] = [remove_html_tags(raw_text)]
 
         parsed_json['source_country'] = ['China']
 
@@ -271,8 +273,8 @@ def get_data_from_json(response, parsed_main):
         language = response_data.get('metadata').get('passport').get('language')
         parsed_json['source_language'] = [language_mapper.get(str(language))]
 
-        parsed_json['thumbnail_image'] = thumbnail_image
-        parsed_json['images'] = get_images(response, thumbnail=thumbnail_image)
+        parsed_json['thumbnail_image'] = [thumbnail_image]
+        parsed_json['images'] = get_images(response)
         parsed_json['embed_video_link'] = get_video(response)
         parsed_json["time_scraped"] = [str(datetime.now())]
 
@@ -295,8 +297,12 @@ def get_video(response) -> list:
     """
     try:
         videos = response.css(".e1p6ccnx0")
-        video_links = [BASE_URL + str(video.css("::attr(src)").get()) for video in videos]
-        return video_links
+        base_path = BASE_URL.split("/zhongwen/simp")
+        base_url = base_path[0] if len(base_path) > 0 else None
+        if base_url:
+            video_links = [base_url + str(video.css("::attr(src)").get()) for video in videos]
+            return video_links
+        return None
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting video urls: {exception}")
         raise ArticleScrappingException(
@@ -315,8 +321,7 @@ def get_thumbnail_image(response) -> list:
     """
     try:
         thumbnail = response.css(".bbc-q4ibpr+ .ebmt73l0 .e1mo64ex0::attr(src)").get()
-        thumbnail_url = [thumbnail]
-        return thumbnail_url
+        return thumbnail
     except BaseException as exception:
         LOGGER.info(f"Error occured while getting thumbnail image url: {exception}")
         raise ArticleScrappingException(
@@ -324,7 +329,7 @@ def get_thumbnail_image(response) -> list:
         )
 
 
-def get_images(response, thumbnail) -> list:
+def get_images(response) -> list:
     """Get url for all the images from the article
 
     Args:
@@ -347,8 +352,7 @@ def get_images(response, thumbnail) -> list:
                 "caption": caption
             }
             for link, height, caption in zip(imgs, img_height, caps)
-            if (thumbnail[0].strip().rsplit("/", 1)[-1] != link.strip().rsplit("/", 1)[-1])
-            and (isinstance(caption, str) and ("grey line" not in caption) and (int(height) > 2))
+            if (isinstance(caption, str) and ("grey line" not in caption) and (int(height) > 2))
         ]
         return data
     except BaseException as exception:
@@ -356,3 +360,16 @@ def get_images(response, thumbnail) -> list:
         raise ArticleScrappingException(
             f"Error occured while getting article images urls: {exception}"
         )
+
+
+def remove_html_tags(text):
+    """Remove HTML tags from text
+
+    Args:
+        text (str): Content with html tags
+
+    Returns:
+        str: Text after removing html tags
+    """
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)

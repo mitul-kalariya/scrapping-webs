@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta
 
 from crwbbcnews.spiders.bbcnews import BBCNews
-from crwbbcnews.test.helpers.constant import SITEMAP_URL, TEST_ARTICLES
+from crwbbcnews.test.helpers.constant import CATEGORY_URL, TEST_ARTICLES
 from crwbbcnews.test.helpers.utils import (get_article_content, online_response_from_url)
 
 from crwbbcnews import Crawler
@@ -253,34 +253,34 @@ class TestArticle(unittest.TestCase):
                 raise AssertionError("missing object:- parsed_data--> tags")
 
 
-class TestSitemap(unittest.TestCase):
+class TestCategoryLinks(unittest.TestCase):
     def setUp(self):
-        self.type = "sitemap"
+        self.type = "link_feed"
         current_date = datetime.today().strftime("%Y-%m-%d")
         past_date = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
-        self.crawler = Crawler(query={"type": "sitemap", "domain": SITEMAP_URL,
+        self.crawler = Crawler(query={"type": "link_feed", "domain": CATEGORY_URL,
                                "since": past_date, "until": current_date})
 
-    def _test_sitemap_article_format(self):
-        # Testing the sitemap article object
+    def _test_category_article_format(self):
+        # Testing the category article object
         for article in self.article_urls:
             with self.subTest():
-                self.assertIsNotNone(article.get("link"), "missing object:- sitemap articles --> link")
+                self.assertIsNotNone(article.get("link"), "missing object:- category articles --> link")
             with self.subTest():
-                self.assertIsNotNone(article.get("title"), "missing object:- sitemap articles --> title")
+                self.assertIsNotNone(article.get("title"), "missing object:- category articles --> title")
 
-    def _test_sitemap_results(self):
+    def _test_category_results(self):
         with self.subTest():
-            self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article form sitemap")
+            self.assertGreater(len(self.article_urls), 0, "Crawler did not fetched single article from category")
         with self.subTest():
-            self.assertIsInstance(self.article_urls, list, "Sitemap Article format mismatch")
+            self.assertIsInstance(self.article_urls, list, "category Article format mismatch")
         with self.subTest():
-            self.assertIsInstance(self.article_urls[0], dict, "Sitemap Article format mismatch")
-        self._test_sitemap_article_format()
+            self.assertIsInstance(self.article_urls[0], dict, "category Article format mismatch")
+        self._test_category_article_format()
 
     def test_parse(self):
         self.article_urls = self.crawler.crawl()
-        self._test_sitemap_results()
+        self._test_category_results()
 
 
 if __name__ == "__main__":

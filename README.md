@@ -20,7 +20,7 @@ This repo contains the code to scrap all article links and articles from https:/
 Use the command `python setup.py install`. This will install the whole package in your virtual environment and you can use the following code and get started.
 ### Usage
 
-*Note:* Here we are getting data from sitemap.
+*Note:* Here we are getting data from categories.
 
 You can use the `Crawler` class and its `crawl` method to crawl the data.
 Quick example as shown below.
@@ -38,7 +38,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.bbc.com/zhongwen/",
         "since": "2023-02-25",
         "until": "2023-03-26"
@@ -62,7 +62,7 @@ proxies = {
 
 crawler = Crawler(
     query={
-        "type": "sitemap",
+        "type": "link_feed",
         "domain": "https://www.bbc.com/zhongwen/"
     },
     proxies=proxies
@@ -97,6 +97,6 @@ data = crawler.crawl()
 ## Test Cases
 We have used Python's in-built module `unittest`.
 We have covered mainly two test cases.
-1. For Sitemap article links crawler
+1. For category article links crawler
 2. For Article data CrawlerRun below command to run the test cases.
 - `python -m unittest`

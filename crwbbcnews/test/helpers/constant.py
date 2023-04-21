@@ -1,4 +1,4 @@
-"""list of article/sitemap URLs for testing"""
+"""list of article/category URLs for testing"""
 
 TEST_ARTICLES = [
     {
@@ -15,4 +15,4 @@ TEST_ARTICLES = [
     }
 ]
 
-SITEMAP_URL = "https://www.bbc.com/zhongwen/simp.json"
+CATEGORY_URL = "https://www.bbc.com/zhongwen/simp"

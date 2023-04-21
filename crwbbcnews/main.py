@@ -2,11 +2,12 @@ from scrapy.crawler import CrawlerProcess
 from crwbbcnews.spiders.bbcnews import BBCNews
 
 from multiprocessing import Process, Queue
+from crwbbcnews.exceptions import ProxyConnectionException
 
 
 class Crawler:
     """
-    A class used to crawl the sitemap and article data.
+    A class used to crawl the category and article data.
     ...
 
     Attributes
@@ -21,7 +22,7 @@ class Crawler:
     Methods
     -------
     crawl()
-        Crawls the sitemap URL and article URL and return final data
+        Crawls the category URL and article URL and return final data
     def yield_output(data)
         set data to output attribute
     """
@@ -30,8 +31,8 @@ class Crawler:
         """
         Args:
             query (dict): A dict that takes input for crawling the link for one of the below type.\n
-            for sitemap:- {
-                "type": "sitemap", "domain": "https://example.com",\n
+            for link feed:- {
+                "type": "link_feed", "domain": "https://example.com",\n
                 "since": "2022-03-01", "until": "2022-03-26"\n
                 }
             for article:- {"type": "article", "link": https://example.com/articles/test.html"}\n
@@ -51,10 +52,16 @@ class Crawler:
             target=self.start_crawler, args=(self.query, self.output_queue)
         )
         process.start()
-        return self.output_queue.get()
+
+        articles = self.output_queue.get()
+
+        if articles == "Error in Proxy Configuration":
+            raise ProxyConnectionException("Error in Proxy Configuration")
+
+        return articles
 
     def start_crawler(self, query, output_queue):
-        """Crawls the sitemap URL and article URL and return final data
+        """Crawls the category URL and article URL and return final data
 
         Raises:
             Exception: Raised exception for unknown Type
@@ -66,9 +73,11 @@ class Crawler:
 
         process = CrawlerProcess()
         process_settings = process.settings
+        process_settings["DOWNLOADER_MIDDLEWARES"]["crwbbcnews.middlewares.CustomProxyMiddleware"] = 110
         process_settings["DOWNLOAD_DELAY"] = 0.25
         process_settings["REFERER_ENABLED"] = False
-        process_settings["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
+        process_settings[
+            "USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"  # noqa: E501
         process.settings = process_settings
         if self.query["type"] == "article":
             spider_args = {
@@ -76,7 +85,7 @@ class Crawler:
                 "url": self.query.get("link"),
                 "args": {"callback": output_queue.put},
             }
-        elif self.query["type"] == "sitemap":
+        elif self.query["type"] == "link_feed":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
             if self.query.get("since") and self.query.get("until"):
                 spider_args["since"] = self.query["since"]
@@ -84,18 +93,7 @@ class Crawler:
         else:
             raise Exception("Invalid Type")
 
-        if self.proxies:
-            process_settings = process.settings
-            process_settings["DOWNLOADER_MIDDLEWARES"][
-                "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware"
-            ] = 400
-            process_settings["HTTPPROXY_ENABLED"] = True
-            process_settings["HTTP_PROXY"] = (
-                self.proxies["proxyIp"] + ":" + self.proxies["proxyPort"]
-            )
-            process_settings["HTTP_PROXY_USER"] = self.proxies["proxyUsername"]
-            process_settings["HTTP_PROXY_PASS"] = self.proxies["proxyPassword"]
-            process.settings = process_settings
+        spider_args["args"]["proxies"] = self.proxies
 
         process.crawl(BBCNews, **spider_args)
         process.start()
