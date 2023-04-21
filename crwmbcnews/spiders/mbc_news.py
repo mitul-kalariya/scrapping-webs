@@ -18,14 +18,12 @@ from crwmbcnews.utils import (
     get_parsed_json,
     get_parsed_data,
     remove_empty_elements,
-    export_data_to_json_file
 )
 from crwmbcnews.exceptions import (
     SitemapScrappingException,
-    SitemapArticleScrappingException,
     ArticleScrappingException,
     ExportOutputFileException,
-    InvalidArgumentException
+    InvalidArgumentException,
 )
 
 # Setting the threshold of logger to DEBUG
@@ -48,9 +46,6 @@ class BaseSpider(ABC):
         # parse_sitemap_article will be called from here
         pass
 
-    def parse_sitemap_article(self, response: str) -> None:
-        pass
-
     @abstractmethod
     def parse_article(self, response: str) -> list:
         pass
@@ -64,15 +59,14 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
     news_namespace = {"sitemap": "http://www.google.com/schemas/sitemap-news/0.9"}
 
-    def __init__(
-        self, *args, type=None, url=None, since=None, until=None, **kwargs
-    ):
+    def __init__(self, *args, type=None, url=None, since=None, until=None, **kwargs):
         """init method to take date, type and validating it"""
 
         super(MbcNewsSpider, self).__init__(*args, **kwargs)
 
         try:
-            self.output_callback = kwargs.get('args', {}).get('callback', None)
+            self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get("args", {}).get("proxies", None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -90,23 +84,22 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
                 self.type, self.scrape_start_date, self.scrape_end_date, url
             )
 
-            self.start_urls.append(
-                url
-                if self.type == "article"
-                else SITEMAP_URL
-            )
+            self.start_urls.append(url if self.type == "article" else SITEMAP_URL)
 
         except Exception as exception:
-            self.error_msg_dict["error_msg"] = (
-                "Error occurred while taking type, url, since and until args. "
-                + str(exception)
+            self.error_msg_dict[
+                "error_msg"
+            ] = "Error occurred while taking type, url, since and until args. " + str(
+                exception
             )
             self.log(
                 "Error occurred while taking type, url, since and until args. "
                 + str(exception),
                 level=logging.ERROR,
             )
-            raise InvalidArgumentException("Error occurred while taking type, url, since and until args.")
+            raise InvalidArgumentException(
+                "Error occurred while taking type, url, since and until args."
+            )
 
     def parse(self, response: str, **kwargs) -> None:
         """
@@ -125,7 +118,7 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
             raise CloseSpider(
                 f"Unable to scrape due to getting this status code {response.status}"
             )
-        
+
         self.logger.info("Parse function called on %s", response.url)
         if "sitemap.xml" in response.url:
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
@@ -142,18 +135,21 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
-        
+
         for url, date in zip(
-            Selector(response, type="xml").xpath("//sitemap:loc/text()", namespaces=self.namespace).getall(),
-            Selector(response, type="xml").xpath("//sitemap:lastmod/text()", namespaces=self.namespace).getall(),
+            Selector(response, type="xml")
+            .xpath("//sitemap:loc/text()", namespaces=self.namespace)
+            .getall(),
+            Selector(response, type="xml")
+            .xpath("//sitemap:lastmod/text()", namespaces=self.namespace)
+            .getall(),
         ):
             try:
                 if "article" in url:
                     date_datetime = datetime.strptime(date.strip()[:10], "%Y-%m-%d")
                     if date_datetime.date() in self.date_range_lst:
-                        yield scrapy.Request(
-                            url.strip(), callback=self.parse_sitemap_article
-                        )
+                        data = {"link": url}
+                        self.articles.append(data)
             except SitemapScrappingException as exception:
                 self.log(
                     "Error occurred while scrapping urls from given sitemap url. "
@@ -163,29 +159,6 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
                 raise SitemapScrappingException(
                     f"Error occurred while fetching sitemap:- {str(exception)}"
                 ) from exception
-
-    def parse_sitemap_article(self, response: str) -> None:
-        """
-        parse sitemap article and scrap title and link
-        Args:
-            response: generated response
-        Raises:
-            ValueError if not provided
-        Returns:
-            Values of parameters
-        """
-        try:
-            if title := response.css("h2.art_title::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
 
     def parse_article(self, response: str) -> None:
         """
@@ -213,7 +186,10 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
                     parsed_json_data,
                 )
             articledata_loader.add_value(
-                "parsed_data", get_parsed_data(response, parsed_json_data, parsed_json_data.get("VideoObject"))
+                "parsed_data",
+                get_parsed_data(
+                    response, parsed_json_data, parsed_json_data.get("VideoObject")
+                ),
             )
 
             self.articles.append(
@@ -242,11 +218,29 @@ class MbcNewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
                 self.log("No articles or sitemap url scrapped.", level=logging.INFO)
-            
+
         except Exception as exception:
             self.log(
                 f"Error occurred while closing crawler:- {str(exception)} - {reason}",

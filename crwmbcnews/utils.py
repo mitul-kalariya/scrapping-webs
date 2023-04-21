@@ -1,8 +1,5 @@
 """Utility Functions"""
-from asyncio import exceptions
 from datetime import timedelta, datetime
-import json
-import os
 import re
 import json5
 from scrapy.loader import ItemLoader
@@ -16,7 +13,6 @@ from .exceptions import (
     InvalidDateException,
     InvalidArgumentException,
 )
-from .constant import BASE_URL
 
 ERROR_MESSAGES = {
     "InputMissingException": "{} field is required.",
@@ -27,6 +23,8 @@ ERROR_MESSAGES = {
 language_mapper = {"en": "English", "ko": "Korean (Johab)"}
 
 SPACE_REMOVER_PATTERN = r"[\n|\r|\t| ]+"
+
+
 def sitemap_validations(
     scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
@@ -184,9 +182,8 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
         "other": [],
         "misc": [],
     }
-    
+
     for block in blocks:
-        
         if "NewsArticle" in json5.loads(block).get("@type", [{}]):
             parsed_json_flter_dict["main"] = json5.loads(block)
         elif "ImageGallery" in json5.loads(block).get("@type", [{}]) or "ImageObject" in json5.loads(block).get("@type", [{}]):
@@ -211,7 +208,7 @@ def get_parsed_json(response) -> dict:
     article_raw_parsed_json_loader = ItemLoader(
         item=ArticleRawParsedJson(), response=response
     )
-    
+
     for key, value in get_parsed_json_filter(
         response.css('script[type="application/ld+json"]::text').getall(),
         response.css('script[type="application/json"]::text').getall(),
@@ -219,38 +216,6 @@ def get_parsed_json(response) -> dict:
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-    Args:
-        scrape_type: Name of the scrape type
-        file_data: file data
-        file_name: Name of the file which contain data
-    Raises:
-        ValueError if not provided
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4, ensure_ascii=False)
 
 
 def get_parsed_data_dict() -> dict:
@@ -330,7 +295,9 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main, response)
     parsed_data_dict |= get_publihser_details(parsed_json_main, response)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
-    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response, video_object)
+    parsed_data_dict |= get_thumbnail_image_video(
+        parsed_json_main, response, video_object
+    )
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -343,7 +310,7 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: author related details
     """
-    
+
     author_details = []
     author_data = (
         parsed_data.get("main").get("author")
@@ -366,7 +333,6 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     return {"author": author_details}
 
 
-
 def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
     """
     Returns description, modified date, published date details
@@ -380,7 +346,7 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
         "modified_at": None,
         "published_at": None,
     }
-    
+
     if "NewsArticle" in parsed_data.get("main").get(
         "@type"
     ) or "LiveBlogPosting" in parsed_data.get("main").get("@type"):
@@ -390,7 +356,6 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
             "published_at": [parsed_data.get("main").get("datePublished")],
         }
     return article_data
-    
 
 
 def get_publihser_details(parsed_data: list, response: str) -> dict:
@@ -412,22 +377,18 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
                 "name": publisher.get("name"),
                 "logo": {
                     "url": publisher.get("logo").get("url"),
-                    "width": str(publisher.get("logo").get("width"))
-                    + " px",
-                    "height": str(
-                        publisher.get("logo").get("height")
-                    )
-                    + " px",
+                    "width": str(publisher.get("logo").get("width")) + " px",
+                    "height": str(publisher.get("logo").get("height")) + " px",
                 },
             }
             for publisher in [parsed_data_main.get("publisher")]
         )
     return {"publisher": publisher_details}
-    
+
     # return {"publisher": [{"name": response.css("meta[name*='publisher']::attr(content)").get()}]}
 
 
-def get_text_title_section_details(parsed_data: list, response:str) -> dict:
+def get_text_title_section_details(parsed_data: list, response: str) -> dict:
     """
     Returns text, title, section details
     Args:
@@ -438,16 +399,20 @@ def get_text_title_section_details(parsed_data: list, response:str) -> dict:
     """
     pattern = r"[\r\n\t\"]+"
     article_text = " ".join(response.css(".news_txt::text").getall())
-    text = [re.sub(pattern, "", article_text).strip()]
+    new_text = " ".join(article_text.split())
+    text = [re.sub(pattern, "", new_text).strip()]
     return {
         "title": [response.css("h2.art_title::text").get()],
         "text": text,
         "section": [response.css("meta[id*='section']::attr(content)").get()],
         "tags": [parsed_data.get("main").get("keywords", [])],
+        "time_scraped": [datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")],
     }
 
 
-def get_thumbnail_image_video(parsed_data: list, response: str, video_object: dict) -> dict:
+def get_thumbnail_image_video(
+    parsed_data: list, response: str, video_object: dict
+) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -456,55 +421,38 @@ def get_thumbnail_image_video(parsed_data: list, response: str, video_object: di
     Returns:
         dict: thumbnail images, images and video details
     """
-    
-    
-    data = []
-    video = None
+
+    image_data = []
+    video_data = []
     description = None
     embed_video_link = None
     thumbnail_url = None
     images = None
     caption = None
     if video_object:
+        temp_dict = {}
         if video_url := video_object.get("contentUrl"):
-            video = video_url
+            temp_dict["link"] = f"http:{video_url}"
         description = video_object.get("description")
+        if description:
+            temp_dict["caption"] = description
+        video_data.append(temp_dict)
         thumbnail_url = video_object.get("thumbnailUrl", None)
 
-    # if parsed_data.get("associatedMedia", [{}]):
-    #     embed_video_link = parsed_data.get("associatedMedia", [{}])[0].get("embedUrl", None)
-
-    # if parsed_data.get("associatedMedia", [{}]):
-
-    
-    # thumbnail_image = [response.css("meta[name*='thumbnail']::attr(content)").get()]
     images = response.css("div.news_txt img::attr(src)").getall()
     caption = response.css("div.news_txt img::attr(alt)").getall()
     if images:
         for image, caption in zip(images, caption):
             temp_dict = {}
             if image:
-                temp_dict["link"] = image
+                temp_dict["link"] = f"http:{image}"
                 if caption:
                     temp_dict["caption"] = caption
-            data.append(temp_dict)
+            image_data.append(temp_dict)
 
     return {
         "thumbnail_image": thumbnail_url,
         "embed_video_link": [embed_video_link],
-        "images": data,
-        "video": [{"link": video, "caption": description}]
-        }
-
-
-# return {
-#         "thumbnail_image": [thumbnail_url],
-#         "embed_video_link": [embed_video_link],
-#         "images": [
-#             {
-#                 "link": response.css(".Main__Body source::attr(srcset)").get(),
-#                 "caption": response.css(".Picture__Figcaption::text").get()
-#             }
-#         ],
-#         "video": [{"link": video, "caption": description}],
-#     }
+        "images": image_data,
+        "video": video_data,
+    }
