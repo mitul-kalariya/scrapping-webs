@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from abc import ABC, abstractmethod
+import re
 from crwyonhapnews.constant import BASE_URL, SITEMAP_URL
 import scrapy
 import lxml.etree as etree
@@ -63,7 +64,7 @@ class YonhapNewsSpider(scrapy.Spider, BaseSpider):
     name = "yonhap_news"
     start_urls = BASE_URL
     namespace = {"sitemap": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-
+    new_namespace = {"news": "http://www.google.com/schemas/sitemap-news/0.9"}
     def __init__(
         self, *args, type=None, url=None, start_date=None, end_date=None, **kwargs
     ):
@@ -72,6 +73,7 @@ class YonhapNewsSpider(scrapy.Spider, BaseSpider):
         super(__class__, self).__init__(*args, **kwargs)
         try:
             self.output_callback = kwargs.get("args", {}).get("callback", None)
+            self.proxies = kwargs.get('args', {}).get('proxies', None)
             self.start_urls = []
             self.articles = []
             self.date_range_lst = []
@@ -121,7 +123,7 @@ class YonhapNewsSpider(scrapy.Spider, BaseSpider):
             )
         
         self.logger.info("Parse function called on %s", response.url)
-        if "ospc_news_all_list.html" in response.url:
+        if "news-sitemap.xml" in response.url:
             yield scrapy.Request(response.url, callback=self.parse_sitemap)
         else:
             yield self.parse_article(response)
@@ -138,18 +140,21 @@ class YonhapNewsSpider(scrapy.Spider, BaseSpider):
         """
         
         try:
-            for url in response.css("div.contents p a::attr(href)").getall():
-                yield scrapy.Request(url, callback=self.parse_sitemap_article)
-        except SitemapScrappingException as exception:
+            for url, title in zip(
+                Selector(response, type="").xpath("//url/loc/text()", namespaces=self.namespace).getall(),
+                Selector(response, type="").xpath("//url/news/title/text()", namespaces=self.new_namespace).getall()
+            ):
+                updated_title = re.sub('[^A-Za-z0-9\s]+|CDATA', '', title)
+                data = {"link": url, "title": updated_title}
+                self.articles.append(data)
+        except Exception as exception:
             self.log(
-                "Error occurred while scrapping urls from given sitemap url. "
-                + str(exception),
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
                 level=logging.ERROR,
             )
-            raise SitemapScrappingException(
-                f"Error occurred while fetching sitemap:- {str(exception)}"
+            raise SitemapArticleScrappingException(
+                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
             ) from exception
-
     def parse_sitemap_article(self, response: str) -> None:
         """
         parse sitemap article and scrap title and link
@@ -160,21 +165,8 @@ class YonhapNewsSpider(scrapy.Spider, BaseSpider):
         Returns:
             Values of parameters
         """
+        pass
         
-        try:
-            
-            if title := response.css("h3.title::text").get():
-                data = {"link": response.url, "title": title}
-                self.articles.append(data)
-        except Exception as exception:
-            self.log(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}",
-                level=logging.ERROR,
-            )
-            raise SitemapArticleScrappingException(
-                f"Error occurred while fetching article details from sitemap:- {str(exception)}"
-            ) from exception
-
     def parse_article(self, response: str) -> None:
         """
         parse article and append related data to class's articles variable
@@ -229,6 +221,25 @@ class YonhapNewsSpider(scrapy.Spider, BaseSpider):
             Values of parameters
         """
         try:
+            stats = self.crawler.stats.get_stats()
+            if (
+                stats.get(
+                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                    0,
+                )
+                > 0
+            ) or (
+                stats.get(
+                    "downloader/request_count",
+                    0,
+                )
+                == stats.get(
+                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
+                    0,
+                )
+            ):
+                self.output_callback("Error in Proxy Configuration")
+
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:

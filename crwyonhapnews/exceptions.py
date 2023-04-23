@@ -63,3 +63,7 @@ class URLNotFoundException(Exception):
     # Use URLNotFoundException(f"Given {url} not found for website {website_name}
     # with status code{response.status_code}")
     pass
+
+class ProxyConnectionException(Exception):
+    """Rise when getting 403 or 407 status code"""
+    pass

@@ -324,10 +324,10 @@ def get_parsed_data(response: str, parsed_json_main: list) -> dict:
         "source_language": [language_mapper.get(language)],
     }
     parsed_data_dict |= get_author_details(parsed_json_main, response)
-    # parsed_data_dict |= get_descriptions_date_details(parsed_json_main, response)
-    # parsed_data_dict |= get_publihser_details(parsed_json_main, response)
-    # parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
-    # parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response, video_object)
+    parsed_data_dict |= get_descriptions_date_details(parsed_json_main, response)
+    parsed_data_dict |= get_publihser_details(parsed_json_main, response)
+    parsed_data_dict |= get_text_title_section_details(parsed_json_main, response)
+    parsed_data_dict |= get_thumbnail_image_video(parsed_json_main, response)
     return remove_empty_elements(parsed_data_dict)
 
 
@@ -358,15 +358,11 @@ def get_descriptions_date_details(parsed_data: list, response: str) -> dict:
         "modified_at": None,
         "published_at": None,
     }
-    
-    if "NewsArticle" in parsed_data.get("main").get(
-        "@type"
-    ) or "LiveBlogPosting" in parsed_data.get("main").get("@type"):
-        article_data |= {
-            "description": [parsed_data.get("main").get("description")],
-            "modified_at": [parsed_data.get("main").get("dateModified")],
-            "published_at": [parsed_data.get("main").get("datePublished")],
-        }
+    article_data |= {
+        "description": [response.css("meta[name*='description']::attr(content)").get()],
+        "published_at": [response.css("meta[property*='article:published_time']::attr(content)").get()],
+        "modified_at": [response.css("meta[property*='article:modified_time']::attr(content)").get()],
+    }
     return article_data
     
 
@@ -380,29 +376,8 @@ def get_publihser_details(parsed_data: list, response: str) -> dict:
     Returns:
         dict: publisher details like name, type, id related details
     """
-    publisher_details = []
-    parsed_data_main = parsed_data.get("main")
-    if parsed_data_main.get("publisher"):
-        publisher_details.extend(
-            {
-                "@id": publisher.get("@id"),
-                "@type": publisher.get("@type"),
-                "name": publisher.get("name"),
-                "logo": {
-                    "url": publisher.get("logo").get("url"),
-                    "width": str(publisher.get("logo").get("width"))
-                    + " px",
-                    "height": str(
-                        publisher.get("logo").get("height")
-                    )
-                    + " px",
-                },
-            }
-            for publisher in [parsed_data_main.get("publisher")]
-        )
-    return {"publisher": publisher_details}
     
-    # return {"publisher": [{"name": response.css("meta[name*='publisher']::attr(content)").get()}]}
+    return {"publisher": [{"name": response.css("meta[itemprop*='publisher']::attr(content)").get()}]}
 
 
 def get_text_title_section_details(parsed_data: list, response:str) -> dict:
@@ -415,17 +390,25 @@ def get_text_title_section_details(parsed_data: list, response:str) -> dict:
         dict: text, title, section details
     """
     pattern = r"[\r\n\t\"]+"
-    article_text = " ".join(response.css(".news_txt::text").getall())
-    text = [re.sub(pattern, "", article_text).strip()]
+    texts = []
+    for p in response.css(".story-news p"):
+        text = ''
+        for t in p.css('::text'):
+            if t.get().strip():
+                text += t.get().strip() + ' '
+        texts.append(text.strip())
+    article_text = " ".join(texts)
+    new_text = [re.sub(pattern, "", article_text).strip()]
     return {
-        "title": [response.css("h2.art_title::text").get()],
-        "text": text,
-        "section": [response.css("meta[id*='section']::attr(content)").get()],
-        "tags": [parsed_data.get("main").get("keywords", [])],
+        "title": [response.css("header.title-article01 > h1.tit::text").get()],
+        "text": new_text,
+        "section": [response.css("meta[property*='article:section']::attr(content)").get()],
+        "tags": response.css("div.keyword-zone01 div.list  a::text").getall(),
+        "time_scraped": [datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")],
     }
 
 
-def get_thumbnail_image_video(parsed_data: list, response: str, video_object: dict) -> dict:
+def get_thumbnail_image_video(parsed_data: list, response: str) -> dict:
     """
     Returns thumbnail images, images and video details
     Args:
@@ -440,49 +423,26 @@ def get_thumbnail_image_video(parsed_data: list, response: str, video_object: di
     video = None
     description = None
     embed_video_link = None
-    thumbnail_url = None
+    thumbnail_image = None
     images = None
     caption = None
-    if video_object:
-        if video_url := video_object.get("contentUrl"):
-            video = video_url
-        description = video_object.get("description")
-        thumbnail_url = video_object.get("thumbnailUrl", None)
-
-    # if parsed_data.get("associatedMedia", [{}]):
-    #     embed_video_link = parsed_data.get("associatedMedia", [{}])[0].get("embedUrl", None)
-
-    # if parsed_data.get("associatedMedia", [{}]):
-
-    
-    # thumbnail_image = [response.css("meta[name*='thumbnail']::attr(content)").get()]
-    images = response.css("div.news_txt img::attr(src)").getall()
-    caption = response.css("div.news_txt img::attr(alt)").getall()
+    video = response.css(".video-zone .desc-con a::attr(href)").get()
+    description = response.css(".video-zone .desc-con p::text").get()
+    thumbnail_image = [response.css("meta[itemprop*='thumbnail']::attr(content)").get()]  
+    images = response.css(".story-news img::attr(src)").getall()
+    caption = response.css(".story-news img::attr(alt)").getall()
     if images:
         for image, caption in zip(images, caption):
             temp_dict = {}
             if image:
-                temp_dict["link"] = image
+                temp_dict["link"] = f"https:{image}"
                 if caption:
                     temp_dict["caption"] = caption
             data.append(temp_dict)
 
     return {
-        "thumbnail_image": thumbnail_url,
+        "thumbnail_image": thumbnail_image,
         "embed_video_link": [embed_video_link],
         "images": data,
         "video": [{"link": video, "caption": description}]
         }
-
-
-# return {
-#         "thumbnail_image": [thumbnail_url],
-#         "embed_video_link": [embed_video_link],
-#         "images": [
-#             {
-#                 "link": response.css(".Main__Body source::attr(srcset)").get(),
-#                 "caption": response.css(".Picture__Figcaption::text").get()
-#             }
-#         ],
-#         "video": [{"link": video, "caption": description}],
-#     }

@@ -1,19 +1,65 @@
 """list of article/sitemap URLs for testing"""
 
-# TODO:Update below dictionary to add or remove new articles to test
 TEST_ARTICLES = [
     {
-        "url": "https://indianexpress.com/article/cities/delhi/delhi-hc-releases-lawyer-who-got-6-months-jail-for-not-paying-rs-32-lakh-rent-after-settlement-8511700/",
-        "test_data_path": "newton_scrapping/test/data/test_article_1.json"
+        "url": "https://en.yna.co.kr/view/AEN20230419006200320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_1.json"
     },
     {
-        "url": "https://indianexpress.com/article/education/qs-world-university-rankings-by-subject-du-iit-delhi-mumbai-iisc-courses-8512300/",
-        "test_data_path": "newton_scrapping/test/data/test_article_2.json"
+        "url": "https://en.yna.co.kr/view/AEN20230419006100320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_2.json"
     },
     {
-        "url": "https://indianexpress.com/article/sports/cricket/david-still-has-a-burning-desire-to-open-the-batting-for-australia-candice-warner-8512422/",
-        "test_data_path": "newton_scrapping/test/data/test_article_3.json"
+        "url": "https://en.yna.co.kr/view/AEN20230419005600315",
+        "test_data_path": "crwyonhapnews/test/data/test_article_3.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419005500325",
+        "test_data_path": "crwyonhapnews/test/data/test_article_4.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419005400315",
+        "test_data_path": "crwyonhapnews/test/data/test_article_5.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419005100315",
+        "test_data_path": "crwyonhapnews/test/data/test_article_6.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419002800320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_7.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419005000320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_8.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419003851320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_9.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419004700315",
+        "test_data_path": "crwyonhapnews/test/data/test_article_10.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419003800320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_11.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419004200315",
+        "test_data_path": "crwyonhapnews/test/data/test_article_12.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419004400320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_13.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419002000320",
+        "test_data_path": "crwyonhapnews/test/data/test_article_14.json"
+    },
+    {
+        "url": "https://en.yna.co.kr/view/AEN20230419000952325",
+        "test_data_path": "crwyonhapnews/test/data/test_article_15.json"
     }
 ]
-# TODO:Update below sitemap URL
-SITEMAP_URL = "https://indianexpress.com/sitemap.xml"
+SITEMAP_URL = "https://en.yna.co.kr/news-sitemap.xml"
