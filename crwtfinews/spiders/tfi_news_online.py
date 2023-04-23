@@ -193,6 +193,7 @@ class TfiNewsSpider(scrapy.Spider, BaseSpider):
                     response,
                     parsed_json_data.get("main"),
                     parsed_json_data.get("VideoObject"),
+                    parsed_json_data.get("misc")
                 ),
             )
 

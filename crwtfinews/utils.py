@@ -1,18 +1,20 @@
 """Utility Functions"""
+from asyncio import exceptions
 from datetime import timedelta, datetime
 import json
-import os
 
+import scrapy
 from scrapy.loader import ItemLoader
 
 from crwtfinews.items import (
     ArticleRawResponse,
     ArticleRawParsedJson,
 )
-from .exceptions import (
+from crwtfinews.exceptions import (
     InputMissingException,
     InvalidDateException,
     InvalidArgumentException,
+    URLNotFoundException,
 )
 
 ERROR_MESSAGES = {
@@ -24,7 +26,7 @@ ERROR_MESSAGES = {
 language_mapper = {"FRA": "France", "fr-FR": "French", "fr": "French"}
 
 
-def sitemap_validations(
+def input_args_validations(
     scrape_start_date: datetime, scrape_end_date: datetime, article_url: str
 ) -> datetime:
     """
@@ -99,7 +101,7 @@ def date_in_date_range(published_date: datetime, date_range_lst: list) -> bool:
     return true if date is in given start date and end date range
 
     Args:
-        published_date (datetime): published date for checking exsist or not in date range list
+        published_date (datetime): published date for checking exist or not in date range list
         date_range_lst (list): date range list
     Returns:
         Value of parameter
@@ -114,6 +116,7 @@ def validate_arg(param_name, param_value, custom_msg=None) -> None:
     Args:
         param_name: Name of the parameter to be validated
         param_value: Value of the required parameter
+        custom_msg: custom message
 
     Raises:
         ValueError if not provided
@@ -145,7 +148,7 @@ def validate(
         article_validations(url, scrape_start_date, scrape_end_date)
         return None, None
     if scrape_type == "sitemap":
-        scrape_start_date, scrape_end_date = sitemap_validations(
+        scrape_start_date, scrape_end_date = input_args_validations(
             scrape_start_date, scrape_end_date, url
         )
         date_range_lst = []
@@ -155,7 +158,7 @@ def validate(
     return validate_arg("MISSING_REQUIRED_FIELD", None, "type")
 
 
-def get_raw_response(response: str, selector_and_key: dict) -> dict:
+def get_raw_response(response: scrapy, selector_and_key: dict) -> dict:
     """
     Raw response data generated from given response and selector
 
@@ -185,7 +188,7 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     Returns:
         Dictionary with Parsed json response from generated data
     """
-    parsed_json_flter_dict = {
+    parsed_json_filter_dict = {
         "main": None,
         "ImageObjects": None,
         "VideoObjects": None,
@@ -194,30 +197,30 @@ def get_parsed_json_filter(blocks: list, misc: list) -> dict:
     }
     for block in blocks:
         try:
-            
             if "NewsArticle" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["main"] = json.loads(block)[0]
-            elif "ImageGallery" in json.loads(block)[0].get("@type", [{}]) or "ImageObject" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["ImageObjects"] = json.loads(block)[0]
+                parsed_json_filter_dict["main"] = json.loads(block)[0]
+            elif "ImageGallery" in json.loads(block)[0].get(
+                "@type", [{}]
+            ) or "ImageObject" in json.loads(block)[0].get("@type", [{}]):
+                parsed_json_filter_dict["ImageObjects"] = json.loads(block)[0]
             elif "VideoObject" in json.loads(block)[0].get("@type", [{}]):
-                parsed_json_flter_dict["VideoObjects"] = json.loads(block)[0]
-            elif json.loads(block).get("@type"):
+                parsed_json_filter_dict["VideoObjects"] = json.loads(block)[0]
+            elif json.loads(block)[0].get("@type"):
                 continue
             else:
-                parsed_json_flter_dict["other"].append(json.loads(block))
+                parsed_json_filter_dict["other"].append(json.loads(block))
         except KeyError:
             pass
-    parsed_json_flter_dict["misc"] = [json.loads(data) for data in misc]
-    return parsed_json_flter_dict
+    parsed_json_filter_dict["misc"] = [json.loads(data) for data in misc]
+    return parsed_json_filter_dict
 
 
-def get_parsed_json(response) -> dict:
+def get_parsed_json(response: scrapy) -> dict:
     """
      Parsed json response from generated data using given response and selector
 
     Args:
         response: provided response
-        selector_and_key: A dictionary with key and selector
 
     Returns:
         Dictionary with Parsed json response from generated data
@@ -233,41 +236,6 @@ def get_parsed_json(response) -> dict:
         article_raw_parsed_json_loader.add_value(key, value)
 
     return dict(article_raw_parsed_json_loader.load_item())
-
-
-def export_data_to_json_file(scrape_type: str, file_data: str, file_name: str) -> None:
-    """
-    Export data to json file
-
-    Args:
-        scrape_type: Name of the scrape type, sitemap or article
-        file_data: file data
-        file_name: Name of the file which contain data
-
-    Raises:
-        ValueError if not provided
-
-    Returns:
-        Values of parameters
-    """
-    folder_structure = ""
-    if scrape_type == "sitemap":
-        folder_structure = "Links"
-        filename = (
-            f'{file_name}-sitemap-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    elif scrape_type == "article":
-        folder_structure = "Article"
-        filename = (
-            f'{file_name}-articles-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json'
-        )
-
-    if not os.path.exists(folder_structure):
-        os.makedirs(folder_structure)
-
-    with open(f"{folder_structure}/{filename}", "w", encoding="utf-8") as file:
-        json.dump(file_data, file, indent=4)
 
 
 def get_parsed_data_dict() -> dict:
@@ -329,7 +297,9 @@ def remove_empty_elements(parsed_data_dict: dict) -> dict:
     return data_dict
 
 
-def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -> dict:
+def get_parsed_data(
+    response: scrapy, parsed_json_main: list, video_object: dict, parsed_json_misc: dict
+) -> dict:
     """
      Parsed data response from generated data using given response and selector
     Args:
@@ -347,15 +317,15 @@ def get_parsed_data(response: str, parsed_json_main: list, video_object: dict) -
     }
     parsed_data_dict |= get_author_details(parsed_json_main, response)
     parsed_data_dict |= get_descriptions_date_details(parsed_json_main)
-    parsed_data_dict |= get_publihser_details(parsed_json_main)
+    parsed_data_dict |= get_publisher_details(parsed_json_main)
     parsed_data_dict |= get_text_title_section_details(parsed_json_main)
     parsed_data_dict |= get_thumbnail_image_video(
-        parsed_json_main, video_object, response
+        parsed_json_main, video_object, response, parsed_json_misc
     )
     return remove_empty_elements(parsed_data_dict)
 
 
-def get_author_details(parsed_data: list, response: str) -> dict:
+def get_author_details(parsed_data: dict, response: scrapy) -> dict:
     """
     Return author related details
     Args:
@@ -386,7 +356,7 @@ def get_author_details(parsed_data: list, response: str) -> dict:
     return {"author": author_details}
 
 
-def get_descriptions_date_details(parsed_data: list) -> dict:
+def get_descriptions_date_details(parsed_data: dict) -> dict:
     """
     Returns description, modified date, published date details
     Args:
@@ -410,12 +380,11 @@ def get_descriptions_date_details(parsed_data: list) -> dict:
     return article_data
 
 
-def get_publihser_details(parsed_data: list) -> dict:
+def get_publisher_details(parsed_data: dict) -> dict:
     """
     Returns publisher details like name, type, id
     Args:
         parsed_data: response of application/ld+json data
-        response: provided response
     Returns:
         dict: publisher details like name, type, id related details
     """
@@ -441,12 +410,11 @@ def get_publihser_details(parsed_data: list) -> dict:
     return {"publisher": publisher_details}
 
 
-def get_text_title_section_details(parsed_data: list) -> dict:
+def get_text_title_section_details(parsed_data: dict) -> dict:
     """
     Returns text, title, section details
     Args:
         parsed_data: response of application/ld+json data
-        response: provided response
     Returns:
         dict: text, title, section details
     """
@@ -459,7 +427,7 @@ def get_text_title_section_details(parsed_data: list) -> dict:
 
 
 def get_thumbnail_image_video(
-    parsed_data: list, video_object: dict, response: str
+    parsed_data: dict, video_object: dict, response: scrapy, parsed_json_misc: dict
 ) -> dict:
     """
     Returns thumbnail images, images and video details
@@ -473,6 +441,7 @@ def get_thumbnail_image_video(
     description = None
     embed_video_link = None
     thumbnail_url = None
+
     if video_object:
         if video_url := video_object.get("embedUrl"):
             video = video_url
@@ -487,15 +456,32 @@ def get_thumbnail_image_video(
         thumbnail_url = parsed_data.get("associatedMedia", [{}])[0].get(
             "thumbnailUrl", None
         )
+    else:
+        thumbnail_url = (
+            parsed_json_misc[0]
+            .get("props")
+            .get("pageProps")
+            .get("page")
+            .get("imageThumbnail")
+            .get("url", None)
+        )
+
+    data = []
+    images = response.css(".Main__Body source::attr(srcset)").getall()
+    caption = response.css(".Picture__Figcaption::text").getall()
+    if images:
+        for image, caption in zip(images, caption):
+            temp_dict = {}
+            if image:
+                temp_dict["link"] = image
+                if caption:
+                    temp_dict["caption"] = caption
+            data.append(temp_dict)
 
     return {
         "thumbnail_image": [thumbnail_url],
         "embed_video_link": [embed_video_link],
-        "images": [
-            {
-                "link": response.css(".Main__Body source::attr(srcset)").get(),
-                "caption": response.css(".Picture__Figcaption::text").get(),
-            }
-        ],
+        "images": data or None,
         "video": [{"link": video, "caption": description}],
+        "time_scraped": [datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")],
     }
