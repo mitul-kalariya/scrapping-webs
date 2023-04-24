@@ -1,0 +1,6 @@
+setuptools==65.6.3
+requests==2.28.2
+scrapy==2.8.0
+itemloaders==1.0.6
+w3lib==2.1.1
+itemadapter==0.7.0
