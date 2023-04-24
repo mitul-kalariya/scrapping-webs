@@ -1,8 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
-# TODO: Change path and spider name here
 from crwyohapnews.spiders.yohapnewstv import YohapNewsSpider
-from crwyohapnews import exceptions
+from crwyohapnews.exceptions import ProxyConnectionException
 from scrapy.utils.project import get_project_settings
 
 
@@ -17,9 +16,6 @@ class Crawler:
         query dictionary that contains type, link, domain, since and until
     proxies : str
         dictionary that contains proxy related information
-    output : int
-        Data returned by crawl method
-
     Methods
     -------
     crawl()
@@ -49,15 +45,13 @@ class Crawler:
 
     def crawl(self) -> list[dict]:
         self.output_queue = Queue()
-        process = Process(
-            target=self.start_crawler, args=(self.query, self.output_queue)
-        )
+        process = Process(target=self.start_crawler, args=(self.query, self.output_queue))
         process.start()
 
         articles = self.output_queue.get()
 
         if articles == "Error in Proxy Configuration":
-            raise exceptions.ProxyConnectionException("Error in Proxy Configuration")
+            raise ProxyConnectionException("Error in Proxy Configuration")
 
         return articles
 
@@ -75,11 +69,7 @@ class Crawler:
         process = CrawlerProcess()
         process.settings = get_project_settings()
         if self.query["type"] == "article":
-            spider_args = {
-                "type": "article",
-                "url": self.query.get("link"),
-                "args": {"callback": output_queue.put},
-            }
+            spider_args = {"type": "article", "url": self.query.get("link"), "args": {"callback": output_queue.put}, }
         elif self.query["type"] == "sitemap":
             spider_args = {"type": "sitemap", "args": {"callback": output_queue.put}}
             if self.query.get("since") and self.query.get("until"):
@@ -87,7 +77,6 @@ class Crawler:
                 spider_args["end_date"] = self.query["until"]
         else:
             raise Exception("Invalid Type")
-
 
         spider_args["args"]["proxies"] = self.proxies
         process.crawl(YohapNewsSpider, **spider_args)

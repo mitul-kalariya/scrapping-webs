@@ -4,16 +4,17 @@ from abc import ABC, abstractmethod
 import scrapy
 import requests
 from scrapy.loader import ItemLoader
-from crwyohapnews import exceptions
+from crwyohapnews.exceptions import (
+    CrawlerClosingException,
+    ArticleScrappingException,
+    InputMissingException,
+    InvalidInputException,
+    ParseFunctionFailedException,
+    LinkFeedScrappingException,
+)
 from crwyohapnews.constant import LINK_FEED_URL, LOGGER, TODAYS_DATE, BASE_URL
 from crwyohapnews.items import ArticleData
-from crwyohapnews.utils import (
-    create_log_file,
-    get_raw_response,
-    get_parsed_data,
-    get_parsed_json,
-    export_data_to_json_file,
-)
+from crwyohapnews.utils import (create_log_file, get_raw_response, get_parsed_data, get_parsed_json,)
 
 # create log file
 create_log_file()
@@ -125,15 +126,11 @@ class YohapNewsSpider(scrapy.Spider):
                     self.start_urls.append(url)
                 else:
                     LOGGER.info("Must have a URL to scrap")
-                    raise exceptions.InputMissingException("Must have a URL to scrap")
+                    raise InputMissingException("Must have a URL to scrap")
 
         except Exception as exception:
-            LOGGER.info(
-                "Error occured in init function in %s :--  %s ", self.name, exception
-            )
-            raise exceptions.InvalidInputException(
-                f"Error occured in init function in {self.name}:-- {exception}"
-            )
+            LOGGER.info("Error occurred in init function in %s :--  %s ", self.name, exception)
+            raise InvalidInputException(f"Error occurred in init function in {self.name}:-- {exception}")
 
     def parse(self, response, **kwargs):
         """
@@ -154,10 +151,8 @@ class YohapNewsSpider(scrapy.Spider):
                 yield self.parse_article(response)
 
         except BaseException as exception:
-            LOGGER.info("Error occured in parse function: %s", exception)
-            raise exceptions.ParseFunctionFailedException(
-                f"Error occured in parse function: {exception}"
-            )
+            LOGGER.info("Error occurred in parse function: %s", exception)
+            raise ParseFunctionFailedException(f"Error occurred in parse function: {exception}")
 
     def parse_link_feed(self, response):
         """
@@ -173,11 +168,7 @@ class YohapNewsSpider(scrapy.Spider):
             while api_response is True:
                 # getting the api response for given ct_counter
                 params = {"ct": ct_counter, "srt": "l", "d": today}
-                response_json = requests.get(
-                    LINK_FEED_URL,
-                    params=params,
-                    timeout=5,
-                )
+                response_json = requests.get(LINK_FEED_URL, params=params, timeout=5, )
                 if response_json:
                     # if we get response we search for all the number of pages
                     page_count = (response_json.json()).get("totalPage")
@@ -186,31 +177,19 @@ class YohapNewsSpider(scrapy.Spider):
                         # setting value of p as per the counter of
                         # the page in given page count index
                         params["p"] = page_block
-                        page_response_json = requests.get(
-                            LINK_FEED_URL,
-                            params=params,
-                            timeout=5,
-                        ).json()
+                        page_response_json = requests.get(LINK_FEED_URL, params=params, timeout=5, ).json()
                         # from each page index getting the article data list
                         article_list = page_response_json.get("list")
                         for article_data in article_list:
                             # fetching the published date for each block in article_list
-                            article_date = datetime.fromtimestamp(
-                                int(article_data.get("createdAt")) / 1000
-                            ).date()
+                            article_date = datetime.fromtimestamp(int(article_data.get("createdAt")) / 1000).date()
 
                             # if the article_date is
                             if article_date < TODAYS_DATE:
                                 page_block = page_count
                                 break
-                            self.articles.append(
-                                {
-                                    "link": BASE_URL
-                                    + "news/"
-                                    + article_data.get("sequence"),
-                                    "title": article_data.get("title"),
-                                }
-                            )
+                            self.articles.append({"link": BASE_URL + "news/" + article_data.get("sequence"),
+                                "title": article_data.get("title"), })
                         page_block += 1
 
                     # updating the counter after searching pages of current ct_counter
@@ -219,14 +198,8 @@ class YohapNewsSpider(scrapy.Spider):
                     api_response = False
                     break
         except Exception as exception:
-            LOGGER.INFO(
-                "Error Occurred while fetching Link Feeds for: %s %s",
-                response.url,
-                exception,
-            )
-            raise exceptions.LinkFeedScrappingException(
-                f"Error Occurred while fetching Link Feeds : {exception}"
-            )
+            LOGGER.INFO("Error Occurred while fetching Link Feeds for: %s %s", response.url, exception, )
+            raise LinkFeedScrappingException(f"Error Occurred while fetching Link Feeds : {exception}")
 
     def parse_article(self, response: str) -> list:
         """
@@ -247,30 +220,22 @@ class YohapNewsSpider(scrapy.Spider):
             response_data = get_parsed_data(response)
             response_data["time_scraped"] = [str(datetime.now())]
             articledata_loader.add_value("raw_response", raw_response)
-            articledata_loader.add_value(
-                "parsed_json",
-                response_json,
-            )
+            articledata_loader.add_value("parsed_json", response_json, )
             articledata_loader.add_value("parsed_data", response_data)
 
             self.articles.append(dict(articledata_loader.load_item()))
             return articledata_loader.item
 
         except Exception as exception:
-            LOGGER.info(
-                "Error occurred while scrapping an article for this link %s %s",
-                response.url,
-                str(exception),
-            )
-            raise exceptions.ArticleScrappingException(
-                f"Error occurred while fetching article details:-  {str(exception)}"
-            )
+            LOGGER.info("Error occurred while scrapping an article for this link %s %s", response.url, str(exception), )
+            raise ArticleScrappingException(
+                f"Error occurred while fetching article details:-  {str(exception)}")
 
     def closed(self, reason: any) -> None:
         """
         store all scrapped data into json file with given date in filename
         Args:
-            response: generated response
+            reason: generated response
         Raises:
             ValueError if not provided
         Returns:
@@ -279,37 +244,20 @@ class YohapNewsSpider(scrapy.Spider):
 
         try:
             stats = self.crawler.stats.get_stats()
-            if (
-                stats.get(
-                    "downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
-                    0,
-                )
-                > 0
-            ) or (
-                stats.get(
-                    "downloader/request_count",
-                    0,
-                )
-                == stats.get(
-                    "downloader/exception_type_count/twisted.internet.error.TimeoutError",
-                    0,
-                )
-            ):
+            if (stats.get("downloader/exception_type_count/scrapy.core.downloader.handlers.http11.TunnelError",
+                0, ) > 0) or (stats.get("downloader/request_count", 0, ) == stats.get(
+                "downloader/exception_type_count/twisted.internet.error.TimeoutError", 0, )) or (
+                    stats.get("downloader/exception_type_count/twisted.internet.error.ConnectionRefusedError", 0, )):
                 self.output_callback("Error in Proxy Configuration")
 
             if self.output_callback is not None:
                 self.output_callback(self.articles)
             if not self.articles:
                 LOGGER.info("No articles or sitemap url scrapped.")
-            else:
-                export_data_to_json_file(self.type, self.articles, self.name)
-
         except Exception as exception:
             LOGGER.info(
-                "Error occurred while writing json file %s - %s",
-                str(exception),
-                {reason},
+                f"Error occurred while closing crawler: {str(exception)} - {reason}"
             )
-            raise exceptions.ExportOutputFileException(
-                f"Error occurred while writing json file{str(exception)} - {reason}"
+            raise CrawlerClosingException(
+                f"Error occurred while closing crawler: {str(exception)} - {reason}"
             )

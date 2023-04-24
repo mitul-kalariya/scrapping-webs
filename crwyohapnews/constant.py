@@ -2,7 +2,7 @@
 from datetime import datetime
 import logging
 
-PROXY_TIMEOUT = 5 # in seconds
+PROXY_TIMEOUT = 5  # in seconds
 TODAYS_DATE = datetime.today().date()
 LOGGER = logging.getLogger()
 BASE_URL = "https://yonhapnewstv.co.kr/"
